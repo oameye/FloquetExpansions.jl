@@ -1,9 +1,7 @@
 using BenchmarkTools
 using FloquetExpansions
 
-
 const SUITE = BenchmarkGroup()
-
 
 BenchmarkTools.tune!(SUITE)
 results = BenchmarkTools.run(SUITE; verbose=true)

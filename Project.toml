@@ -6,18 +6,30 @@ version = "0.1.0"
 [deps]
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+QuestBase = "7e80f742-43d6-403d-a9ea-981410111d43"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+SecondQuantizedAlgebra = "f7aa4685-e143-4cb6-a7f3-073579757907"
+SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+VanVleckRecursion = "b035d78d-16e8-4eee-b57b-0bcdd92a70b5"
 
 [compat]
 Aqua = "0.8.11"
+SymbolicUtils = "3.6"
+Symbolics = "6"
+Reexport = "1.2"
 CheckConcreteStructs = "0.1"
 DocStringExtensions = "0.9.4"
 Documenter = "1.11"
 ExplicitImports = "1.11"
 JET = "0.9.18, 0.10"
 LaTeXStrings = "1.4"
-Test = "1.10"
-julia = "1.10"
 Preferences = "1"
+QuestBase = "0.3.1"
+SecondQuantizedAlgebra = "0.2"
+Test = "1.10"
+VanVleckRecursion = "0.1"
+julia = "1.10"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
@@ -25,8 +37,8 @@ CheckConcreteStructs = "73c92db5-9da6-4938-911a-6443a7e94a58"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 ExplicitImports = "7d51a73a-1435-4ff3-83d9-f097790105c7"
 JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Preferences = "21216c6a-2e73-6563-6e65-726566657250"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["JET", "CheckConcreteStructs", "ExplicitImports", "Test", "Aqua", "Documenter", "Preferences"]
