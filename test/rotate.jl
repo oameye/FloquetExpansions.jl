@@ -14,21 +14,19 @@ h = FockSpace(:cavity)
     expr = simplify((a' + a))
     rot = rotate(expr, a, ω, t)
 
-    @test simplify(rot.arguments[end] + ω * a' * a) == 0
-    # @test string(rot) == "(exp((0 - 1im)*t*ω)*(a′)+exp((0 + 1im)*t*ω)*(a)+-ω*(a′*a))"
-    @eqtest rot ==
-        (exp((0 - 1im) * t * ω) * (a') + exp((0 + 1im) * t * ω) * (a) - ω * (a' * a))
+    # @test simplify(rot.arguments[end] + ω * a' * a) == 0
+    @test iszero(simplify(rot - (exp((0 - 1im)*t*ω)*(a')+exp((0 + 1im)*t*ω)*(a)+-ω*(a'*a))))
+    # @eqtest rot ==
+        # (exp((0 - 1im) * t * ω) * (a') + exp((0 + 1im) * t * ω) * (a) - ω * (a' * a))
 end
 
 @testset begin
     expr = simplify(F * (a' + a))
     rot = rotate(expr, a, ω, t)
 
-    @test simplify(rot.arguments[end] + ω * a' * a) == 0
+    # @test simplify(rot.arguments[end] + ω * a' * a) == 0
     # @test string(rot) == "(F*exp((0 - 1im)*t*ω)*(a′)+F*exp((0 + 1im)*t*ω)*(a)+-ω*(a′*a))"
-    @eqtest rot == (
-        F * exp((0 - 1im) * t * ω) * (a') + F * exp((0 + 1im) * t * ω) * (a) - ω * (a' * a)
-    )
+    @test iszero(simplify(rot -( F * exp((0 - 1im) * t * ω) * (a') + F * exp((0 + 1im) * t * ω) * (a) - ω * (a' * a))))
 end
 
 @testset begin
