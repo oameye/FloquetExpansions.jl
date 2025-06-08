@@ -36,7 +36,12 @@ end
 end
 
 # Include all test files
-include("rotate.jl")
+@testset "rotation" begin
+    include("rotate.jl")
+end
+@testset "Kerr Resonator" begin
+    include("kerr_resonator.jl")
+end
 
 @testset "Documentation" begin
     using Documenter
