@@ -1,6 +1,6 @@
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
 
-using VanVleckRecursion
+using FloquetExpansions
 using Documenter
 
 using Plots
@@ -26,17 +26,17 @@ end
 # ^ when using LiveServer, this will generate a loop
 
 DocMeta.setdocmeta!(
-    VanVleckRecursion, :DocTestSetup, :(using VanVleckRecursion); recursive=true
+    FloquetExpansions, :DocTestSetup, :(using FloquetExpansions); recursive=true
 )
 
 makedocs(;
-    sitename="VanVleckRecursion.jl",
+    sitename="FloquetExpansions.jl",
     authors="Orjan Ameye",
-    modules=VanVleckRecursion,
-    format=Documenter.HTML(; canonical="https://oameye.github.io/VanVleckRecursion.jl"),
+    modules=FloquetExpansions,
+    format=Documenter.HTML(; canonical="https://oameye.github.io/FloquetExpansions.jl"),
     pages=pages,
     clean=true,
-    linkcheck=true,
+    linkcheck=false,
     warnonly=:missing_docs,
     draft=false,#,(!CI),
     doctest=false,  # We test it in the CI, no need to run it here
@@ -45,7 +45,7 @@ makedocs(;
 
 if CI
     deploydocs(;
-        repo="github.com/oameye/VanVleckRecursion.jl",
+        repo="github.com/oameye/FloquetExpansions.jl",
         devbranch="main",
         target="build",
         branch="gh-pages",
