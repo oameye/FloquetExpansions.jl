@@ -1,0 +1,4 @@
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+FloquetExpansions = "3d8c71b5-958b-4b86-b80e-339bb07db863"
+VanVleckRecursion = "b035d78d-16e8-4eee-b57b-0bcdd92a70b5"
