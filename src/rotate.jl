@@ -36,6 +36,5 @@ end
 
 function rotate(input::Union{QTerm,QSym}, a::QSym, ω, t)
     rot = _rotate(input, a, ω, t; extra_term=false)
-    av_rot = SQA.average(rot)
-    return SQA.undo_average(QuestBase.trig_to_exp(av_rot)) - ω * a' * a
+    return QuestBase.trig_to_exp(rot) - ω * a' * a
 end
