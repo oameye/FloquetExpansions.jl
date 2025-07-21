@@ -27,7 +27,7 @@ include("frequency_expansion.jl")
 
 @reexport using SecondQuantizedAlgebra
 export rotating_wave_approximation
-export quesienergy_operator
+export quasienergy_operator
 export rotate
 
 end # module FloquetExpansions

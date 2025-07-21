@@ -36,5 +36,5 @@ end
 
 function rotate(input::Union{QTerm,QSym}, a::QSym, ω, t)
     rot = _rotate(input, a, ω, t; extra_term=false)
-    return QuestBase.trig_to_exp(rot) - ω * a' * a
+    return trigonometric_to_exponential(rot) - ω * a' * a
 end
