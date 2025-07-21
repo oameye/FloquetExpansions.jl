@@ -15,7 +15,7 @@ function get_fourier_mul(mul::SymbolicUtils.BasicSymbolic, ω, t)
     return args[idxs], prod(rest)
 end
 
-function add_components!(dict::Dict{Int, QAdd}, i::Int, components::QMul)
+function add_components!(dict::Dict{Int,QAdd}, i::Int, components::QMul)
     if haskey(dict, i)
         dict[i] += components
     else
@@ -31,7 +31,7 @@ end
 
 function extract_factor_exponential(exp::SymbolicUtils.BasicSymbolic, ω, t)::Int
     @assert is_fourier(exp, ω, t) "Not a Fourier component: $exp"
-    args = SymbolicUtils.arguments(exp) |> first
+    args = first(SymbolicUtils.arguments(exp))
     multiple = Int(SymbolicUtils.substitute(args, Dict(ω => -im, t => 1)))
     return multiple
 end
@@ -44,7 +44,7 @@ function get_fourier_components(rot::QAdd, ω, t)
             commutative = term.arg_c
             exponential_v, rest = get_fourier_mul(commutative, ω, t)
             if isempty(exponential_v)
-                 add_components!(components, 0, term)
+                add_components!(components, 0, term)
             else
                 exponential = first(exponential_v)
                 factor = extract_factor_exponential(exponential, ω, t)

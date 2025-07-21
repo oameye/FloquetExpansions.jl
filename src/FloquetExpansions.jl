@@ -22,12 +22,12 @@ using VanVleckRecursion: VanVleckRecursion
 
 include("utils.jl")
 include("rotate.jl")
-include("Fourier_components.jl")
+include("fourier_components.jl")
 include("frequency_expansion.jl")
 
 @reexport using SecondQuantizedAlgebra
 export rotating_wave_approximation
-export get_fourier_components
+export quesienergy_operator
 export rotate
 
 end # module FloquetExpansions
