@@ -36,11 +36,16 @@ end
 end
 
 # Include all test files
+
+@testset "utils" begin
+    include("utils.jl")
+end
+
 @testset "rotation" begin
     include("rotate.jl")
 end
-@testset "Kerr Resonator" begin
-    include("kerr_resonator.jl")
+@testset "fourier components" begin
+    include("fourier_components.jl")
 end
 
 @testset "Documentation" begin

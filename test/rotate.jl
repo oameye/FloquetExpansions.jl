@@ -10,7 +10,7 @@ h = FockSpace(:cavity)
 @qnumbers a::Destroy(h)
 @syms t::Real
 
-@testset begin
+@testset "a† + a" begin
     expr = simplify((a' + a))
     rot = rotate(expr, a, ω, t)
 
@@ -20,7 +20,7 @@ h = FockSpace(:cavity)
     # (exp((0 - 1im) * t * ω) * (a') + exp((0 + 1im) * t * ω) * (a) - ω * (a' * a))
 end
 
-@testset begin
+@testset "F*(a† + a)" begin
     expr = simplify(F * (a' + a))
     rot = rotate(expr, a, ω, t)
 
@@ -36,7 +36,7 @@ end
     )
 end
 
-@testset begin
+@testset "ω₀ * (a† * a)" begin
     using SecondQuantizedAlgebra: average, undo_average
     expr = simplify(ω₀ * (a' * a))
     rot = simplify(rotate(expr, a, ω, t))
@@ -46,7 +46,7 @@ end
     # @eqtest rot == (-ω*(a'*a) + ω₀*(a'*a))
 end
 
-@testset begin
+@testset "((a† + a)^4)" begin
     expr = simplify((a' + a)^4)
     rot = rotate(expr, a, ω, t)
 
