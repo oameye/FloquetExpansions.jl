@@ -37,7 +37,7 @@ end
 
 # Include all test files
 
-@testset "rotation" begin
+@testset "utils" begin
     include("utils.jl")
 end
 
