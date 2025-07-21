@@ -35,13 +35,15 @@ end
 
     @test Set(keys(QE_operator)) == Set([0, 2, -2, 4, -4])
 
-    @eqtest simplify(QE_operator[0] - (
-        ω₀ * (a' * a) +
-        3.0α * (a' * a) +
-        0.5F * (a') +
-        0.5F * (a) +
-        1.5α * (a' * a' * a * a) +
-        -ω * (a' * a)
-    )) == 0
+    @eqtest simplify(
+        QE_operator[0] - (
+            ω₀ * (a' * a) +
+            3.0α * (a' * a) +
+            0.5F * (a') +
+            0.5F * (a) +
+            1.5α * (a' * a' * a * a) +
+            -ω * (a' * a)
+        ),
+    ) == 0
     @eqtest QE_operator[4].arguments[1] == (0.25α * (a * a * a * a))
 end
