@@ -1,5 +1,6 @@
 using FloquetExpansions
 using SymbolicUtils
+using Test
 
 # Hilbert space
 h = FockSpace(:cavity)
@@ -9,9 +10,8 @@ h = FockSpace(:cavity)
 @syms t::Real
 
 #
-
 Ht = simplify(ω₀ * a' * a + α * (a' + a)^4 / 4 + F * (a' + a) * cos(ω * t))
 rot = rotate(Ht, a, ω, t)
-rot_av = FloquetExpansions.remove_constants(FloquetExpansions.average(rot))
-term = arguments(rot_av)[1]
-@test SymbolicUtils.ismul(term)
+rot = FloquetExpansions.remove_constants!(deepvopy(rot))
+
+get_fourier_components(rot, ω, t)
