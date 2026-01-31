@@ -15,8 +15,8 @@ VanVleckRecursion = "b035d78d-16e8-4eee-b57b-0bcdd92a70b5"
 
 [compat]
 Aqua = "0.8.11"
-SymbolicUtils = "3.6"
-Symbolics = "6"
+SymbolicUtils = "3.6, 4.15"
+Symbolics = "6, 7.11"
 Reexport = "1.2"
 CheckConcreteStructs = "0.1"
 DocStringExtensions = "0.9.4"

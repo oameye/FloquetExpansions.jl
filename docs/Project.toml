@@ -8,4 +8,9 @@ Term = "22787eb5-b846-44ae-b979-8e399b8463ab"
 VanVleckRecursion = "b035d78d-16e8-4eee-b57b-0bcdd92a70b5"
 
 [compat]
-Term = "1"
+Documenter = "1.16.1"
+DocumenterTools = "0.1.21"
+Literate = "2.21.0"
+Plots = "1.41.4"
+Term = "1, 2.0"
+VanVleckRecursion = "0.1.1"
