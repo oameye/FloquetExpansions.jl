@@ -1,7 +1,5 @@
 using Literate
 
-using VanVleckRecursion
-
 ### Process examples
 # Always rerun examples
 const EXAMPLES_IN = @__DIR__
