@@ -207,6 +207,21 @@ belongs to the opposite Fourier convention, which would also transpose the off-d
 Inspection and interop view only; the recursion reads the harmonic dict directly. Because nothing
 else exercises it, it needs its own test (§8).
 
+IMPLEMENTED (`src/quasienergy.jl`), indexed by HARMONIC (`Q[m,n]`, `m,n in -nmax:nmax`) rather
+than by array position, since the array offset is exactly the thing that would go unnoticed.
+Its test diagonalizes the truncated Sambe matrix and checks that `effective_hamiltonian`'s
+spectrum converges to those quasienergies (mod wd) as the order rises, which validates the
+expansion from a direction no other test approaches. Measured at d=2, wd=60:
+
+    N              1          2          3          4          5
+    max error   2.9e-2     1.4e-3     6.7e-6     1.5e-6     4.5e-9
+
+MEASURED SHARP on the diagonal sign: rebuilt with `+m*wd`, the error saturates at 5.6e-2 and
+stops converging past N=1. Also measured: the result is identical from `nmax = 10` to `28`, so
+the Sambe truncation is not a knob hiding a failure. The per-order ratio is irregular (21.6, 202,
+4.6, 328) because the error is a max over eigenvalues and individual levels can near-cancel, so
+the test asserts the envelope rather than a per-step rate.
+
 ## 4. Engine: the Deprit triangle
 
 ```julia
@@ -499,7 +514,56 @@ Anchored on the round trip `harmonics(H, w, t)(w, t) == exponential_form(H)`, in
 | `3*X[0] == a'a` and `7*X[1] == a` | D5, the parser must not be where exactness is lost |
 | a Hermitian drive gives `ishermitian` | eq:fourierH |
 
-PRIMARY GATE for the ENGINE — residual scaling. Needs no oracle, no license, no transcription, and validates K
+### Residual scaling, the PRIMARY GATE — IMPLEMENTED AND PASSING
+
+`test/residual_scaling.jl`. Random Hermitian harmonics on a 3-level space (`NLevelSpace`, so
+transitions collapse under multiplication and expression size stays bounded), numeric `wd`,
+measured against eq:defining0 directly. Fitted log-log slopes over `wd in {20,40,80,160}`:
+
+    N      wd=20       40        80       160     slope   expected
+    1       8.95      8.95      8.95      8.95     0.000     0
+    2       2.60      1.28     0.634     0.316    -1.013    -1
+    3      0.851     0.212    0.0528    0.0131    -2.006    -2
+    4      0.343    0.0428   0.00532  6.62e-04    -3.006    -3
+    5      0.101   0.00652  4.09e-04  2.56e-05    -3.985    -4
+
+Every slope within 0.02 of `-(N-1)`. This validates K and Heff JOINTLY at every order, against
+the defining equation rather than against the spec's closed forms (which stop at order 2) or
+against the triangle's own definition.
+
+MEASURED SHARP against two engine corruptions, each flattening every slope to -1.00:
+
+    Deprit weight i/(j+1) -> i/j on the Kdot family   N=3..5 slopes -1.017, -1.037, -1.002
+    k-range n-j+1 -> n-j                              N=3..5 slopes all -1.003
+
+Implementation notes: `Op`'s docstring fixes the field layout (a transition packs `(l1,l2,g,nlev)`
+as `(i, j, ground, nlevels)`), so `sigma_ij` is the matrix unit `E_ij` and QAdd -> matrix is a
+dozen lines with NO numeric backend. `to_numeric` was rejected for this: it wants a QuantumOptics
+`Basis`, i.e. a heavy extension dependency, for something a matrix-unit map does directly. The
+Frechet derivative of `exp` comes from the `[[A,E],[0,A]]` block trick, so `d/dt exp(-iK(t))` needs
+no extra package either.
+
+### KPO end to end, IMPLEMENTED AND PASSING
+
+`test/kpo.jl`, on the spec's running example: 15 harmonics of a quartic Fock-space Hamiltonian.
+The only test that pins the spec's exact prefactors.
+
+- **Real pump: eq:kpo-heff0 and eq:kpo-heff1 reproduce EXACTLY**, `iszero(simplify(a-b))`,
+  including 20/3, 9/5, 10/3, 9/40, 17/4, 3/20, 21/2, 33/4. So D5's goal IS met on a real problem,
+  the D5d float collapse notwithstanding, as long as the weight chains stay clear of it.
+- **Complex pump** (`xi = xr + i xi`) is run as well, because with real `xi` the spec's `xi` and
+  `xi*` coincide and a bug swapping them would pass unnoticed. There the bigger expression tree
+  does push a chain through the ComplexF64 tier and the residue is ~1.8e-15, so that comparison is
+  numeric. Correct, not bit-exact — a concrete instance of D5d.
+- Also asserted: the linear terms cancel, which the spec states ("with no linear term left over")
+  and nothing else would notice.
+
+Worth recording: setting this up, the engine's Hermiticity guard caught a genuine error in the
+ORACLE, not the code. With complex `xi` the h.c. of `g3 xi a'^2` is `g3 xi* a^2`; writing
+`g3 xi a^2` makes H_0 non-Hermitian and `floquet_expansion` refused it. That is the ingest check
+from §3 earning its place.
+
+PRIMARY GATE — residual scaling. Needs no oracle, no license, no transcription, and validates K
 and Heff jointly at every order:
 
     finite-dimensional numeric backend, random d x d harmonics with H_{-m} = H_m^dag
@@ -516,7 +580,7 @@ Frechet derivative via the [[A,E],[0,A]] block-exponential trick, no extra depen
 |---|---|---|
 | unit | eq:K1, eq:R1, eq:Heff1, eq:K2, eq:Heff2 | spec, hand-verified in R3 |
 | unit | Heff^(3) (8 terms), Heff^(4) (31 terms) | arXiv:2108.02861 §D transcribed, times (-1)^n |
-| e2e | KPO: eq:kpo-heff0, eq:kpo-heff1 | spec example |
+| e2e | KPO: eq:kpo-heff0, eq:kpo-heff1 | spec example — DONE, `test/kpo.jl` |
 | e2e | quantum Kapitza through order 4 | arXiv:2108.02861 B.10 / B.11 |
 | unit | QuasienergyOperator eigenvalues (mod wd) vs Heff^[N] spectrum, large wd | nothing else covers it |
 | unit | collector round-trip on a hand-built drive | highest-risk component |
@@ -560,7 +624,7 @@ expression, which allocates by construction. A blanket application will just get
 
 Re-export note: `expim`, `exponential_form`, `trigonometric_form` are `@public`, NOT exported, so
 `@reexport using SecondQuantizedAlgebra` does not forward them. Users need them for input
-normalization and for reading `kick_operator(vv, t)`. Re-export explicitly.
+normalization and for reading `kick_operator(vv, t)`. DONE, re-exported explicitly.
 
 ## 9. Cheap structural checksums
 

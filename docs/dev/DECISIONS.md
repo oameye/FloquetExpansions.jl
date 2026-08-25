@@ -51,6 +51,23 @@ D4. Names and method options:
                                 which is exactly what D6 claims. Rejected: `Hrot`/`Kdotrot` ("rot"
                                 is curl to half the audience, and neither is a rotation).
 
+D9. `test/Project.toml` carries its own `[sources]` for SecondQuantizedAlgebra. A test
+    environment does NOT inherit `[sources]` from the root project, so `--project=test` resolved
+    SQA from the registry (<= 0.10.0) while the package requires 0.10.1. `Pkg.test()` happens to
+    work because it builds the environment differently, which is why this stayed hidden: the two
+    places that use `--project=test` directly, the Makefile's `jet` target and
+    .github/workflows/JET.yml, both failed at their `Pkg.develop` step, so JET had never actually
+    run. Anything sourced from git needs the entry duplicated here.
+
+D8. The residual-scaling gate uses a hand-rolled matrix map, NOT SQA's `to_numeric`.
+    `to_numeric` requires a QuantumOptics `Basis`, i.e. a heavy extension dependency in the test
+    environment. On an `NLevelSpace` the map is a dozen lines: `Op`'s docstring fixes the field
+    layout, a transition packs `(l1,l2,g,nlev)` as `(i, j, ground, nlevels)`, so `sigma_ij` is the
+    matrix unit `E_ij`. `NLevelSpace` also keeps expression size bounded, since products of
+    transitions on one space collapse to a single transition or zero. The Frechet derivative of
+    `exp` uses the `[[A,E],[0,A]]` block trick, so no package is needed for `d/dt exp(-iK(t))`
+    either. Revisit only if a test needs a Fock space, where truncation would become a real choice.
+
 D5c. Deprit weights are FACTORED OUT of the peeling recursion. Both families satisfy the same
     weight-free recursion `node(n,j) = sum_k [K^(k), node(n-k,j-1)]`, differing only in seed, and
     `i^j/j!` (resp. `i^j/(j+1)!`) is applied once at assembly. Carrying `1/j` inside the recursion

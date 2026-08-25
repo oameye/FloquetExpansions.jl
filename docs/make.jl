@@ -32,13 +32,13 @@ DocMeta.setdocmeta!(
 makedocs(;
     sitename="FloquetExpansions.jl",
     authors="Orjan Ameye",
-    modules=FloquetExpansions,
+    modules=[FloquetExpansions],
     format=Documenter.HTML(; canonical="https://oameye.github.io/FloquetExpansions.jl"),
     pages=pages,
     clean=true,
     linkcheck=false,
     draft=false,#,(!CI),
-    doctest=false,  # We test it in the CI, no need to run it here
+    doctest=true,  # nothing else runs them; `doctest=false` let one rot unnoticed
     checkdocs=:exports,
 )
 
