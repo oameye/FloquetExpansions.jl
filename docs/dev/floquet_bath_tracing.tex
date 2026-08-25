@@ -1,0 +1,1147 @@
+\documentclass[a4paper,11pt]{article}
+
+% ---------------------------------------------------------------- packages
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\usepackage{bbm}
+\usepackage{physics}
+\usepackage{bm}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,decorations.pathreplacing}
+\usepackage[explicit]{titlesec}
+\usepackage[most]{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage[colorlinks=true]{hyperref}
+\usepackage{cleveref}
+
+% ---------------------------------------------------------------- palette
+\definecolor{boxbg}{HTML}{EEF0F5}
+\definecolor{maintext}{HTML}{1A1C22}
+\definecolor{accent}{HTML}{1A5FA8}
+\definecolor{rulecol}{HTML}{B4B9C6}
+% figure palette: one colour per Bohr frequency of the comb
+\definecolor{combA}{HTML}{1A5FA8}
+\definecolor{combB}{HTML}{B0741A}
+\definecolor{combC}{HTML}{2A7A55}
+
+\color{maintext}
+\hypersetup{linkcolor=accent,citecolor=accent,urlcolor=accent}
+
+% ---------------------------------------------------------------- section style
+% The number is carried by the label argument, which titlesec omits for \section*,
+% so starred headings (contents, bibliography) come out unnumbered.
+\newcommand{\secnum}{}
+\titleformat{\section}
+{\normalfont\large\bfseries\color{maintext}}
+{\gdef\secnum{\thesection.\hspace{0.6em}}}{0pt}
+{\colorbox{boxbg}{\parbox{\dimexpr\linewidth-2\fboxsep\relax}{\secnum#1}}\gdef\secnum{}}
+\titleformat{\paragraph}[runin]
+{\normalfont\bfseries\color{maintext}}{}{0pt}{#1}[.\hspace{0.5em}]
+\titlespacing*{\paragraph}{0pt}{0.4\baselineskip}{0.4em}
+
+% ---------------------------------------------------------------- headers / footers
+\pagestyle{fancy}
+\fancyhf{}
+\setlength{\headheight}{22pt}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{rulecol}\leaders\hrule height \headrulewidth\hfill}}
+\fancyhead[L]{\color{maintext}\small Floquet bath tracing}
+\fancyfoot[R]{\color{maintext}\small\thepage\,/\,\pageref{LastPage}}
+
+% ---------------------------------------------------------------- bibliography
+\usepackage[backend=biber,style=numeric-comp,sorting=none,maxbibnames=99]{biblatex}
+\addbibresource{../bibliography.bib}
+
+% ---------------------------------------------------------------- shorthands
+\newcommand{\id}{\mathbbm{1}}
+\newcommand{\av}[1]{\left[#1\right]_{\mathrm{av}}}
+\renewcommand{\L}{\mathcal{L}}
+\newcommand{\Rdis}{\mathcal{R}}
+\newcommand{\Ham}{\mathcal{H}}
+\newcommand{\Dcal}{\mathcal{D}}
+\newcommand{\Kkernel}{\mathcal{K}}
+\newcommand{\Gprop}{\mathcal{G}}
+\newcommand{\eff}{\mathrm{eff}}
+\newcommand{\ad}{\mathrm{ad}}
+\newcommand{\Vcal}{\mathcal{V}}
+\newcommand{\PB}{\mathcal{P}_{\!B}}
+\newcommand{\PF}{\mathcal{P}_{\!F}}
+\newcommand{\QB}{\mathcal{Q}_{\!B}}
+\newcommand{\QF}{\mathcal{Q}_{\!F}}
+
+% ---------------------------------------------------------------- title banner
+\newcommand{\titlebanner}{%
+  \noindent
+  \begin{tcolorbox}[colback=boxbg,colframe=boxbg,arc=3pt,boxrule=0pt,
+    left=10pt,right=10pt,top=8pt,bottom=8pt,width=\textwidth]
+    {\color{maintext}\bfseries\LARGE Analytic Floquet--Redfield:\\[2pt]
+    drive-dressed bath sampling from the van Vleck factorization}\\[8pt]
+    {\color{maintext}\small\setlength{\tabcolsep}{0pt}%
+      \begin{tabular*}{\linewidth}{@{}l@{\extracolsep{\fill}}r@{}}
+        July 12, 2026 & Orjan Ameye
+    \end{tabular*}}
+  \end{tcolorbox}\vspace{0.6\baselineskip}
+}
+
+% ---------------------------------------------------------------- contents banner
+\usepackage{titletoc}
+\setcounter{tocdepth}{1}
+\titlecontents{section}[1.9em]
+  {\addvspace{2.5pt}\small}
+  {\contentslabel[{\color{accent}\bfseries\thecontentslabel}]{1.9em}}
+  {\hspace*{-1.9em}}
+  {\hspace{0.7em}\color{rulecol}\titlerule*[0.55em]{\textperiodcentered}%
+   \hspace{0.5em}{\color{accent}\bfseries\contentspage}}
+\makeatletter
+\newcommand{\tocbanner}{%
+  \noindent
+  \begin{tcolorbox}[colback=boxbg,colframe=boxbg,arc=3pt,boxrule=0pt,
+    left=10pt,right=10pt,top=8pt,bottom=10pt,width=\textwidth]
+    {\color{accent}\bfseries Contents}\par\vspace{3pt}
+    {\color{rulecol}\hrule height 0.4pt}\vspace{4pt}
+    \begingroup
+      \setlength{\parskip}{0pt}%
+      \hypersetup{linkcolor=maintext}%
+      \@starttoc{toc}%
+    \endgroup
+  \end{tcolorbox}\vspace{0.6\baselineskip}
+}
+\makeatother
+
+% ---------------------------------------------------------------- example box
+\definecolor{exbg}{HTML}{F5F7FB}
+\newtcolorbox{example}[1][Example]{%
+  enhanced,breakable,
+  colback=exbg,colframe=exbg,boxrule=0pt,arc=2pt,
+  borderline west={2pt}{0pt}{accent},
+  left=12pt,right=12pt,top=9pt,bottom=9pt,
+  fontupper=\small,
+  before upper={\setlength{\parskip}{0.6em}%
+    \noindent{\bfseries\color{accent}#1}\par\smallskip}}
+
+% ---------------------------------------------------------------- todo box
+\definecolor{todobg}{HTML}{FDF2F1}
+\definecolor{todoaccent}{HTML}{B3261E}
+\newtcolorbox{todo}[1][TODO]{%
+  enhanced,breakable,
+  colback=todobg,colframe=todobg,boxrule=0pt,arc=2pt,
+  borderline west={2pt}{0pt}{todoaccent},
+  left=12pt,right=12pt,top=9pt,bottom=9pt,
+  fontupper=\small,
+  before upper={\setlength{\parskip}{0.6em}%
+    \noindent{\bfseries\color{todoaccent}#1}\par\smallskip}}
+
+% ================================================================ document
+\begin{document}
+\titlebanner
+
+\tocbanner
+
+These notes assemble four existing constructions into one route from microscopic data to a master equation, and the result is more than their sum because each removes the obstacle the next would otherwise meet. The \textbf{Van Vleck high-frequency expansion}~\cite{Eckardt2015High} delivers the driven propagator analytically, as a periodic kick and a static effective Hamiltonian, and inserting it into the second-order bath kernel yields \textbf{Floquet--Redfield}~\cite{Grifoni1998Driven,hone2009Statisticala} with its sideband-resolved sampling of the bath but with no Sambe quasienergy diagonalization anywhere; Schnell's \textbf{global-to-local functional calculus}~\cite{Schnell2025Global} then removes the one diagonalization that still survives, and the \textbf{universal Lindblad equation}~\cite{Nathan2020Universal} keeps what is left inside the GKSL cone at every truncation order. The pumped SNAIL oscillator of Ref.~\cite{Venkatraman2024Nonlinear} runs through every section as the worked example and ends as a completely positive Floquet master equation whose dissipator is an explicit polynomial in the mode operators. Its coherent companion is not: the Lamb shift resists the same treatment for a reason \cref{sec:cp} identifies and does not remove.
+
+% ---------------------------------------------------------------- Sec 1
+\section{Model, assumptions, and order counting}\label{sec:setup}
+
+The starting point is the driven system--bath Hamiltonian
+\begin{equation}\label{eq:htot}
+  \hat H(t) = \hat H_S(t) + \hat H_B + \gamma\hat H_I,
+  \qquad
+  \hat H_I = \sum_\alpha \hat A_\alpha \otimes \hat B_\alpha,
+\end{equation}
+whose three parts we now constrain one at a time.
+
+\paragraph{The system}
+$\hat H_S(t)$ acts on the system Hilbert space alone and is $T$-periodic, $\hat H_S(t+T) = \hat H_S(t)$ with $\omega_d = 2\pi/T$, so that it possesses the Fourier decomposition
+\begin{equation}\label{eq:fourierH}
+  \hat H_S(t) = \sum_{m\in\mathbb Z} \hat H_m\, e^{-i m\omega_d t},
+  \qquad
+  \hat H_{-m} = \hat H_m^\dagger ,
+\end{equation}
+the Hermiticity constraint following from $\hat H_S(t)^\dagger = \hat H_S(t)$.
+% Nothing else is assumed: the system may be finite- or infinite-dimensional, the drive may carry arbitrarily many harmonics, and no rotating frame has been chosen.
+The single structural assumption, invoked only where stated, is that the effective Hamiltonian constructed in \cref{sec:vv} has a discrete spectrum, so that its eigenoperator decomposition (\cref{sec:comb}) is a sum rather than an integral.
+
+\paragraph{The bath}
+Throughout, $\varrho$ denotes a state on the joint system--bath space and $\rho = \Tr_B\varrho$ its reduced system counterpart.
+$\hat H_B$ acts on the bath alone, and the bath is prepared in (or relaxes to) a stationary reference state $\varrho_B$, $\comm{\varrho_B}{\hat H_B} = 0$, which we take Gaussian: all cumulants of the $\hat B_\alpha$ beyond the second vanish in $\varrho_B$.
+% For the oscillator bath $\hat H_B = \sum_j \omega_j \hat b_j^\dagger\hat b_j$ with a thermal $\varrho_B$ at inverse temperature $\beta$ this is Wick's theorem.
+The bath then enters the reduced dynamics only through the correlation matrix
+\begin{equation}\label{eq:corrmat}
+  C_{\alpha\alpha'}(\tau) \equiv \Tr_B\!\big[\tilde B_\alpha(\tau)\,\hat B_{\alpha'}\,\varrho_B\big],
+  \qquad
+  \tilde B_\alpha(\tau) = e^{i\hat H_B\tau}\,\hat B_\alpha\, e^{-i\hat H_B\tau}.
+\end{equation}
+Stationarity of $\varrho_B$ gives $\Tr_B[\tilde B_\alpha(t)\tilde B_{\alpha'}(s)\varrho_B] = C_{\alpha\alpha'}(t-s)$, and Hermiticity of the $\hat B_\alpha$ gives
+\begin{equation}\label{eq:corrsym}
+  C_{\alpha\alpha'}(\tau)^* = C_{\alpha'\alpha}(-\tau).
+\end{equation}
+A thermal $\varrho_B$ at inverse temperature $\beta$ additionally satisfies the \emph{Kubo–Martin–Schwinger} (KMS) condition $C_{\alpha\alpha'}(\tau) = C_{\alpha'\alpha}(-\tau - i\beta)$, in units $\hbar = k_B = 1$ used throughout. For the \emph{Caldeira--Leggett model}~\cite{CaldeiraLeggett1983} there is a single pair, $\hat A = \hat x \propto \hat a + \hat a^\dagger$ and $\hat B = \sum_j c_j \hat x_j$, and $C(\tau)$ is fixed by the spectral density $J(\omega)$ and $\beta$. The bath timescale $\tau_B$ is the decay time of $C_{\alpha\alpha'}(\tau)$, set by the width and regularity of the bath spectrum, not by $1/\lVert \hat H_B\rVert$, which is meaningless for an unbounded oscillator bath. Equation \eqref{eq:markovpair} sharpens it into a ratio of correlation moments, once the rate it has to be compared against is also on the table.
+
+\paragraph{The coupling}
+Writing $\hat H_I$ as a sum of Hermitian pairs, $\hat A_\alpha^\dagger = \hat A_\alpha$ and $\hat B_\alpha^\dagger = \hat B_\alpha$, costs no generality: any interaction linear in bath operators can be rearranged into this form by splitting each term into Hermitian and anti-Hermitian parts. We also take $\Tr_B[\hat B_\alpha\varrho_B] = 0$ without loss of generality; a nonzero mean is removed by absorbing the static system operator $\sum_\alpha \langle\hat B_\alpha\rangle\hat A_\alpha$ into $\hat H_S(t)$, which preserves periodicity. Finally, the initial state is taken factorized, $\varrho(0) = \rho(0)\otimes\varrho_B$.
+
+\paragraph{Bookkeeping}
+Two expansion parameters run through everything, and we keep their ledgers separate. The dimensionless symbol $\gamma$ in \eqref{eq:htot} counts powers of the microscopic coupling; after deriving the order we suppress its explicit powers in the formulas. Thus the Born kernel and dissipative rates are $\mathcal O(\gamma^2)$. Powers of $\gamma$ are a counting device and carry no physics by themselves; the physical scale is the rate $\Gamma_{\!\star}$ at which the bath actually moves the state, defined in \eqref{eq:markovpair} and itself $\mathcal O(\gamma^2)$. This convention must not be confused with papers that use $\gamma$ directly for a damping rate. Orders in the inverse drive frequency are counted by superscripts: $X^{(k)} = \mathcal O(\omega_d^{-k})$, and $X^{[N]} \equiv \sum_{k<N} X^{(k)}$ denotes the $N$-th--order approximant, with error $\mathcal O(\omega_d^{-N})$. In this convention the rotating-wave approximation, which keeps only the period average of the Hamiltonian, is the first-order approximant $N=1$; the Liouvillian-level literature~\cite{Ikeda2021,Schnell2021} counts these orders shifted by one, calling the period average zeroth order.
+
+\begin{example}[Example: the Kerr parametric oscillator]
+It is worth putting the abstract data $(\hat H_S(t),\{\hat A_\alpha\},C_{\alpha\alpha'},\beta)$ on a real device once. We take the driven SNAIL oscillator of Ref.~\cite{Venkatraman2024Nonlinear}: a nonlinear mode pumped near the parametric resonance at $2\omega_d\simeq2\omega_0$, so that $\omega_d$, half the pump, is the expansion frequency throughout, coupled through a bare quadrature to a single bath, so that the environment is blind to the drive,
+\begin{equation}\label{eq:kpo-lab}
+  \hat H_S^{\mathrm{lab}}(t) = \omega_0\,\hat a^\dagger\hat a
+  + \sum_{n=3,4}\frac{g_n}{n}\,(\hat a+\hat a^\dagger)^n
+  - iF\cos(2\omega_d t)\,(\hat a - \hat a^\dagger),
+  \qquad
+  \hat A = i\,(\hat a - \hat a^\dagger).
+\end{equation}
+The working frame is reached by a displacement and a rotation, both acting on the system alone so that the bath data is untouched.
+
+\paragraph{The displacement}
+$D(\zeta) = e^{\zeta\hat a^\dagger - \zeta^*\hat a}$ sends $\hat a\to\hat a+\zeta$. Requiring $D^\dagger\hat H_S^{\mathrm{lab}}D - iD^\dagger\dot D$ to carry no term linear in $\hat a^\dagger$, at leading order in $g_n$, fixes $\zeta$ as the classical trajectory of the linear oscillator,
+\begin{equation}\label{eq:kpo-zeta}
+  \dot\zeta = -i\omega_0\,\zeta + F\cos(2\omega_d t),
+  \qquad
+  \zeta(t) = \frac{F}{2i}\left[\frac{e^{-2i\omega_d t}}{\omega_0-2\omega_d}
+  + \frac{e^{2i\omega_d t}}{\omega_0+2\omega_d}\right],
+\end{equation}
+and leaves
+\begin{equation}\label{eq:kpo-disp}
+  \hat H_S^{\mathrm{disp}}(t) = \omega_0\,\hat a^\dagger\hat a
+  + \sum_{n=3,4}\frac{g_n}{n}\big(\hat a+\hat a^\dagger+\xi e^{-2i\omega_d t}+\xi^* e^{2i\omega_d t}\big)^n,
+  \qquad
+  \hat A(t) = i(\hat a-\hat a^\dagger) + i(\zeta-\zeta^*)\,\id,
+\end{equation}
+with $\xi = -2iF\omega_d/(\omega_0^2-4\omega_d^2)$. The constants dropped from the Hamiltonian are a global phase; the one in $\hat A$ is kept, since it multiplies $\hat B$.
+
+\paragraph{The rotation}
+$R(t) = e^{-i\omega_d t\,\hat a^\dagger\hat a}$ at $\omega_d$, half the pump and so commensurate with it, sends $\hat a\to\hat a\,e^{-i\omega_d t}$ and subtracts $\omega_d\hat a^\dagger\hat a$, leaving the detuning $\delta = \omega_0-\omega_d$:
+\begin{equation}\label{eq:kpo-hs}
+  \begin{gathered}
+  \hat H_S(t) = \delta\,\hat a^\dagger\hat a + \sum_{n=3,4}\frac{g_n}{n}\,\hat X(t)^n,
+  \qquad
+  \hat A(t) = i\big(\hat a\,e^{-i\omega_d t} - \hat a^\dagger e^{i\omega_d t}\big) + i(\zeta-\zeta^*)\,\id,\\[2pt]
+  \hat X(t) = \hat a\,e^{-i\omega_d t} + \hat a^\dagger e^{i\omega_d t}
+  + \xi\,e^{-2i\omega_d t} + \xi^*e^{2i\omega_d t},
+  \end{gathered}
+\end{equation}
+whose cubic term mixes one power of $\xi$ down to $\hat a^{\dagger2}$, the two-photon drive that makes this a parametric oscillator.
+
+The fundamental of $\hat H_S(t)$ is $\omega_d$, \emph{half} the pump frequency, and $\hat A(t)$ is periodic rather than static. The latter widens \eqref{eq:htot} at no cost, since nothing below uses more than $T$-periodicity, and its bare harmonics $m=\pm1$ have the bath read near $\pm\omega_d$ before any dressing.
+\end{example}
+
+% ---------------------------------------------------------------- Sec 2
+\section{The unique second-order kernel}\label{sec:kernel}
+
+We first derive, with all steps displayed, the object everything else evaluates: the reduced generator at second order in the coupling. The derivation is standard~\cite{Breuer2007}.
+
+\paragraph{Interaction picture}
+Let $U_S(t,t')$ be the exact propagator of the driven system alone, fixed by $i\partial_t U_S = \hat H_S(t)\,U_S$ and $U_S(t',t') = \id$, and define the interaction picture with respect to $\hat H_S(t) + \hat H_B$ from the initial time $t_0 = 0$:
+\begin{equation}
+  \tilde\varrho(t) = U_0^\dagger(t)\,\varrho(t)\,U_0(t),
+  \qquad
+  U_0(t) = U_S(t,0)\otimes e^{-i\hat H_B t},
+\end{equation}
+and correspondingly $\tilde A_\alpha(t) = U_S^\dagger(t,0)\,\hat A_\alpha\,U_S(t,0)$ and $\tilde B_\alpha(t)$ as in \cref{eq:corrmat}. The von Neumann equation for the total state becomes exactly
+\begin{equation}\label{eq:vonneumann}
+  \dv{\tilde\varrho}{t} = -i\gamma\,\comm{\tilde H_I(t)}{\tilde\varrho(t)},
+  \qquad
+  \tilde H_I(t) = \sum_\alpha \tilde A_\alpha(t)\otimes\tilde B_\alpha(t).
+\end{equation}
+
+\paragraph{Second order in the coupling}
+Integrating \cref{eq:vonneumann} once and substituting the result back gives the still-exact identity
+\begin{equation}\label{eq:iterated}
+  \dv{\tilde\varrho}{t}
+  = -i\gamma\,\comm{\tilde H_I(t)}{\varrho(0)}
+  - \gamma^2\int_0^t \dd s\;\comm{\tilde H_I(t)}{\comm{\tilde H_I(s)}{\tilde\varrho(s)}}.
+\end{equation}
+Now trace over the bath. The first term vanishes because $\varrho(0)$ factorizes and $\langle\hat B_\alpha\rangle = 0$. In the second term we invoke the \emph{Born replacement} $\tilde\varrho(s) \to \tilde\rho(s)\otimes\varrho_B$ with $\tilde\rho = \Tr_B\tilde\varrho$; for a Gaussian bath with zero mean, the neglected system--bath correlations feed back into the traced equation only through higher even moments, so the correction to the kernel is $\mathcal O(\gamma^4)$. Evaluating the bath trace of the double commutator term by term,
+\begin{equation}\label{eq:fourterms}
+  \Tr_B\comm{\tilde H_I(t)}{\comm{\tilde H_I(s)}{\tilde\rho(s)\otimes\varrho_B}}
+  = \sum_{\alpha\alpha'}\Big(
+    C_{\alpha\alpha'}(t-s)\big[\tilde A_\alpha(t)\,\tilde A_{\alpha'}(s)\,\tilde\rho(s)
+  - \tilde A_{\alpha'}(s)\,\tilde\rho(s)\,\tilde A_\alpha(t)\big] + \text{h.c.}\Big),
+\end{equation}
+where the four products of the expanded double commutator have been paired using the cyclicity of the bath trace, stationarity, and \cref{eq:corrsym}. Substituting $s = t - \tau$ yields the \emph{time-nonlocal Born equation}
+\begin{multline}\label{eq:born-nonlocal}
+  \dv{\tilde\rho}{t}
+  = -\gamma^2\sum_{\alpha\alpha'}\int_0^t \dd\tau\,\Big(
+    C_{\alpha\alpha'}(\tau)\,\comm{\tilde A_\alpha(t)}{\tilde A_{\alpha'}(t-\tau)\,\tilde\rho(t-\tau)}\\
+    + C_{\alpha\alpha'}(\tau)^*\,\comm{\tilde\rho(t-\tau)\,\tilde A_{\alpha'}(t-\tau)}{\tilde A_\alpha(t)}
+  \Big).
+\end{multline}
+Since the kernel is already $\mathcal O(\gamma^2)$, the state under the integral may be advanced, $\tilde\rho(t-\tau)\to\tilde\rho(t)$, at the price of a further $\mathcal O(\gamma^4)$ error;\footnote{In the interaction picture the only motion of $\tilde\rho$ is dissipative: $\dv{\tilde\rho}{s} = \mathcal O(\gamma^2)$ by \eqref{eq:born-nonlocal}, so $\tilde\rho(t-\tau) - \tilde\rho(t) = -\int_{t-\tau}^{t}\dd s\,\dv{\tilde\rho}{s} = \mathcal O(\gamma^2\tau)$, and the kernel already carries $\gamma^2$. This relies on $U_0$ being the \emph{exact} driven propagator: with an approximate one, $\tilde\rho$ retains a coherent rotation that is not $\mathcal O(\gamma^2)$ and the estimate fails.} this gives the \emph{time-convolutionless} (Redfield-type) form
+\begin{equation}\label{eq:born}
+  \dv{\tilde\rho}{t}
+  = -\gamma^2\sum_{\alpha\alpha'}\int_0^t \dd\tau\,\Big(
+    C_{\alpha\alpha'}(\tau)\,\comm{\tilde A_\alpha(t)}{\tilde A_{\alpha'}(t-\tau)\,\tilde\rho(t)}
+    + C_{\alpha\alpha'}(\tau)^*\,\comm{\tilde\rho(t)\,\tilde A_{\alpha'}(t-\tau)}{\tilde A_\alpha(t)}
+  \Big).
+\end{equation}
+Both \cref{eq:born-nonlocal,eq:born} are legitimate second-order kernels; they differ only at $\mathcal O(\gamma^4)$, and we use \cref{eq:born} as the working form. From this point onward the common prefactor $\gamma^2$ is suppressed, as announced in \cref{sec:setup}; every rate and every generator term carries an implicit $\mathcal O(\gamma^2)$.
+
+\paragraph{The exact propagator inside the kernel}
+The integrand of \cref{eq:born} contains the driven two-time propagator through the composition rule $U_S(t,0) = U_S(t,t-\tau)\,U_S(t-\tau,0)$ applied to the exact propagator of the driven system $U_S$:
+\begin{equation}\label{eq:twotime}
+  \tilde A_\alpha(t)\,\tilde A_{\alpha'}(t-\tau)
+  = U_S^\dagger(t,0)\;\hat A_\alpha\;U_S(t,t-\tau)\;\hat A_{\alpha'}\;U_S(t-\tau,0).
+\end{equation}
+The outer propagators are a global frame transformation; the operator that carries physics is $U_S(t,t-\tau)$, which transports the coupling \emph{across the bath memory time} $\tau$. In \cref{eq:born} this operator is exact. The kernel is therefore unique in the sense that decides everything below: given the data $(\hat H_S(t), \{\hat A_\alpha\}, C_{\alpha\alpha'}, \beta)$, no ordering choice, no frame choice, and no choice of the frequencies at which the bath is read exists at $\mathcal O(\gamma^2)$. The one freedom that does remain, between \cref{eq:born-nonlocal,eq:born}, is a choice of time-locality and not of frequencies, and both members read the bath through the same exact propagator. That last commitment, to a definite set of frequencies at which the bath spectral function is sampled, is made only when a Markov step converts the memory integral into rates; \cref{sec:origin} shows that a scheme which makes it implicitly cannot move it afterwards. Note also that periodicity of the drive has not been used; \cref{eq:born} holds for arbitrary time dependence, and the Floquet structure enters only when we \emph{evaluate} the kernel in \cref{sec:vv,sec:comb}.
+
+% ---------------------------------------------------------------- Sec 3
+\section{Where the ordering ambiguity is born}\label{sec:origin}
+
+Nature has no ordering problem. For a Gaussian bath the reduced dynamics is uniquely fixed by the data $(\hat H_S(t), \{\hat A_\alpha\}, C_{\alpha\alpha'}, \beta)$, with the Feynman--Vernon influence functional~\cite{FeynmanVernon1963} as the constructive proof, and truncating at second order changes nothing: \cref{eq:born} is unique because the propagator threaded through it in \cref{eq:twotime} is exact. The ambiguity is an artefact of approximation, and it enters at one identifiable place.
+
+That place is $U_S(t,t-\tau)$. Every analytical scheme replaces it by something computable, and the subsequent Markov step freezes the Bohr frequencies of whatever was inserted into the bath spectral function, irreversibly. \emph{Trace-first} inserts the undriven propagator, or the drive-averaged one $e^{-i\hat H_0\tau}$, which in a rotating frame already carries the detuning and Stark shifts and is the best a static sampling can do. \emph{Dress-first} inserts the van Vleck factorization of \cref{sec:vv},
+\begin{equation*}
+  U_S(t,t') = e^{-iK(t)}\;e^{-iH_\eff\,(t-t')}\;e^{iK(t')},
+\end{equation*}
+with $K(t)=K(t+T)$ the periodic kick operator, $K = \mathcal O(1/\omega_d)$, and $H_\eff$ the static effective Hamiltonian. The kicks dress the coupling operator $\hat A_\alpha$ (new jump operators), $H_\eff$ shifts the sampling frequencies, and the kick at the \emph{earlier} time $t-\tau$ is micromotion acting during the bath memory, the source of the $\omega + m\omega_d$ sidebands. The non-commutator of the two schemes is exactly the difference between the two propagator approximations pushed through the memory integral. \Cref{tab:sampling} collects where each scheme ends up reading the bath.
+
+\begin{table}[H]
+  \centering\small
+  \renewcommand{\arraystretch}{1.35}
+  \begin{tabular}{@{}L{3.9cm}L{4.3cm}L{5.6cm}@{}}
+    \toprule
+    Scheme & Propagator put into \eqref{eq:born} & Bath read at \\
+    \midrule
+    Trace-first, undriven
+    & the drive switched off
+    & Bohr frequencies of the undriven system \\
+    Trace-first, drive-averaged
+    & $e^{-i\hat H_0\tau}$, $\hat H_0 = \av{\hat H_S}$
+    & Bohr frequencies of $\hat H_0$; no $m\omega_d$ \\
+    Magnus--Redfield~\cite{Mickiewicz2026}
+    & total-Hamiltonian Magnus, first nontrivial order; dresses the coupling operator
+    & Bohr frequencies of the renormalized $\hat H_S$; no $m\omega_d$ \\
+    Floquet--Redfield~\cite{Grifoni1998Driven,hone2009Statisticala}
+    & exact, by numerical quasienergy diagonalization
+    & every sideband $\omega + m\omega_d$ \\
+    Dress-first (this note)
+    & the factorization above, truncated at order $N$
+    & every sideband $\omega + m\omega_d$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Where each scheme reads the bath. The sampling frequencies are decided by the propagator inserted into the unique kernel \eqref{eq:born} and frozen by the Markov step; only the last row can still move them afterwards, by increasing $N$. Magnus--Redfield agrees with dress-first only where the bath does not resolve the individual transition frequencies, $\tau_B\ll T$; Floquet--Redfield reads the right frequencies but is neither analytic nor organized in $1/\omega_d$.}
+  \label{tab:sampling}
+\end{table}
+
+\paragraph{Consistent versus uncontrolled}
+The two schemes are not of equal standing. Dress-first is the \emph{consistent evaluation} of the unique kernel \eqref{eq:born}: the $N$-th--order truncation of the factorization commits a frame error $\mathcal O(1/\omega_d^{N})$ that shrinks with $N$. Trace-first commits a \emph{structural} error: in generator norm it is formally $\mathcal O(\gamma^2/\omega_d)$, but it is uncontrolled, because the frozen sampling frequencies cannot be moved by any subsequent expansion; its own $1/\omega_d$ series converges to the \emph{wrong} generator whenever the bath spectral function varies across the sidebands. For observables carried entirely by missing channels the relative error can be arbitrarily large; the Kerr-cat coherence time $T_X$ is the motivating experimental example~\cite{Venkatraman2024Nonlinear}. Its device-level value is nevertheless not fixed by ordering alone: the continuous near-dc spectrum and additional circuit modes must also be specified.
+
+\paragraph{Order counting}
+Expanding jointly in the coupling and in $1/\omega_d$: at $\mathcal O(\gamma^2)$ the only object is the kernel \eqref{eq:born}, and dress-first at order $N$ reproduces it up to the frame error. All bath-during-micromotion content at second order in the coupling is the earlier-time kick in the factorization, which dress-first keeps. Contributions genuinely beyond a dress-first evaluation summed in $1/\omega_d$ require at least two bath contractions with drive harmonics threaded between them, and therefore start at $\mathcal O(\gamma^4)$. (The summation is to be read with the usual caveat that the van Vleck series is in general asymptotic.)
+
+% ---------------------------------------------------------------- Sec 4
+\section{Factorizing the driven propagator: kick and effective Hamiltonian}\label{sec:vv}
+
+The method of these notes evaluates \cref{eq:born} by inserting the van Vleck factorization of $U_S$. This section constructs that factorization for the general Hamiltonian \eqref{eq:fourierH}, fixes its gauge, and derives the recursion that generates it to any order, with the lowest orders written out.
+
+\paragraph{Existence and gauge freedom}
+By Floquet's theorem~\cite{Shirley1965,Sambe1973} the propagator of a $T$-periodic Hamiltonian factorizes into a periodic unitary and a stationary rotation. We write this in the two-time form
+\begin{equation}\label{eq:vv}
+  U_S(t,t') = e^{-iK(t)}\;e^{-iH_\eff\,(t-t')}\;e^{iK(t')},
+\end{equation}
+with $K(t) = K(t+T)$ Hermitian (the \emph{kick operator}, generating the micromotion) and $H_\eff$ Hermitian and time-independent (the \emph{effective Hamiltonian}). The factorization is not unique: for any fixed unitary $V$, replacing $e^{-iK(t)} \to e^{-iK(t)}V$ and $H_\eff \to V^\dagger H_\eff V$ leaves \cref{eq:vv} invariant, and the branch of the logarithm defining $H_\eff$ may be shifted. The \emph{van Vleck gauge} fixes this freedom by demanding that $K(t)$ have vanishing period average,
+\begin{equation}\label{eq:gauge}
+  \av{K} \equiv \frac1T\int_0^T \dd t\, K(t) = 0
+  \quad\text{order by order in } 1/\omega_d,
+\end{equation}
+which makes $H_\eff$ independent of the initial phase of the drive~\cite{Eckardt2015High,Goldman2014,Bukov2015}. The alternative Floquet--Magnus gauge, $K(t_0) = 0$, pushes micromotion into the effective Hamiltonian and reintroduces $t_0$-dependence; we do not use it.
+
+\paragraph{The defining equation}
+Substituting \cref{eq:vv} into $i\partial_t U_S(t,t') = \hat H_S(t)U_S(t,t')$ and multiplying from the left by $e^{iK(t)}$ gives the single operator identity
+\begin{equation}\label{eq:defining0}
+  H_\eff = e^{iK(t)}\,\hat H_S(t)\,e^{-iK(t)} \;-\; i\,e^{iK(t)}\,\partial_t\, e^{-iK(t)} .
+\end{equation}
+The content of \cref{eq:defining0} is a condition on $K$: the right-hand side, which depends on $t$ through both $\hat H_S$ and $K$, must be time-independent. Expanding both terms in nested commutators, using $e^{iK}Xe^{-iK} = \sum_j \frac{i^j}{j!}\ad_K^j X$ with $\ad_K X = \comm{K}{X}$, and the integral identity $e^{iK}\partial_t e^{-iK} = -i\int_0^1\dd u\; e^{iuK}\dot K e^{-iuK}$, one finds
+\begin{equation}\label{eq:defining}
+  H_\eff
+  \;\overset{!}{=}\;
+  \sum_{j\ge0}\frac{i^j}{j!}\,\ad_K^j\,\hat H_S(t)
+  \;-\;
+  \sum_{j\ge0}\frac{i^j}{(j+1)!}\,\ad_K^j\,\dot K(t),
+\end{equation}
+where the exclamation mark marks the time-independence requirement. Requiring this is exactly the condition that fixes $K$.
+
+\paragraph{The recursion}
+Insert the ansatz $K = \sum_{k\ge1}K^{(k)}$ with $K^{(k)} = \mathcal O(\omega_d^{-k})$; a time derivative raises the order by one, $\dot K^{(k)} = \mathcal O(\omega_d^{-(k-1)})$, because $K$ oscillates at harmonics of $\omega_d$. At order $\omega_d^{-k}$ the only term of \cref{eq:defining} containing the unknown $K^{(k+1)}$ is $-\dot K^{(k+1)}$, so the order-$k$ statement reads
+\begin{equation}\label{eq:recursion}
+  H_\eff^{(k)} = R^{(k)}(t) - \dot K^{(k+1)}(t),
+\end{equation}
+where the residual $R^{(k)}(t)$ collects every order-$\omega_d^{-k}$ term of the right side of \cref{eq:defining} built from kicks of order $\le k$, all of which are known at stage $k$. Since $K$ is periodic, $\av{\smash{\dot K^{(k+1)}}} = 0$, and \cref{eq:recursion} splits under the period average into
+\begin{equation}\label{eq:recursion-split}
+  H_\eff^{(k)} = \av{R^{(k)}},
+  \qquad
+  \dot K^{(k+1)}(t) = R^{(k)}(t) - \av{R^{(k)}},
+\end{equation}
+the second of which is the \emph{homological equation} for the next kick. It is solvable precisely because $\partial_t$ maps periodic operators onto the zero-average ones: the kernel part $\av{R^{(k)}}$ is unreachable by any kick and therefore survives as the normal form $H_\eff^{(k)}$, while the remainder is inverted by the zero-average prescription \eqref{eq:gauge}: if $X(t) = \sum_{\ell\neq0}X_\ell\, e^{-i\ell\omega_d t}$, its zero-average antiderivative is $\sum_{\ell\neq0}\frac{i}{\ell\omega_d}X_\ell\, e^{-i\ell\omega_d t}$. Equations \eqref{eq:recursion-split} generate the entire hierarchy mechanically: static parts of the residual feed the effective Hamiltonian, oscillating parts feed the next kick.
+
+\paragraph{Lowest orders explicitly}
+At $k=0$ the residual is the Hamiltonian itself, $R^{(0)} = \hat H_S(t)$, so
+\begin{equation}\label{eq:K1}
+  H_\eff^{(0)} = \hat H_0,
+  \qquad
+  K^{(1)}(t) = \sum_{m\neq0}\frac{i\,\hat H_m}{m\,\omega_d}\, e^{-i m\omega_d t}.
+\end{equation}
+At $k=1$ the residual is $R^{(1)} = i\comm{K^{(1)}}{\hat H_S(t)} - \tfrac{i}{2}\comm{K^{(1)}}{\dot K^{(1)}}$; carrying out the Fourier algebra,
+\begin{equation}\label{eq:R1}
+  R^{(1)}(t)
+  = -\sum_{m\neq0}\frac{\comm{\hat H_m}{\hat H_0}}{m\,\omega_d}\,e^{-i m\omega_d t}
+  \;-\;\frac12\sum_{m,m'\neq0}\frac{\comm{\hat H_m}{\hat H_{m'}}}{m\,\omega_d}\,e^{-i (m+m')\omega_d t},
+\end{equation}
+whose period average (the harmonics with $m' = -m$) gives the familiar first-order effective Hamiltonian
+\begin{equation}\label{eq:Heff1}
+  H_\eff^{(1)}
+  = -\frac12\sum_{m\neq0}\frac{\comm{\hat H_m}{\hat H_{-m}}}{m\,\omega_d}
+  = \sum_{m>0}\frac{\comm{\hat H_m^\dagger}{\hat H_m}}{m\,\omega_d},
+\end{equation}
+while the oscillating remainder of \cref{eq:R1}, integrated with the zero-average prescription, yields the second-order kick
+\begin{equation}\label{eq:K2}
+  K^{(2)}(t)
+  = -i\sum_{m\neq0}\Bigg[\frac{\comm{\hat H_m}{\hat H_0}}{m^2\omega_d^2}
+  + \frac12\sum_{m'\neq0,m}\frac{\comm{\hat H_{m'}}{\hat H_{m-m'}}}{m\,m'\,\omega_d^2}\Bigg]\,e^{-i m\omega_d t}.
+\end{equation}
+Iterating once more, the period average of the order-two residual gives the second-order effective Hamiltonian
+\begin{equation}\label{eq:Heff2}
+  H_\eff^{(2)}
+  = \sum_{m\neq0}\frac{\comm{\comm{\hat H_{-m}}{\hat H_0}}{\hat H_m}}{2m^2\omega_d^2}
+  + \sum_{m\neq0}\sum_{m'\neq0,m}\frac{\comm{\comm{\hat H_{-m}}{\hat H_{m-m'}}}{\hat H_{m'}}}{3m\,m'\,\omega_d^2},
+\end{equation}
+in agreement with the tabulated van Vleck series~\cite{Eckardt2015High,Mikami2016Brillouin,Ikeda2021}. The pattern continues mechanically; \cref{eq:recursion-split} is the form best suited to computer algebra.
+
+\paragraph{Truncation}
+The $N$-th--order approximants $K^{[N]} = \sum_{k<N}K^{(k)}$ and $H_\eff^{[N]} = \sum_{k<N}H_\eff^{(k)}$ define the truncated factorization $U_S^{[N]}(t,t')$ via \cref{eq:vv}. What that truncation costs, and how it fixes $N$, is priced separately.
+
+\begin{example}[Example: the Kerr parametric oscillator, continued]
+Everything at $N=2$ is built from the harmonics of \eqref{eq:kpo-hs}. Normal ordered, and with their c-number parts dropped since those commute out of both \eqref{eq:Heff1} and the conjugation by $e^{-iK}$, they are
+\begin{equation}\label{eq:kpo-harmonics}
+  \begin{aligned}
+    \hat H_1 &= g_3\big[\hat a^\dagger\hat a^2 + \big(1+2\lvert\xi\rvert^2\big)\hat a\big]
+      + g_4\big[3\xi\,\hat a^{\dagger2}\hat a + \xi^*\hat a^3
+      + 3\xi\big(1+\lvert\xi\rvert^2\big)\hat a^\dagger\big],\\
+    \hat H_2 &= 2g_3\xi\,\hat a^\dagger\hat a
+      + g_4\big[\hat a^\dagger\hat a^3 + \tfrac32\big(1+2\lvert\xi\rvert^2\big)\hat a^2
+      + \tfrac32\xi^2\,\hat a^{\dagger2}\big],\\
+    \hat H_3 &= g_3\big[\tfrac13\hat a^3 + \xi^2\,\hat a^\dagger\big]
+      + 3g_4\xi\big[\hat a^\dagger\hat a^2 + \big(1+\lvert\xi\rvert^2\big)\hat a\big],\\
+    \hat H_4 &= g_3\xi\,\hat a^2 + g_4\big[\tfrac14\hat a^4 + 3\xi^2\,\hat a^\dagger\hat a\big],
+    \qquad
+    \hat H_5 = g_3\xi^2\,\hat a + g_4\xi\big[\hat a^3 + \xi^2\,\hat a^\dagger\big],\\
+    \hat H_6 &= \tfrac32 g_4\xi^2\,\hat a^2,
+    \qquad
+    \hat H_7 = g_4\xi^3\,\hat a,
+    \qquad
+    \hat H_8 = 0 ,
+  \end{aligned}
+\end{equation}
+with $\hat H_{-m} = \hat H_m^\dagger$. The period average is
+\begin{equation}\label{eq:kpo-heff0}
+  H_\eff^{(0)} = \hat H_0
+  = \big[\delta + 3g_4\big(1+2\lvert\xi\rvert^2\big)\big]\,\hat a^\dagger\hat a
+  + \tfrac{3}{2}g_4\,\hat a^{\dagger2}\hat a^2
+  + \big(g_3\xi\,\hat a^{\dagger2} + \mathrm{h.c.}\big),
+\end{equation}
+and the first correction \eqref{eq:Heff1} is
+\begin{equation}\label{eq:kpo-heff1}
+  \begin{aligned}
+  \omega_d\,H_\eff^{(1)} = {}
+  &-\Big[\tfrac{20}{3}g_3^2 + 9g_3^2\lvert\xi\rvert^2
+    + \tfrac{9}{5}g_4^2\big(10+12\lvert\xi\rvert^2-5\lvert\xi\rvert^4\big)\Big]\,\hat a^\dagger\hat a\\
+  &-\Big[\tfrac{10}{3}g_3^2 + \tfrac{9}{40}g_4^2\big(85+48\lvert\xi\rvert^2\big)\Big]\,\hat a^{\dagger2}\hat a^2
+   \;-\; \tfrac{17}{4}g_4^2\,\hat a^{\dagger3}\hat a^3\\
+  &-\Big[\tfrac{3}{20}g_3g_4\,\xi\big(105+94\lvert\xi\rvert^2\big)\,\hat a^{\dagger2}
+   + \tfrac{21}{2}g_3g_4\,\xi\,\hat a^{\dagger3}\hat a
+   + \tfrac{33}{4}g_4^2\,\xi^2\,\hat a^{\dagger4} + \mathrm{h.c.}\Big],
+  \end{aligned}
+\end{equation}
+both up to constants, with no linear term left over. The micromotion at the same order is \eqref{eq:K1} read on the same harmonics,
+\begin{equation}\label{eq:kpo-kick}
+  K^{[2]}(t) = K^{(1)}(t) = \sum_{m\neq0} K_m\,e^{-im\omega_d t},
+  \qquad
+  K_m = \frac{i\,\hat H_m}{m\,\omega_d},
+\end{equation}
+and it is this operator, not $H_\eff^{[2]}$, that dresses the coupling operator in \cref{sec:comb}.
+
+The average is a squeezed Kerr Hamiltonian, its two-photon drive $g_3\xi\,\hat a^{\dagger2}$ the cubic nonlinearity carrying one power of the pump displacement.
+\end{example}
+
+% ---------------------------------------------------------------- Sec 5
+\section{Dressed coupling operators and the frequency comb}\label{sec:comb}
+
+Inserting \cref{eq:vv} into the interaction-picture coupling operator $\tilde A_\alpha(t) = U_S^\dagger(t,0)\,\hat A_\alpha\,U_S(t,0)$ factorizes it into three layers,
+\begin{equation}\label{eq:threelayers}
+  \tilde A_\alpha(t)
+  = e^{-iK(0)}\; e^{iH_\eff t}\,
+  \big[\,e^{iK(t)}\,\hat A_\alpha\,e^{-iK(t)}\,\big]\,
+  e^{-iH_\eff t}\; e^{iK(0)} :
+\end{equation}
+a constant kick at the two ends, a rotation under $H_\eff$, and, in brackets, a periodically kicked coupling operator. This section works out each layer for the general coupling set $\{\hat A_\alpha\}$.
+
+\paragraph{The kicked coupling operator and its harmonics}
+Define the \emph{kicked coupling operator}
+\begin{equation}\label{eq:kickedA}
+  \hat A^K_\alpha(t) \equiv e^{iK(t)}\,\hat A_\alpha\,e^{-iK(t)}
+  = \sum_{m\in\mathbb Z} \hat A_{\alpha,m}\,e^{-im\omega_d t},
+  \qquad
+  \hat A_{\alpha,m}^\dagger = \hat A_{\alpha,-m},
+\end{equation}
+which is $T$-periodic because $K$ is, and Hermitian at every $t$, whence the constraint on the harmonics. Writing the full kick as $K(t) = \sum_{m\neq0} K_m\, e^{-im\omega_d t}$ (each harmonic $K_m$ itself a $1/\omega_d$ series, with $K_0 = 0$ in the van Vleck gauge) and expanding the conjugation in nested commutators gives the closed general formula
+\begin{equation}\label{eq:kickedAgeneral}
+  \hat A_{\alpha,m}
+  = \sum_{j\ge0}\frac{i^j}{j!}
+  \sum_{\substack{m_1,\dots,m_j\neq0\\ m_1+\cdots+m_j = m}}
+  \comm{K_{m_1}}{\comm{K_{m_2}}{\cdots\comm{K_{m_j}}{\hat A_\alpha}}},
+\end{equation}
+the $j=0$ term contributing the bare $\hat A_\alpha$ to $m=0$ only. Grading \cref{eq:kickedAgeneral} by the kick orders, $K_m = \sum_{k\ge1}K^{(k)}_m$, turns it into the all-orders sideband recursion: the order-$k$ content of each harmonic is
+\begin{equation}\label{eq:kickedAgraded}
+  \hat A^{(k)}_{\alpha,m}
+  = \sum_{j=1}^{k}\frac{i^j}{j!}
+  \sum_{\substack{k_1+\cdots+k_j = k\\ k_i\ge1}}
+  \sum_{\substack{m_1+\cdots+m_j = m\\ m_i\neq0}}
+  \comm{K^{(k_1)}_{m_1}}{\comm{K^{(k_2)}_{m_2}}{\cdots\comm{K^{(k_j)}_{m_j}}{\hat A_\alpha}}},
+  \qquad
+  \hat A^{(0)}_{\alpha,m} = \delta_{m0}\,\hat A_\alpha ,
+\end{equation}
+built entirely from kicks the recursion \eqref{eq:recursion-split} has already produced at stages $\le k$: the coupling-operator hierarchy runs mechanically alongside the kick hierarchy, with no further input and no diagonalization. Since every $K_m = \mathcal O(1/\omega_d)$, each sideband harmonic is drive-induced, $\hat A_{\alpha,m\neq0} = \mathcal O(1/\omega_d)$, while $\hat A_{\alpha,0} = \hat A_\alpha + \mathcal O(1/\omega_d^2)$. For a monochromatic drive (only $\hat H_{\pm1}\neq0$) the leading kick carries only the harmonics $\pm1$, and reaching the $m$-th sideband requires $|m|$ commutators or higher-order kicks, so $\hat A_{\alpha,m} = \mathcal O(\omega_d^{-|m|})$. With \cref{eq:K1}, the lowest orders are explicit:
+\begin{equation}\label{eq:kickedAlow}
+  \hat A_{\alpha,m} = -\frac{\comm{\hat H_m}{\hat A_\alpha}}{m\,\omega_d} + \mathcal O(\omega_d^{-2})
+  \;\;(m\neq0),
+  \qquad
+  \hat A_{\alpha,0} = \hat A_\alpha
+  - \frac12\sum_{m\neq0}\frac{\comm{\hat H_m}{\comm{\hat H_{-m}}{\hat A_\alpha}}}{m^2\omega_d^2}
+  + \mathcal O(\omega_d^{-3}).
+\end{equation}
+\emph{
+This is where the new jump operators are born:} whatever operator content the commutators $\comm{\hat H_m}{\hat A_\alpha}$ generate beyond the bare $\hat A_\alpha$ (for the driven oscillator, $\hat a^{\dagger2}$, $\hat a^\dagger\hat a$, \ldots) enters the dissipator with a definite $1/\omega_d$ weight. For a bosonic mode this is a degree count: a term of $\hat H_m$ carrying $p$ mode operators and one of $\hat A_\alpha$ carrying $q$ commute into at most $p+q-2$. Two linear operators therefore give a c-number, which is a coherent force and never a jump operator, so a one-photon drive cannot dress a linear coupling and on a harmonic system is displaced away outright; a two-photon drive has $p=2$ and returns an operator, generically not proportional to $\hat A_\alpha$. Raising $p$ further is what the nonlinearity does, and it is what makes the sidebands rich.
+
+\paragraph{Eigenoperators of the effective Hamiltonian}
+Let $H_\eff = \sum_\epsilon \epsilon\,\Pi_\epsilon$ be the spectral resolution of the (truncated) effective Hamiltonian, assumed discrete, and let $\mathcal W = \{\epsilon' - \epsilon\}$ be its set of Bohr frequencies. These $\epsilon$ are the quasienergies: by \cref{eq:vv} the stroboscopic evolution is generated by $H_\eff$, so its spectrum is the Floquet spectrum, on the branch the perturbative construction selects by starting from $H_0$. Define, for each harmonic,
+\begin{equation}\label{eq:eigenop}
+  \hat A_{\alpha,m}(\omega) \equiv \sum_{\epsilon'-\epsilon\,=\,\omega} \Pi_\epsilon\,\hat A_{\alpha,m}\,\Pi_{\epsilon'},
+  \qquad \omega\in\mathcal W .
+\end{equation}
+These satisfy, by construction,
+\begin{equation}\label{eq:eigenopprops}
+  \begin{gathered}
+  \sum_{\omega\in\mathcal W}\hat A_{\alpha,m}(\omega) = \hat A_{\alpha,m},\\[3pt]
+  \comm{H_\eff}{\hat A_{\alpha,m}(\omega)} = -\omega\,\hat A_{\alpha,m}(\omega),
+  \qquad
+  e^{iH_\eff t}\,\hat A_{\alpha,m}(\omega)\,e^{-iH_\eff t} = e^{-i\omega t}\,\hat A_{\alpha,m}(\omega),
+  \end{gathered}
+\end{equation}
+together with the adjoint pairing $\hat A_{\alpha,m}(\omega)^\dagger = \hat A_{\alpha,-m}(-\omega)$, which follows by taking the adjoint of \cref{eq:eigenop} and using $\hat A_{\alpha,m}^\dagger = \hat A_{\alpha,-m}$. Pedantry requires one flag: the spectrum entering \cref{eq:eigenop} is that of the \emph{truncated} $H_\eff^{[N]}$, so the Bohr set $\mathcal W$ moves by $\mathcal O(\omega_d^{-N})$ as $N$ changes; this displacement is part of the frame error and is priced with it.
+
+\paragraph{The frequency comb}
+The bracket of \cref{eq:threelayers} is the kicked coupling operator \eqref{eq:kickedA}, so all that remains is to carry the $H_\eff$ rotation through it. Conjugation is linear and the harmonic phases are c-numbers, so they pass through untouched:
+\begin{equation}
+  e^{iH_\eff t}\,\hat A^K_\alpha(t)\,e^{-iH_\eff t}
+  = \sum_{m\in\mathbb Z} e^{-im\omega_d t}\;
+  e^{iH_\eff t}\,\hat A_{\alpha,m}\,e^{-iH_\eff t}.
+\end{equation}
+What is left is the rotation of each \emph{static} harmonic operator, and that is precisely what \cref{eq:eigenop} was built to answer. Resolve $\hat A_{\alpha,m} = \sum_\omega \hat A_{\alpha,m}(\omega)$ by the first identity of \cref{eq:eigenopprops}, so that nothing is lost, and each piece rotates as the single phase $e^{-i\omega t}$ by the third. Hence
+\begin{equation}\label{eq:comb}
+  \tilde A_\alpha(t) = e^{-iK(0)}\Big[\sum_{m,\,\omega} \hat A_{\alpha,m}(\omega)\,e^{-i(\omega + m\omega_d)\,t}\Big]e^{iK(0)} ,
+\end{equation}
+the outer kicks passing through the whole calculation untouched because they carry no $t$.
+The coupling oscillates at the \emph{transition frequencies} $\nu_\mu = \omega + m\omega_d$, indexed by $\mu \equiv (m,\omega)$: the dressed Bohr frequencies shifted by drive harmonics. Each is the Floquet counterpart of the Bohr frequency at which a static eigenoperator oscillates, and $\hat A_{\alpha,m}(\omega)$ is the corresponding \emph{Floquet eigenoperator}. A transition frequency is thus a quasienergy \emph{difference} plus a number of drive quanta, labelling a transition together with the drive photons it exchanges, and not a quasienergy. Only the sum is convention-independent: quasienergies live modulo $\omega_d$, and rebranching one of them moves weight between $(m,\omega)$ pairs while leaving every $\nu_\mu$ where it was. The bath samples $\nu$, never $\omega$. We write $\hat A_{\alpha\mu} \equiv \hat A_{\alpha,m}(\omega)$; the bracketed operator is Hermitian at every $t$, so the index set is closed under $\bar\mu \equiv (-m,-\omega)$ with $\hat A_{\alpha\bar\mu} = \hat A_{\alpha\mu}^\dagger$ and $\nu_{\bar\mu} = -\nu_\mu$. The constant kick $e^{iK(0)}$ is a fixed frame rotation, absorbed into the initial state and observables. Together they form a frequency comb, and the micromotion acts, literally, as the comb through which the bath is sampled (\cref{fig:comb}). One number characterizes that comb as a whole, the resolution needed to separate its frequencies,
+\begin{equation}\label{eq:deltamin}
+  \Delta_{\min} \equiv \min\big\{\,\lvert\nu_\mu - \nu_{\mu'}\rvert \;:\; \nu_\mu\neq\nu_{\mu'}\,\big\},
+\end{equation}
+the smallest gap between \emph{distinct} transition frequencies. Coincident $\nu_\mu$ are counted once and never enter the minimum, so $\Delta_{\min}$ measures near-degeneracy and not degeneracy: it goes to zero as a parameter is tuned toward a coincidence of two transition frequencies, which is what a parametric operating point is engineered to arrange. Note what it is made of, the Bohr set $\mathcal W$ and $\omega_d$ jointly, so that unlike the bath quantities of \cref{sec:redfield} it is unavailable until $H_\eff$ has been diagonalized. It prices every approximation below that asks the bath to resolve the comb.
+
+\begin{figure}[t]
+  \centering
+  \input{../figures/tikz/frequency_comb.tikz}
+  \caption{The frequencies at which the bath is read. Each Floquet eigenoperator oscillates at one $\nu_\mu = \omega + m\omega_d$ [\cref{eq:comb}], so every $m$ carries its own replica of the Bohr set, here $\mathcal W = \{0,\pm\omega_1\}$ with one colour per element and one stem taken apart below the axis. Stem height is the bath spectral function $S(\nu) = 2\Re\Gamma^{\alpha\alpha}_\nu(\infty)$ there, stem thickness separates the bare coupling at $m=0$ from the drive-induced clusters, all $\mathcal O(\omega_d^{-1})$ whenever the drive carries the harmonic; the two are independent, so a suppressed stem landing on structure in $S$ can outweigh a nominally larger one in a gap.}
+  \label{fig:comb}
+\end{figure}
+
+\begin{example}[Example: the Kerr parametric oscillator, continued]
+The coupling operator \eqref{eq:kpo-hs} is periodic already before dressing, so in place of $\hat A^{(0)}_{\alpha,m} = \delta_{m0}\hat A_\alpha$ the recursion \eqref{eq:kickedAgraded} starts from $\hat A^{(0)}_{1} = i\,\hat a$, together with the displacement c-number $\hat A^{(0)}_{2} = (i\omega_0/2\omega_d)\,\xi\,\id$, the negative harmonics being their adjoints as always. Being proportional to $\id$, that one neither dresses nor is dressed, and in \eqref{eq:preclosure} it survives only through commutators: it is a coherent force at $\mathcal O(\gamma^2)$, never a dissipator. The order-one content of the rest is
+\begin{equation}\label{eq:kpo-sideband-rec}
+  \hat A^{(1)}_m = -\sum_{m'\neq0}\frac{\comm{\hat H_{m'}}{\hat A^{(0)}_{m-m'}}}{m'\,\omega_d},
+\end{equation}
+which on the harmonics \eqref{eq:kpo-harmonics} gives
+\begin{equation}\label{eq:kpo-sidebands}
+  \begin{aligned}
+    \hat A^{(1)}_0 &= 0,
+    \qquad
+    \hat A^{(1)}_1 = \frac{i}{\omega_d}\Big[g_3\xi\,\hat a^\dagger
+      + \tfrac32 g_4\big(\hat a^\dagger\hat a^2 + \big(1+2\lvert\xi\rvert^2\big)\hat a\big)\Big],\\
+    \hat A^{(1)}_2 &= \frac{i}{\omega_d}\Big[\tfrac43 g_3\,\hat a^2 + 8g_4\xi\,\hat a^\dagger\hat a
+      + 4g_4\xi\big(1+\lvert\xi\rvert^2\big)\id\Big],\\
+    \hat A^{(1)}_3 &= \frac{i}{\omega_d}\Big[\tfrac32 g_3\xi\,\hat a + \tfrac34 g_4\,\hat a^3
+      + \tfrac94 g_4\xi^2\,\hat a^\dagger\Big],\\
+    \hat A^{(1)}_4 &= \frac{i}{\omega_d}\Big[\tfrac85 g_4\xi\,\hat a^2
+      + \tfrac{8}{15}g_3\xi^2\,\id\Big],
+    \qquad
+    \hat A^{(1)}_5 = \frac{i}{\omega_d}\,\tfrac54 g_4\xi^2\,\hat a ,
+    \qquad
+    \hat A^{(1)}_6 = \frac{i}{\omega_d}\,\tfrac{12}{35}g_4\xi^3\,\id ,
+  \end{aligned}
+\end{equation}
+and $\hat A_{-m} = \hat A_m^\dagger$. The list closes at $|m| = 6$: no $\hat H_m$ beyond $m=7$ has operator content, and the last two that do, $\hat H_6\propto\hat a^2$ and $\hat H_7\propto\hat a$, commute with $\hat a$.
+
+This is where the new jump operators appear. The bare coupling operator reaches the bath only at $\pm\omega_d$; one order of micromotion opens a harmonic at every $m\omega_d$ up to $6\omega_d$, and the low ones carry operator content the bare one does not have: $\hat a^\dagger$ and $\hat a^\dagger\hat a^2$ at the fundamental, $\hat a^2$ at $2\omega_d$, $\hat a^3$ at $3\omega_d$. The top of the list is thinner, $\hat A^{(1)}_5$ reproducing the bare $\hat a$ and $\hat A^{(1)}_6$ being another c-number force. Every $\id$ here is the degree count read backwards: only the linear pieces of $\hat H_m$ can reach it, those where powers of $\xi$ stand in for mode operators, and with the pump off all three vanish. With the quartic terms switched off, the $m=1,2,3$ harmonics reduce to $g_3\xi\,\hat a^\dagger/\omega_d$, $4g_3\hat a^2/3\omega_d$ and $3g_3\xi\,\hat a/2\omega_d$, the three channels reported in Ref.~\cite{Venkatraman2024Nonlinear}.
+
+Assembled, \eqref{eq:comb} reads
+\begin{equation}\label{eq:kpo-comb}
+  \tilde A^{[2]}(t) = e^{-iK^{[2]}(0)}\Big[\sum_{m=-6}^{6}\;\sum_{\omega\in\mathcal W}
+  \hat A_m(\omega)\,e^{-i(\omega + m\omega_d)\,t}\Big]e^{iK^{[2]}(0)},
+  \qquad
+  \hat A_m = \hat A^{(0)}_m + \hat A^{(1)}_m ,
+\end{equation}
+with $\hat A_m(\omega)$ the projection \eqref{eq:eigenop} of $\hat A_m$ onto the Bohr frequency $\omega$ of $H_\eff^{[2]}$. 
+\end{example}
+
+% ---------------------------------------------------------------- Sec 6
+\section{The generator before the Markov step}\label{sec:preclosure}
+
+We now substitute the decomposition \eqref{eq:comb} into the kernel \eqref{eq:born}. The substitution is an identity, not an approximation: \cref{eq:comb} rewrites the exact driven coupling operator, so for the exact $K$ and $H_\eff$ the generator below is exact at $\mathcal O(\gamma^2)$. Evaluating $K$ and $H_\eff$ at order $N$ is a separate step, taken in \cref{sec:vv} and priced separately.
+
+\paragraph{Absorbing the constant kick}
+The fixed rotation $e^{iK(0)}$ in \cref{eq:comb} conjugates every operator in \cref{eq:born} identically, so it can be moved onto the state once and for all: define
+\begin{equation}\label{eq:breve}
+  \breve\rho(t) \equiv e^{iK(0)}\,\tilde\rho(t)\,e^{-iK(0)},
+  \qquad
+  \breve\rho(0) = e^{iK(0)}\,\rho(0)\,e^{-iK(0)},
+\end{equation}
+after which \cref{eq:born} holds verbatim for $\breve\rho$ with $\tilde A_\alpha(t)$ replaced by the bare comb
+\begin{equation}\label{eq:barecomb}
+  \breve A_\alpha(t) \equiv e^{iK(0)}\,\tilde A_\alpha(t)\,e^{-iK(0)} = \sum_\mu \hat A_{\alpha\mu}\, e^{-i\nu_\mu t}.
+\end{equation}
+
+\paragraph{The rate functions}
+The memory integral now acts only on c-number phases. This is the step the comb was built for: in \cref{eq:born} the lag $\tau$ enters solely through the earlier coupling operator $\breve A_{\alpha'}(t-\tau)$, and \cref{eq:barecomb} splits that dependence off as a scalar,
+\begin{equation}\label{eq:lagphase}
+  \breve A_{\alpha'}(t-\tau) = \sum_\mu \hat A_{\alpha'\mu}\, e^{-i\nu_\mu t}\; e^{i\nu_\mu \tau},
+\end{equation}
+with the operator content sitting outside the integral. What is left under it is the product $C_{\alpha\alpha'}(\tau)\,e^{i\nu_\mu\tau}$, a half-range Fourier transform of the bath correlation read at the transition frequency of the earlier coupling operator. Define
+\begin{equation}\label{eq:rates}
+  \Gamma^{\alpha\alpha'}_\nu(t) \equiv \int_0^t \dd\tau\;e^{i\nu\tau}\,C_{\alpha\alpha'}(\tau),
+\end{equation}
+one function per coupling pair and per transition frequency. Every non-Markovian effect at $\mathcal O(\gamma^2)$ lives in the transients of $\Gamma^{\alpha\alpha'}_\nu(t)$ before saturation.
+
+\paragraph{The second-order generator}
+Two bookkeeping moves finish the substitution. First, the later-time coupling operator is rewritten in its adjoint representation: the index set is closed under $\mu\to\bar\mu$ with $\hat A_{\alpha\bar\mu} = \hat A_{\alpha\mu}^\dagger$ and $\nu_{\bar\mu} = -\nu_\mu$ (\cref{sec:comb}), so relabelling the summation variable gives
+\begin{equation}\label{eq:adjointrep}
+  \breve A_\alpha(t) = \sum_{\mu'}\hat A_{\alpha\mu'}\,e^{-i\nu_{\mu'}t}
+  = \sum_{\mu'}\hat A_{\alpha\mu'}^\dagger\,e^{+i\nu_{\mu'}t},
+\end{equation}
+and the two together contribute the net phase $e^{i(\nu_{\mu'}-\nu_\mu)t}$. Second, the $C^*_{\alpha\alpha'}$ half of \cref{eq:born} is the Hermitian conjugate of the $C_{\alpha\alpha'}$ half, so it need not be carried. Doing the $\tau$ integral with \cref{eq:rates} and expanding the remaining commutator against the overall minus sign of \cref{eq:born},
+\begin{equation}\label{eq:preclosure}
+  \dv{\breve\rho}{t}
+  = \sum_{\alpha\alpha'}\sum_{\mu,\mu'} e^{i(\nu_{\mu'}-\nu_{\mu})t}\,\Gamma^{\alpha\alpha'}_{\nu_\mu}\!(t)\,
+  \Big( \hat A_{\alpha'\mu}\,\breve\rho\,\hat A_{\alpha\mu'}^\dagger
+  - \hat A_{\alpha\mu'}^\dagger \hat A_{\alpha'\mu}\,\breve\rho \Big) + \mathrm{h.c.},
+\end{equation}
+with h.c.\ the Hermitian conjugate of the displayed superoperator. Note the asymmetry of the indices: the memory integral acts on the \emph{earlier} coupling operator, so the bath is sampled at the transition frequency $\nu_\mu$ of the operator it meets across the memory time, while the later one $\mu'$ only sets the interference phase. That phase vanishes for $\nu_\mu = \nu_{\mu'}$ with $\mu\neq\mu'$, which happens when two dressed Bohr frequencies differ by a whole number of drive quanta, $\omega'-\omega = (m-m')\omega_d$, i.e. \emph{multiphoton resonances}. 
+
+\paragraph{The same generator in the kicked frame}
+For a Schr\"odinger-picture statement, transform to the \emph{kicked frame} $\rho(t) \equiv e^{-iH_\eff t}\,\breve\rho(t)\,e^{iH_\eff t}$. Conjugation by $e^{-iH_\eff t}$ rotates each eigenoperator, $e^{-iH_\eff t}\hat A_{\alpha,m}(\omega)e^{iH_\eff t} = e^{i\omega t}\hat A_{\alpha,m}(\omega)$, which cancels the Bohr part of every explicit phase and leaves only the drive harmonics:
+\begin{equation}\label{eq:preclosure-kicked}
+  \dv{\rho}{t}
+  = -i\comm{H_\eff}{\rho}
+  + \sum_{\alpha\alpha'}\sum_{\mu,\mu'} e^{i(m'-m)\omega_d t}\,\Gamma^{\alpha\alpha'}_{\nu_\mu}\!(t)\,
+  \Big( \hat A_{\alpha'\mu}\,\rho\,\hat A_{\alpha\mu'}^\dagger
+  - \hat A_{\alpha\mu'}^\dagger \hat A_{\alpha'\mu}\,\rho \Big) + \mathrm{h.c.}
+\end{equation}
+The kicked-frame generator is $T$-periodic: the coherent half is static by construction and every remaining time dependence sits at harmonics of the drive. Periodicity is all that discrete time-translation symmetry asks of a time-local generator, since $\hat H_S(t+T) = \hat H_S(t)$ gives $\Lambda(t+T,t_0+T) = \Lambda(t,t_0)$ and a constant is periodic too~\cite{Nathan2020Universal}; that the dissipative half is not in fact constant is a separate statement, and this section closes with it. The two pictures carry the same information; \cref{eq:preclosure} is the convenient one for the approximations that follow, because there the secular criterion reads directly off the phases.
+
+\paragraph{Back to the laboratory}
+The state $\rho$ that \eqref{eq:preclosure-kicked} and every equation after it propagate is not the physical one, and the dictionary is fixed by \eqref{eq:vv}. Let $\rho_{\mathrm{phys}}$ be the reduced state in the frame where $\hat H_S(t)$ is the system Hamiltonian. Composing $\breve\rho = e^{iK(0)}\tilde\rho\,e^{-iK(0)}$ with $\tilde\rho(t) = U_S^\dagger(t,0)\,\rho_{\mathrm{phys}}(t)\,U_S(t,0)$ and the kicked-frame definition, the constant kicks of \eqref{eq:vv} cancel against those of \eqref{eq:breve} and the static rotations against $e^{\mp iH_\eff t}$, leaving only the periodic kick at the current time:
+\begin{equation}\label{eq:frames}
+  \rho(t) = e^{iK(t)}\,\rho_{\mathrm{phys}}(t)\,e^{-iK(t)},
+  \qquad
+  \langle\hat O\rangle(t) = \Tr\!\big[\rho(t)\,\hat O^K(t)\big],
+  \qquad
+  \hat O^K(t) \equiv e^{iK(t)}\,\hat O\,e^{-iK(t)} .
+\end{equation}
+The micromotion is therefore undone by dressing the \emph{observable} and not the state, and $\hat O^K$ is the construction \eqref{eq:kickedA} again: its harmonics come from the recursion \eqref{eq:kickedAgraded} with $\hat A_\alpha$ replaced by $\hat O$, at no extra cost and to the same order $N$. Stroboscopically the dressing disappears, since $K(nT) = K(0)$, so a measurement synchronized with the drive reads $\rho$ up to the one fixed rotation already absorbed in \eqref{eq:breve}. Where the working frame was reached by further transformations, as in the running example, those must be undone as well, in reverse order.
+
+\paragraph{What the periodicity measures}
+The Floquet expansion was supposed to remove the drive, so it is worth settling at once what survived it. Suppose the bath cannot resolve the comb, $C_{\alpha\alpha'}(\tau) = S_{0,\alpha\alpha'}\,\delta(\tau)$, so that $\Gamma^{\alpha\alpha'}_\nu(t) = \tfrac12 S_{0,\alpha\alpha'}$ at every transition frequency and every $t>0$. The weight then leaves the $\mu$ sum in \eqref{eq:preclosure}, the completeness relation \eqref{eq:eigenopprops} resums $\omega$ and \eqref{eq:barecomb} resums $m$, and what is left is \eqref{eq:born} again, with no per-tooth weight surviving anywhere: decomposing into the comb was work the bath did not ask for. Undoing the frame with \eqref{eq:frames}, the kick leaves the dissipator by covariance and the coherent part through \eqref{eq:defining0}, whose conjugate reads $i\big(\partial_t e^{-iK}\big)e^{iK} = \hat H_S(t) - e^{-iK}H_\eff e^{iK}$ and cancels the transported $H_\eff$:
+\begin{equation}\label{eq:flatbath}
+  \dv{\rho_{\mathrm{phys}}}{t} = -i\comm{\hat H_S(t)}{\rho_{\mathrm{phys}}}
+  + \sum_{\alpha\alpha'}S_{0,\alpha\alpha'}\Big(\hat A_{\alpha'}\,\rho_{\mathrm{phys}}\,\hat A_\alpha
+  - \tfrac12\acomm{\hat A_\alpha \hat A_{\alpha'}}{\rho_{\mathrm{phys}}}\Big),
+\end{equation}
+the driven Hamiltonian with an entirely undressed dissipator, at every order $N$. That is the right answer for the right reason: a flat $S$ means $\tau_B = 0$, the singular-coupling limit in which Born and both Markov steps are exact and the drive has no bath memory to dress, and \eqref{eq:corrsym} then forces $\beta = 0$, so the physical statement is a bath flat across the comb at high temperature. Two consequences fix the reading of everything below. The residual periodicity of the dissipator is first order in the variation of the bath weight across the comb and is nothing else: not leftover micromotion, but the record of which tooth was read where. And no frame makes both halves static, since the kicked frame buys a static $H_\eff$ at the price of a periodic dissipator while \eqref{eq:flatbath} buys an undressed dissipator at the price of a periodic Hamiltonian. This is where the flat bath is the boundary case and not merely a convenient limit. Write the dissipative half in the completely positive form $\sum_k\Dcal[\hat L_k(t)]$ that \cref{sec:cp} reaches. A frame change acts on it as $\hat L_k\mapsto V\hat L_k V^\dagger$, and the sum is invariant under unitary mixing of the channels, so the dissipator can be made static only if the jump operators are a common unitary orbit of fixed ones, $V(t)\hat L_k(t)V^\dagger(t) = \sum_j u_{kj}(t)\hat L^{(0)}_j$. Every invariant of the collection under that group must then be constant, the sharpest being the spectrum of $\sum_k\hat L^\dagger_k\hat L_k$, which transforms by conjugation and whose eigenvalues are the dissipation rates in the instantaneous jump basis. At flat bath the single jump is $\sqrt{S_0}\,e^{iK(t)}\hat A e^{-iK(t)}$, manifestly such an orbit with $V = e^{-iK(t)}$, and those rates do not move. As soon as two teeth are weighted differently they do, and then no $V$ exists. What survives is therefore the standard shape of an exact time-local Floquet master equation rather than a residue of an incomplete expansion~\cite{Nathan2020Universal,Mickiewicz2026}, and \cref{sec:cp} discards it only for those who want the time-independent generator that is usually quoted, at a price stated there.
+
+% ---------------------------------------------------------------- Sec 7
+\section{The Markov step: Floquet--Redfield}\label{sec:redfield}
+
+Equation \eqref{eq:preclosure} is not yet a master equation: its rate functions still remember when the state was prepared. Removing that memory is the Markov step, and what it leaves is Floquet--Redfield.
+
+\paragraph{Saturating the rate functions}
+The integrand of \eqref{eq:rates} is cut off by the decay of $C_{\alpha\alpha'}(\tau)$, so $\Gamma^{\alpha\alpha'}_\nu(t)$ reaches its limit after a bath memory time $\tau_B$ and is constant thereafter. If the reduced state does not change appreciably over that window, a condition made quantitative in \eqref{eq:markovpair} below, the transient may be dropped for $t\gg\tau_B$ and the upper limit sent to infinity,
+\begin{equation}\label{eq:halftransform}
+  W_{\alpha\alpha'}(\nu) \equiv \Gamma^{\alpha\alpha'}_\nu(\infty)
+  = \int_0^\infty\!\dd\tau\;e^{i\nu\tau}\,C_{\alpha\alpha'}(\tau)
+  = \tfrac12 S_{\alpha\alpha'}(\nu) + i\,\Lambda_{\alpha\alpha'}(\nu),
+\end{equation}
+splitting the channel matrix into its Hermitian and anti-Hermitian parts. By \eqref{eq:corrsym} the first is the full-line transform
+\begin{equation}\label{eq:spectralfn}
+  S_{\alpha\alpha'}(\nu) = \int_{-\infty}^{\infty}\!\dd\tau\;e^{i\nu\tau}\,C_{\alpha\alpha'}(\tau),
+\end{equation}
+the bath spectral function, positive semidefinite as a matrix at every $\nu$ and carrying all the dissipation, while $\Lambda = (W - W^\dagger)/2i$ is its principal-value partner and shifts the coherent motion. This is the only approximation added here. Three now stand: Born, the Floquet order $N$, and the two Markov steps counted together; \cref{sec:ledger} prices these and the two that \cref{sec:filter,sec:cp} still add.
+
+\paragraph{The number that makes it small}
+Two Markov steps have now been taken, the time-locality between \eqref{eq:born-nonlocal} and \eqref{eq:born} and the saturation just performed, and both rest on the same sentence: the bath forgets faster than it acts. Two moments of $C$ turn that sentence into numbers,
+\begin{equation}\label{eq:markovpair}
+  \Gamma_{\!\star} \equiv \max_\alpha\lVert\hat A_\alpha\rVert^2
+    \int_{-\infty}^{\infty}\!\dd\tau\;\lVert C(\tau)\rVert,
+  \qquad
+  \tau_B \equiv \frac{\int_{-\infty}^{\infty}\!\dd\tau\;\lvert\tau\rvert\,\lVert C(\tau)\rVert}
+                     {\int_{-\infty}^{\infty}\!\dd\tau\;\lVert C(\tau)\rVert},
+\end{equation}
+with $\lVert C(\tau)\rVert$ the norm of the channel matrix. The second is the bath memory time of \cref{sec:setup}, now a definite ratio of correlation moments. The first is a rate: it is how fast the bath drives the state, it is $\mathcal O(\gamma^2)$ because $C$ is, and every appearance of $\Gamma_{\!\star}$ in these notes means this. Only the product $\Gamma_{\!\star}\tau_B$ is ever used and prefactor conventions for it differ between derivations, so no statement here turns on the constant in front. What does matter is where the two numbers come from: the bath correlation function and the coupling operators, and nothing else. Neither knows the spectrum of $H_\eff$, which is why the Markov condition $\Gamma_{\!\star}\tau_B\ll1$ and the secular condition $\Gamma_{\!\star}\ll\Delta_{\min}$ \eqref{eq:deltamin} of \cref{app:secular} are independent statements rather than two readings of one, a point \cref{sec:ledger} returns to. One caveat travels with the definition. For an unbounded system $\lVert\hat A_\alpha\rVert$ is not a number, so $\Gamma_{\!\star}$ is state-dependent and has to be read on the sector the dynamics occupies, exactly as $\lVert\hat H_m\rVert$ is in the Floquet half of the ledger.
+
+\paragraph{The generator}
+Replacing $\Gamma^{\alpha\alpha'}_{\nu_\mu}(t)$ by $W_{\alpha\alpha'}(\nu_\mu)$ in \eqref{eq:preclosure-kicked} gives the \emph{Floquet--Redfield} equation
+\begin{equation}\label{eq:redfield}
+  \dv{\rho}{t}
+  = -i\comm{H_\eff}{\rho}
+  + \sum_{\alpha\alpha'}\sum_{\mu,\mu'} e^{i(m'-m)\omega_d t}\,W_{\alpha\alpha'}(\nu_\mu)\,
+  \Big( \hat A_{\alpha'\mu}\,\rho\,\hat A_{\alpha\mu'}^\dagger
+  - \hat A_{\alpha\mu'}^\dagger \hat A_{\alpha'\mu}\,\rho \Big) + \mathrm{h.c.}
+\end{equation}
+Its entire time dependence sits at harmonics of the drive, so it is $T$-periodic, as any Floquet description must be. It is not of Lindblad form: the matrix pairing $\mu$ with $\mu'$ is not positive semidefinite in general.
+
+\paragraph{The same generator in two operators}
+The later index carries no bath weight. Nothing in \eqref{eq:redfield} depends on $\omega'$ except $\hat A^\dagger_{\alpha\mu'}$ itself, so that sum closes by the first identity of \eqref{eq:eigenopprops} and, together with the $m'$ sum and its phase, rebuilds the kicked coupling operator \eqref{eq:kickedA}. Collecting the weighted $\mu$ sum into
+\begin{equation}\label{eq:weightedA}
+  \hat U_\alpha(t) = \sum_m e^{-im\omega_d t}\,\hat U_{\alpha,m},
+  \qquad
+  \hat U_{\alpha,m} = \sum_{\alpha'}\sum_\omega
+    W_{\alpha\alpha'}(m\omega_d + \omega)\,\hat A_{\alpha',m}(\omega),
+\end{equation}
+the whole equation becomes a pair of commutators,
+\begin{equation}\label{eq:redfield-compact}
+  \dv{\rho}{t} = -i\comm{H_\eff}{\rho}
+  + \sum_\alpha\Big(\comm{\hat U_\alpha(t)\,\rho}{\hat A^K_\alpha(t)}
+  + \comm{\hat A^K_\alpha(t)}{\rho\,\hat U_\alpha(t)^\dagger}\Big).
+\end{equation}
+Undoing the $\tau$ integral in \eqref{eq:lagphase} says what $\hat U_\alpha$ is: the coupling operator averaged over its own recent past, weighted by how long the bath remembers. Redfield is a commutator between the coupling operator now and the coupling operator then, and all the drive has done is make both $T$-periodic and give the second one its comb.
+
+\paragraph{Redfield in jump-operator form}
+Two operators and a commutator are already most of a Lindblad equation, and the rest is bought cheaply. Abbreviate $v_\alpha = \hat A^K_\alpha(t)$ and $u_\alpha = \hat U_\alpha(t)$, pick any $\lambda_\alpha>0$, and set
+\begin{equation}\label{eq:pseudojumps}
+  L_{\alpha\pm} = \frac{u_\alpha \pm \lambda_\alpha v_\alpha}{\sqrt{2\lambda_\alpha}},
+  \qquad
+  H_{\mathrm{R},\alpha} = -\frac{i}{2}\big(v_\alpha u_\alpha - u_\alpha^\dagger v_\alpha\big).
+\end{equation}
+Drop the index for the moment and expand. The two $L\rho L^\dagger$ terms differ only in the sign of the cross products, so the squares cancel and
+\begin{equation}\label{eq:pseudo-jumpterms}
+  L_+\rho L_+^\dagger - L_-\rho L_-^\dagger
+  = \frac{1}{2\lambda}\Big[(u+\lambda v)\rho(u^\dagger+\lambda v) - (u-\lambda v)\rho(u^\dagger-\lambda v)\Big]
+  = u\rho v + v\rho u^\dagger ,
+\end{equation}
+using $v^\dagger = v$, which holds at every $t$ by \eqref{eq:kickedA}. The same cancellation in the anticommutator part gives $L_+^\dagger L_+ - L_-^\dagger L_- = u^\dagger v + vu$, so
+\begin{equation}\label{eq:pseudo-diff}
+  \Dcal[L_+]\rho - \Dcal[L_-]\rho
+  = u\rho v + v\rho u^\dagger - \tfrac12\acomm{u^\dagger v + vu}{\rho} .
+\end{equation}
+The bracket of \eqref{eq:redfield-compact} is $u\rho v - vu\rho + v\rho u^\dagger - \rho u^\dagger v$. Subtracting \eqref{eq:pseudo-diff} from it, the $u\rho v$ and $v\rho u^\dagger$ terms drop out and what is left is
+\begin{equation}\label{eq:pseudo-remainder}
+  -vu\rho - \rho u^\dagger v + \tfrac12\acomm{u^\dagger v + vu}{\rho}
+  = \tfrac12\comm{u^\dagger v - vu}{\rho}
+  = -i\comm{H_{\mathrm{R}}}{\rho},
+\end{equation}
+which is what fixes $H_{\mathrm{R}}$ in \eqref{eq:pseudojumps}; it is Hermitian because $v$ is. Restoring the channel index,
+\begin{equation}\label{eq:pseudolindblad}
+  \dv{\rho}{t} = -i\comm{H_\eff + \sum_\alpha H_{\mathrm{R},\alpha}(t)}{\rho}
+  + \sum_\alpha\Big(\Dcal[L_{\alpha+}(t)] - \Dcal[L_{\alpha-}(t)]\Big)\rho ,
+\end{equation}
+with $\Dcal[L]\rho = L\rho L^\dagger - \tfrac12\acomm{L^\dagger L}{\rho}$. Nothing has been dropped: \eqref{eq:pseudolindblad} is \eqref{eq:redfield-compact} rearranged, and $H_{\mathrm{R},\alpha}$ is Hermitian by the same Hermiticity of $v_\alpha$.
+
+The minus sign is the point. It belongs to the identity, not to a truncation, and no choice of $\lambda_\alpha$ removes it: $L_{\alpha-}$ vanishes only if $u_\alpha = \lambda_\alpha v_\alpha$, that is, only if the bath weight acts on the coupling operator as a single positive scalar, which is exactly what a structured bath refuses to do. Choosing $\lambda_\alpha = \lVert u_\alpha\rVert_2/\lVert v_\alpha\rVert_2$ makes the negative channel as small as a positive scalar can, and no smaller. Jump-operator \emph{form} is therefore free, and worth nothing on its own: complete positivity has to be bought, and \cref{sec:cp} is where we do it.
+
+% ---------------------------------------------------------------- Sec 8
+\section{Global to local at every Floquet carrier}\label{sec:filter}
+
+Everything so far is explicit: the kick, $H_\eff$ and the dressed harmonics $\hat A_{\alpha,m}$ leave the recursion as polynomials in the operators of the model. \Cref{eq:weightedA} is not. It samples the bath at $m\omega_d+\omega$, so it needs the Bohr set of $H_\eff$ as numbers, and the projectors \eqref{eq:eigenop} that sort each harmonic by them. That is free for a qubit and for any $H_\eff$ diagonal in a known basis, and generically it is not, since the drive-induced terms are what break that structure. This one diagonalization is therefore the only step that is not analytic, and it can be removed exactly. The removal is Schnell's~\cite{Schnell2025Global}: a rate function evaluated at Bohr frequencies is traded for the same function of $\ad_{H_\eff}$ acting on the coupling operator, after which no eigenprojector appears. What this section adds is the driven case, where the comb carries one replica of the Bohr set per drive harmonic: the trade is made separately around each carrier $m\omega_d$, and the series expands in the spread of slow frequencies inside one carrier rather than the whole Bohr spread. The weights cannot leave the $\omega$ sum while they sit inside it as numbers. They need not sit there as numbers.
+
+\paragraph{The identity}
+Write $\ad_X Y \equiv \comm{X}{Y}$. The second line of \eqref{eq:eigenopprops} says that each Floquet eigenoperator is an eigenvector of the superoperator $\ad_{H_\eff}$,
+\begin{equation}\label{eq:adeigen}
+  \ad_{H_\eff}\hat A_{\alpha,m}(\omega) = -\omega\,\hat A_{\alpha,m}(\omega)
+  \quad\Longrightarrow\quad
+  \big(-\ad_{H_\eff}\big)^{r}\hat A_{\alpha,m}(\omega) = \omega^{r}\,\hat A_{\alpha,m}(\omega)
+\end{equation}
+for every $r\ge0$, by iterating. So a power series in $-\ad_{H_\eff}$ acts on that operator as the same power series in the number $\omega$: for any $f$ analytic at $m\omega_d$,
+\begin{equation}\label{eq:functional-identity}
+  \begin{aligned}
+  f\big(m\omega_d - \ad_{H_\eff}\big)\hat A_{\alpha,m}(\omega)
+  &= \sum_{r\ge0}\frac{f^{(r)}(m\omega_d)}{r!}\big(-\ad_{H_\eff}\big)^{r}\hat A_{\alpha,m}(\omega)\\
+  &= \sum_{r\ge0}\frac{f^{(r)}(m\omega_d)}{r!}\,\omega^{r}\,\hat A_{\alpha,m}(\omega)
+  = f(m\omega_d+\omega)\,\hat A_{\alpha,m}(\omega).
+  \end{aligned}
+\end{equation}
+Read right to left, this is the move: the argument $\omega$, which differed from one eigenoperator to the next and so had to stay inside the sum, has been traded for an operator that does not depend on $\omega$ at all and can therefore come out of it. Doing exactly that in \eqref{eq:weightedA},
+\begin{equation}\label{eq:filtered-derivation}
+  \begin{aligned}
+  \hat U_{\alpha,m}
+  &= \sum_{\alpha'}\sum_\omega W_{\alpha\alpha'}(m\omega_d+\omega)\,\hat A_{\alpha',m}(\omega)
+  = \sum_{\alpha'} W_{\alpha\alpha'}\big(m\omega_d - \ad_{H_\eff}\big)\sum_\omega \hat A_{\alpha',m}(\omega)\\
+  &= \sum_{\alpha'} W_{\alpha\alpha'}\big(m\omega_d - \ad_{H_\eff}\big)\hat A_{\alpha',m},
+  \end{aligned}
+\end{equation}
+the last step by the completeness identity of \eqref{eq:eigenopprops}. The eigenoperators have vanished from the answer. Define the \emph{filtered harmonic} of any $f$ the same way,
+\begin{equation}\label{eq:filtered-harmonic}
+  \hat F_{\alpha,m}[f] \equiv \sum_{\alpha'} f_{\alpha\alpha'}\big(m\omega_d - \ad_{H_\eff}\big)\,\hat A_{\alpha',m},
+\end{equation}
+in which no eigenprojector appears: only $H_\eff$, the harmonics the recursion already delivered, and a scalar function of one variable applied entry by entry to the channel matrix.\footnote{Trading the eigenbasis for the operators themselves is older than the functional calculus that makes it exact, having been introduced phenomenologically in the position- and energy-resolving Lindblad approach~\cite{Kirsanskas2018}. A complementary line expands the bath rather than the frame, taking the driven nonlinear-oscillator kernel to first order in the memory time~\cite{Wagner2026Generalized}.}
+
+\paragraph{Making it finite}
+A function of $\ad_{H_\eff}$ is not yet a computation. One way to make it one is to expand about the carrier, as \eqref{eq:functional-identity} does, but that series runs in powers of $\omega$ and converges slowly whenever the $\omega$ reached by harmonic $m$ are not small. So expand about a shifted point instead. Pick for each harmonic a real number $\bar\omega_m$, a parameter of the calculation and not of the model: it is chosen by hand, one value per harmonic, and the useful choices lie among the $\omega$ that harmonic reaches. Taylor $f$ at $m\omega_d+\bar\omega_m$ rather than at $m\omega_d$,
+\begin{equation}\label{eq:centered-taylor}
+  f(m\omega_d+\omega) = \sum_{r\ge0}\frac{f^{(r)}(m\omega_d+\bar\omega_m)}{r!}\,(\omega - \bar\omega_m)^{r},
+\end{equation}
+and use \eqref{eq:adeigen} on each power, $(\omega-\bar\omega_m)^r\hat A_{\alpha,m}(\omega) = (-\ad_{H_\eff}-\bar\omega_m)^r\hat A_{\alpha,m}(\omega)$. Summing over $\omega$ as before and cutting at order $M$,
+\begin{equation}\label{eq:centered-filter}
+  \hat F^{[M]}_{\alpha,m}[f]
+  = \sum_{\alpha'}\sum_{r=0}^{M}\frac{f^{(r)}_{\alpha\alpha'}(m\omega_d + \bar\omega_m)}{r!}
+    \big(-\ad_{H_\eff} - \bar\omega_m\big)^r\,\hat A_{\alpha',m}.
+\end{equation}
+At $M=0$ the whole harmonic is multiplied by one number, and each further order costs one more nested commutator with $H_\eff$. The \emph{filter order} $M$ is the third truncation of the method, beside the Born order, fixed at two, and the Floquet order $N$, and it expands in the spread of slow frequencies a carrier reaches against the sharpness of the bath data. Nothing physical depends on $\bar\omega_m$: any value at which $f$ is analytic gives a valid expansion, and where the series converges the untruncated sum is the same operator for all of them. It sets the rate of convergence alone, the first dropped term carrying $(\omega-\bar\omega_m)^{M+1}$, so the remainder is smallest when $\bar\omega_m$ lies in the middle of the $\omega$ that harmonic $m$ reaches. Finding that middle would mean knowing those $\omega$, the diagonalization this section removes, so one picks $\bar\omega_m$ crudely and pays only with a larger remainder at fixed $M$.
+
+\paragraph{Floquet--Redfield, filtered}
+Taking $f = W$ gives $\hat U^{[M]}_{\alpha,m} = \hat F^{[M]}_{\alpha,m}[W]$, and \eqref{eq:redfield-compact} holds verbatim with it. This is worth stating carefully, because the filter is easy to mistake for a new master equation. It is not one. It changes how a generator is evaluated and never which generator it is: \eqref{eq:redfield-compact} filtered is still Floquet--Redfield, still trace and Hermiticity preserving, and still not positive. One chooses the generator first and its representation second.
+
+\begin{example}[Example: the Kerr parametric oscillator, continued]
+The bands sit close to the multiples of $\omega_d$, so expand about the carrier itself, $\bar\omega_m = 0$. At $M=0$ the weighted partner is then
+\begin{equation}\label{eq:kpo-filtered}
+  \hat U^{[0]}_m = W(m\omega_d)\,\hat A_m ,
+\end{equation}
+twelve numbers multiplying the twelve harmonics of \eqref{eq:kpo-sidebands}, with no spectrum entering anywhere. Going to $M=1$ costs one commutator, $-W'(m\omega_d)\comm{H_\eff^{[2]}}{\hat A_m}$, a polynomial in $\hat a,\hat a^\dagger$ obtained in closed form from \eqref{eq:kpo-heff0}, \eqref{eq:kpo-heff1} and \eqref{eq:kpo-sidebands}. The $\id$ parts of $\hat A_2$, $\hat A_4$ and $\hat A_6$ are already exact at $M=0$, since $\ad_{H_\eff}\id = 0$ kills every $r\ge1$ term; that exactness is a property of this choice, and at $\bar\omega_m\neq0$ those terms would resum only at $M=\infty$.
+\end{example}
+
+% ---------------------------------------------------------------- Sec 9
+\section{The completely positive approximation}\label{sec:cp}
+
+Section~\ref{sec:redfield} ended with a negative channel that no rearrangement removes, so positivity must be bought rather than found. Collect the dissipative terms of \eqref{eq:redfield} as $\sum_{IJ}M_{IJ}\,\hat A_I\,\rho\,\hat A_J^\dagger$ with composite labels $I = (\alpha'\mu)$ and $J = (\alpha\mu')$; including the Hermitian conjugate that \eqref{eq:redfield} carries,
+\begin{equation}\label{eq:pairmatrix}
+  M_{IJ} = W_{\alpha\alpha'}(\nu_\mu) + W^*_{\alpha'\alpha}(\nu_{\mu'}),
+\end{equation}
+and complete positivity is the statement that this matrix is positive semidefinite. It fails because $M$ is \emph{one-sided}: the memory integral reads the bath at the earlier index alone, as \cref{sec:preclosure} noted, while positivity asks for a weight symmetric in the two. Wherever the two indices share a frequency, $\nu_\mu = \nu_{\mu'}$, the asymmetry is invisible and $M = W + W^\dagger = S(\nu)\succeq0$ by \eqref{eq:halftransform}; off that degenerate block there is no reason for it to hold. Restoring a weight symmetric in the two indices is therefore what any completely positive approximation of \eqref{eq:redfield} must do, and the three known ones differ only in how: discard the off-block terms (secular~\cite{Davies1974,Davies1976}), keep them in groups at a common frequency (clustered-secular~\cite{Farina2019Open,Trushechkin2021Unified}), or keep them all at a symmetrized value (universal Lindblad~\cite{Nathan2020Universal,Nathan2024Quantifying}). Of the three, these notes keep the last, because it is the only one the filter of \cref{sec:filter} can evaluate: the other two must split the sum by frequency before weighting it, which keeps them bound to the eigenoperators of $H_\eff$, and \cref{app:secular} derives both and prices what keeping the last costs.
+
+\paragraph{Universal Lindblad}
+The universal Lindblad equation~\cite{Nathan2020Universal} symmetrizes \eqref{eq:pairmatrix} without partitioning the comb at all, by sampling the \emph{square root} of the spectral matrix. With $S^{1/2}(\nu)$ the positive matrix square root,
+\begin{equation}\label{eq:ule}
+  \hat L_k(t) = \sum_m e^{-im\omega_d t}\,\hat L_{k,m},
+  \qquad
+  \hat L_{k,m} = \sum_{\alpha'}\sum_\omega \big[S^{1/2}(m\omega_d+\omega)\big]_{k\alpha'}\hat A_{\alpha',m}(\omega),
+\end{equation}
+in the kicked frame, and the generator is $-i\comm{H_\eff + H^{\mathrm{ULE}}_{\mathrm{LS}}(t)}{\rho} + \sum_k\Dcal[\hat L_k(t)]\rho$. Note the index structure: there is one jump operator per \emph{channel} $k$, with the whole comb summed inside it, not one per harmonic. Keeping the harmonics in separate dissipators is a different and coarser object, a grouped approximation of the clustered kind (\cref{app:secular}).
+
+Positivity is free in \eqref{eq:ule} and needs no argument: $\sum_k\Dcal[\hat L_k]$ is a sum of dissipators, whatever the $\hat L_k$ are.\footnote{It is not the only completely positive construction available under arbitrary driving. Dynamical coarse graining is positive at every coarse-graining time~\cite{Schaller2008Preservation} and has controlled error bounds for fast driving and small level spacing~\cite{Mozgunov2020Completely}, with a genuinely driven version in Ref.~\cite{Hotz2021Coarse}; the price is that its coarse-graining time is a free parameter, so a choice of the same kind as $\bar\omega_m$ reappears inside the approximation.} The content is in what it costs, which one reads off by expanding it back out. In the interaction picture,
+\begin{equation}\label{eq:ule-expand}
+  \sum_k \hat L_k\,\breve\rho\,\hat L_k^\dagger
+  = \sum_{\mu\mu'}\sum_{\alpha\alpha'} e^{i(\nu_{\mu'}-\nu_\mu)t}
+  \underbrace{\sum_k \big[S^{1/2}(\nu_{\mu'})\big]^{*}_{k\alpha}\big[S^{1/2}(\nu_\mu)\big]_{k\alpha'}}_{\textstyle =\;\big[S^{1/2}(\nu_{\mu'})\,S^{1/2}(\nu_\mu)\big]_{\alpha\alpha'}}
+  \hat A_{\alpha'\mu}\,\breve\rho\,\hat A^\dagger_{\alpha\mu'},
+\end{equation}
+the brace following from Hermiticity of $S^{1/2}$, and it is exactly the symmetrized replacement for \eqref{eq:pairmatrix}. On the whole degenerate block $\nu_\mu = \nu_{\mu'}$, which contains every $\mu=\mu'$ together with every exact coincidence of transition frequencies, the brace is $S(\nu_\mu)$: there \eqref{eq:ule} carries the coefficient \eqref{eq:pairmatrix} already had, reproduces the secular equation of \cref{app:secular}, and gives up nothing. Off that block the trade is sharper than a compromise frequency, and the algebra says exactly what it is. Split \eqref{eq:pairmatrix} with $W = \tfrac12 S + i\Lambda$, using that $S$ and $\Lambda$ are Hermitian:
+\begin{equation}\label{eq:pairsplit}
+  M_{IJ} = \tfrac12\big[S(\nu_\mu) + S(\nu_{\mu'})\big]_{\alpha\alpha'}
+  \;+\; i\big[\Lambda(\nu_\mu) - \Lambda(\nu_{\mu'})\big]_{\alpha\alpha'} .
+\end{equation}
+Floquet--Redfield therefore weights a cross term by the \emph{arithmetic} mean of the spectral matrices at the two frequencies, while \eqref{eq:ule} weights it by their \emph{geometric} mean. Comparing the two in channel space, the Hermitian halves differ by exactly
+\begin{equation}\label{eq:ule-deficit}
+  \tfrac12\big[S(\nu_\mu) + S(\nu_{\mu'})\big]
+  - \tfrac12\acomm{S^{1/2}(\nu_\mu)}{S^{1/2}(\nu_{\mu'})}
+  = \tfrac12\big(S^{1/2}(\nu_\mu) - S^{1/2}(\nu_{\mu'})\big)^{2} \;\succeq\; 0 ,
+\end{equation}
+while the anti-Hermitian remainder, the Lamb-shift difference in \eqref{eq:pairsplit} together with the commutator $\tfrac12\comm{S^{1/2}(\nu_{\mu'})}{S^{1/2}(\nu_\mu)}$ that vanishes for a single bath, is coherent and is what $H^{\mathrm{ULE}}_{\mathrm{LS}}$ accounts for. Two things follow that a compromise frequency would hide. The dissipative error is quadratic in the mismatch of the sampled \emph{amplitudes}, not linear in the mismatch of the rates, so the leading variation of the bath between two interfering sidebands cancels. And it carries a definite sign: such interference is always weighted a little too weakly and never too strongly, with equality exactly on the degenerate block. The error is of the same parametric order in $\Gamma_{\!\star}\tau_B$ as the Markov step itself and uniform in $\Delta_{\min}$~\cite{Nathan2020Universal,Ikeuchi2025Error}, and its constant is set by the variation of $S^{1/2}$ between interfering sidebands, so a bath sharp enough to resolve the comb is where it is worst.
+
+
+This is where \cref{sec:filter} pays off. Equation \eqref{eq:ule} is \eqref{eq:filtered-harmonic} at $f = S^{1/2}$, so the filter applies to it unchanged, and the truncated jumps $\hat L^{[M]}_{k,m} = \hat F^{[M]}_{k,m}[S^{1/2}]$ give a generator that is GKSL at every $M$: the truncation is made at jump-amplitude level rather than at rate level, and a truncated jump operator is still a jump operator.
+
+Two cautions attach to the factor, and the second is a genuine restriction. Any smooth $G$ with $S = G^\dagger G$ serves, but $G \mapsto V(\nu)G$ leaves $S$ untouched while moving the derivatives \eqref{eq:centered-filter} needs, so a factor convention must be fixed across the whole support before anything is differentiated. More seriously, the square root need not be smooth where $S$ is. At a zero of $S$ one has $S^{1/2}\sim\lvert\nu-\nu_0\rvert$, not differentiable, and at the edge of a band $S\sim\nu-\nu_c$ gives $S^{1/2}\sim\sqrt{\nu-\nu_c}$ with divergent derivative, while $f = W$ is perfectly well behaved at both. So the filter serves the universal Lindblad equation on the interior of the bath support and can fail at its boundary, exactly where a structured bath is most interesting: positivity is bought at every $M$, but the existence of the $M\ge1$ terms is a question about $S$ near the sampled frequencies and has to be checked there. A sampled frequency landing on a band edge is a reason to keep $M=0$ and widen the guard, or to factor a smoothed $S$, not to raise $M$.
+
+\paragraph{The coherent companion}
+Equation \eqref{eq:ule} is only the dissipative half of the generator. The Lamb shift beside it is built from the same spectral factor~\cite{Nathan2020Universal}, and \cref{app:lamb} derives it, checks that it reduces to the secular shift of \eqref{eq:gksl} wherever secularization is exact, and gives the kicked-frame form \eqref{eq:ule-lamb-kicked} that belongs beside $H_\eff$ in \eqref{eq:ule}. One property of it belongs here, since it decides what the filter is worth: the kernel depends on two transition frequencies at once, which \eqref{eq:functional-identity} cannot reach, so the trade of \cref{sec:filter} buys analyticity for the dissipation and not for the frequency shifts. The secular shift of \eqref{eq:gksl} needs them no less, so the $H_\eff$ eigenproblem returns for the coherent half however the positivity step was made.
+
+\begin{table}[H]
+  \centering\small
+  \renewcommand{\arraystretch}{1.35}
+  \begin{tabular}{@{}L{2.7cm}L{3.4cm}L{2.9cm}L{2.0cm}L{3.0cm}@{}}
+    \toprule
+    Approximation & Operation on \eqref{eq:redfield} & Bath read at & Needs the $H_\eff$ spectrum & Named error \\
+    \midrule
+    Floquet-secular~\cite{Davies1974,Davies1976} (\cref{app:secular})
+    & keep only $\nu_{\mu'} = \nu_\mu$
+    & every sideband, one at a time
+    & yes
+    & $\mathcal O(\Gamma_{\!\star}/\Delta_{\min})$; needs a resolved comb \\
+    Clustered-secular~\cite{Farina2019Open,Trushechkin2021Unified} (\cref{app:secular})
+    & keep cross terms inside clusters of near-degenerate $\nu$
+    & one value per cluster, at its centroid
+    & only when fine
+    & inter-cluster secular plus intra-cluster sampling spread \\
+    Universal Lindblad~\cite{Nathan2020Universal}
+    & keep every cross term, at geometric-mean weight
+    & $S^{1/2}$ at every sideband
+    & dissipator no; Lamb shift yes
+    & Markov order, uniform in $\Delta_{\min}$; removable $\mathcal O(\Gamma_{\!\star})$ in steady states \\
+    \bottomrule
+  \end{tabular}
+  \caption{The completely positive approximations of \eqref{eq:redfield}, all three GKSL and all three priced against Floquet--Redfield rather than against each other. The fourth column decides whether one can be evaluated by the filter of \cref{sec:filter} or needs the eigenoperators of $H_\eff$ resolved, a question of representation and not of which generator is meant; the Sambe quasienergy diagonalization is never needed. The split entry on the last line is the point of \eqref{eq:ule-lamb-comb}: the filter reaches the dissipator and not the bivariate coherent kernel beside it.}
+  \label{tab:closures}
+\end{table}
+
+\paragraph{The period average}
+A time-independent generator is obtained by averaging \eqref{eq:ule} over one period. In the kicked frame its only time dependence is the carrier phase, so the average removes every $m\neq m'$ cross term and leaves
+\begin{equation}\label{eq:ule-averaged}
+  \overline{\sum_k\Dcal\big[\hat L_k(t)\big]} = \sum_k\sum_m \Dcal\big[\hat L_{k,m}\big],
+\end{equation}
+one dissipator per harmonic at any filter order, while the Lamb shift \eqref{eq:ule-lamb-kicked} keeps the pairs $m'=-m$. Positivity is free: the dissipator is sesquilinear in $\hat L_k$, so the phases enter as $m-m'$ and the average keeps the diagonal, where the same harmonic stands on both sides of $\rho$. Averaging is itself a Floquet expansion, at leading order: $\overline{\mathcal L(t)}$ is the zeroth term of the high-frequency expansion of the periodic Liouvillian, and what that term amounts to here is secularization in the drive index $m$. A static generator therefore costs a \emph{second} expansion, in $\Gamma_{\!\star}/\omega_d$ rather than in $\lVert\hat H_m\rVert/\omega_d$, whereas \eqref{eq:ule} needs only the first. It is the seventh line of \cref{tab:ledger} and the only step here that discards a periodicity rather than resolving it; what it discards is the interference between carriers, no single carrier losing anything. It is not the generator of the secular rate-equation tradition~\cite{Grifoni1998Driven,hone2009Statisticala}, which secularizes in $\omega$ as well and so adds the sidebands incoherently.
+
+The discarded terms have zero mean, oscillate at multiples of $\omega_d$ and carry amplitude $\mathcal O(\Gamma_{\!\star})$, so they act on the slow dynamics at $\mathcal O(\Gamma_{\!\star}^2/\omega_d)$, relative $\mathcal O(\Gamma_{\!\star}/\omega_d)$ against the $\mathcal O(\Gamma_{\!\star}\tau_B)$ of the Markov step. The two ratios differ by $1/\omega_d\tau_B$: as order counts, averaging is the smaller error when $\tau_B\gtrsim T$ and the larger when $\tau_B\ll T$.
+
+% \paragraph{A bath that cannot resolve the comb}
+A flat spectrum collapses everything in this section. With $S(\nu) = S_0$ the spectral factor leaves the $\omega$ sum in \eqref{eq:ule}, the completeness relation \eqref{eq:eigenopprops} resums $\omega$ and \eqref{eq:kickedA} resums $m$, so each channel is left with one jump operator,
+\begin{equation}\label{eq:ule-flat}
+  \hat L_k(t) = e^{iK(t)}\,\hat M_k\,e^{-iK(t)},
+  \qquad
+  \hat M_k = \sum_\alpha\big[S_0^{1/2}\big]_{k\alpha}\,\hat A_\alpha ,
+\end{equation}
+the kick conjugate of a static one. Dissipators are covariant, so \eqref{eq:frames} carries this to the undressed generator \eqref{eq:flatbath}: the dissipator is static in the frame where $\hat A$ is, and whatever periodicity is left in the kicked frame is gauge. The distinctions of \cref{tab:closures} close with it. The pair matrix \eqref{eq:pairmatrix} becomes $S_0$ against a matrix of ones and is positive semidefinite, so \eqref{eq:redfield} is already completely positive and asks for no closure at all; the deficit \eqref{eq:ule-deficit} vanishes identically; and \eqref{eq:pseudojumps} has $L_{\alpha-} = 0$ exactly, this being the one case in which the bath weight acts on the coupling operator as a single positive scalar. The three closures therefore differ only to the extent that the bath varies across the comb.
+
+% The rates \eqref{eq:ule-averaged} displays are not separately meaningful, and \cref{sec:preclosure} is what decides it. For any constant $\bar S$,
+% \begin{equation}\label{eq:toothsplit}
+%   \sum_m S(m\omega_d)\,\Dcal[\hat A_m]
+%   = \bar S\sum_m \Dcal[\hat A_m]
+%   \;+\;\sum_m\big[S(m\omega_d)-\bar S\big]\,\Dcal[\hat A_m],
+% \end{equation}
+% and by \eqref{eq:flatbath} the first sum carries no drive-induced dissipation beyond the errors already priced: it is the undressed $\bar S\,\Dcal[\hat A]$, however many dressed teeth it is written out of. Since $\bar S$ is free, the rate at a single tooth is not an invariant of the generator; only the differences $S(m\omega_d) - S(m'\omega_d)$ across the comb are. The figure of merit for a sideband channel is therefore that spread and not the rate, which makes it a statement about the bath rather than about the drive: a bath broad and hot enough to be flat over the comb supports no drive-induced dissipation however strongly the coupling is dressed, while a cold or structured one, whose spread can exceed the rate at any single tooth, supports essentially all of what the tooth advertises.
+
+\begin{todo}
+We should understand and see how a GKLS preserving Floquet expansion deals with the thrown away terms. Like what are we throwing away?
+\end{todo}
+
+\begin{example}[Example: the Kerr parametric oscillator, the master equation]
+One bath means one channel, so the pumped SNAIL has exactly one jump operator, and the construction is finished. At $M=0$ with $\bar\omega_m=0$ as in \eqref{eq:kpo-filtered},
+\begin{equation}\label{eq:kpo-ule}
+  \boxed{\;
+  \dv{\rho}{t} = -i\comm{H_\eff^{[2]} + H^{\mathrm{ULE}}_{\mathrm{LS}}(t)}{\rho} + \Dcal\big[\hat L(t)\big]\rho ,
+  \qquad
+  \hat L(t) = \sum_{m=-6}^{6}\sqrt{S(m\omega_d)}\;\hat A_m\,e^{-im\omega_d t} \; }
+\end{equation}
+with $H_\eff^{[2]}$ read off \eqref{eq:kpo-heff0} and \eqref{eq:kpo-heff1}, the harmonics $\hat A_m$ off \eqref{eq:kpo-sidebands}, and $H^{\mathrm{ULE}}_{\mathrm{LS}}(t)$ from \eqref{eq:ule-lamb-kicked}. Every operator in the dissipator is an explicit polynomial in $\hat a$ and $\hat a^\dagger$, the only bath input there is the number $S$ at twelve frequencies, and no spectrum of anything was computed on the way. The Lamb shift is the one exception, since \eqref{eq:ule-lamb-comb} still carries its bivariate kernel.
+
+For a purely cubic device, $g_4 = 0$, the whole thing fits on a line. The effective Hamiltonian is a squeezed Kerr oscillator,
+\begin{equation}\label{eq:kpo-heff-cubic}
+  H_\eff^{[2]}\Big|_{g_4=0}
+  = \Big[\delta - \big(\tfrac{20}{3} + 9\lvert\xi\rvert^2\big)\frac{g_3^2}{\omega_d}\Big]\hat a^\dagger\hat a
+  \;-\; \frac{10\,g_3^2}{3\,\omega_d}\,\hat a^{\dagger2}\hat a^2
+  \;+\; \big(g_3\xi\,\hat a^{\dagger2} + \mathrm{h.c.}\big),
+\end{equation}
+a detuning, a Kerr nonlinearity and a two-photon drive, and the comb closes at $\lvert m\rvert = 4$ with
+\begin{equation}\label{eq:kpo-jumps-cubic}
+  \begin{aligned}
+    \hat A_1 &= i\Big[\hat a + \frac{g_3\xi}{\omega_d}\,\hat a^\dagger\Big],
+    &\qquad
+    \hat A_2 &= i\Big[\frac{\omega_0}{2\omega_d}\,\xi\,\id + \frac{4g_3}{3\omega_d}\,\hat a^2\Big],\\
+    \hat A_3 &= i\,\frac{3g_3\xi}{2\omega_d}\,\hat a,
+    &\qquad
+    \hat A_4 &= i\,\frac{8g_3\xi^2}{15\,\omega_d}\,\id,
+  \end{aligned}
+\end{equation}
+and $\hat A_{-m} = \hat A_m^\dagger$. Substituting these into \eqref{eq:kpo-ule} is the completely positive Floquet master equation of the device, derived rather than posited.
+
+Which channel dominates is then decided by $S$, not by the $1/\omega_d$ hierarchy that produced the operators. The $m=2$ harmonic carries $\tfrac43 g_3\hat a^2/\omega_d$ and reads the bath at the pump $2\omega_d$: two-photon loss driven by the pump, at a frequency the bare coupling never reached. Its partner at $m=-2$ carries $\hat a^{\dagger2}$ against $S(-2\omega_d)$ and heats. Neither exists with the pump off, and both are the nonlinear dissipation reported in Ref.~\cite{Venkatraman2024Nonlinear}.
+
+Reproducing Eq.~(6) of that reference is the lowest test this construction has to pass. It is dress-first too, its recursive generator~\cite{VenkatramanStatic2022} being the kick carried through the coupling operator before the bath is traced, and its positivity step is none of the entries of \cref{tab:closures}: the coupling \emph{amplitude} is truncated at one order of dressing and $\Dcal[\hat A^{(0)}+\hat A^{(1)}]$ retained intact, one dissipator per carrier with the bath read at the bare carrier, so positivity is structural and the rates come out quadratic in $\hat A^{(1)}$ although the vertex was truncated linearly. That object is \eqref{eq:ule-averaged} applied to \eqref{eq:kpo-ule}. With $g_4=0$, $\bar\omega_m=0$ and the jumps \eqref{eq:kpo-jumps-cubic},
+\begin{equation}\label{eq:kpo-averaged}
+  \begin{aligned}
+    \dv{\rho}{t} = {}&{-i}\comm{H_\eff^{[2]} + \bar H^{\mathrm{ULE}}_{\mathrm{LS}} + \hat H_\xi}{\rho}
+    + S(\omega_d)\,\Dcal\Big[\hat a + \frac{g_3\xi}{\omega_d}\,\hat a^\dagger\Big]\rho
+    + S(-\omega_d)\,\Dcal\Big[\hat a^\dagger + \frac{g_3\xi^*}{\omega_d}\,\hat a\Big]\rho\\
+    &+ \Big(\frac{4g_3}{3\omega_d}\Big)^{\!2}\Big(S(2\omega_d)\,\Dcal[\hat a^2]
+      + S(-2\omega_d)\,\Dcal[\hat a^{\dagger2}]\Big)\rho
+    + \Big(\frac{3g_3\lvert\xi\rvert}{2\omega_d}\Big)^{\!2}\Big(S(3\omega_d)\,\Dcal[\hat a]
+      + S(-3\omega_d)\,\Dcal[\hat a^\dagger]\Big)\rho ,
+  \end{aligned}
+\end{equation}
+the purely c-number $\hat A_4$ dropping out because $\Dcal[c\,\id] = 0$. This is Eq.~(6) of Ref.~\cite{Venkatraman2024Nonlinear} line for line, as printed. Write $S(\nu) = \kappa_\nu(1+\bar n_\nu)$ and $S(-\nu) = \kappa_\nu\bar n_\nu$ for $\nu>0$, which is KMS in that reference's notation: the first line is single-photon emission and absorption through the dressed fundamental, the second the pump-driven two-photon loss and heating read at the pump $2\omega_d$, the third the third-harmonic correction to the single-photon rate. Its frequency unit is the pump and ours is half of it, so each of its $\omega_d$ is our $2\omega_d$: its $8g_3/3\omega_d$ is our $4g_3/3\omega_d$, its $2\epsilon_2/\omega_d$ our $g_3\xi/\omega_d$, and its Kerr the $\hat a^{\dagger2}\hat a^2$ terms of \eqref{eq:kpo-heff0} and \eqref{eq:kpo-heff1} together. No universal Lindblad equation is invoked there, and at this order none is needed: reading the bath at the bare carrier is what makes the clustered and universal Lindblad weights and the $M=0$ filter coincide, so Eq.~(6) tests the dressed comb rather than the choice made in \cref{tab:closures}.
+
+Two coherent terms have no counterpart there. The Lamb shift keeps the pairs $m'=-m$, where $h(\nu,-\nu) = \Lambda(-\nu)$ by the identity of \cref{app:lamb}, so
+\begin{equation}\label{eq:kpo-lamb-averaged}
+  \bar H^{\mathrm{ULE}}_{\mathrm{LS}} = \sum_m \Lambda(m\omega_d)\,\hat A_m^\dagger\hat A_m ,
+\end{equation}
+the secular shift of \eqref{eq:gksl} for the same choice, whose leading term pairs $m=\pm1$ into $\big[\Lambda(\omega_d)+\Lambda(-\omega_d)\big]\hat a^\dagger\hat a$, an $\mathcal O(\gamma^2)$ shift of the detuning. The second comes from the displacement c-number kept in $\hat A_2$: since $\Dcal[c\,\id + \hat X]$ exceeds $\Dcal[\hat X]$ by the commutator generated by $\tfrac{i}{2}(c^*\hat X - c\hat X^\dagger)$, the two pieces of $\hat A_{\pm2}$ interfere into
+\begin{equation}\label{eq:kpo-Hxi}
+  \hat H_\xi = \frac{ig_3\omega_0}{3\omega_d^2}\big[S(2\omega_d) - S(-2\omega_d)\big]
+  \big(\xi^*\hat a^2 - \xi\,\hat a^{\dagger2}\big)
+  = \frac{g_3\omega_0\kappa_{2\omega_d}}{3\omega_d^2}\,i\big(\xi^*\hat a^2 - \xi\,\hat a^{\dagger2}\big),
+\end{equation}
+a bath-induced two-photon drive adding to the $g_3\xi\,\hat a^{\dagger2}$ of \eqref{eq:kpo-heff-cubic}, in quadrature with it. The second form uses $S(\nu)-S(-\nu) = \kappa_\nu$, so it is temperature-independent and set by the bare linewidth at the pump, the same number that sets the two-photon loss. It carries one power of $g_3/\omega_d$ against that dissipator's two, and it exists only because the coupling operator was displaced along with the Hamiltonian and the resulting constant kept; every channel of Eq.~(6) is built from the operator part of the vertex alone.
+
+\end{example}
+
+\begin{todo}
+The two-photon channel of \eqref{eq:kpo-averaged} is read off a period average. At flat bath \eqref{eq:flatbath} carries no nonlinear channel at all while \eqref{eq:ule-averaged} keeps one, so how much of a sideband rate $\lVert\hat A_m\rVert^2 S(m\omega_d)$ means anything independent of that average is open. Settling it needs a comparison against exact dynamics, not more algebra.
+\end{todo}
+
+% ---------------------------------------------------------------- Sec 10
+\section{What was assumed, and what must be small}\label{sec:ledger}
+
+The construction is finished, so it can be priced. Nine sections made a single object out of the data $(\hat H_S(t),\{\hat A_\alpha\},C_{\alpha\alpha'},\beta)$, and along the way exactly seven approximations were made, two of them dials the reader can turn, $N$ and $M$, and five of them commitments. \Cref{tab:ledger} is the bill. Reading it as a whole is the point: the entries are independent, they are controlled by different ratios, and a calculation is only as good as its worst line.
+
+\begin{table}[H]
+  \centering\small
+  \renewcommand{\arraystretch}{1.7}
+  \begin{tabular}{@{}L{4.6cm}L{3cm}L{7.4cm}@{}}
+    \toprule
+    Approximation & Enters at & Small parameter, and the error it commits \\
+    \midrule
+    Born, second order coupling
+    & below \eqref{eq:iterated}
+    & the microscopic coupling $\gamma$: error $\mathcal O(\gamma^4)$, with no $\mathcal O(\gamma^3)$ term for a Gaussian bath \\
+    Time-locality $\tilde\rho(t-\tau)\to\tilde\rho(t)$ (first Markov step)
+    & \eqref{eq:born-nonlocal} to \eqref{eq:born}
+    & $\Gamma_{\!\star}\tau_B$: $\mathcal O(\gamma^4)$ in generator norm at every $t$ \\
+    Floquet expansion order $N$
+    & \eqref{eq:vv}
+    & $\lVert\hat H_m\rVert/(m\omega_d)$: three separately priced consequences, split out below the table \\
+    Stationary rates $\Gamma^{\alpha\alpha'}_\nu \to W_{\alpha\alpha'}(\nu)$ (second Markov step)
+    & \eqref{eq:halftransform}
+    & $\Gamma_{\!\star}\tau_B$, and $t\gg\tau_B$: discards the transient of \eqref{eq:rates}, the non-Markovian content at $\mathcal O(\gamma^2)$ \\
+    Filter truncation at order $M$
+    & \eqref{eq:centered-filter}
+    & the carrier's spread against the scale on which the bath varies, $\Delta\omega_m\tau_B$ for a single-scale bath: the $r>M$ remainder of \eqref{eq:centered-taylor}, a change of representation, not of generator \\
+    Universal Lindblad approximation of \eqref{eq:redfield}
+    & \eqref{eq:ule}
+    & $\Gamma_{\!\star}\tau_B$, and unchanged as $\Delta_{\min}\to0$: exact wherever two transition frequencies coincide, and elsewhere their interference is weighted too weakly, by \eqref{eq:ule-deficit}, which is second order in $S^{1/2}(\nu_\mu) - S^{1/2}(\nu_{\mu'})$; steady states keep a removable $\mathcal O(\Gamma_{\!\star})$ bias~\cite{Nathan2024Quantifying} \\
+    Period average of \eqref{eq:ule}
+    & \eqref{eq:ule-averaged}
+    & $\Gamma_{\!\star}/\omega_d$: a second Floquet expansion, on the periodic Liouvillian, kept at leading order; secularization in the drive index $m$, discarding the cross-carrier interference, and the smaller of the two errors when $\tau_B\gtrsim T$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Everything that was approximated, and what controls it. The Born order is fixed at two; $N$ and $M$ are dials; Markov, the positivity step and the average are decisions. The ratios $\gamma$, $\Gamma_{\!\star}\tau_B$ and $1/\omega_d$ are logically independent, and no line implies another. The two Markov steps share a ratio but not an operation, one acting on the state under the memory integral and the other on its upper limit: \cref{eq:preclosure} is the equation that makes the first and not the second.}
+  \label{tab:ledger}
+\end{table}
+
+\paragraph{Assumptions that carry no small parameter}
+Four commitments are structural, so no order of any expansion improves them. The bath is stationary and Gaussian with zero mean (\cref{sec:setup}), which is what makes the second-order kernel the leading member of a series in even powers; a non-Gaussian bath contributes its own cumulants and is outside the scheme rather than badly approximated by it. The initial state is factorized, so preparation correlations are absent and the first bath memory time after $t=0$ is not described. The effective Hamiltonian has a discrete spectrum, so the eigenoperator decomposition \eqref{eq:eigenop} is a sum; a continuum replaces it by an integral and the comb by a density. And $\hat H_S$ is $T$-periodic, which \cref{sec:kernel} never used and everything from \cref{sec:vv} onwards does.
+
+\paragraph{The frame error, in three parts}
+Truncating the factorization at order $N$ is one act with three consequences, and they are priced differently. First, the kick enters the dressed harmonics \eqref{eq:kickedAgraded} multiplicatively, so a micromotion error $\mathcal O(\omega_d^{-N})$ appears as a relative error of that order in every rate. Second, the missing $H_\eff^{(N)}$ is a \emph{coherent} error: it does not saturate but accumulates, growing as $t\,\omega_d^{-N}$ and reaching $\mathcal O(\omega_d^{-N}/\Gamma_{\!\star})$ once the state has relaxed. Third, the Bohr set $\mathcal W$ of the truncated $H_\eff^{[N]}$ is displaced by $\mathcal O(\omega_d^{-N})$, so the bath is read at slightly wrong frequencies, and that error enters through the local slope of the spectral function, at relative order $\mathcal O\big(\omega_d^{-N}S'(\nu)/S(\nu)\big)$. This is the debt \cref{sec:comb} defers when it flags the displacement of $\mathcal W$, and it is the reason a sharply structured bath is more demanding of $N$ than a flat one: the first consequence is bounded by the frame, the third by the bath. Two caveats attach to the parameter itself. The van Vleck series is asymptotic in general, as \cref{sec:origin} already noted, so a larger $N$ is not unconditionally better and an optimal truncation exists. And for an unbounded system $\lVert\hat H_m\rVert$ is not a number: the parameter is state-dependent, set by matrix elements on the sector the dynamics actually occupies, and the ledger is meaningful only together with a statement of that sector.
+
+\paragraph{Two expansions, at two orders}
+Two Floquet expansions appear in the construction, and they are not truncated alike. The first, on $\hat H_S$, is carried to order $N$ and priced above. The second, on the periodic Liouvillian, is kept at leading order only, which is what \eqref{eq:ule-averaged} is. Their parameters differ, so keeping the second at leading order is legitimate only where its error does not dominate the first,
+\begin{equation}\label{eq:twoexpansions}
+  \frac{\Gamma_{\!\star}}{\omega_d}\;\lesssim\;\Big(\frac{\lVert\hat H_m\rVert}{\omega_d}\Big)^{\!N},
+\end{equation}
+which weak coupling usually grants, since $\Gamma_{\!\star} = \mathcal O(\gamma^2)$, and which nothing in the construction enforces. The periodic generator \eqref{eq:ule} pays neither \eqref{eq:twoexpansions} nor the last line of \cref{tab:ledger}; both are the price of staticity, and any route to a static generator pays something like them, the exact time-local generator being periodic.
+
+\begin{figure}[t]
+  \centering
+  \input{../figures/tikz/scale_hierarchy.tikz}
+  \caption{The separations of scale the ledger asks for. Secularization needs $\Gamma_{\!\star}\ll\Delta_{\min}$ (\cref{app:secular}), Markov needs $\Gamma_{\!\star}\ll\tau_B^{-1}$ (\cref{sec:redfield}), the Floquet expansion needs the accessed harmonics below the drive (\cref{sec:vv}), and the filter needs the bath data flat across one carrier's spread (\cref{sec:filter}). Only the position of $\tau_B^{-1}$ is free: it may sit either side of $\omega_d$, and the case $\tau_B\gtrsim T$, where the bath resolves the comb, is both admissible and the regime in which the ordering of \cref{sec:origin} decides the answer.}
+  \label{fig:scales}
+\end{figure}
+% ================================================================ appendix
+\newpage
+\appendix
+% ---------------------------------------------------------------- App A
+\section{The coherent companion of the universal Lindblad equation}\label{app:lamb}
+
+The Lamb shift that goes beside \eqref{eq:ule} is built from the same spectral factor~\cite{Nathan2020Universal}. Let the \emph{jump correlator} $g$ be the time transform of that factor, a matrix on channel space like $S^{1/2}$ itself,
+\begin{equation}\label{eq:jumpcorrelator}
+  g(s) = \int\!\frac{\dd\nu}{2\pi}\,S^{1/2}(\nu)\,e^{-i\nu s},
+  \qquad\text{equivalently}\qquad
+  \int\!\dd s\; g(s)\,e^{i\nu s} = S^{1/2}(\nu),
+  \qquad
+  g(s)^\dagger = g(-s),
+\end{equation}
+the last relation following from Hermiticity of $S^{1/2}$ at every $\nu$. Note that it exchanges the two indices: entry by entry it reads $g_{k\alpha}(s)^* = g_{\alpha k}(-s)$, and the single-bath statement $g(s) = g(-s)^*$ is its scalar special case. The normalization is fixed by requiring that $\sum_\alpha\int\dd s\,g_{k\alpha}(s)\,\breve A_\alpha(t-s)$ return the jump operator \eqref{eq:ule}, as the comb \eqref{eq:barecomb} confirms.\footnote{The same correlator turns \eqref{eq:markovpair} from an estimate into a bound. Under this normalization $S = S^{1/2}S^{1/2}$ is a product of transforms, so $C = g*g$ is a convolution and $\int\dd\tau\,\lVert C\rVert \le \big(\int\dd s\,\lVert g\rVert\big)^2$; the rigorous error bound of Ref.~\cite{Nathan2020Universal} is stated with the right-hand side and with the first moment of $g$ in place of that of $C$, so its version of $\Gamma_{\!\star}$ is never smaller than ours, and nothing below depends on which is meant.} The coherent term is then doubly time-nonlocal, and substituting the comb with both integration variables shifted by $t$ collapses the time integrals onto pairs of transition frequencies,
+\begin{equation}\label{eq:ule-lamb-comb}
+  \begin{aligned}
+  \breve H^{\mathrm{ULE}}_{\mathrm{LS}}(t)
+  &= \frac{1}{2i}\sum_{\alpha\beta}\iint\!\dd s\,\dd s'\;
+    \operatorname{sgn}(s-s')\,\big[g(s-t)\,g(t-s')\big]_{\alpha\beta}\;
+    \breve A_\alpha(s)\,\breve A_\beta(s')\\
+  &= \sum_{\mu\mu'}\sum_{\alpha\beta}
+    h_{\alpha\beta}(\nu_\mu,\nu_{\mu'})\;\hat A_{\alpha\mu}\,\hat A_{\beta\mu'}\;
+    e^{-i(\nu_\mu+\nu_{\mu'})t},\\
+  h_{\alpha\beta}(\nu,\nu') &= -\frac{1}{2\pi}\,\mathrm{P}\!\!\int\!\dd\Omega\;
+    \frac{\big[S^{1/2}(\Omega-\nu)\,S^{1/2}(\Omega+\nu')\big]_{\alpha\beta}}{\Omega} ,
+  \end{aligned}
+\end{equation}
+with the matrix product taken on channel space, Hermitian by $g(s)^\dagger = g(-s)$, and the kernel $h$ following from the Fourier representation of the sign function. Equation \eqref{eq:ule-lamb-comb} is built from the interaction-picture comb \eqref{eq:barecomb} and therefore lives there, whereas \eqref{eq:ule} was stated in the kicked frame; carrying the coefficients across costs nothing but changes the phase, since conjugating $\hat A_{\alpha\mu}\hat A_{\beta\mu'}$ by $e^{-iH_\eff t}$ supplies $e^{i(\omega+\omega')t}$ and leaves
+\begin{equation}\label{eq:ule-lamb-kicked}
+  H^{\mathrm{ULE}}_{\mathrm{LS}}(t) = \sum_{\mu\mu'}\sum_{\alpha\beta}
+  h_{\alpha\beta}(\nu_\mu,\nu_{\mu'})\;\hat A_{\alpha\mu}\,\hat A_{\beta\mu'}\;
+  e^{-i(m+m')\omega_d t} ,
+\end{equation}
+manifestly $T$-periodic, as the kicked frame requires.
+
+Two things are worth reading off, and both are cleanest in the interaction picture. The terms with $\nu_\mu + \nu_{\mu'} = 0$ are the static ones there, which by $\hat A_{\beta\mu'} = \hat A^\dagger_{\beta\bar\mu'}$ and $\nu_{\bar\mu'} = -\nu_{\mu'}$ is the secular condition $\nu_\mu = \nu_{\bar\mu'}$ written in undaggered operators. There the two square roots share an argument, $h_{\alpha\beta}(-\nu,\nu) = -\tfrac{1}{2\pi}\mathrm{P}\!\int\dd\Omega\,S_{\alpha\beta}(\Omega+\nu)/\Omega = \Lambda_{\alpha\beta}(\nu)$, so those terms assemble exactly the secular Lamb shift of \eqref{eq:gksl}: on the coherent side too, the universal Lindblad equation gives up nothing where secularization is exact. Away from there the kernel depends on \emph{two} transition frequencies, and that is why \cref{sec:filter} does not reach it: \eqref{eq:functional-identity} trades one argument for $\ad_{H_\eff}$, whereas $h$ would need the trade made in both at once. Closing that gap is left open.
+
+
+\section{The secular and clustered approximations}\label{app:secular}
+
+Two constructions are displaced here because they cannot be evaluated without the eigenoperators of $H_\eff$, and so do not serve the analytical aim of \cref{sec:cp}. The reason is \cref{sec:filter}. Secularization needs the summands one $\nu$ at a time, which is exactly what a filter declines to deliver, since recovering a single sideband would mean Taylor-expanding an indicator; a secular approximation is therefore analytic only as far as one can diagonalize $H_\eff$ in closed form. That is free for a qubit, or whenever $H_\eff$ is a function of $\hat a^\dagger\hat a$ alone, and for the running example it is not, the effective Hamiltonian there being a squeezed Kerr oscillator whose two-photon term breaks Fock conservation and whose spectrum has no closed form. Accuracy points the same way, since a parametric operating point is engineered to sit where transition frequencies coincide, which is where $\Delta_{\min}\to0$ and secularization fails first.
+
+They are not superseded, and what the main text gives up by displacing them is definite: per-channel detailed balance, the known trade between complete positivity and thermodynamic consistency~\cite{Tupkary2022Fundamental,Soret2022Thermodynamic}, and an unbiased stationary state, at $\mathcal O(\Gamma_{\!\star})$ and removable~\cite{Nathan2024Quantifying}. The secular equation is the accurate one wherever the bath resolves the comb, and the only one whose surviving coefficients all sit at a single physical frequency, which is what makes that balance descend channel by channel; the clustered equation is the only one with a dial between the two extremes. Both are derived from \eqref{eq:preclosure} exactly as the universal Lindblad equation was, by making the pair matrix \eqref{eq:pairmatrix} symmetric in its two indices, and both are priced against Floquet--Redfield in \cref{tab:closures}.
+
+\paragraph{Floquet-secular}
+This is the Floquet counterpart of the Davies weak-coupling generator~\cite{Davies1974,Davies1976}, and for a driven two-level system it is the master equation of Ref.~\cite{Szczygielski2013Markovian}. Work in the interaction picture \eqref{eq:preclosure}, where the cross terms carry the phase $e^{i(\nu_{\mu'}-\nu_\mu)t}$ and the criterion reads off directly: keep the pairs whose phase is stationary, $\nu_{\mu'}=\nu_\mu$, and discard the rest. Group the surviving indices by their common value $\nu$ and collect
+\begin{equation}\label{eq:secularop}
+  \hat A_\alpha(\nu) \equiv \sum_{\mu\,:\,\nu_\mu = \nu}\hat A_{\alpha\mu},
+\end{equation}
+after which the retained double sum factorizes into $\hat A_{\alpha'}(\nu)\,\breve\rho\,\hat A_\alpha(\nu)^\dagger - \hat A_\alpha(\nu)^\dagger\hat A_{\alpha'}(\nu)\,\breve\rho$, weighted by $W_{\alpha\alpha'}(\nu)$. Only now add the Hermitian conjugate that \eqref{eq:preclosure} carries. Relabelling $\alpha\leftrightarrow\alpha'$ in it, the $\hat A_{\alpha'}\breve\rho\,\hat A_\alpha^\dagger$ terms combine with coefficient $W_{\alpha\alpha'}(\nu) + W^*_{\alpha'\alpha}(\nu)$, which is $(W+W^\dagger)_{\alpha\alpha'} = S_{\alpha\alpha'}$ by \eqref{eq:halftransform} and \eqref{eq:spectralfn}, while the two remaining terms carry $W_{\alpha\alpha'}$ and $W^*_{\alpha'\alpha}$ separately. Splitting those with $W = \tfrac12 S + i\Lambda$ and using that $S$ and $\Lambda$ are Hermitian,
+\begin{equation}\label{eq:secularsplit}
+  -W_{\alpha\alpha'}\,\hat A_\alpha^\dagger \hat A_{\alpha'}\breve\rho
+  - W^*_{\alpha'\alpha}\,\breve\rho\,\hat A_\alpha^\dagger \hat A_{\alpha'}
+  = -\tfrac12 S_{\alpha\alpha'}\acomm{\hat A_\alpha^\dagger \hat A_{\alpha'}}{\breve\rho}
+  - i\Lambda_{\alpha\alpha'}\comm{\hat A_\alpha^\dagger \hat A_{\alpha'}}{\breve\rho},
+\end{equation}
+so the anti-Hermitian half of the half transform assembles by itself into a commutator. That is the Lamb shift. Returning to the kicked frame rotates each eigenoperator by $e^{i\omega_\mu t}$, and since $\omega_\mu = \nu - m_\mu\omega_d$ the common $e^{i\nu t}$ cancels in every bilinear below while the harmonic labels do not. Writing the kicked-frame counterpart of \eqref{eq:secularop},
+\begin{equation}\label{eq:secularop-kicked}
+  \hat A_\alpha(\nu,t) \equiv \sum_{\mu\,:\,\nu_\mu = \nu}e^{-i m_\mu\omega_d t}\,\hat A_{\alpha\mu},
+\end{equation}
+the retained generator is
+\begin{equation}\label{eq:gksl}
+  \begin{gathered}
+  \dv{\rho}{t} = -i\comm{H_\eff + H_{\mathrm{LS}}(t)}{\rho}
+  + \sum_{\nu}\sum_{\alpha\alpha'} S_{\alpha\alpha'}(\nu)
+  \Big( \hat A_{\alpha'}(\nu,t)\,\rho\,\hat A_{\alpha}(\nu,t)^\dagger
+  - \tfrac12\acomm{\hat A_{\alpha}(\nu,t)^\dagger \hat A_{\alpha'}(\nu,t)}{\rho} \Big),\\[2pt]
+  H_{\mathrm{LS}}(t) = \sum_\nu\sum_{\alpha\alpha'}\Lambda_{\alpha\alpha'}(\nu)\,\hat A_\alpha(\nu,t)^\dagger\hat A_{\alpha'}(\nu,t).
+  \end{gathered}
+\end{equation}
+Since $\nu$ together with $m$ fixes $\omega$, a degenerate group is a singleton unless two Bohr frequencies of $H_\eff$ differ by a whole number of drive quanta, so \eqref{eq:gksl} loses its time dependence exactly away from the multiphoton resonances of \cref{sec:preclosure}, and only there is it the static rate equation the classic Floquet--Markov theory delivers~\cite{Grifoni1998Driven,hone2009Statisticala}. On a resonance it is $T$-periodic, with harmonics $(m'-m)\omega_d$ running over the resonant pairs and $H_{\mathrm{LS}}$ no longer commuting with $H_\eff$; that periodicity is the interference between sideband channels sharing a transition frequency, and it must not be secularized a second time. It disappears in the interaction picture \eqref{eq:secularsplit} at every operating point, but that frame is reached by conjugating with $e^{-iH_\eff t}$, which is not $T$-periodic and therefore removes $H_\eff$ from the generator rather than the periodicity from the dissipator: as everywhere in these notes, no one frame makes both halves static.
+
+This is GKSL at every $t$, the time dependence sitting in the operators and not in the rates: the coefficient matrix is $S(\nu)$, positive semidefinite at every $\nu$ because it is a Fourier transform of a correlation function, so diagonalizing it channel by channel produces jump operators with nonnegative rates, one set per sideband. Note where the positivity came from. It is the \emph{same} $W$ as in \eqref{eq:redfield}, and nothing was added; what secularization did was discard exactly the cross terms that prevented the surviving coefficients from assembling into $W+W^\dagger$. It costs $\mathcal O(\Gamma_{\!\star}/\Delta_{\min})$, the comb spacing \eqref{eq:deltamin} now read on the retained frequencies, so it needs a comb the bath resolves. It is also the one construction \cref{sec:filter} cannot reach, for the reason given in \cref{sec:cp}, and so is diagonalization-bound by construction.
+
+Its stationary state is worth a remark, since this is its advantage: among those descended from Redfield it is the one consistent at the level of fluctuations~\cite{Soret2022Thermodynamic,Tupkary2022Fundamental}, with detailed balance descending channel by channel~\cite{Szczygielski2013Markovian}. Detailed balance holds in $\nu$, but $\nu = \omega + m\omega_d$ is not the energy exchanged with $H_\eff$: every $m\neq0$ event trades $m$ quanta with the drive as well. Balance in $\nu$ is therefore not balance in the spectrum of $H_\eff$, and the stationary state is generically not $e^{-\beta H_\eff}$. The sidebands are heating and cooling channels held open by the drive.
+
+\paragraph{Clustered-secular}
+The secular step discards a cross term whenever $\nu_\mu\neq\nu_{\mu'}$, however small the difference, which is wasteful when the comb has near-degenerate sidebands: their relative phase barely turns over the dissipative timescale and there was no reason to drop them. Partition the index set into clusters $c$ of near-degenerate $\nu$, keep every cross term with $\mu,\mu'$ in the same cluster, discard those between, and evaluate the bath once per cluster at its centroid $\bar\nu_c$. The derivation above then runs verbatim with \eqref{eq:secularop-kicked} replaced by the cluster collection $\hat A_\alpha^{(c)}(t) = \sum_{\mu\in c}e^{-i m_\mu\omega_d t}\hat A_{\alpha\mu}$ and $\nu$ by $\bar\nu_c$, so
+\begin{equation}\label{eq:gksl-cluster}
+  \dv{\rho}{t} = -i\comm{H_\eff + H^{(c)}_{\mathrm{LS}}(t)}{\rho}
+  + \sum_{c}\sum_{\alpha\alpha'} S_{\alpha\alpha'}(\bar\nu_c)
+  \Big( \hat A^{(c)}_{\alpha'}(t)\,\rho\,\hat A^{(c)\dagger}_{\alpha}(t)
+  - \tfrac12\acomm{\hat A^{(c)\dagger}_{\alpha}(t)\hat A^{(c)}_{\alpha'}(t)}{\rho} \Big),
+\end{equation}
+GKSL at every $t$ for the same reason and for any symmetric partition, and static only for a partition whose clusters are each confined to one sideband. Clustering across sidebands, which is the near-degenerate case the paragraph opened with, leaves phases turning at $\omega_d$, the fastest scale in the problem, and those cannot be absorbed into the cluster tolerance. Partial-secular and clustered constructions of this kind, and the positivity they recover, are established in the static literature~\cite{Farina2019Open,Trushechkin2021Unified}, where a partial secular treatment is also what makes the global description outperform a local one~\cite{Cattaneo2019Local}, with coarse graining as the alternative route to the same end~\cite{Majenz2013Coarse,Cresser2017Coarse}. It is the only one of the three with a dial: singleton clusters return \eqref{eq:gksl}, one cluster keeps everything, and a partition is admissible when both errors it makes are small, the inter-cluster terms it discards and the spread of $S$ across a cluster it flattens. \Cref{sec:filter} serves it while the partition stays coarse, and stops serving it as the clusters approach singletons.
+\paragraph{What the displacement costs}
+Neither construction is exact where the universal Lindblad equation is. On the degenerate block $\nu_\mu = \nu_{\mu'}$ the secular weight $S(\nu)$ agrees with \eqref{eq:redfield} and with \eqref{eq:ule} alike, so there the three coincide and only the off-block terms separate them. The clustered equation, by contrast, reads the bath once per cluster at its centroid, so it is approximate even on that block, and the terms it approximates there are the largest ones in the generator. Buying the interference of near-degenerate sidebands therefore costs a sampling error on everything inside the cluster, which is why a coarser partition is not uniformly better than secularization and why the admissibility condition above has two halves.
+
+\printbibliography
+
+\end{document}
