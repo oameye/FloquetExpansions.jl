@@ -46,29 +46,34 @@ Ingest promotes: a bare `Op` is not `<: QAdd`, so `Dict(1 => a)` needs `normal_o
 The constructor does this.
 
 Zero: use SQA's `iszero`, never `== 0`. SQA defines no `==(::QAdd, ::Number)`, so `x == 0` is
-silently `false`. `average` returns `zero(SQA.QAdd)` when bucket 0 is absent, not `0`
+silently `false`. `time_average` returns `zero(SQA.QAdd)` when bucket 0 is absent, not `0`
 (`zero(::Op)` returns the integer 0).
 
 ### The four operations
 
     commutator(K, X)_l       = sum_p [K_p, X_{l-p}]
     derivative(X)_l          = -i*l * X_l
-    average(X)               = X_0                     :: QAdd
+    time_average(X)          = X_0                     :: QAdd
     antiderivative(X, gauge) = (i/l) * X_l  for l != 0, plus the gauge's constant at l = 0
 
-Names are the spec's. Its sec:vv paragraph on eq:recursion-split calls the K equation the
+`time_average`, not `average`: SQA EXPORTS `average` for a different operation, the expectation
+value (`average(a'*a)` is `⟨a' * a⟩`), and we `@reexport` SQA, so that name is already in every
+user's scope meaning something else. `commutator` by contrast IS the same operation on a new type,
+so extend `SQA.commutator` rather than shadow it.
+
+The other names are the spec's. Its sec:vv paragraph on eq:recursion-split calls the K equation the
 **homological equation**, `<.>` the **period average**, and names the inverse in so many words:
 "its *zero-average antiderivative* is `sum_{l!=0} (i/(l wd)) X_l e^{-i l wd t}`". We keep
 `antiderivative` and promote the "zero-average" qualifier to the gauge argument, because that
 qualifier is precisely what Floquet-Magnus changes.
 
 The three non-bracket operations are the homological triple, and that is why they always appear
-together as `antiderivative(X - average(X), gauge)`:
+together as `antiderivative(X - time_average(X), gauge)`:
 
     derivative       the homological operator, the thing the recursion must invert
-    average          projector onto its kernel (constants are the only periodic functions
-                     with zero derivative), which is why <R> is unreachable by any kick and
-                     survives as Heff
+    time_average     projector onto its kernel (constants are the only periodic functions with
+                     zero derivative), which is why <R> is unreachable by any kick and survives
+                     as Heff
     antiderivative   inverse on the complement of that kernel, unique only up to a constant
 
 **That leftover constant IS the gauge, so it is an argument, not a default:**
@@ -79,15 +84,15 @@ together as `antiderivative(X - average(X), gauge)`:
 Same engine, same triangle, one line different. Dispatching on the gauge type from the start makes
 Floquet-Magnus an added method rather than a refactor. See `DECISIONS.md` D7.
 
-`antiderivative` requires a mean-zero input and asserts it. Callers pass `X - average(X)`. This is
+`antiderivative` requires a mean-zero input and asserts it. Callers pass `X - time_average(X)`. This is
 not a convention, it is the operator's domain: it inverts d/dt, whose image is exactly the mean-zero
 periodic operators. A DC term reaching it is a bug by definition. The assert is free and catches
 sign errors at the order they are introduced.
 
 Rejected: `antiderivative0` (the `0` was the van Vleck gauge encoded as a digit, and becomes a lie
 under Floquet-Magnus); `solve_homological` (right theory word, but does not say which direction the
-equation is solved); `integrate` and `primitive` (the first collides with `average`, which is
-itself a time integral; the second with "the four primitives" right above).
+equation is solved); `integrate` and `primitive` (the first collides with `time_average`, which
+is itself a time integral; the second with "the four primitives" right above).
 
 ## 3. Collector
 
@@ -210,7 +215,7 @@ Stage n (n = 0 .. N-1), given K^(1..n), Kdot^(1..n):
     dressedKdot^(n)_[j] = (i/(j+1)) * sum_{k=1}^{n-j+1} [K^(k), dressedKdot^(n-k)_[j-1]]   j >= 1
 
     R^(n)      = sum_{j=0..n} dressedH^(n)_[j] - sum_{j=1..n} dressedKdot^(n)_[j]
-    Heff^(n)   = average(R^(n))
+    Heff^(n)   = time_average(R^(n))
     K^(n+1)    = antiderivative(R^(n) - Heff^(n), gauge)   # mean-subtracted, `DERIVATION.md` §1
     Kdot^(n+1) = derivative(K^(n+1))
 
@@ -372,20 +377,53 @@ parameters (`where {F}`) on any helper taking a closure, per CLAUDE.md.
   drive. Per CLAUDE.md this trades precompile time for TTFX; keep the workload small, since the
   runtime cost is all in `commutator`, which precompilation cannot avoid.
 
-### Open arithmetic question, to settle during implementation
+### Arithmetic: SETTLED, `Rational{Int}` with a loud ceiling
 
-Deprit weights are products of `1/j` and `1/(j+1)`; denominators also carry products of harmonic
-indices up to `(n+1)M`. Rough estimate: at order 8 with M=8, index products reach ~72^8 ~ 7e14
-and Deprit denominators ~8! ~ 4e4, so `Rational{Int64}` (max 9.2e18) is near its ceiling around
-order 8. Julia throws `OverflowError` rather than wrapping, so this fails loudly, but it needs a
-test at high order to find where SQA's own coefficient arithmetic promotes and where it does not.
-If it does not promote, `Rational{Int128}` or `Rational{BigInt}` at the boundary. The normal-form
-literature is unambiguous that retrofitting the coefficient type through a symbolic expression tree
-later is miserable, so decide this before writing the engine, not after.
+MEASURED on SQA 0.10.1: coefficient arithmetic does NOT promote on overflow, it throws.
+
+    (1//3037000493)^2 * (a'a)  ->  1//9223371994482243049      exact, at the Int64 ceiling
+    (1//3037000493)^3 * (a'a)  ->  OverflowError               9223371994482243049 * 3037000493
+
+So the failure mode is loud, which is what matters: no silent wraparound, no silent precision loss.
+Use `Rational{Int}` and do not pre-emptively widen. Also measured: a float-representable rational
+collapses to the `Native` (ComplexF64) tier, `1//2^40` printing as `9.09e-13`, but that value is
+exactly representable so nothing is lost; non-representable ones such as `1//3` stay exact on the
+`Complex{Num}` tier.
+
+Ceiling estimate: denominators carry Deprit `1/j`, `1/(j+1)` and products of harmonic indices up to
+`(n+1)M`, so worst case ~`((n+1)M)^n * n!`, which at n=8, M=8 is ~3e19 against the 9.2e18 limit.
+That is a WORST case on unreduced fractions; real denominators reduce hard, so the practical
+ceiling is higher and must be measured, not predicted. Add a high-order test to find it. If it ever
+binds, `Rational{Int128}` at the boundary is the fix, but it costs nothing to defer given the
+`OverflowError` is loud.
 
 ## 8. Tests
 
-PRIMARY GATE — residual scaling. Needs no oracle, no license, no transcription, and validates K
+### Algebra layer (`PeriodicOperator`), IMPLEMENTED
+
+Anchored on the one thing the type claims: that it stores `X(t) = sum_l X_l e^{-i l wd t}`. Each
+test reconstructs that time-dependent operator and checks the operation against Symbolics' own
+calculus, instead of restating the harmonic bookkeeping. Every one was verified to FAIL under a
+corrupted implementation before being kept:
+
+| Test | Corruption it was shown to catch |
+|---|---|
+| `evaluate([K,X]) == [evaluate(K), evaluate(X)]` | bucket index `p-q` for `p+q`; overwrite for sum |
+| Jacobi identity on three periodic operators | bucket bookkeeping generally |
+| `d/dt evaluate(X) == wd * evaluate(derivative(X))` | sign flip in `derivative` |
+| `d/dt evaluate(antiderivative(X)) == wd * evaluate(X)` | sign flip in `antiderivative` |
+| `<antiderivative(X, VanVleck())> == 0` | the gauge condition itself |
+| `antiderivative` throws on a DC input | the missing mean subtraction (a bug that shipped once) |
+| Hermiticity closed under all four ops | precondition of the §7 halving optimization |
+| support adds under commutator | the `(n+1)M` bound |
+| `49*K[49] == i*a` after `antiderivative` | D5 exactness (float leaves -1.11e-16 at l=49) |
+| `@inferred` on all four plus arithmetic | the CLAUDE.md gate |
+
+`d/dt` here is Symbolics `Differential(t)` applied to each coefficient through `to_num`, which
+differentiates `expim` correctly. That is what makes the sign tests independent of the convention
+they are testing, rather than a restatement of it.
+
+PRIMARY GATE for the ENGINE — residual scaling. Needs no oracle, no license, no transcription, and validates K
 and Heff jointly at every order:
 
     finite-dimensional numeric backend, random d x d harmonics with H_{-m} = H_m^dag

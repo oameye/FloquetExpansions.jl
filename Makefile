@@ -1,5 +1,9 @@
 JULIA:=julia
 
+# `test`, `docs` and `examples` are also directory names; without this Make reports
+# "'test' is up to date" and runs nothing.
+.PHONY: default setup format servedocs test jet docs bench all help
+
 default: help
 
 setup:

@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Orjan Ameye <orjan.ameye@hotmail.com>"]
 
 [deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SecondQuantizedAlgebra = "f7aa4685-e143-4cb6-a7f3-073579757907"
 
@@ -11,6 +12,7 @@ SecondQuantizedAlgebra = "f7aa4685-e143-4cb6-a7f3-073579757907"
 SecondQuantizedAlgebra = {rev = "main", url = "https://github.com/qojulia/SecondQuantizedAlgebra.jl"}
 
 [compat]
+LinearAlgebra = "1"
 Reexport = "1.2"
 SecondQuantizedAlgebra = "0.10.1"
 julia = "1.10"

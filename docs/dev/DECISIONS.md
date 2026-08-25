@@ -37,6 +37,11 @@ D4. Names and method options:
                                 not say which direction it is solved), `integrate` (collides with
                                 `average`, itself a time integral), `primitive` (collides with the
                                 design's own "four primitives").
+      time_average(X)           was `average`. SQA EXPORTS `average` for the expectation value
+                                (`average(a'*a)` is `⟨a' * a⟩`), and we `@reexport` SQA, so that
+                                name is in every user's scope with a different meaning. Contrast
+                                `commutator`, which IS the same operation on a new type and so
+                                extends `SQA.commutator`.
       dressedH, dressedKdot     were the triangle families `A` and `B`. "Dressed" is the spec's word
                                 for `e^{iK} X e^{-iK}` (eq:kickedA), so the two families are named
                                 by their seed and `R = sum dressedH - sum dressedKdot` maps onto
@@ -45,6 +50,11 @@ D4. Names and method options:
                                 coupling operator is then `dressedA`, the same routine reseeded,
                                 which is exactly what D6 claims. Rejected: `Hrot`/`Kdotrot` ("rot"
                                 is curl to half the audience, and neither is a rotation).
+
+D5b. Coefficient type SETTLED as `Rational{Int}` (measured, SQA 0.10.1). Overflow THROWS
+    `OverflowError` rather than promoting or wrapping, so the ceiling (~order 8 worst case) is a
+    loud failure, not a silent corruption. Do not pre-emptively widen to Int128/BigInt; measure
+    where it actually binds first, since real denominators reduce far below the worst case.
 
 D5. EXACT rationals for the Deprit weights. Accepts the slow coefficient tier from order 2 up.
     Required for `iszero` reliability and to reproduce eq:kpo-heff1's 17/4, 3/20, 9/40.

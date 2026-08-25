@@ -1,4 +1,4 @@
-using SecondQuantizedAlgebra
+using FloquetExpansions
 using ParallelTestRunner: ParallelTestRunner
 
 # Start with autodiscovered tests
@@ -11,4 +11,4 @@ if ParallelTestRunner.filter_tests!(testsuite, args)
     delete!(testsuite, "quality/JET")
 end
 
-ParallelTestRunner.runtests(SecondQuantizedAlgebra, args; testsuite)
+ParallelTestRunner.runtests(FloquetExpansions, args; testsuite)
