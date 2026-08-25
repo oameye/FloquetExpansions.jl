@@ -10,8 +10,10 @@ import SecondQuantizedAlgebra as SQA
 
 include("periodic_operator.jl")
 include("collector.jl")
+include("engine.jl")
 
 export PeriodicOperator, Gauge, VanVleck
 export time_average, derivative, antiderivative, support, harmonics
+export FloquetExpansion, floquet_expansion, effective_hamiltonian, kick_operator
 
 end # module FloquetExpansions

@@ -8,6 +8,17 @@ _isexpim(x) = Symbolics.iscall(x) && Symbolics.operation(x) === SQA.expim
 # `Bool`, so it is unusable in a condition. Structural comparison against the literal is.
 _issymzero(x) = isequal(Symbolics.value(x), 0)
 
+_dependson(x, v) = any(isequal(Symbolics.value(v)), Symbolics.get_variables(_unwrap(x)))
+
+# Used only to refuse a silent misclassification: a phase buried in a structure `_phase_of` does
+# not decompose must raise, never be read as harmonic 0.
+function _hasexpim(x)
+    y = _unwrap(x)
+    _isexpim(y) && return true
+    Symbolics.iscall(y) || return false
+    return any(_hasexpim, Symbolics.arguments(y))
+end
+
 function _addparts(x)
     y = _unwrap(x)
     return if Symbolics.iscall(y) && Symbolics.operation(y) === (+)
@@ -48,21 +59,46 @@ end
 function _phase_of(part, w, t)
     p = _unwrap(part)
     zero_offset = _unwrap(0 * w)
+
     if _isexpim(p)
         m, offset = _harmonic_index(Symbolics.arguments(p)[1], w, t)
         return m, 1, offset
     end
-    if Symbolics.iscall(p) && Symbolics.operation(p) === (*)
-        factors = collect(Symbolics.arguments(p))
-        phases = findall(_isexpim, factors)
-        length(phases) > 1 &&
-            throw(ArgumentError("more than one phase factor in $(part); call `simplify` first"))
-        isempty(phases) && return 0, p, zero_offset
-        m, offset = _harmonic_index(Symbolics.arguments(factors[phases[1]])[1], w, t)
-        others = setdiff(eachindex(factors), phases)
-        rest = isempty(others) ? 1 : prod(factors[others])
-        return m, rest, offset
+
+    if Symbolics.iscall(p)
+        op = Symbolics.operation(p)
+
+        if op === (*)
+            factors = collect(Symbolics.arguments(p))
+            phases = findall(_isexpim, factors)
+            length(phases) > 1 &&
+                throw(ArgumentError("more than one phase factor in $(part); call `simplify` first"))
+            if !isempty(phases)
+                m, offset = _harmonic_index(Symbolics.arguments(factors[phases[1]])[1], w, t)
+                others = setdiff(eachindex(factors), phases)
+                rest = isempty(others) ? 1 : prod(factors[others])
+                return m, rest, offset
+            end
+
+        elseif op === (/)
+            # Reattaching wd puts the phase over a denominator, `exp(-im*t*w)*g / w`. Before this
+            # case existed the division fell through and was read as harmonic 0, silently.
+            num, den = Symbolics.arguments(p)
+            (_hasexpim(den) || _dependson(den, t)) && throw(
+                ArgumentError("time dependence in a denominator, in $(part); this is not periodic"),
+            )
+            m, rest, offset = _phase_of(num, w, t)
+            return m, rest / den, offset
+        end
     end
+
+    # Anything still carrying a phase here would be misread as the DC harmonic.
+    _hasexpim(p) && throw(
+        ArgumentError(
+            "cannot read a harmonic index from $(part): it carries a phase in a form this " *
+                "parser does not decompose. Call `simplify` on the input first.",
+        ),
+    )
     return 0, p, zero_offset
 end
 

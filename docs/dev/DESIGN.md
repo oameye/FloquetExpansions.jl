@@ -113,9 +113,23 @@ IMPLEMENTED. Two things the implementation added beyond the prototype:
   and `harmonics` applies it as `contribution * expim(offset)`, where SQA's own `QAdd * Coeff`
   handles it.
 
-Trap for anyone touching this file: `iszero` on a `BasicSymbolic` builds the symbolic equation
-`0 == 0` instead of returning a `Bool`, so it is unusable in a condition and silently poisons a
-ternary. Compare structurally against the literal instead.
+- **Division must be decomposed, and nothing may fall through silently.** Reattaching wd puts the
+  phase over a denominator: `kick_operator(vv, t)` produces coefficients like
+  `(exp(-im*t*w)*g) / w`, whose top-level operation is `/`, not `*`. The first implementation
+  handled only `expim`, `*` and `+`, so a `/` fell through the bottom of `_phase_of` and was
+  returned as harmonic 0 — SILENTLY, with the whole kick collapsing into the DC bucket. Fixed by
+  handling `/` (recurse on the numerator, guard against `t` or a phase in the denominator) AND by
+  making the fall-through raise whenever the part still contains an `expim` anywhere. Found by the
+  engine's kick round-trip test, not by the collector's own tests, because no coefficient there
+  had a denominator.
+
+Two traps for anyone touching this file:
+- `iszero` on a `BasicSymbolic` builds the symbolic equation `0 == 0` instead of returning a
+  `Bool`, so it is unusable in a condition and silently poisons a ternary. Compare structurally
+  against the literal instead.
+- A parser for this must never have a silent default branch. Returning harmonic 0 for an
+  unrecognized shape is indistinguishable from a correct DC term, so the error surfaces orders
+  later as a wrong expansion. Raise instead.
 
 Parsing:
 - `exp(im*w*t)` is expanded to cos+i*sin by **Base**'s `exp(::Complex)`, before SQA ever sees it
@@ -397,7 +411,34 @@ parameters (`where {F}`) on any helper taking a closure, per CLAUDE.md.
   drive. Per CLAUDE.md this trades precompile time for TTFX; keep the workload small, since the
   runtime cost is all in `commutator`, which precompilation cannot avoid.
 
-### Arithmetic: SETTLED, `Rational{Int}` with a loud ceiling
+### Exactness is only PARTLY reachable on SQA 0.10.1 — upstream issue
+
+MEASURED, and it invalidates part of D5's premise. SQA's `Native` coefficient tier is
+`ComplexF64` and accepts any FLOAT-REPRESENTABLE rational, so a power-of-two denominator is
+stored as a float and every later product with it is floating point:
+
+    (1//3)*(1//5)*(1//7)*(1//9)*(1//11) * g*a'a   ->  1//10395 * g*a'a       exact
+    insert one 1//2 into the same chain      ->  4.81000481000481e-5 * g*a'a  float
+    (1//2)*Z prints 0.5g   while   (1//3)*Z prints (1//3)*g
+
+Consequence for the engine: results stay correct to double precision, but bit-exactness is lost
+once a weight chain passes through a power-of-two denominator, and comparisons then fail by ~1
+ulp. Observed as `1.11e-16 * g^2 * xi` residues at order 3, which is why the composition-sum test
+compares numerically rather than with `iszero(simplify(a-b))`.
+
+Two mitigations are already in:
+- **Deprit weights are factored out of the recursion** (see the engine): both families satisfy the
+  same weight-free recursion `node(n,j) = sum_k [K^(k), node(n-k,j-1)]` and the `i^j/j!` is applied
+  once at assembly. Carrying `1/j` inside multiplied a rational per level and compounded the
+  problem. This also removed a scalar multiplication per node, so it is a speed win too.
+- Everything through order 2 is still EXACT and is tested exactly against the spec.
+
+What remains is upstream: SQA would need to keep `Rational` coefficients off the ComplexF64 tier
+(a rational tier, or simply never narrowing `Rational` to `Float64`). `Rational{BigInt}` does not
+help, it just moves the rounding. The user owns SecondQuantizedAlgebra, so this is fixable there;
+until it is, D5's "exact rationals" holds only for denominators that are not float-representable.
+
+### Arithmetic: `Rational{Int}` with a loud ceiling
 
 MEASURED on SQA 0.10.1: coefficient arithmetic does NOT promote on overflow, it throws.
 

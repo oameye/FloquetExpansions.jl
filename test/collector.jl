@@ -68,6 +68,18 @@ end
     @test ishermitian(X)
 end
 
+@testset "a phase over a denominator still finds its harmonic" begin
+    # Reattaching the drive frequency puts the phase over a denominator, `(g/w)*expim(-w*t)*a`.
+    # That is a `/` node, which the parser did not decompose, so it fell through and was read as
+    # the DC harmonic SILENTLY. Anything built on top of it would then be wrong with no error.
+    H = (g / w) * SQA.expim(-w * t) * a + conj(g / w) * SQA.expim(w * t) * a'
+    X = harmonics(H, w, t)
+    @test sort!(collect(keys(X))) == [-1, 1]
+    @test iszero(SQA.simplify(X[1] - (g / w) * a))
+    @test roundtrips(H)
+    @test ishermitian(X)
+end
+
 @testset "non-periodic and fractional phases are rejected" begin
     # Silently accepting either would produce a wrong expansion rather than an error.
     @test_throws ArgumentError harmonics(SQA.expim(w * t^2) * a, w, t)

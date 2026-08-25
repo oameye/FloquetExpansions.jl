@@ -51,6 +51,22 @@ D4. Names and method options:
                                 which is exactly what D6 claims. Rejected: `Hrot`/`Kdotrot` ("rot"
                                 is curl to half the audience, and neither is a rotation).
 
+D5c. Deprit weights are FACTORED OUT of the peeling recursion. Both families satisfy the same
+    weight-free recursion `node(n,j) = sum_k [K^(k), node(n-k,j-1)]`, differing only in seed, and
+    `i^j/j!` (resp. `i^j/(j+1)!`) is applied once at assembly. Carrying `1/j` inside the recursion
+    multiplied one rational per level; because SQA collapses float-representable rationals to its
+    ComplexF64 tier (D5d), that product silently dropped to floats and left ~1e-16 residues from
+    order 3 up. Factoring it out also removes a scalar multiplication per node, and makes the
+    "they share one peeling routine" claim literally true in the code.
+
+D5d. Exactness is only PARTLY reachable on SQA 0.10.1, and this WEAKENS D5. Measured: SQA's
+    `Native` tier is ComplexF64 and swallows any float-representable rational, so `1//2` becomes
+    `0.5` and everything downstream is floating point. A chain of non-representable rationals stays
+    exact (`1//10395`); inserting a single `1//2` collapses it (`4.81e-5`). `Rational{BigInt}` does
+    not help. Orders 0-2 remain exact and are tested exactly against the spec; beyond that,
+    comparisons are correct to ~1 ulp, not bit-exact. UPSTREAM FIX: SQA should keep `Rational`
+    coefficients off the ComplexF64 tier. The user owns SQA.
+
 D5b. Coefficient type SETTLED as `Rational{Int}` (measured, SQA 0.10.1). Overflow THROWS
     `OverflowError` rather than promoting or wrapping, so the ceiling (~order 8 worst case) is a
     loud failure, not a silent corruption. Do not pre-emptively widen to Int128/BigInt; measure
