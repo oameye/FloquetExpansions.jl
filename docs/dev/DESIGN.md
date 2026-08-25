@@ -97,7 +97,25 @@ is itself a time integral; the second with "the four primitives" right above).
 ## 3. Collector
 
     harmonics(H::QAdd, w, t) -> PeriodicOperator     parse symbolic time dependence
-    PeriodicOperator(Dict(m => H_m, ...))           direct
+    (X::PeriodicOperator)(w, t) -> QAdd              rebuild it; exact inverse
+    PeriodicOperator(Dict(m => H_m, ...))            direct
+
+IMPLEMENTED. Two things the implementation added beyond the prototype:
+
+- **Constant phase offsets are supported.** `cos(w*t + phi)` is an ordinary drive, so the parser
+  splits the exponent as `c*w*t + offset` (by substituting `w,t => 1` and `w,t => 0` and
+  differencing), takes `m = -c`, and returns the offset as an `expim(phi)` factor on the
+  COEFFICIENT. It also verifies `arg == c*w*t + offset` symbolically, which is what rejects
+  `w*t^2` and anything else not linear in `w*t`.
+- **The offset phase must meet the QAdd, not the coefficient.** `expim` returns an SQA `Coeff`,
+  and neither `BasicSymbolic * Coeff` nor `BasicSymbolic * Complex{Num}` has a method (the latter
+  hits a Symbolics bug in `unwrap(::Complex{Num})`). So `_phase_of` returns the offset separately
+  and `harmonics` applies it as `contribution * expim(offset)`, where SQA's own `QAdd * Coeff`
+  handles it.
+
+Trap for anyone touching this file: `iszero` on a `BasicSymbolic` builds the symbolic equation
+`0 == 0` instead of returning a `Bool`, so it is unusable in a condition and silently poisons a
+ternary. Compare structurally against the literal instead.
 
 Parsing:
 - `exp(im*w*t)` is expanded to cos+i*sin by **Base**'s `exp(::Complex)`, before SQA ever sees it
@@ -105,8 +123,10 @@ Parsing:
   behaviour and not configurable. Normalize input through `exponential_form` first; verified that
   `exponential_form(cos(w*t)*a)` recovers `(0.5exp(im*t*w) + 0.5exp(-im*t*w))*a`.
 - `expim(x)` is the compact phase atom, and the right primitive for *building* phases on output.
-- Enforce `H_{-m} = H_m^dag` on ingest (eq:fourierH). Catches a malformed drive before it becomes
-  a non-Hermitian Heff at order 3.
+- `H_{-m} = H_m^dag` (eq:fourierH) is CHECKED, not enforced here: `harmonics` is a pure parser and
+  the coupling operator will run through it too. `ishermitian(::PeriodicOperator)` exists for it,
+  and `floquet_expansion` is the ingest point that must assert it, so a malformed drive still
+  fails before it becomes a non-Hermitian Heff at order 3.
 
 ### Index extraction — PROTOTYPED AND WORKING
 
@@ -422,6 +442,21 @@ corrupted implementation before being kept:
 `d/dt` here is Symbolics `Differential(t)` applied to each coefficient through `to_num`, which
 differentiates `expim` correctly. That is what makes the sign tests independent of the convention
 they are testing, rather than a restatement of it.
+
+### Collector (`harmonics`), IMPLEMENTED
+
+Anchored on the round trip `harmonics(H, w, t)(w, t) == exponential_form(H)`, in both directions.
+
+| Test | What it holds down |
+|---|---|
+| round trip on a drive with all of the below at once | the parser as a whole |
+| `harmonics(X(w,t), w, t) == X` | the reverse direction, so neither is quietly lossy |
+| two harmonics sharing one monomial land in two buckets | F1, the finding that broke the naive design |
+| `cos` and `sin` land on +-1 with even/odd symmetry | Base expands a written `exp(im*w*t)` before SQA sees it |
+| `cos(w*t + phi)` keeps phi on the coefficient | phi must not be read as part of the harmonic index |
+| `w*t^2` and a half-harmonic both throw | accepting either yields a wrong expansion, not an error |
+| `3*X[0] == a'a` and `7*X[1] == a` | D5, the parser must not be where exactness is lost |
+| a Hermitian drive gives `ishermitian` | eq:fourierH |
 
 PRIMARY GATE for the ENGINE — residual scaling. Needs no oracle, no license, no transcription, and validates K
 and Heff jointly at every order:
