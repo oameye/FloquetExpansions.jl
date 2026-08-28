@@ -6,7 +6,7 @@ A Julia package for the computation of FloquetExpansions included the Van-Vleck 
  
 ## Git policy
 
-**Never commit or push.** Neither Claude nor any subagent may run `git commit`, `git push`, or any git command that modifies history. All commits are made by the user.
+**Never commit or push.** Neither Claude nor any subagent may run `git commit`, `git push`, or any git command that modifies history. All commits are made by the user, except explicity told otherwise.
 
 ## Development workflow
 
