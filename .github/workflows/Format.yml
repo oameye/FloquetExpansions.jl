@@ -1,34 +1,22 @@
-name: Format Check
+name: Format
+
 on:
   push:
     branches:
-      - 'main'
-    paths:
-      - '.github/workflows/FormatCheck.yml'
-      - '**.jl'
+      - main
   pull_request:
-    branches:
-      - 'main'
-    paths:
-      - '.github/workflows/FormatCheck.yml'
-      - '**.jl'
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
 
 jobs:
-  runic:
-    name: Runic
+  format:
+    name: Format
     runs-on: ubuntu-latest
-    if: ${{ !github.event.pull_request.draft }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: julia-actions/setup-julia@v3
-        with:
-          version: '1'
-      - uses: julia-actions/cache@v3
-      - uses: fredrikekre/runic-action@v1
-        with:
-          version: '1'
+      - uses: actions/checkout@7
+      - uses: julia-actions/setup-julia@3
+      - uses: julia-actions/cache@3
+      - name: Install JuliaFormatter
+        run: |
+          julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Check formatting
+        run: |
+          ${HOME}/.julia/bin/jlfmt --check --verbose .

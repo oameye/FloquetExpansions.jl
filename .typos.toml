@@ -1,5 +1,5 @@
 [files]
-extend-exclude = ["CLAUDE.md"]
+extend-exclude = ["AGENTS.md"]
 
 [default.extend-words]
 commutating = "commutating"
