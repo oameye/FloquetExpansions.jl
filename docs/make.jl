@@ -25,11 +25,6 @@ links = InterLinks(
 # The README.md file is used index (home) page of the documentation.
 if CI
   include("make_md_examples.jl")
-  cp(
-    normpath(@__FILE__, "../../README.md"),
-    normpath(@__FILE__, "../src/index.md");
-    force=true,
-  )
 else
   nothing
 end
