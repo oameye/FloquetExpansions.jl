@@ -1,4 +1,4 @@
-# CLAUDE.md — FloquetExpansions.jl
+# FloquetExpansions.jl
 
 ## What is this?
 
