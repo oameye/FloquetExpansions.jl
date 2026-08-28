@@ -36,12 +36,6 @@ features:
 ---
 ```
 
-- feat: Floquet-Magnus gauge with initial-time condition
-- docs: QuantumToolbox and QuantumCumulants interoperability
-- design: Floquet-Lindblad effective Liouvillian API and guarantees
-- docs: convergence, asymptotic truncation, and high-frequency validity
-- research: define scope and reference for flow-equation expansion
-
 ```@meta
 CurrentModule = FloquetExpansions
 ```
