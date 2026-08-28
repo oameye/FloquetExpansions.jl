@@ -62,20 +62,20 @@ Install the package in Julia's package manager:
 pkg> add FloquetExpansions
 ```
 
-Construct a time-dependent operator and expand it to the desired order in the inverse drive frequency:
+Construct a driven qubit and expand it to the desired order in the inverse drive frequency:
 
 ```julia
 using FloquetExpansions
-using SecondQuantizedAlgebra
-using Symbolics
+using Symbolics: @variables
 
-h = FockSpace(:cavity)
-a = Destroy(h, :a)
+space = PauliSpace(:qubit)
+σz = Pauli(space, :σ, 3)
+σx = Pauli(space, :σ, 1)
 
-@variables w::Real t::Real g::Real
-H = \omega * (a' * a) + g * cos(w * t) * (a + a')
+@variables ω::Real t::Real Δ::Real A::Real
+H = (Δ / 2) * σz + A * cos(ω * t) * σx
 
-expansion = floquet_expansion(H, w, t, VanVleck(), 2)
+expansion = floquet_expansion(H, ω, t, VanVleck(), 2)
 Heff = effective_hamiltonian(expansion)
 K = kick_operator(expansion, t)
 ```
