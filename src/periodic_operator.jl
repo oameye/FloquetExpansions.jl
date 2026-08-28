@@ -53,28 +53,28 @@ true
 See also [`time_average`](@ref), [`derivative`](@ref), [`antiderivative`](@ref).
 """
 struct PeriodicOperator
-    components::Dict{Int, SQA.QAdd}
+  components::Dict{Int,SQA.QAdd}
 
-    function PeriodicOperator(components::Dict{Int, SQA.QAdd})
-        kept = Dict{Int, SQA.QAdd}()
-        sizehint!(kept, length(components))
-        for (l, Xl) in components
-            iszero(Xl) || (kept[l] = Xl)
-        end
-        return new(kept)
+  function PeriodicOperator(components::Dict{Int,SQA.QAdd})
+    kept = Dict{Int,SQA.QAdd}()
+    sizehint!(kept, length(components))
+    for (l, Xl) in components
+      iszero(Xl) || (kept[l] = Xl)
     end
+    return new(kept)
+  end
 end
 
 # `Op` is not `<: QAdd`, so every ingest path has to promote.
 _qadd(x::SQA.QAdd) = x
 _qadd(x::SQA.QSym) = 1 * x
 
-function PeriodicOperator(components::AbstractDict{Int, <:SQA.QField})
-    return PeriodicOperator(Dict{Int, SQA.QAdd}(l => _qadd(Xl) for (l, Xl) in components))
+function PeriodicOperator(components::AbstractDict{Int,<:SQA.QField})
+  return PeriodicOperator(Dict{Int,SQA.QAdd}(l => _qadd(Xl) for (l, Xl) in components))
 end
 
-function PeriodicOperator(pairs::Pair{Int, <:SQA.QField}...)
-    return PeriodicOperator(Dict{Int, SQA.QAdd}(l => _qadd(Xl) for (l, Xl) in pairs))
+function PeriodicOperator(pairs::Pair{Int,<:SQA.QField}...)
+  return PeriodicOperator(Dict{Int,SQA.QAdd}(l => _qadd(Xl) for (l, Xl) in pairs))
 end
 
 PeriodicOperator(X::SQA.QField) = PeriodicOperator(0 => X)
@@ -96,42 +96,44 @@ Smallest range of harmonic indices containing every nonzero harmonic of `X`, or 
 `X` is zero.
 """
 function support(X::PeriodicOperator)
-    isempty(X.components) && return 0:-1
-    return minimum(keys(X.components)):maximum(keys(X.components))
+  isempty(X.components) && return 0:-1
+  return minimum(keys(X.components)):maximum(keys(X.components))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", X::PeriodicOperator)
-    if isempty(X.components)
-        print(io, "PeriodicOperator (zero)")
-        return nothing
-    end
-    ls = sort!(collect(keys(X.components)))
-    print(io, "PeriodicOperator with harmonics ", first(ls), ":", last(ls))
-    pad = maximum(length ∘ string, ls)
-    for l in ls
-        print(io, "\n  l = ", lpad(l, pad), "  =>  ", X.components[l])
-    end
+  if isempty(X.components)
+    print(io, "PeriodicOperator (zero)")
     return nothing
+  end
+  ls = sort!(collect(keys(X.components)))
+  print(io, "PeriodicOperator with harmonics ", first(ls), ":", last(ls))
+  pad = maximum(length ∘ string, ls)
+  for l in ls
+    print(io, "\n  l = ", lpad(l, pad), "  =>  ", X.components[l])
+  end
+  return nothing
 end
 
 Base.show(io::IO, X::PeriodicOperator) = show(io, MIME"text/plain"(), X)
 
 ## Arithmetic ###################################################################################
 
-function _addto!(out::Dict{Int, SQA.QAdd}, l::Int, Xl::SQA.QAdd)
-    out[l] = haskey(out, l) ? out[l] + Xl : Xl
-    return out
+function _addto!(out::Dict{Int,SQA.QAdd}, l::Int, Xl::SQA.QAdd)
+  out[l] = haskey(out, l) ? out[l] + Xl : Xl
+  return out
 end
 
 function Base.:+(X::PeriodicOperator, Y::PeriodicOperator)
-    out = copy(X.components)
-    for (l, Yl) in Y.components
-        _addto!(out, l, Yl)
-    end
-    return PeriodicOperator(out)
+  out = copy(X.components)
+  for (l, Yl) in Y.components
+    _addto!(out, l, Yl)
+  end
+  return PeriodicOperator(out)
 end
 
-Base.:-(X::PeriodicOperator) = PeriodicOperator(Dict{Int, SQA.QAdd}(l => -Xl for (l, Xl) in X.components))
+function Base.:-(X::PeriodicOperator)
+  return PeriodicOperator(Dict{Int,SQA.QAdd}(l => -Xl for (l, Xl) in X.components))
+end
 Base.:-(X::PeriodicOperator, Y::PeriodicOperator) = X + (-Y)
 
 # The static operand is a DC harmonic; `R - time_average(R)` is the recursion's own idiom.
@@ -140,11 +142,12 @@ Base.:+(c::SQA.QField, X::PeriodicOperator) = X + PeriodicOperator(c)
 Base.:-(X::PeriodicOperator, c::SQA.QField) = X + PeriodicOperator(0 => -_qadd(c))
 Base.:-(c::SQA.QField, X::PeriodicOperator) = PeriodicOperator(c) + (-X)
 
-Base.:*(c::Number, X::PeriodicOperator) =
-    PeriodicOperator(Dict{Int, SQA.QAdd}(l => c * Xl for (l, Xl) in X.components))
+function Base.:*(c::Number, X::PeriodicOperator)
+  return PeriodicOperator(Dict{Int,SQA.QAdd}(l => c * Xl for (l, Xl) in X.components))
+end
 Base.:*(X::PeriodicOperator, c::Number) = c * X
 
-Base.zero(::Type{PeriodicOperator}) = PeriodicOperator(Dict{Int, SQA.QAdd}())
+Base.zero(::Type{PeriodicOperator}) = PeriodicOperator(Dict{Int,SQA.QAdd}())
 Base.zero(::PeriodicOperator) = zero(PeriodicOperator)
 
 """
@@ -153,7 +156,7 @@ Base.zero(::PeriodicOperator) = zero(PeriodicOperator)
 Hermitian adjoint, harmonic by harmonic: `X'[l] == X[-l]'`.
 """
 function Base.adjoint(X::PeriodicOperator)
-    return PeriodicOperator(Dict{Int, SQA.QAdd}(-l => adjoint(Xl) for (l, Xl) in X.components))
+  return PeriodicOperator(Dict{Int,SQA.QAdd}(-l => adjoint(Xl) for (l, Xl) in X.components))
 end
 
 """
@@ -162,10 +165,10 @@ end
 True when `X[-l] == X[l]'` for every harmonic, i.e. when `X(t)` is Hermitian at every `t`.
 """
 function LinearAlgebra.ishermitian(X::PeriodicOperator)
-    for (l, Xl) in X.components
-        iszero(SQA.simplify(adjoint(Xl) - X[-l])) || return false
-    end
-    return true
+  for (l, Xl) in X.components
+    iszero(SQA.simplify(adjoint(Xl) - X[-l])) || return false
+  end
+  return true
 end
 
 ## The four operations ##########################################################################
@@ -191,12 +194,12 @@ julia> commutator(K, X)[3]
 ```
 """
 function SQA.commutator(K::PeriodicOperator, X::PeriodicOperator)
-    out = Dict{Int, SQA.QAdd}()
-    for (p, Kp) in K.components, (q, Xq) in X.components
-        c = SQA.commutator(Kp, Xq)
-        iszero(c) || _addto!(out, p + q, c)
-    end
-    return PeriodicOperator(out)
+  out = Dict{Int,SQA.QAdd}()
+  for (p, Kp) in K.components, (q, Xq) in X.components
+    c = SQA.commutator(Kp, Xq)
+    iszero(c) || _addto!(out, p + q, c)
+  end
+  return PeriodicOperator(out)
 end
 
 """
@@ -211,7 +214,9 @@ Time derivative in units of the drive frequency, `dX/dt` divided by ``\\omega_d`
 Left inverse of [`antiderivative`](@ref) on operators of vanishing time average.
 """
 function derivative(X::PeriodicOperator)
-    return PeriodicOperator(Dict{Int, SQA.QAdd}(l => (-im * l) * Xl for (l, Xl) in X.components))
+  return PeriodicOperator(
+    Dict{Int,SQA.QAdd}(l => (-im * l) * Xl for (l, Xl) in X.components)
+  )
 end
 
 """
@@ -252,13 +257,13 @@ true
 ```
 """
 function antiderivative(X::PeriodicOperator, ::VanVleck)
-    haskey(X.components, 0) && throw(
-        ArgumentError(
-            "antiderivative requires a vanishing time average, but harmonic 0 is present; " *
-                "pass `X - time_average(X)`",
-        ),
-    )
-    return PeriodicOperator(
-        Dict{Int, SQA.QAdd}(l => ((1 // l) * im) * Xl for (l, Xl) in X.components),
-    )
+  haskey(X.components, 0) && throw(
+    ArgumentError(
+      "antiderivative requires a vanishing time average, but harmonic 0 is present; " *
+      "pass `X - time_average(X)`",
+    ),
+  )
+  return PeriodicOperator(
+    Dict{Int,SQA.QAdd}(l => ((1 // l) * im) * Xl for (l, Xl) in X.components)
+  )
 end

@@ -8,10 +8,11 @@ default: help
 
 setup:
 	${JULIA} -e 'import Pkg; Pkg.add(["Changelog", "LiveServer"])'
-	${JULIA} -e 'using Pkg; Pkg.Apps.add("Runic")'
+	${JULIA} -e 'using Pkg; Pkg.Apps.add("JuliaFormatter")'
 
-format: ## Format all Julia files with Runic
-	runic --inplace src/ ext/ test/ benchmark/ examples/ docs/
+
+format: ## Format all Julia files with JuliaFormatter
+	jlfmt --threads=6 -- --inplace -v ./
 
 servedocs:
 	${JULIA} --project=docs -e 'using LiveServer; LiveServer.servedocs(skip_files=[joinpath("docs", "src", "changelog.md")])'

@@ -14,24 +14,25 @@ a = Destroy(h, :a)
 # corrupted implementation (index `p-q` for `p+q`, and a flipped sign in each of d/dt and its
 # inverse); a test that cannot fail is not kept.
 function evaluate(X::PeriodicOperator, w, t)
-    return sum(SQA.expim(-l * w * t) * X[l] for l in keys(X); init = zero(SQA.QAdd))
+  return sum(SQA.expim(-l * w * t) * X[l] for l in keys(X); init=zero(SQA.QAdd))
 end
 
 function ddt(q::SQA.QAdd, t)
-    D = Differential(t)
-    out = zero(SQA.QAdd)
-    for (term, coeff) in q
-        mono = isempty(term.ops) ? one(SQA.QAdd) : prod(term.ops)
-        out = out + expand_derivatives(D(SQA.to_num(coeff))) * mono
-    end
-    return out
+  D = Differential(t)
+  out = zero(SQA.QAdd)
+  for (term, coeff) in q
+    mono = isempty(term.ops) ? one(SQA.QAdd) : prod(term.ops)
+    out = out + expand_derivatives(D(SQA.to_num(coeff))) * mono
+  end
+  return out
 end
 
 vanishes(q::SQA.QAdd) = iszero(SQA.simplify(q))
 vanishes(X::PeriodicOperator) = all(vanishes(X[l]) for l in keys(X))
 
 # A drive with a dense, asymmetric harmonic support, so cross terms genuinely collide in buckets.
-drive() = PeriodicOperator(
+function drive()
+  return PeriodicOperator(
     0 => a' * a,
     1 => a,
     -1 => a',
@@ -39,96 +40,98 @@ drive() = PeriodicOperator(
     -2 => a * a,
     3 => a' * a * a,
     -3 => a' * a' * a,
-)
+  )
+end
 
 @testset "commutator is the commutator of the time-dependent operators" begin
-    # The convolution ∑_p [K_p, X_{l-p}] is only meaningful if it reproduces [K(t), X(t)].
-    # Catches a wrong bucket index and contributions overwritten instead of summed.
-    K = drive()
-    X = PeriodicOperator(1 => a, -1 => a', 2 => a' * a')
-    @test vanishes(
-        evaluate(SQA.commutator(K, X), w, t) -
-            SQA.commutator(evaluate(K, w, t), evaluate(X, w, t)),
-    )
+  # The convolution ∑_p [K_p, X_{l-p}] is only meaningful if it reproduces [K(t), X(t)].
+  # Catches a wrong bucket index and contributions overwritten instead of summed.
+  K = drive()
+  X = PeriodicOperator(1 => a, -1 => a', 2 => a' * a')
+  @test vanishes(
+    evaluate(SQA.commutator(K, X), w, t) -
+    SQA.commutator(evaluate(K, w, t), evaluate(X, w, t)),
+  )
 
-    # Jacobi, which no amount of per-bucket bookkeeping gets right by accident.
-    Y = PeriodicOperator(1 => a' * a, -2 => a)
-    jac = SQA.commutator(SQA.commutator(K, X), Y) +
-        SQA.commutator(SQA.commutator(X, Y), K) +
-        SQA.commutator(SQA.commutator(Y, K), X)
-    @test vanishes(jac)
+  # Jacobi, which no amount of per-bucket bookkeeping gets right by accident.
+  Y = PeriodicOperator(1 => a' * a, -2 => a)
+  jac =
+    SQA.commutator(SQA.commutator(K, X), Y) +
+    SQA.commutator(SQA.commutator(X, Y), K) +
+    SQA.commutator(SQA.commutator(Y, K), X)
+  @test vanishes(jac)
 end
 
 @testset "derivative is d/dt, in the package's Fourier convention" begin
-    # ω_d is factored out of the recursion, so `derivative` is d/dt divided by ω_d.
-    X = drive()
-    @test vanishes(ddt(evaluate(X, w, t), t) - w * evaluate(derivative(X), w, t))
+  # ω_d is factored out of the recursion, so `derivative` is d/dt divided by ω_d.
+  X = drive()
+  @test vanishes(ddt(evaluate(X, w, t), t) - w * evaluate(derivative(X), w, t))
 end
 
 @testset "antiderivative inverts d/dt" begin
-    X = PeriodicOperator(1 => a, -1 => a', 3 => a' * a, -3 => a' * a, 7 => a' * a' * a)
-    K = antiderivative(X, VanVleck())
-    @test vanishes(ddt(evaluate(K, w, t), t) - w * evaluate(X, w, t))
+  X = PeriodicOperator(1 => a, -1 => a', 3 => a' * a, -3 => a' * a, 7 => a' * a' * a)
+  K = antiderivative(X, VanVleck())
+  @test vanishes(ddt(evaluate(K, w, t), t) - w * evaluate(X, w, t))
 
-    # Inverse in both compositions, which pins the ω_d bookkeeping to be consistent.
-    @test vanishes(derivative(K) - X)
-    @test vanishes(antiderivative(derivative(X), VanVleck()) - X)
+  # Inverse in both compositions, which pins the ω_d bookkeeping to be consistent.
+  @test vanishes(derivative(K) - X)
+  @test vanishes(antiderivative(derivative(X), VanVleck()) - X)
 end
 
 @testset "the van Vleck gauge is what fixes the integration constant" begin
-    X = drive() - time_average(drive())
-    K = antiderivative(X, VanVleck())
-    @test vanishes(time_average(K))     # ⟨K⟩ = 0 is the gauge, not an accident of storage
+  X = drive() - time_average(drive())
+  K = antiderivative(X, VanVleck())
+  @test vanishes(time_average(K))     # ⟨K⟩ = 0 is the gauge, not an accident of storage
 
-    # The domain is the image of d/dt. A DC harmonic reaching here means a caller forgot the
-    # mean subtraction, which is a real bug that once shipped in the draft recursion.
-    @test_throws ArgumentError antiderivative(drive(), VanVleck())
+  # The domain is the image of d/dt. A DC harmonic reaching here means a caller forgot the
+  # mean subtraction, which is a real bug that once shipped in the draft recursion.
+  @test_throws ArgumentError antiderivative(drive(), VanVleck())
 end
 
 @testset "Hermiticity survives every operation" begin
-    # DESIGN §7 halves the commutator count by filling l < 0 from l >= 0 by adjoint. That is
-    # only sound because every triangle node is Hermitian, which needs these four closures.
-    K = drive()
-    X = PeriodicOperator(1 => a, -1 => a')
-    @test ishermitian(K)
-    @test ishermitian(X)
-    @test ishermitian(derivative(K))
-    @test ishermitian(antiderivative(K - time_average(K), VanVleck()))
-    @test ishermitian(im * SQA.commutator(K, X))          # i·ad maps Hermitian to Hermitian
-    @test !ishermitian(SQA.commutator(K, X))              # without the i it is anti-Hermitian
+  # DESIGN §7 halves the commutator count by filling l < 0 from l >= 0 by adjoint. That is
+  # only sound because every triangle node is Hermitian, which needs these four closures.
+  K = drive()
+  X = PeriodicOperator(1 => a, -1 => a')
+  @test ishermitian(K)
+  @test ishermitian(X)
+  @test ishermitian(derivative(K))
+  @test ishermitian(antiderivative(K - time_average(K), VanVleck()))
+  @test ishermitian(im * SQA.commutator(K, X))          # i·ad maps Hermitian to Hermitian
+  @test !ishermitian(SQA.commutator(K, X))              # without the i it is anti-Hermitian
 end
 
 @testset "harmonic support adds under commutator" begin
-    # Underwrites the |l| <= (n+1)M bound the truncation-free claim rests on.
-    K = PeriodicOperator(2 => a, -2 => a')
-    X = PeriodicOperator(3 => a' * a', -3 => a * a)
-    s = support(SQA.commutator(K, X))
-    @test first(s) >= first(support(K)) + first(support(X))
-    @test last(s) <= last(support(K)) + last(support(X))
+  # Underwrites the |l| <= (n+1)M bound the truncation-free claim rests on.
+  K = PeriodicOperator(2 => a, -2 => a')
+  X = PeriodicOperator(3 => a' * a', -3 => a * a)
+  s = support(SQA.commutator(K, X))
+  @test first(s) >= first(support(K)) + first(support(X))
+  @test last(s) <= last(support(K)) + last(support(X))
 end
 
 @testset "weights stay exact rationals" begin
-    # D5: the spec's prefactors (17/4, 3/20, 9/40) and the `iszero(simplify(a-b))` comparison rule
-    # both break if a weight silently becomes a float. l = 49 is the smallest harmonic where
-    # Float64 fails to round-trip (49 * (1/49) == 0.9999999999999999), so this separates an exact
-    # weight from a float one instead of asserting how the coefficient happens to print: exact
-    # gives 0, float leaves -1.11e-16.
-    K = antiderivative(PeriodicOperator(49 => a), VanVleck())
-    @test vanishes(49 * K[49] - im * (1 * a))
+  # D5: the spec's prefactors (17/4, 3/20, 9/40) and the `iszero(simplify(a-b))` comparison rule
+  # both break if a weight silently becomes a float. l = 49 is the smallest harmonic where
+  # Float64 fails to round-trip (49 * (1/49) == 0.9999999999999999), so this separates an exact
+  # weight from a float one instead of asserting how the coefficient happens to print: exact
+  # gives 0, float leaves -1.11e-16.
+  K = antiderivative(PeriodicOperator(49 => a), VanVleck())
+  @test vanishes(49 * K[49] - im * (1 * a))
 end
 
 @testset "inference" begin
-    # CLAUDE.md gate. Verified achievable engine-wide: QAdd is concrete and the coefficient
-    # Union lives a level below anything these return.
-    X = drive()
-    Y = PeriodicOperator(1 => a)
-    @test @inferred(SQA.commutator(X, Y)) isa PeriodicOperator
-    @test @inferred(derivative(X)) isa PeriodicOperator
-    @test @inferred(antiderivative(Y, VanVleck())) isa PeriodicOperator
-    @test @inferred(time_average(X)) isa SQA.QAdd
-    @test @inferred(X + Y) isa PeriodicOperator
-    @test @inferred(X - Y) isa PeriodicOperator
-    @test @inferred(2 * X) isa PeriodicOperator
-    @test @inferred(adjoint(X)) isa PeriodicOperator
-    @test @inferred(X[1]) isa SQA.QAdd
+  # CLAUDE.md gate. Verified achievable engine-wide: QAdd is concrete and the coefficient
+  # Union lives a level below anything these return.
+  X = drive()
+  Y = PeriodicOperator(1 => a)
+  @test @inferred(SQA.commutator(X, Y)) isa PeriodicOperator
+  @test @inferred(derivative(X)) isa PeriodicOperator
+  @test @inferred(antiderivative(Y, VanVleck())) isa PeriodicOperator
+  @test @inferred(time_average(X)) isa SQA.QAdd
+  @test @inferred(X + Y) isa PeriodicOperator
+  @test @inferred(X - Y) isa PeriodicOperator
+  @test @inferred(2 * X) isa PeriodicOperator
+  @test @inferred(adjoint(X)) isa PeriodicOperator
+  @test @inferred(X[1]) isa SQA.QAdd
 end

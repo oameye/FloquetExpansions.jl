@@ -39,27 +39,25 @@ julia> Q[1, 1]
 See also [`PeriodicOperator`](@ref), [`floquet_expansion`](@ref).
 """
 struct QuasienergyOperator
-    blocks::Matrix{SQA.QAdd}
-    nmax::Int
-    wd::Symbolics.Num
+  blocks::Matrix{SQA.QAdd}
+  nmax::Int
+  wd::Symbolics.Num
 end
 
 function QuasienergyOperator(H::PeriodicOperator, wd, nmax::Int)
-    nmax >= 0 || throw(ArgumentError("nmax must be >= 0, got $(nmax)"))
-    w = Symbolics.Num(wd)
-    n = 2nmax + 1
-    blocks = Matrix{SQA.QAdd}(undef, n, n)
-    for (i, m) in enumerate(-nmax:nmax), (j, k) in enumerate(-nmax:nmax)
-        blocks[i, j] = m == k ? H[m - k] - (m * w) * one(SQA.QAdd) : H[m - k]
-    end
-    return QuasienergyOperator(blocks, nmax, w)
+  nmax >= 0 || throw(ArgumentError("nmax must be >= 0, got $(nmax)"))
+  w = Symbolics.Num(wd)
+  n = 2nmax + 1
+  blocks = Matrix{SQA.QAdd}(undef, n, n)
+  for (i, m) in enumerate((-nmax):nmax), (j, k) in enumerate((-nmax):nmax)
+    blocks[i, j] = m == k ? H[m - k] - (m * w) * one(SQA.QAdd) : H[m - k]
+  end
+  return QuasienergyOperator(blocks, nmax, w)
 end
 
 function Base.getindex(Q::QuasienergyOperator, m::Int, n::Int)
-    (abs(m) <= Q.nmax && abs(n) <= Q.nmax) || throw(
-        BoundsError(Q, (m, n)),
-    )
-    return Q.blocks[m + Q.nmax + 1, n + Q.nmax + 1]
+  (abs(m) <= Q.nmax && abs(n) <= Q.nmax) || throw(BoundsError(Q, (m, n)))
+  return Q.blocks[m + Q.nmax + 1, n + Q.nmax + 1]
 end
 
 Base.size(Q::QuasienergyOperator) = (2Q.nmax + 1, 2Q.nmax + 1)
@@ -71,7 +69,8 @@ The harmonics `Q` is truncated to, i.e. the valid index range for `Q[m, n]`.
 """
 harmonic_range(Q::QuasienergyOperator) = (-Q.nmax):(Q.nmax)
 
-Base.show(io::IO, ::MIME"text/plain", Q::QuasienergyOperator) =
-    print(io, "QuasienergyOperator over harmonics ", -Q.nmax, ":", Q.nmax)
+function Base.show(io::IO, ::MIME"text/plain", Q::QuasienergyOperator)
+  return print(io, "QuasienergyOperator over harmonics ", -Q.nmax, ":", Q.nmax)
+end
 
 Base.show(io::IO, Q::QuasienergyOperator) = show(io, MIME"text/plain"(), Q)

@@ -14,40 +14,40 @@ include("pages.jl")
 
 # The README.md file is used index (home) page of the documentation.
 if CI
-    include("make_md_examples.jl")
-    cp(
-        normpath(@__FILE__, "../../README.md"),
-        normpath(@__FILE__, "../src/index.md");
-        force=true,
-    )
+  include("make_md_examples.jl")
+  cp(
+    normpath(@__FILE__, "../../README.md"),
+    normpath(@__FILE__, "../src/index.md");
+    force=true,
+  )
 else
-    nothing
+  nothing
 end
 # ^ when using LiveServer, this will generate a loop
 
 DocMeta.setdocmeta!(
-    FloquetExpansions, :DocTestSetup, :(using FloquetExpansions); recursive=true
+  FloquetExpansions, :DocTestSetup, :(using FloquetExpansions); recursive=true
 )
 
 makedocs(;
-    sitename="FloquetExpansions.jl",
-    authors="Orjan Ameye",
-    modules=[FloquetExpansions],
-    format=Documenter.HTML(; canonical="https://oameye.github.io/FloquetExpansions.jl"),
-    pages=pages,
-    clean=true,
-    linkcheck=false,
-    draft=false,#,(!CI),
-    doctest=true,  # nothing else runs them; `doctest=false` let one rot unnoticed
-    checkdocs=:exports,
+  sitename="FloquetExpansions.jl",
+  authors="Orjan Ameye",
+  modules=[FloquetExpansions],
+  format=Documenter.HTML(; canonical="https://oameye.github.io/FloquetExpansions.jl"),
+  pages=pages,
+  clean=true,
+  linkcheck=false,
+  draft=false,#,(!CI),
+  doctest=true,  # nothing else runs them; `doctest=false` let one rot unnoticed
+  checkdocs=:exports,
 )
 
 if CI
-    deploydocs(;
-        repo="github.com/oameye/FloquetExpansions.jl",
-        devbranch="main",
-        target="build",
-        branch="gh-pages",
-        push_preview=true,
-    )
+  deploydocs(;
+    repo="github.com/oameye/FloquetExpansions.jl",
+    devbranch="main",
+    target="build",
+    branch="gh-pages",
+    push_preview=true,
+  )
 end

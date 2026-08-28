@@ -7,15 +7,15 @@
 Result of [`floquet_expansion`](@ref). Read it with [`effective_hamiltonian`](@ref) and
 [`kick_operator`](@ref) rather than by field access.
 """
-struct FloquetExpansion{G <: Gauge}
-    H::PeriodicOperator
-    K::Vector{PeriodicOperator}            # K[k] = K^(k), k = 1..N-1
-    Kdot::Vector{PeriodicOperator}         # Kdot[k] = d/dt K^(k)
-    dressedH::Vector{PeriodicOperator}     # ad_K^j on H,    flat over (n,j), UNWEIGHTED
-    dressedKdot::Vector{PeriodicOperator}  # ad_K^j on Kdot, flat over (n,j), UNWEIGHTED
-    Heff::Vector{SQA.QAdd}                 # Heff[n+1] = Heff^(n), n = 0..N-1
-    order::Int
-    wd::Symbolics.Num
+struct FloquetExpansion{G<:Gauge}
+  H::PeriodicOperator
+  K::Vector{PeriodicOperator}            # K[k] = K^(k), k = 1..N-1
+  Kdot::Vector{PeriodicOperator}         # Kdot[k] = d/dt K^(k)
+  dressedH::Vector{PeriodicOperator}     # ad_K^j on H,    flat over (n,j), UNWEIGHTED
+  dressedKdot::Vector{PeriodicOperator}  # ad_K^j on Kdot, flat over (n,j), UNWEIGHTED
+  Heff::Vector{SQA.QAdd}                 # Heff[n+1] = Heff^(n), n = 0..N-1
+  order::Int
+  wd::Symbolics.Num
 end
 
 # Bounds are known up front (n < N, j <= n), so the triangle is a flat vector rather than a
@@ -30,8 +30,9 @@ _tri(n::Int, j::Int) = (n * (n + 1)) ÷ 2 + j + 1
 _weightH(j::Int) = im^j * (1 // factorial(j))
 _weightKdot(j::Int) = im^j * (1 // factorial(j + 1))
 
-Base.show(io::IO, ::MIME"text/plain", vv::FloquetExpansion{G}) where {G} =
-    print(io, "FloquetExpansion{", nameof(G), "} of order ", vv.order)
+function Base.show(io::IO, ::MIME"text/plain", vv::FloquetExpansion{G}) where {G}
+  return print(io, "FloquetExpansion{", nameof(G), "} of order ", vv.order)
+end
 
 # `wd` never appears in the bookkeeping: an order-n object carries wd^-n, so stripping it and
 # tracking the power in the order index leaves the recursion wd-free. It is reattached on output.
@@ -42,9 +43,9 @@ _reattach(X::PeriodicOperator, wd, n::Int) = iszero(n) ? X : wd^(-n) * X
 # does not happen without `simplify`, so mathematically-zero buckets survive as structurally
 # nonzero and defeat pruning. Sweep once per order stage, on what propagates forward.
 function _prune(X::PeriodicOperator)
-    return PeriodicOperator(
-        Dict{Int, SQA.QAdd}(l => SQA.simplify(Xl) for (l, Xl) in X.components),
-    )
+  return PeriodicOperator(
+    Dict{Int,SQA.QAdd}(l => SQA.simplify(Xl) for (l, Xl) in X.components)
+  )
 end
 
 """
@@ -83,69 +84,71 @@ w * a' * a
 See also [`effective_hamiltonian`](@ref), [`kick_operator`](@ref), [`harmonics`](@ref).
 """
 function floquet_expansion(H::PeriodicOperator, wd, gauge::Gauge, order::Int)
-    order >= 1 || throw(ArgumentError("order must be >= 1, got $(order)"))
-    LinearAlgebra.ishermitian(H) || throw(
-        ArgumentError("the drive is not Hermitian: it must satisfy H_{-m} = H_m' (eq:fourierH)"),
-    )
+  order >= 1 || throw(ArgumentError("order must be >= 1, got $(order)"))
+  LinearAlgebra.ishermitian(H) || throw(
+    ArgumentError(
+      "the drive is not Hermitian: it must satisfy H_{-m} = H_m' (eq:fourierH)"
+    ),
+  )
 
-    nodes = (order * (order + 1)) ÷ 2
-    dressedH = [zero(PeriodicOperator) for _ in 1:nodes]
-    dressedKdot = [zero(PeriodicOperator) for _ in 1:nodes]
-    K = PeriodicOperator[]
-    Kdot = PeriodicOperator[]
-    Heff = SQA.QAdd[]
+  nodes = (order * (order + 1)) ÷ 2
+  dressedH = [zero(PeriodicOperator) for _ in 1:nodes]
+  dressedKdot = [zero(PeriodicOperator) for _ in 1:nodes]
+  K = PeriodicOperator[]
+  Kdot = PeriodicOperator[]
+  Heff = SQA.QAdd[]
 
-    for n in 0:(order - 1)
-        dressedH[_tri(n, 0)] = n == 0 ? H : zero(PeriodicOperator)
+  for n in 0:(order - 1)
+    dressedH[_tri(n, 0)] = n == 0 ? H : zero(PeriodicOperator)
 
-        for j in 1:n
-            acc = zero(PeriodicOperator)
-            for k in 1:(n - j + 1)
-                acc = acc + SQA.commutator(K[k], dressedH[_tri(n - k, j - 1)])
-            end
-            dressedH[_tri(n, j)] = acc
-        end
-
-        for j in 1:n
-            acc = zero(PeriodicOperator)
-            for k in 1:(n - j + 1)
-                # dressedKdot^(n)_[0] IS Kdot^(n+1) and is not computable at stage n. It is never
-                # read either, since j >= 1 reaches only order n-k with k >= 1; read Kdot directly
-                # so the unfillable slot is never touched.
-                prev = j == 1 ? Kdot[n - k + 1] : dressedKdot[_tri(n - k, j - 1)]
-                acc = acc + SQA.commutator(K[k], prev)
-            end
-            dressedKdot[_tri(n, j)] = acc
-        end
-
-        R = zero(PeriodicOperator)
-        for j in 0:n
-            R = R + _weightH(j) * dressedH[_tri(n, j)]
-        end
-        for j in 1:n
-            R = R - _weightKdot(j) * dressedKdot[_tri(n, j)]
-        end
-        R = _prune(R)
-
-        Heffn = SQA.simplify(time_average(R))
-        push!(Heff, Heffn)
-
-        # Stage order-1 would produce K^(order), which the approximant K^[N] = sum_{k<N} excludes
-        # and no later stage reads. Skipping it saves the last antiderivative outright.
-        if n < order - 1
-            Knext = _prune(antiderivative(R - Heffn, gauge))
-            push!(K, Knext)
-            push!(Kdot, derivative(Knext))
-        end
+    for j in 1:n
+      acc = zero(PeriodicOperator)
+      for k in 1:(n - j + 1)
+        acc = acc + SQA.commutator(K[k], dressedH[_tri(n - k, j - 1)])
+      end
+      dressedH[_tri(n, j)] = acc
     end
 
-    return FloquetExpansion{typeof(gauge)}(
-        H, K, Kdot, dressedH, dressedKdot, Heff, order, Symbolics.Num(wd),
-    )
+    for j in 1:n
+      acc = zero(PeriodicOperator)
+      for k in 1:(n - j + 1)
+        # dressedKdot^(n)_[0] IS Kdot^(n+1) and is not computable at stage n. It is never
+        # read either, since j >= 1 reaches only order n-k with k >= 1; read Kdot directly
+        # so the unfillable slot is never touched.
+        prev = j == 1 ? Kdot[n - k + 1] : dressedKdot[_tri(n - k, j - 1)]
+        acc = acc + SQA.commutator(K[k], prev)
+      end
+      dressedKdot[_tri(n, j)] = acc
+    end
+
+    R = zero(PeriodicOperator)
+    for j in 0:n
+      R = R + _weightH(j) * dressedH[_tri(n, j)]
+    end
+    for j in 1:n
+      R = R - _weightKdot(j) * dressedKdot[_tri(n, j)]
+    end
+    R = _prune(R)
+
+    Heffn = SQA.simplify(time_average(R))
+    push!(Heff, Heffn)
+
+    # Stage order-1 would produce K^(order), which the approximant K^[N] = sum_{k<N} excludes
+    # and no later stage reads. Skipping it saves the last antiderivative outright.
+    if n < order - 1
+      Knext = _prune(antiderivative(R - Heffn, gauge))
+      push!(K, Knext)
+      push!(Kdot, derivative(Knext))
+    end
+  end
+
+  return FloquetExpansion{typeof(gauge)}(
+    H, K, Kdot, dressedH, dressedKdot, Heff, order, Symbolics.Num(wd)
+  )
 end
 
 function floquet_expansion(H::SQA.QAdd, w, t, gauge::Gauge, order::Int)
-    return floquet_expansion(harmonics(H, w, t), w, gauge, order)
+  return floquet_expansion(harmonics(H, w, t), w, gauge, order)
 end
 
 """
@@ -157,17 +160,17 @@ or with `n` the order-`n` contribution alone. The drive frequency is reattached,
 piece carries ``w_d^{-n}``.
 """
 function effective_hamiltonian(vv::FloquetExpansion)
-    out = zero(SQA.QAdd)
-    for n in 0:(vv.order - 1)
-        out = out + _reattach(vv.Heff[n + 1], vv.wd, n)
-    end
-    return SQA.simplify(out)
+  out = zero(SQA.QAdd)
+  for n in 0:(vv.order - 1)
+    out = out + _reattach(vv.Heff[n + 1], vv.wd, n)
+  end
+  return SQA.simplify(out)
 end
 
 function effective_hamiltonian(vv::FloquetExpansion, n::Int)
-    0 <= n < vv.order ||
-        throw(ArgumentError("order $(n) is outside 0:$(vv.order - 1) for this expansion"))
-    return SQA.simplify(_reattach(vv.Heff[n + 1], vv.wd, n))
+  0 <= n < vv.order ||
+    throw(ArgumentError("order $(n) is outside 0:$(vv.order - 1) for this expansion"))
+  return SQA.simplify(_reattach(vv.Heff[n + 1], vv.wd, n))
 end
 
 """
@@ -181,11 +184,11 @@ Under [`VanVleck`](@ref) this has vanishing time average, which is what makes
 [`effective_hamiltonian`](@ref) independent of the initial phase of the drive.
 """
 function kick_operator(vv::FloquetExpansion)
-    out = zero(PeriodicOperator)
-    for k in 1:length(vv.K)
-        out = out + _reattach(vv.K[k], vv.wd, k)
-    end
-    return out
+  out = zero(PeriodicOperator)
+  for k in 1:length(vv.K)
+    out = out + _reattach(vv.K[k], vv.wd, k)
+  end
+  return out
 end
 
 # Deliberately no `kick_operator(vv, n::Int)`: it would capture `kick_operator(vv, 0)`, which a
