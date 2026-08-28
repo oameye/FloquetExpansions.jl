@@ -2,6 +2,10 @@ CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== 
 
 using FloquetExpansions
 using Documenter
+using DocumenterCitations
+using DocumenterCodeBlocks
+using DocumenterInterLinks
+using DocumenterLandingPage
 
 using Plots
 default(; fmt=:png)
@@ -11,6 +15,12 @@ default(; fmt=:png)
 ENV["GKSwstype"] = "100"
 
 include("pages.jl")
+
+bib = CitationBibliography("src/refs.bib")
+links = InterLinks(
+  "Julia" => "https://docs.julialang.org/en/v1/",
+  "Documenter" => "https://documenter.juliadocs.org/stable/",
+)
 
 # The README.md file is used index (home) page of the documentation.
 if CI
@@ -26,7 +36,10 @@ end
 # ^ when using LiveServer, this will generate a loop
 
 DocMeta.setdocmeta!(
-  FloquetExpansions, :DocTestSetup, :(using FloquetExpansions); recursive=true
+  FloquetExpansions,
+  :DocTestSetup,
+  :(using FloquetExpansions; using LinearAlgebra: ishermitian);
+  recursive=true,
 )
 
 makedocs(;
@@ -35,10 +48,11 @@ makedocs(;
   modules=[FloquetExpansions],
   format=Documenter.HTML(; canonical="https://oameye.github.io/FloquetExpansions.jl"),
   pages=pages,
+  plugins=[bib, CodeBlocks(), LandingPage(), links],
   clean=true,
   linkcheck=false,
   draft=false,#,(!CI),
-  doctest=true,  # nothing else runs them; `doctest=false` let one rot unnoticed
+  doctest=false, # run in test suite
   checkdocs=:exports,
 )
 

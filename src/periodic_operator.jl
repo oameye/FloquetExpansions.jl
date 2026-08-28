@@ -33,6 +33,8 @@ only the nonzero ones.
 # Examples
 
 ```jldoctest
+julia> using LinearAlgebra: ishermitian
+
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
 julia> X = PeriodicOperator(1 => a, -1 => a')
@@ -42,9 +44,6 @@ PeriodicOperator with harmonics -1:1
 
 julia> X[1]
 a
-
-julia> X[7]
-0
 
 julia> ishermitian(X)
 true

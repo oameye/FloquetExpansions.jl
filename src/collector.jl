@@ -128,6 +128,8 @@ Inverse of calling the result: `harmonics(H, w, t)(w, t)` reproduces `H`.
 # Examples
 
 ```jldoctest
+julia> using LinearAlgebra: ishermitian
+
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
 julia> @variables w::Real t::Real;
