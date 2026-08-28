@@ -26,3 +26,5 @@ Manifest.toml
 
 # Test log (make test tees here)
 test-run.log
+
+docs/dev/
