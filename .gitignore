@@ -28,3 +28,4 @@ Manifest.toml
 test-run.log
 
 docs/dev/
+benchmark/benchmarks_output.json
