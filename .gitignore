@@ -23,3 +23,9 @@ docs/site/
 # environment.
 Manifest.toml
 .vscode/settings.json
+
+# Test log (make test tees here)
+test-run.log
+
+docs/dev/
+benchmark/benchmarks_output.json

@@ -1,33 +1,25 @@
-"""
-$(DocStringExtensions.README)
-"""
 module FloquetExpansions
-using DocStringExtensions: DocStringExtensions
+
 using Reexport: @reexport
-
-# symbolic utilities
+using LinearAlgebra: LinearAlgebra
 using Symbolics: Symbolics
-using SymbolicUtils: SymbolicUtils
-
-# trigometric symbolic utilities
-using QuestBase: QuestBase
 
 # Second quantized algebra
-using SecondQuantizedAlgebra:
-    SecondQuantizedAlgebra, QMul, QAdd, QTerm, Create, Destroy, QSym
 import SecondQuantizedAlgebra as SQA
-
-# Van Vleck recursion formula
-using VanVleckRecursion: VanVleckRecursion
-
-include("utils.jl")
-include("rotate.jl")
-include("fourier_components.jl")
-include("frequency_expansion.jl")
-
 @reexport using SecondQuantizedAlgebra
-export rotating_wave_approximation
-export quasienergy_operator
-export rotate
+
+# `@public` in SQA but NOT exported, so `@reexport` does not forward them. Users need `expim` and
+# `exponential_form` to write a drive, and to read `kick_operator(vv, t)` back.
+using SecondQuantizedAlgebra: expim, exponential_form, trigonometric_form
+export expim, exponential_form, trigonometric_form
+
+include("periodic_operator.jl")
+include("quasienergy.jl")
+include("collector.jl")
+include("engine.jl")
+
+export PeriodicOperator, Gauge, VanVleck, QuasienergyOperator, harmonic_range
+export time_average, derivative, antiderivative, support, harmonics
+export FloquetExpansion, floquet_expansion, effective_hamiltonian, kick_operator
 
 end # module FloquetExpansions
