@@ -68,11 +68,13 @@ struct PeriodicOperator
 end
 
 # `Op` is not `<: QAdd`, so every ingest path has to promote.
-_qadd(x::SQA.QAdd) = x
-_qadd(x::SQA.QSym) = 1 * x
+promote_qadd(x::SQA.QAdd) = x
+promote_qadd(x::SQA.QSym) = 1 * x
 
 function PeriodicOperator(components::AbstractDict{Int,<:SQA.QField}, wd)
-  return PeriodicOperator(Dict{Int,SQA.QAdd}(l => _qadd(Xl) for (l, Xl) in components), wd)
+  return PeriodicOperator(
+    Dict{Int,SQA.QAdd}(l => promote_qadd(Xl) for (l, Xl) in components), wd
+  )
 end
 
 Base.getindex(X::PeriodicOperator, l::Int) = get(X.components, l, zero(SQA.QAdd))
@@ -118,7 +120,7 @@ end
 
 Base.show(io::IO, X::PeriodicOperator) = show(io, MIME"text/plain"(), X)
 
-function _check_frequency(X::PeriodicOperator, Y::PeriodicOperator)
+function check_frequency(X::PeriodicOperator, Y::PeriodicOperator)
   isequal(X.wd, Y.wd) || throw(
     ArgumentError(
       "cannot combine PeriodicOperators with different drive frequencies: " *
@@ -128,16 +130,16 @@ function _check_frequency(X::PeriodicOperator, Y::PeriodicOperator)
   return nothing
 end
 
-function _addto!(out::Dict{Int,SQA.QAdd}, l::Int, Xl::SQA.QAdd)
+function addto!(out::Dict{Int,SQA.QAdd}, l::Int, Xl::SQA.QAdd)
   out[l] = haskey(out, l) ? out[l] + Xl : Xl
   return out
 end
 
 function Base.:+(X::PeriodicOperator, Y::PeriodicOperator)
-  _check_frequency(X, Y)
+  check_frequency(X, Y)
   out = copy(X.components)
   for (l, Yl) in Y.components
-    _addto!(out, l, Yl)
+    addto!(out, l, Yl)
   end
   return PeriodicOperator(out, X.wd)
 end
@@ -149,16 +151,16 @@ Base.:-(X::PeriodicOperator, Y::PeriodicOperator) = X + (-Y)
 
 # The static operand is a DC harmonic; `R - time_average(R)` is the recursion's own idiom.
 function Base.:+(X::PeriodicOperator, c::SQA.QField)
-  return X + PeriodicOperator(Dict{Int,SQA.QAdd}(0 => _qadd(c)), X.wd)
+  return X + PeriodicOperator(Dict{Int,SQA.QAdd}(0 => promote_qadd(c)), X.wd)
 end
 function Base.:+(c::SQA.QField, X::PeriodicOperator)
-  return X + PeriodicOperator(Dict{Int,SQA.QAdd}(0 => _qadd(c)), X.wd)
+  return X + PeriodicOperator(Dict{Int,SQA.QAdd}(0 => promote_qadd(c)), X.wd)
 end
 function Base.:-(X::PeriodicOperator, c::SQA.QField)
-  return X + PeriodicOperator(Dict{Int,SQA.QAdd}(0 => -_qadd(c)), X.wd)
+  return X + PeriodicOperator(Dict{Int,SQA.QAdd}(0 => -promote_qadd(c)), X.wd)
 end
 function Base.:-(c::SQA.QField, X::PeriodicOperator)
-  return PeriodicOperator(Dict{Int,SQA.QAdd}(0 => _qadd(c)), X.wd) + (-X)
+  return PeriodicOperator(Dict{Int,SQA.QAdd}(0 => promote_qadd(c)), X.wd) + (-X)
 end
 
 function Base.:*(c::Number, X::PeriodicOperator)
@@ -225,11 +227,11 @@ julia> commutator(K, X)[2]
 ```
 """
 function SQA.commutator(K::PeriodicOperator, X::PeriodicOperator)
-  _check_frequency(K, X)
+  check_frequency(K, X)
   out = Dict{Int,SQA.QAdd}()
   for (p, Kp) in K.components, (q, Xq) in X.components
     c = SQA.commutator(Kp, Xq)
-    iszero(c) || _addto!(out, p + q, c)
+    iszero(c) || addto!(out, p + q, c)
   end
   return PeriodicOperator(out, K.wd)
 end

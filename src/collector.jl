@@ -1,17 +1,17 @@
 # `iszero` on a `BasicSymbolic` builds the symbolic equation `0 == 0` rather than returning a
 # `Bool`, so use structural comparison instead.
-_issymzero(x) = isequal(Symbolics.value(x), 0)
+issymzero(x) = isequal(Symbolics.value(x), 0)
 
 # `expim(arg)` is `exp(+i*arg)` with arg REAL; the package convention is `exp(-i*m*w*t)`.
 # Split arg into `c*w*t + offset` and return `(-c, offset)`.
-function _harmonic_index(arg, w, t)
+function harmonic_index(arg, w, t)
   offset = Symbolics.substitute(arg, Dict(t => 0))
   time_part = Symbolics.simplify(arg - offset)
   c = Symbolics.value(Symbolics.substitute(time_part, Dict(w => 1, t => 1)))
 
   # Guards `w*t^2` and friends: only a phase linear in `w*t` is periodic at all.
   residual = Symbolics.simplify(arg - (c * w * t + offset))
-  _issymzero(residual) || throw(
+  issymzero(residual) || throw(
     ArgumentError(
       "phase $(arg) is not of the form c*$(w)*$(t) + constant, so it is not a whole " *
       "harmonic of the drive",
@@ -72,16 +72,16 @@ function harmonics(H::SQA.QAdd, w, t)
   for (term, coeff) in SQA.exponential_form(H)
     mono = isempty(term.ops) ? one(SQA.QAdd) : prod(term.ops)
     for phase_term in SQA.phase_terms(coeff)
-      m, offset = _harmonic_index(phase_term.phase, w, t)
+      m, offset = harmonic_index(phase_term.phase, w, t)
       contribution = phase_term.amplitude * mono
-      _issymzero(offset) || (contribution = contribution * SQA.expim(offset))
+      issymzero(offset) || (contribution = contribution * SQA.expim(offset))
       out[m] = haskey(out, m) ? out[m] + contribution : contribution
     end
   end
   return PeriodicOperator(out, w)
 end
 
-harmonics(H::SQA.QSym, w, t) = harmonics(_qadd(H), w, t)
+harmonics(H::SQA.QSym, w, t) = harmonics(promote_qadd(H), w, t)
 
 """
     (X::PeriodicOperator)(t) -> QAdd

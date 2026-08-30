@@ -14,12 +14,12 @@ struct FloquetExpansion{G<:Gauge}
   order::Int
 end
 
-_tri(n::Int, j::Int) = (n * (n + 1)) ÷ 2 + j + 1
+triindex(n::Int, j::Int) = (n * (n + 1)) ÷ 2 + j + 1
 
-_weightH(j::Int) = im^j * (1 // factorial(j))
-_weightKdot(j::Int) = im^j * (1 // factorial(j + 1))
+weightH(j::Int) = im^j * (1 // factorial(j))
+weightKdot(j::Int) = im^j * (1 // factorial(j + 1))
 
-function _dressed_node(
+function dressed_node(
   K::Vector{PeriodicOperator}, prev, n::Int, j::Int, H::PeriodicOperator
 )
   acc = zero(H)
@@ -29,7 +29,7 @@ function _dressed_node(
   return acc
 end
 
-function _assemble_resolvent(
+function assemble_resolvent(
   dressedH::Vector{PeriodicOperator},
   dressedKdot::Vector{PeriodicOperator},
   n::Int,
@@ -37,10 +37,10 @@ function _assemble_resolvent(
 )
   R = zero(H)
   for j in 0:n
-    R = R + _weightH(j) * dressedH[_tri(n, j)]
+    R = R + weightH(j) * dressedH[triindex(n, j)]
   end
   for j in 1:n
-    R = R - _weightKdot(j) * dressedKdot[_tri(n, j)]
+    R = R - weightKdot(j) * dressedKdot[triindex(n, j)]
   end
   return R
 end
@@ -49,8 +49,8 @@ function Base.show(io::IO, ::MIME"text/plain", vv::FloquetExpansion{G}) where {G
   return print(io, "FloquetExpansion{", nameof(G), "} of order ", vv.order)
 end
 
-_reattach(X::SQA.QAdd, wd, n::Int) = iszero(n) ? X : wd^(-n) * X
-_reattach(X::PeriodicOperator, n::Int) = iszero(n) ? X : X.wd^(-n) * X
+reattach(X::SQA.QAdd, wd, n::Int) = iszero(n) ? X : wd^(-n) * X
+reattach(X::PeriodicOperator, n::Int) = iszero(n) ? X : X.wd^(-n) * X
 
 """
     floquet_expansion(H::PeriodicOperator, gauge::Gauge, order::Int) -> FloquetExpansion
@@ -103,21 +103,25 @@ function floquet_expansion(H::PeriodicOperator, gauge::Gauge, order::Int)
   Heff = SQA.QAdd[]
 
   for n in 0:(order - 1)
-    dressedH[_tri(n, 0)] = n == 0 ? H : zero(H)
+    dressedH[triindex(n, 0)] = n == 0 ? H : zero(H)
 
     for j in 1:n
-      dressedH[_tri(n, j)] = _dressed_node(
-        K, (k, _) -> dressedH[_tri(n - k, j - 1)], n, j, H
+      dressedH[triindex(n, j)] = dressed_node(
+        K, (k, _) -> dressedH[triindex(n - k, j - 1)], n, j, H
       )
     end
 
     for j in 1:n
-      dressedKdot[_tri(n, j)] = _dressed_node(
-        K, (k, j_) -> j_ == 1 ? Kdot[n - k + 1] : dressedKdot[_tri(n - k, j_ - 1)], n, j, H
+      dressedKdot[triindex(n, j)] = dressed_node(
+        K,
+        (k, j_) -> j_ == 1 ? Kdot[n - k + 1] : dressedKdot[triindex(n - k, j_ - 1)],
+        n,
+        j,
+        H,
       )
     end
 
-    R = _assemble_resolvent(dressedH, dressedKdot, n, H)
+    R = assemble_resolvent(dressedH, dressedKdot, n, H)
     R = SQA.simplify(R)
 
     Heffn = SQA.simplify(time_average(R))
@@ -148,7 +152,7 @@ reattached, so the order-`n` piece carries ``w_d^{-n}``.
 function effective_hamiltonian(vv::FloquetExpansion)
   out = zero(SQA.QAdd)
   for n in 0:(vv.order - 1)
-    out = out + _reattach(vv.Heff[n + 1], vv.H.wd, n)
+    out = out + reattach(vv.Heff[n + 1], vv.H.wd, n)
   end
   return SQA.simplify(out)
 end
@@ -156,7 +160,7 @@ end
 function effective_hamiltonian(vv::FloquetExpansion, n::Int)
   0 <= n < vv.order ||
     throw(ArgumentError("order $(n) is outside 0:$(vv.order - 1) for this expansion"))
-  return SQA.simplify(_reattach(vv.Heff[n + 1], vv.H.wd, n))
+  return SQA.simplify(reattach(vv.Heff[n + 1], vv.H.wd, n))
 end
 
 """
@@ -172,7 +176,7 @@ Under [`VanVleck`](@ref) this has vanishing time average, which is what makes
 function kick_operator(vv::FloquetExpansion)
   out = zero(vv.H)
   for k in 1:length(vv.K)
-    out = out + _reattach(vv.K[k], k)
+    out = out + reattach(vv.K[k], k)
   end
   return out
 end

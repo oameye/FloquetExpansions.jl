@@ -38,7 +38,7 @@ end
 
   @test vanishes(effective_hamiltonian(vv, 0) - H[0])
 
-  K1 = FloquetExpansions._reattach(vv.K[1], 1)
+  K1 = FloquetExpansions.reattach(vv.K[1], 1)
   @test sort!(collect(keys(K1))) == Ms
   @test all(vanishes(K1[m] - (im / (m * w)) * H[m]) for m in Ms)
 
@@ -47,7 +47,7 @@ end
     sum((-1 // 2) * (1 / (m * w)) * comm(H[m], H[-m]) for m in Ms),
   )
 
-  K2 = FloquetExpansions._reattach(vv.K[2], 2)
+  K2 = FloquetExpansions.reattach(vv.K[2], 2)
   function oracleK2(m)
     acc = comm(H[m], H[0]) * (1 / (m^2 * w^2))
     for mp in Ms
@@ -110,11 +110,11 @@ end
   end
 
   for n in 0:(N - 1), j in 0:n
-    node = FloquetExpansions._weightH(j) * vv.dressedH[FloquetExpansions._tri(n, j)]
+    node = FloquetExpansions.weightH(j) * vv.dressedH[FloquetExpansions.triindex(n, j)]
     @test agrees(node, refH(n, j))
     if j >= 1
       nodeK =
-        FloquetExpansions._weightKdot(j) * vv.dressedKdot[FloquetExpansions._tri(n, j)]
+        FloquetExpansions.weightKdot(j) * vv.dressedKdot[FloquetExpansions.triindex(n, j)]
       @test agrees(nodeK, refKdot(n, j))
     end
   end
@@ -135,7 +135,7 @@ end
       n in 0:(N - 2)
     )
     @test agrees(
-      kick_operator(hi) - kick_operator(lo), FloquetExpansions._reattach(hi.K[N - 1], N - 1)
+      kick_operator(hi) - kick_operator(lo), FloquetExpansions.reattach(hi.K[N - 1], N - 1)
     )
   end
 end
