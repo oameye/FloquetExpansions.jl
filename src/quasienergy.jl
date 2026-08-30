@@ -1,5 +1,5 @@
 """
-    QuasienergyOperator(H::PeriodicOperator, wd, nmax::Int)
+    QuasienergyOperator(H::PeriodicOperator, nmax::Int)
 
 The quasienergy operator ``Q = H_S - i\\partial_t`` in Sambe (extended) space, truncated to
 harmonics `-nmax:nmax`:
@@ -10,7 +10,7 @@ Q_{mn} = H_{m-n} - m\\,\\omega_d\\,\\delta_{mn}
 
 Index it by harmonic, `Q[m, n]` with `m, n` in `-nmax:nmax`, not by array position.
 
-The eigenvalues of `Q` are the quasienergies, defined modulo `wd`, and they are what
+The eigenvalues of `Q` are the quasienergies, defined modulo `H.wd`, and they are what
 [`effective_hamiltonian`](@ref) approximates. This is an inspection and interop view: the
 expansion itself reads harmonics directly and never materializes a Sambe matrix.
 
@@ -24,9 +24,11 @@ the off-diagonal to ``H_{n-m}``.
 ```jldoctest
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> @variables w::Real;
+julia> @variables w::Real t::Real;
 
-julia> Q = QuasienergyOperator(PeriodicOperator(0 => a' * a, 1 => a, -1 => a'), w, 1)
+julia> Q = QuasienergyOperator(
+           PeriodicOperator(a' * a + a * expim(-w * t) + a' * expim(w * t), w), 1
+       )
 QuasienergyOperator over harmonics -1:1
 
 julia> Q[1, 0]
@@ -41,18 +43,16 @@ See also [`PeriodicOperator`](@ref), [`floquet_expansion`](@ref).
 struct QuasienergyOperator
   blocks::Matrix{SQA.QAdd}
   nmax::Int
-  wd::Symbolics.Num
 end
 
-function QuasienergyOperator(H::PeriodicOperator, wd, nmax::Int)
+function QuasienergyOperator(H::PeriodicOperator, nmax::Int)
   nmax >= 0 || throw(ArgumentError("nmax must be >= 0, got $(nmax)"))
-  w = Symbolics.Num(wd)
   n = 2nmax + 1
   blocks = Matrix{SQA.QAdd}(undef, n, n)
   for (i, m) in enumerate((-nmax):nmax), (j, k) in enumerate((-nmax):nmax)
-    blocks[i, j] = m == k ? H[m - k] - (m * w) * one(SQA.QAdd) : H[m - k]
+    blocks[i, j] = m == k ? H[m - k] - (m * H.wd) * one(SQA.QAdd) : H[m - k]
   end
-  return QuasienergyOperator(blocks, nmax, w)
+  return QuasienergyOperator(blocks, nmax)
 end
 
 function Base.getindex(Q::QuasienergyOperator, m::Int, n::Int)

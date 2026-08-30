@@ -54,7 +54,7 @@ function frechet_exp(A::Matrix{ComplexF64}, E::Matrix{ComplexF64})
   return X[1:d, 1:d], X[1:d, (d + 1):(2d)]
 end
 
-function random_drive(rng, d, M)
+function random_drive(rng, d, M, wd)
   randop() =
     sum(complex(randn(rng), randn(rng)) * Transition(HN, :σ, i, j) for i in 1:d, j in 1:d)
   comps = Dict{Int,SQA.QAdd}()
@@ -65,7 +65,7 @@ function random_drive(rng, d, M)
     comps[m] = hm
     comps[-m] = adjoint(hm)                    # eq:fourierH
   end
-  return PeriodicOperator(comps)
+  return PeriodicOperator(comps, wd)
 end
 
 function residual(vv, H, wd, d; nt=24)
@@ -101,16 +101,23 @@ function fitslope(xs, ys)
 end
 
 @testset "the truncated factorization solves eq:defining0 to O(wd^-(N-1))" begin
-  H = random_drive(MersenneTwister(0xF10), D, 2)
   wds = [20.0, 40.0, 80.0, 160.0]
 
   for N in 2:5
-    errs = [residual(floquet_expansion(H, wd, VanVleck(), N), H, wd, D) for wd in wds]
+    errs = [
+      let H = random_drive(MersenneTwister(0xF10), D, 2, wd)
+        residual(floquet_expansion(H, VanVleck(), N), H, wd, D)
+      end for wd in wds
+    ]
     @test fitslope(wds, errs) ≈ -(N - 1) atol = 0.1
     @test issorted(errs; rev=true)           # monotone, not just a good fit
   end
 
   # N = 1 is the RWA: dropping every 1/wd correction leaves a residual that does not shrink.
-  rwa = [residual(floquet_expansion(H, wd, VanVleck(), 1), H, wd, D) for wd in wds]
+  rwa = [
+    let H = random_drive(MersenneTwister(0xF10), D, 2, wd)
+      residual(floquet_expansion(H, VanVleck(), 1), H, wd, D)
+    end for wd in wds
+  ]
   @test fitslope(wds, rwa) ≈ 0 atol = 0.1
 end

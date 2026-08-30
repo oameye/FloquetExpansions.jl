@@ -31,6 +31,11 @@ Tests are organized in subdirectories matching `src/`, run via `test/runtests.jl
 
 ### Testing patterns
 
+- **Golden rule: tests use only the public API.** Exercise the package as a user
+  would through exported or documented interfaces; do not call private methods,
+  reach into internal submodules or fields, or assert implementation details.
+  If behavior cannot be tested through the public API, improve the public seam
+  instead of adding a test-only escape hatch.
 - `@inferred` for type stability checks
 - `@allocations` for zero-allocation verification on hot paths
 

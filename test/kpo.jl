@@ -37,7 +37,7 @@ function kpo_drive(ξ, ξc, aξ2)
     comps[m] = Hm
     comps[-m] = adjoint(Hm)                    # eq:fourierH
   end
-  return PeriodicOperator(comps), H0
+  return PeriodicOperator(comps, w), H0
 end
 
 # eq:kpo-heff1, times wd
@@ -79,7 +79,7 @@ end
   # rationals come back exactly. This is the test that shows they are reproduced, not
   # approximated.
   H, H0 = kpo_drive(ξ, ξ, ξ^2)
-  vv = floquet_expansion(H, w, VanVleck(), 2)
+  vv = floquet_expansion(H, VanVleck(), 2)
 
   @test iszero(SQA.simplify(effective_hamiltonian(vv, 0) - H0))          # eq:kpo-heff0
   @test iszero(
@@ -99,7 +99,7 @@ end
   ξz = ξr + im * ξi
   aξ2 = ξr^2 + ξi^2
   H, H0 = kpo_drive(ξz, ξc, aξ2)
-  vv = floquet_expansion(H, w, VanVleck(), 2)
+  vv = floquet_expansion(H, VanVleck(), 2)
 
   @test iszero(SQA.simplify(effective_hamiltonian(vv, 0) - H0))
   d = SQA.simplify(

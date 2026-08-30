@@ -32,7 +32,7 @@ function tomatrix(q::SQA.QAdd, d::Int)
   return M
 end
 
-function random_drive(rng, d, M)
+function random_drive(rng, d, M, wd)
   randop() =
     sum(complex(randn(rng), randn(rng)) * Transition(HN, :σ, i, j) for i in 1:d, j in 1:d)
   comps = Dict{Int,SQA.QAdd}()
@@ -43,7 +43,7 @@ function random_drive(rng, d, M)
     comps[m] = hm
     comps[-m] = adjoint(hm)
   end
-  return PeriodicOperator(comps)
+  return PeriodicOperator(comps, wd)
 end
 
 # assemble the truncated Sambe matrix, blocks laid out in harmonic order
@@ -62,8 +62,8 @@ fold(x, wd) = mod(real(x) + wd / 2, wd) - wd / 2
 @testset "indexing is by harmonic, and the diagonal carries -m*wd" begin
   @variables w::Real
   a = Transition(HN, :σ, 1, 2)
-  H = PeriodicOperator(0 => 1 * (a' * a), 1 => 1 * a, -1 => 1 * a')
-  Q = QuasienergyOperator(H, w, 2)
+  H = PeriodicOperator(Dict(0 => 1 * (a' * a), 1 => 1 * a, -1 => 1 * a'), w)
+  Q = QuasienergyOperator(H, 2)
 
   @test harmonic_range(Q) == -2:2
   @test size(Q) == (5, 5)
@@ -78,18 +78,17 @@ fold(x, wd) = mod(real(x) + wd / 2, wd) - wd / 2
   @test iszero(SQA.simplify(Q[-2, -2] - (H[0] + 2w * one(SQA.QAdd))))
 
   @test_throws BoundsError Q[3, 0]
-  @test_throws ArgumentError QuasienergyOperator(H, w, -1)
+  @test_throws ArgumentError QuasienergyOperator(H, -1)
 end
 
 @testset "quasienergies match the effective Hamiltonian's spectrum" begin
-  H = random_drive(MersenneTwister(0x51E), D, 1)
   wd = 60.0
+  H = random_drive(MersenneTwister(0x51E), D, 1, wd)
 
   quasienergies(nmax) = sort!(
     unique!(
       round.(
-        [fold(z, wd) for z in eigvals(sambe(QuasienergyOperator(H, wd, nmax), D))];
-        digits=8,
+        [fold(z, wd) for z in eigvals(sambe(QuasienergyOperator(H, nmax), D))]; digits=8
       ),
     ),
   )
@@ -102,7 +101,7 @@ end
   Qs = quasienergies(14)
   errs = Float64[]
   for N in 1:5
-    vv = floquet_expansion(H, wd, VanVleck(), N)
+    vv = floquet_expansion(H, VanVleck(), N)
     heff = sort!([fold(z, wd) for z in eigvals(tomatrix(effective_hamiltonian(vv), D))])
     push!(errs, maximum(minimum(abs(e - q) for q in Qs) for e in heff))
   end

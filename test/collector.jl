@@ -5,12 +5,12 @@ import SecondQuantizedAlgebra as SQA
 
 h = FockSpace(:cavity)
 a = Destroy(h, :a)
-@variables w::Real t::Real g::Real ξ::Real φ::Real
+@variables w::Real t::Real g::Real ξ::Real φ::Real t₀::Real
 
 # `harmonics` consumes `exponential_form(H)`, since Base's `exp(::Complex)` expands a written
 # `exp(im*w*t)` into cos+i·sin before SQA ever sees it. So the round trip is against that
 # normalized form, not against however the caller happened to spell the input.
-roundtrips(H) = iszero(SQA.simplify(harmonics(H, w, t)(w, t) - SQA.exponential_form(H)))
+roundtrips(H) = iszero(SQA.simplify(harmonics(H, w, t)(t) - SQA.exponential_form(H)))
 
 @testset "round trip on a drive that hits every trap at once" begin
   # Merged coefficients, cos normalization, exact rationals, a DC term, and harmonics out to
@@ -30,7 +30,27 @@ roundtrips(H) = iszero(SQA.simplify(harmonics(H, w, t)(w, t) - SQA.exponential_f
   @test ishermitian(X)                       # H_{-m} = H_m†, eq:fourierH
 
   # And back the other way, so neither direction can be quietly lossy.
-  @test harmonics(X(w, t), w, t) == X
+  @test harmonics(X(t), w, t) == X
+end
+
+@testset "the reported Duffing example collects after rotation" begin
+  h_duffing = FockSpace(:duffing_cavity)
+  @qnumbers a_duffing::Destroy(h_duffing)
+  @variables ω₀_duffing::Real ω_duffing::Real α_duffing::Real F_duffing::Real t_duffing::Real
+
+  x_duffing = (a_duffing + a_duffing') / sqrt(2 * ω₀_duffing)
+  p_duffing = im * sqrt(ω₀_duffing / 2) * (a_duffing' - a_duffing)
+  duffing_hamiltonian(x, p) =
+    ω₀_duffing * (p^2 + x^2) // 2 + α_duffing * x^4 // 4 -
+    F_duffing * x * exponential_form(cos(ω_duffing * t_duffing))
+
+  duffing = duffing_hamiltonian(x_duffing, p_duffing)
+  rotation = Rotation(a_duffing, ω_duffing * t_duffing, t_duffing)
+  H = transform(duffing, rotation) |> simplify
+  X = harmonics(H, ω_duffing, t_duffing)
+
+  @test sort!(collect(keys(X))) == [-4, -2, 0, 2, 4]
+  @test iszero(SQA.simplify(X(t_duffing) - SQA.exponential_form(H)))
 end
 
 @testset "coefficients that merge across harmonics are still split" begin
@@ -45,6 +65,14 @@ end
   @test sort!(collect(keys(X))) == [-2, 1]
   @test iszero(SQA.simplify(X[1] - 2 * a))
   @test iszero(SQA.simplify(X[-2] - 5 * a))
+  @test roundtrips(H)
+end
+
+@testset "a phase behind a real denominator is still split" begin
+  # This enters SQA's raw coefficient tier; phase decomposition must survive that boundary.
+  H = ((-0.5 + 0im) * g + (-0.5 + 0im) * g * SQA.expim(-2 * w * t)) / sqrt(2 * ξ) * a
+  X = harmonics(H, w, t)
+  @test sort!(collect(keys(X))) == [0, 2]
   @test roundtrips(H)
 end
 
@@ -72,10 +100,16 @@ end
   @test ishermitian(X)
 end
 
+@testset "a frequency-dependent static phase offset is retained" begin
+  H = SQA.expim(w * (t + t₀)) * a
+  X = harmonics(H, w, t)
+  @test collect(keys(X)) == [-1]
+  @test iszero(SQA.simplify(X[-1] - SQA.expim(w * t₀) * a))
+  @test roundtrips(H)
+end
+
 @testset "a phase over a denominator still finds its harmonic" begin
-  # Reattaching the drive frequency puts the phase over a denominator, `(g/w)*expim(-w*t)*a`.
-  # That is a `/` node, which the parser did not decompose, so it fell through and was read as
-  # the DC harmonic SILENTLY. Anything built on top of it would then be wrong with no error.
+  # A static symbolic denominator belongs to the amplitude, not the harmonic index.
   H = (g / w) * SQA.expim(-w * t) * a + conj(g / w) * SQA.expim(w * t) * a'
   X = harmonics(H, w, t)
   @test sort!(collect(keys(X))) == [-1, 1]
@@ -103,4 +137,17 @@ end
   @test collect(keys(X)) == [0]
   @test iszero(SQA.simplify(time_average(X) - 1 * (a' * a)))
   @test iszero(derivative(X))
+end
+
+@testset "PeriodicOperator accepts symbolic drives directly" begin
+  H = a * SQA.expim(w * t) + a' * SQA.expim(-w * t)
+  X = PeriodicOperator(H, w)
+  @test X == harmonics(H, w, t)
+  @test @inferred(PeriodicOperator(H, w)) isa PeriodicOperator
+  @test @inferred(PeriodicOperator(H, w, t)) isa PeriodicOperator
+  @test iszero(SQA.simplify(X(t) - SQA.exponential_form(H)))
+
+  static = PeriodicOperator(a' * a, w)
+  @test collect(keys(static)) == [0]
+  @test iszero(SQA.simplify(static[0] - a' * a))
 end
