@@ -196,6 +196,18 @@ end
 ## The four operations ##########################################################################
 
 """
+    simplify(X::PeriodicOperator) -> PeriodicOperator
+
+Simplify every coefficient of `X` symbolically, removing mathematically-zero buckets that survive
+as structural zeros on the symbolic tier.
+"""
+function SQA.simplify(X::PeriodicOperator)
+  return PeriodicOperator(
+    Dict{Int,SQA.QAdd}(l => SQA.simplify(Xl) for (l, Xl) in X.components), X.wd
+  )
+end
+
+"""
     commutator(K::PeriodicOperator, X::PeriodicOperator) -> PeriodicOperator
 
 Commutator of two periodic operators, which is the harmonic convolution

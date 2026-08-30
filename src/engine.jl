@@ -35,17 +35,9 @@ end
 
 # `wd` never appears in the bookkeeping: an order-n object carries wd^-n, so stripping it and
 # tracking the power in the order index leaves the recursion wd-free. It is reattached on output.
-_reattach(X::SQA.QAdd, wd, n::Int) = iszero(n) ? X : X * wd^(-n)
+# Both methods multiply by the same scalar wd^(-n); they differ only in what they multiply.
+_reattach(X::SQA.QAdd, wd, n::Int) = iszero(n) ? X : wd^(-n) * X
 _reattach(X::PeriodicOperator, n::Int) = iszero(n) ? X : X.wd^(-n) * X
-
-# Operator-level zeros vanish for free, but coefficient-level cancellation on the symbolic tier
-# does not happen without `simplify`, so mathematically-zero buckets survive as structurally
-# nonzero and defeat pruning. Sweep once per order stage, on what propagates forward.
-function _prune(X::PeriodicOperator)
-  return PeriodicOperator(
-    Dict{Int,SQA.QAdd}(l => SQA.simplify(Xl) for (l, Xl) in X.components), X.wd
-  )
-end
 
 """
     floquet_expansion(H::PeriodicOperator, gauge::Gauge, order::Int) -> FloquetExpansion
@@ -127,7 +119,7 @@ function floquet_expansion(H::PeriodicOperator, gauge::Gauge, order::Int)
     for j in 1:n
       R = R - _weightKdot(j) * dressedKdot[_tri(n, j)]
     end
-    R = _prune(R)
+    R = SQA.simplify(R)
 
     Heffn = SQA.simplify(time_average(R))
     push!(Heff, Heffn)
@@ -135,7 +127,7 @@ function floquet_expansion(H::PeriodicOperator, gauge::Gauge, order::Int)
     # Stage order-1 would produce K^(order), which the approximant K^[N] = sum_{k<N} excludes
     # and no later stage reads. Skipping it saves the last antiderivative outright.
     if n < order - 1
-      Knext = _prune(antiderivative(R - Heffn, gauge))
+      Knext = SQA.simplify(antiderivative(R - Heffn, gauge))
       push!(K, Knext)
       push!(Kdot, derivative(Knext))
     end
