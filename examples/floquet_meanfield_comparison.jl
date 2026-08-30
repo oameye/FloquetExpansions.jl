@@ -25,7 +25,7 @@ H_a = simplify(transform(duffing, rot_a))
 
 #
 
-Q = PeriodicOperator(H_a, ω)
+Q = harmonics(H_a, ω, t)
 
 #
 

@@ -141,13 +141,12 @@ end
 
 @testset "PeriodicOperator accepts symbolic drives directly" begin
   H = a * SQA.expim(w * t) + a' * SQA.expim(-w * t)
-  X = PeriodicOperator(H, w)
+  X = harmonics(H, w, t)
   @test X == harmonics(H, w, t)
-  @test @inferred(PeriodicOperator(H, w)) isa PeriodicOperator
-  @test @inferred(PeriodicOperator(H, w, t)) isa PeriodicOperator
+  @test @inferred(harmonics(H, w, t)) isa PeriodicOperator
   @test iszero(SQA.simplify(X(t) - SQA.exponential_form(H)))
 
-  static = PeriodicOperator(a' * a, w)
+  static = harmonics(1 * (a' * a), w, t)
   @test collect(keys(static)) == [0]
   @test iszero(SQA.simplify(static[0] - a' * a))
 end

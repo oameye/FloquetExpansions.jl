@@ -71,7 +71,7 @@ julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
 julia> @variables w::Real t::Real g::Real;
 
-julia> H = PeriodicOperator(w * (a' * a) + g * cos(w * t) * (a + a'), w)
+julia> H = harmonics(w * (a' * a) + g * cos(w * t) * (a + a'), w, t);
 
 julia> vv = floquet_expansion(H, VanVleck(), 1)
 FloquetExpansion{VanVleck} of order 1

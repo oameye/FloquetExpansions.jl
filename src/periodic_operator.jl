@@ -37,15 +37,15 @@ julia> using LinearAlgebra: ishermitian
 
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> @variables w::Real t::Real
+julia> @variables w::Real t::Real;
 
-julia> X = PeriodicOperator(a * expim(w * t) + a' * expim(-w * t), w)
+julia> X = harmonics(a * expim(w * t) + a' * expim(-w * t), w, t)
 PeriodicOperator with harmonics -1:1
-  l = -1  =>  a'
-  l =  1  =>  a
+  l = -1  =>  a
+  l =  1  =>  a'
 
 julia> X[1]
-a
+a'
 
 julia> ishermitian(X)
 true
@@ -209,11 +209,11 @@ Commutator of two periodic operators, which is the harmonic convolution
 ```jldoctest
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> @variables w::Real t::Real
+julia> @variables w::Real t::Real;
 
-julia> K = PeriodicOperator(a * expim(w * t), w); X = PeriodicOperator(a' * expim(2w * t), w);
+julia> K = harmonics(a * expim(-w * t), w, t); X = harmonics(a' * expim(-w * t), w, t);
 
-julia> commutator(K, X)[3]
+julia> commutator(K, X)[2]
 1
 ```
 """
@@ -275,9 +275,9 @@ order rather than a silent loss of precision.
 ```jldoctest
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> @variables w::Real t::Real
+julia> @variables w::Real t::Real;
 
-julia> X = PeriodicOperator(a * expim(2w * t), w);
+julia> X = harmonics(a * expim(2w * t), w, t);
 
 julia> derivative(antiderivative(X, VanVleck())) == X
 true

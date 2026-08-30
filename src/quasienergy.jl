@@ -27,7 +27,7 @@ julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 julia> @variables w::Real t::Real;
 
 julia> Q = QuasienergyOperator(
-           PeriodicOperator(a' * a + a * expim(-w * t) + a' * expim(w * t), w), 1
+           harmonics(a' * a + a * expim(-w * t) + a' * expim(w * t), w, t), 1
        )
 QuasienergyOperator over harmonics -1:1
 

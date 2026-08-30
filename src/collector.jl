@@ -89,52 +89,6 @@ end
 
 harmonics(H::SQA.QSym, w, t) = harmonics(_qadd(H), w, t)
 
-function _phase_variables(H::SQA.QAdd, wd)
-  variables = Any[]
-  wd_value = Symbolics.value(Symbolics.Num(wd))
-  for (_, coeff) in SQA.exponential_form(H), phase_term in SQA.phase_terms(coeff)
-    for variable in Symbolics.get_variables(Symbolics.value(phase_term.phase))
-      isequal(variable, wd_value) && continue
-      any(isequal(variable, known) for known in variables) || push!(variables, variable)
-    end
-  end
-  return Symbolics.Num.(variables)
-end
-
-function _infer_time_variable(H::SQA.QAdd, wd)
-  variables = _phase_variables(H, wd)
-  isempty(variables) && return nothing
-
-  named = filter(variables) do variable
-    return isequal(Symbolics.getname(variable), :t)
-  end
-  length(named) == 1 && return only(named)
-  length(variables) == 1 && return only(variables)
-
-  return throw(
-    ArgumentError(
-      "cannot infer the time variable in `PeriodicOperator(H, wd)`; " *
-      "use `PeriodicOperator(H, wd, t)`",
-    ),
-  )
-end
-
-function PeriodicOperator(H::SQA.QAdd, wd, t)
-  return harmonics(H, wd, t)
-end
-
-function PeriodicOperator(H::SQA.QAdd, wd)
-  t = _infer_time_variable(H, wd)
-  return if isnothing(t)
-    PeriodicOperator(Dict{Int,SQA.QAdd}(0 => H), wd)
-  else
-    PeriodicOperator(H, wd, t)
-  end
-end
-
-PeriodicOperator(H::SQA.QSym, wd, t) = PeriodicOperator(_qadd(H), wd, t)
-PeriodicOperator(H::SQA.QSym, wd) = PeriodicOperator(_qadd(H), wd)
-
 """
     (X::PeriodicOperator)(t) -> QAdd
 
