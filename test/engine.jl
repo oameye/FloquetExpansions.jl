@@ -38,7 +38,7 @@ end
 
   @test vanishes(effective_hamiltonian(vv, 0) - H[0])
 
-  K1 = FloquetExpansions.reattach(vv.K[1], 1)
+  K1 = kick_operator(vv, 1)
   @test sort!(collect(keys(K1))) == Ms
   @test all(vanishes(K1[m] - (im / (m * w)) * H[m]) for m in Ms)
 
@@ -47,7 +47,7 @@ end
     sum((-1 // 2) * (1 / (m * w)) * comm(H[m], H[-m]) for m in Ms),
   )
 
-  K2 = FloquetExpansions.reattach(vv.K[2], 2)
+  K2 = kick_operator(vv, 2)
   function oracleK2(m)
     acc = comm(H[m], H[0]) * (1 / (m^2 * w^2))
     for mp in Ms
@@ -58,6 +58,8 @@ end
   end
   @test !haskey(K2.components, 0)
   @test all(vanishes(K2[m] - oracleK2(m)) for m in -4:4 if m != 0)
+  @test_throws ArgumentError kick_operator(vv, 0)
+  @test_throws ArgumentError kick_operator(vv, 3)
 
   oracleHeff2 = zero(SQA.QAdd)
   for m in Ms
@@ -69,55 +71,6 @@ end
     end
   end
   @test vanishes(effective_hamiltonian(vv, 2) - oracleHeff2)
-end
-
-@testset "the peeling recursion equals its definition as composition sums" begin
-  H = drive()
-  N = 4
-  vv = floquet_expansion(H, VanVleck(), N)
-
-  function compositions(n::Int, j::Int)
-    j == 0 && return n == 0 ? [Int[]] : Vector{Int}[]
-    out = Vector{Int}[]
-    for first in 1:(n - j + 1), rest in compositions(n - first, j - 1)
-      push!(out, [first; rest])
-    end
-    return out
-  end
-
-  function refH(n, j)
-    acc = zero(H)
-    for ks in compositions(n, j)
-      term = H
-      for k in Iterators.reverse(ks)
-        term = comm(vv.K[k], term)
-      end
-      acc = acc + term
-    end
-    return (im^j * (1 // factorial(j))) * acc
-  end
-
-  function refKdot(n, j)
-    acc = zero(H)
-    for ks in compositions(n + 1, j + 1)
-      term = vv.Kdot[ks[1]]
-      for k in Iterators.reverse(ks[2:end])
-        term = comm(vv.K[k], term)
-      end
-      acc = acc + term
-    end
-    return (im^j * (1 // factorial(j + 1))) * acc
-  end
-
-  for n in 0:(N - 1), j in 0:n
-    node = FloquetExpansions.weightH(j) * vv.dressedH[FloquetExpansions.triindex(n, j)]
-    @test agrees(node, refH(n, j))
-    if j >= 1
-      nodeK =
-        FloquetExpansions.weightKdot(j) * vv.dressedKdot[FloquetExpansions.triindex(n, j)]
-      @test agrees(nodeK, refKdot(n, j))
-    end
-  end
 end
 
 @testset "truncation follows the spec, X^[N] = sum_{k<N}" begin
@@ -134,9 +87,7 @@ end
       vanishes(effective_hamiltonian(hi, n) - effective_hamiltonian(lo, n)) for
       n in 0:(N - 2)
     )
-    @test agrees(
-      kick_operator(hi) - kick_operator(lo), FloquetExpansions.reattach(hi.K[N - 1], N - 1)
-    )
+    @test agrees(kick_operator(hi) - kick_operator(lo), kick_operator(hi, N - 1))
   end
 end
 

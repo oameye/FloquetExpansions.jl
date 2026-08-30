@@ -24,20 +24,6 @@ function frechet_exp(A::Matrix{ComplexF64}, E::Matrix{ComplexF64})
   return X[1:d, 1:d], X[1:d, (d + 1):(2d)]
 end
 
-function random_drive(rng, d, M, wd)
-  randop() =
-    sum(complex(randn(rng), randn(rng)) * Transition(HN, :σ, i, j) for i in 1:d, j in 1:d)
-  comps = Dict{Int,SQA.QAdd}()
-  h0 = randop()
-  comps[0] = h0 + adjoint(h0)
-  for m in 1:M
-    hm = randop()
-    comps[m] = hm
-    comps[-m] = adjoint(hm)
-  end
-  return PeriodicOperator(comps, wd)
-end
-
 function residual(vv, H, wd, d; nt=24)
   Heff = tomatrix(effective_hamiltonian(vv), d)
   Ks = tomatrices(kick_operator(vv), d)
@@ -75,7 +61,7 @@ end
 
   for N in 2:5
     errs = [
-      let H = random_drive(MersenneTwister(0xF10), D, 2, wd)
+      let H = random_drive(MersenneTwister(0xF10), HN, D, 2, wd)
         residual(floquet_expansion(H, VanVleck(), N), H, wd, D)
       end for wd in wds
     ]
@@ -84,7 +70,7 @@ end
   end
 
   rwa = [
-    let H = random_drive(MersenneTwister(0xF10), D, 2, wd)
+    let H = random_drive(MersenneTwister(0xF10), HN, D, 2, wd)
       residual(floquet_expansion(H, VanVleck(), 1), H, wd, D)
     end for wd in wds
   ]

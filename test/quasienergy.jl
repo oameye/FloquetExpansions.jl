@@ -10,20 +10,6 @@ include(joinpath(@__DIR__, "helpers", "shared.jl"))
 const D = 2
 const HN = NLevelSpace(:atom, D)
 
-function random_drive(rng, d, M, wd)
-  randop() =
-    sum(complex(randn(rng), randn(rng)) * Transition(HN, :σ, i, j) for i in 1:d, j in 1:d)
-  comps = Dict{Int,SQA.QAdd}()
-  h0 = randop()
-  comps[0] = h0 + adjoint(h0)
-  for m in 1:M
-    hm = randop()
-    comps[m] = hm
-    comps[-m] = adjoint(hm)
-  end
-  return PeriodicOperator(comps, wd)
-end
-
 function sambe(Q::QuasienergyOperator, d::Int)
   r = harmonic_range(Q)
   n = length(r)
@@ -58,7 +44,7 @@ end
 
 @testset "quasienergies match the effective Hamiltonian's spectrum" begin
   wd = 60.0
-  H = random_drive(MersenneTwister(0x51E), D, 1, wd)
+  H = random_drive(MersenneTwister(0x51E), HN, D, 1, wd)
 
   quasienergies(nmax) = sort!(
     unique!(

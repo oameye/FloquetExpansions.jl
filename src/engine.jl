@@ -165,13 +165,21 @@ end
 
 """
     kick_operator(vv::FloquetExpansion) -> PeriodicOperator
+    kick_operator(vv::FloquetExpansion, n::Int) -> PeriodicOperator
     kick_operator(vv::FloquetExpansion, t) -> QAdd
 
 The periodic kick operator ``K^{[N]} = \\sum_{k<N} K^{(k)}`` generating the micromotion, as
 harmonics or, given a time variable `t`, as the time-dependent operator ``K(t)``.
 
+With `n` in `1:vv.order-1`, the order-`n` contribution alone, frequency-scaled like
+[`effective_hamiltonian`](@ref). The kick series has no order-0 contribution.
+
 Under [`VanVleck`](@ref) this has vanishing time average, which is what makes
 [`effective_hamiltonian`](@ref) independent of the initial phase of the drive.
+
+!!! note "ambiguity at an integer argument"
+    An integer second argument selects an order, so `kick_operator(vv, 0)` is invalid rather than
+    a time evaluation. Use `kick_operator(vv)(0)` for the time-dependent kick at `t = 0`.
 """
 function kick_operator(vv::FloquetExpansion)
   out = zero(vv.H)
@@ -181,6 +189,10 @@ function kick_operator(vv::FloquetExpansion)
   return out
 end
 
-# Deliberately no `kick_operator(vv, n::Int)`: it would capture `kick_operator(vv, 0)`, which a
-# caller means as t = 0, and silently return an order instead of a time.
+function kick_operator(vv::FloquetExpansion, n::Int)
+  1 <= n < vv.order ||
+    throw(ArgumentError("order $(n) is outside 1:$(vv.order - 1) for this expansion"))
+  return SQA.simplify(reattach(vv.K[n], n))
+end
+
 kick_operator(vv::FloquetExpansion, t) = kick_operator(vv)(t)

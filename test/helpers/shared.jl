@@ -32,3 +32,18 @@ end
 
 vanishes(q::SQA.QAdd) = iszero(SQA.simplify(q))
 vanishes(X::PeriodicOperator) = all(vanishes(X[l]) for l in keys(X))
+
+function random_drive(rng, HN, d, M, wd)
+  randop() = sum(
+    complex(randn(rng), randn(rng)) * SQA.Transition(HN, :σ, i, j) for i in 1:d, j in 1:d
+  )
+  comps = Dict{Int,SQA.QAdd}()
+  h0 = randop()
+  comps[0] = h0 + adjoint(h0)
+  for m in 1:M
+    hm = randop()
+    comps[m] = hm
+    comps[-m] = adjoint(hm)
+  end
+  return PeriodicOperator(comps, wd)
+end
