@@ -1,6 +1,3 @@
-## The Deprit triangle. Notation and the derivation of the peeling recursion are in
-## docs/dev/DERIVATION.md; the two families are named for their seed in docs/dev/DESIGN.md §4.
-
 """
     FloquetExpansion
 
@@ -9,33 +6,49 @@ Result of [`floquet_expansion`](@ref). Read it with [`effective_hamiltonian`](@r
 """
 struct FloquetExpansion{G<:Gauge}
   H::PeriodicOperator
-  K::Vector{PeriodicOperator}            # K[k] = K^(k), k = 1..N-1
-  Kdot::Vector{PeriodicOperator}         # Kdot[k] = d/dt K^(k)
-  dressedH::Vector{PeriodicOperator}     # ad_K^j on H,    flat over (n,j), UNWEIGHTED
-  dressedKdot::Vector{PeriodicOperator}  # ad_K^j on Kdot, flat over (n,j), UNWEIGHTED
-  Heff::Vector{SQA.QAdd}                 # Heff[n+1] = Heff^(n), n = 0..N-1
+  K::Vector{PeriodicOperator}
+  Kdot::Vector{PeriodicOperator}
+  dressedH::Vector{PeriodicOperator}
+  dressedKdot::Vector{PeriodicOperator}
+  Heff::Vector{SQA.QAdd}
   order::Int
 end
 
-# Bounds are known up front (n < N, j <= n), so the triangle is a flat vector rather than a
-# Dict keyed by (n,j): statically sized and index-computable. See DESIGN.md §7 L1.
 _tri(n::Int, j::Int) = (n * (n + 1)) ÷ 2 + j + 1
 
-# Both families satisfy the SAME weight-free recursion, node(n,j) = sum_k [K^(k), node(n-k,j-1)],
-# and differ only in seed; the Deprit weight is applied once, here, at assembly. Carrying the
-# weight inside the recursion instead would multiply a rational per level, and SQA collapses a
-# float-representable rational (1//2 -> 0.5 on the ComplexF64 tier) while keeping 1//3 exact, so
-# the accumulated product silently drops to floats and leaves ~1e-16 residues in the result.
 _weightH(j::Int) = im^j * (1 // factorial(j))
 _weightKdot(j::Int) = im^j * (1 // factorial(j + 1))
+
+function _dressed_node(
+  K::Vector{PeriodicOperator}, prev, n::Int, j::Int, H::PeriodicOperator
+)
+  acc = zero(H)
+  for k in 1:(n - j + 1)
+    acc = acc + SQA.commutator(K[k], prev(k, j))
+  end
+  return acc
+end
+
+function _assemble_resolvent(
+  dressedH::Vector{PeriodicOperator},
+  dressedKdot::Vector{PeriodicOperator},
+  n::Int,
+  H::PeriodicOperator,
+)
+  R = zero(H)
+  for j in 0:n
+    R = R + _weightH(j) * dressedH[_tri(n, j)]
+  end
+  for j in 1:n
+    R = R - _weightKdot(j) * dressedKdot[_tri(n, j)]
+  end
+  return R
+end
 
 function Base.show(io::IO, ::MIME"text/plain", vv::FloquetExpansion{G}) where {G}
   return print(io, "FloquetExpansion{", nameof(G), "} of order ", vv.order)
 end
 
-# `wd` never appears in the bookkeeping: an order-n object carries wd^-n, so stripping it and
-# tracking the power in the order index leaves the recursion wd-free. It is reattached on output.
-# Both methods multiply by the same scalar wd^(-n); they differ only in what they multiply.
 _reattach(X::SQA.QAdd, wd, n::Int) = iszero(n) ? X : wd^(-n) * X
 _reattach(X::PeriodicOperator, n::Int) = iszero(n) ? X : X.wd^(-n) * X
 
@@ -93,39 +106,23 @@ function floquet_expansion(H::PeriodicOperator, gauge::Gauge, order::Int)
     dressedH[_tri(n, 0)] = n == 0 ? H : zero(H)
 
     for j in 1:n
-      acc = zero(H)
-      for k in 1:(n - j + 1)
-        acc = acc + SQA.commutator(K[k], dressedH[_tri(n - k, j - 1)])
-      end
-      dressedH[_tri(n, j)] = acc
+      dressedH[_tri(n, j)] = _dressed_node(
+        K, (k, _) -> dressedH[_tri(n - k, j - 1)], n, j, H
+      )
     end
 
     for j in 1:n
-      acc = zero(H)
-      for k in 1:(n - j + 1)
-        # dressedKdot^(n)_[0] IS Kdot^(n+1) and is not computable at stage n. It is never
-        # read either, since j >= 1 reaches only order n-k with k >= 1; read Kdot directly
-        # so the unfillable slot is never touched.
-        prev = j == 1 ? Kdot[n - k + 1] : dressedKdot[_tri(n - k, j - 1)]
-        acc = acc + SQA.commutator(K[k], prev)
-      end
-      dressedKdot[_tri(n, j)] = acc
+      dressedKdot[_tri(n, j)] = _dressed_node(
+        K, (k, j_) -> j_ == 1 ? Kdot[n - k + 1] : dressedKdot[_tri(n - k, j_ - 1)], n, j, H
+      )
     end
 
-    R = zero(H)
-    for j in 0:n
-      R = R + _weightH(j) * dressedH[_tri(n, j)]
-    end
-    for j in 1:n
-      R = R - _weightKdot(j) * dressedKdot[_tri(n, j)]
-    end
+    R = _assemble_resolvent(dressedH, dressedKdot, n, H)
     R = SQA.simplify(R)
 
     Heffn = SQA.simplify(time_average(R))
     push!(Heff, Heffn)
 
-    # Stage order-1 would produce K^(order), which the approximant K^[N] = sum_{k<N} excludes
-    # and no later stage reads. Skipping it saves the last antiderivative outright.
     if n < order - 1
       Knext = SQA.simplify(antiderivative(R - Heffn, gauge))
       push!(K, Knext)

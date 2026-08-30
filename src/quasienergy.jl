@@ -9,15 +9,8 @@ Q_{mn} = H_{m-n} - m\\,\\omega_d\\,\\delta_{mn}
 ```
 
 Index it by harmonic, `Q[m, n]` with `m, n` in `-nmax:nmax`, not by array position.
-
 The eigenvalues of `Q` are the quasienergies, defined modulo `H.wd`, and they are what
-[`effective_hamiltonian`](@ref) approximates. This is an inspection and interop view: the
-expansion itself reads harmonics directly and never materializes a Sambe matrix.
-
-The sign of the diagonal follows the package's Fourier convention,
-``H_S(t) = \\sum_m H_m e^{-i m \\omega_d t}``: acting on ``e^{-i n \\omega_d t}``,
-``-i\\partial_t`` gives ``-n\\omega_d``. The opposite convention carries `+m*wd` and transposes
-the off-diagonal to ``H_{n-m}``.
+[`effective_hamiltonian`](@ref) approximates.
 
 # Examples
 

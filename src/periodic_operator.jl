@@ -118,8 +118,6 @@ end
 
 Base.show(io::IO, X::PeriodicOperator) = show(io, MIME"text/plain"(), X)
 
-## Arithmetic ###################################################################################
-
 function _check_frequency(X::PeriodicOperator, Y::PeriodicOperator)
   isequal(X.wd, Y.wd) || throw(
     ArgumentError(
@@ -193,13 +191,10 @@ function LinearAlgebra.ishermitian(X::PeriodicOperator)
   return true
 end
 
-## The four operations ##########################################################################
-
 """
     simplify(X::PeriodicOperator) -> PeriodicOperator
 
-Simplify every coefficient of `X` symbolically, removing mathematically-zero buckets that survive
-as structural zeros on the symbolic tier.
+Simplify every coefficient of `X` symbolically.
 """
 function SQA.simplify(X::PeriodicOperator)
   return PeriodicOperator(
@@ -247,8 +242,6 @@ Time derivative in units of the drive frequency, `dX/dt` divided by ``\\omega_d`
 ```math
 (\\partial_t X)_l = -i l \\, X_l
 ```
-
-Left inverse of [`antiderivative`](@ref) on operators of vanishing time average.
 """
 function derivative(X::PeriodicOperator)
   return PeriodicOperator(
@@ -260,9 +253,6 @@ end
     time_average(X::PeriodicOperator) -> QAdd
 
 Average of `X` over one period, which is its zeroth harmonic `X[0]`.
-
-Named for the spec's `⟨·⟩` rather than `average`, which SecondQuantizedAlgebra already exports
-for a different operation (the expectation value ``\\langle \\hat{O} \\rangle``).
 """
 time_average(X::PeriodicOperator) = X[0]
 
@@ -275,10 +265,7 @@ Inverse of [`derivative`](@ref), with `gauge` fixing the free integration consta
 (\\partial_t^{-1} X)_l = \\frac{i}{l} X_l \\quad (l \\neq 0)
 ```
 
-`X` must have vanishing time average, which is the image of `d/dt` and therefore this
-operator's domain; pass `X - time_average(X)` if that is not already true. Under
-[`VanVleck`](@ref) the constant is zero, so the result also has vanishing time average.
-
+`X` must have vanishing time average; pass `X - time_average(X)` if that is not already true.
 Weights stay exact rationals, so an `OverflowError` from `Rational{Int}` is possible at high
 order rather than a silent loss of precision.
 

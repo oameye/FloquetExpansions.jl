@@ -1,12 +1,9 @@
-## Reading a symbolic time dependence into harmonics, and writing it back out.
-
 # `iszero` on a `BasicSymbolic` builds the symbolic equation `0 == 0` rather than returning a
-# `Bool`, so it is unusable in a condition. Structural comparison against the literal is.
+# `Bool`, so use structural comparison instead.
 _issymzero(x) = isequal(Symbolics.value(x), 0)
 
-# `expim(arg)` is `exp(+i*arg)` with `arg` REAL, while the package convention is
-# `exp(-i*m*w*t)`. Split `arg` into `c*w*t + offset` and return `(m, offset) = (-c, offset)`;
-# the offset is a constant phase, which belongs with the coefficient rather than the index.
+# `expim(arg)` is `exp(+i*arg)` with arg REAL; the package convention is `exp(-i*m*w*t)`.
+# Split arg into `c*w*t + offset` and return `(-c, offset)`.
 function _harmonic_index(arg, w, t)
   offset = Symbolics.substitute(arg, Dict(t => 0))
   time_part = Symbolics.simplify(arg - offset)
@@ -47,9 +44,6 @@ H(t) = \\sum_m H_m \\, e^{-i m w t}
 `w` is the drive frequency and `t` the time variable, both symbolic. Trigonometric time
 dependence is normalized to phases first, so `cos`, `sin` and `expim` are all accepted, as is
 a constant phase offset such as `cos(w*t + φ)`.
-
-Throws if a phase is not of the form `c*w*t + constant` with integer `c`, i.e. if the operator
-is not periodic at the drive frequency.
 
 Inverse of calling the result: `harmonics(H, w, t)(t)` reproduces `H`.
 
