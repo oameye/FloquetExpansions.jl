@@ -12,8 +12,7 @@ h_a = FockSpace(:cavity)
 x_a = (a + a') / sqrt(2 * ω₀)
 p_a = im * sqrt(ω₀ / 2) * (a' - a)
 function duffing_hamiltonian(x, p)
-  return p^2 // 2 + ω₀^2 * x^2 // 2 + α * x^4 // 4 -
-         F * x * exponential_form(cos(ω * t))
+  return p^2 // 2 + ω₀^2 * x^2 // 2 + α * x^4 // 4 - F * x * exponential_form(cos(ω * t))
 end
 
 duffing = duffing_hamiltonian(x_a, p_a)
@@ -49,7 +48,7 @@ H_b = simplify(transform(duffing_hamiltonian(x_b, p_b), rot_b))
 
 Q_b = harmonics(H_b, ω, t)
 rwa_b = floquet_expansion(Q_b, VanVleck(), 1)
-H_eff_b =  simplify(effective_hamiltonian(rwa_b))
+H_eff_b = simplify(effective_hamiltonian(rwa_b))
 
 #
 
@@ -69,13 +68,7 @@ u0_b = initial_values(eqs_b; defaults=Dict(average(b) => 0.0 + 0.0im))
 #
 using OrdinaryDiffEq: Tsit5, solve
 
-params = Dict(
-    ω₀ => 1.0,
-    ω => 2,
-    α => 1.0,
-    F => 0.01,
-    γ => 0.005,
-)
+params = Dict(ω₀ => 1.0, ω => 2, α => 1.0, F => 0.01, γ => 0.005)
 tspan = (0.0, 1000.0)
 prob_a = ODEProblem(sys_a, merge(u0_a, params), tspan)
 prob_b = ODEProblem(sys_b, merge(u0_b, params), tspan)
@@ -85,7 +78,7 @@ sol_b = solve(prob_b, Tsit5(); reltol=1.0e-8, abstol=1.0e-10)
 
 #
 
-duffing_lab  = duffing |> trigonometric_form |> simplify
+duffing_lab = simplify(trigonometric_form(duffing))
 eqs_lab = meanfield([a], duffing_lab, [a]; rates=[γ], order=1, iv=t)
 sys_lab = mtkcompile(System(eqs_lab; name=:lab))
 prob_lab = ODEProblem(sys_lab, merge(u0_a, params), tspan)
@@ -107,22 +100,18 @@ x_lab_envelope = sqrt(2 / ω₀_value) .* abs.(α_lab_rot)
 x_b_envelope = sqrt(2 / ω_value) .* abs.(β_b_rot)
 
 p_envelope = plot(
-    t_plot,
-    x_a_envelope;
-    label="A: effective",
-    xlabel="t",
-    ylabel="x envelope",
+  t_plot, x_a_envelope; label="A: effective", xlabel="t", ylabel="x envelope"
 )
 plot!(p_envelope, t_plot, x_lab_envelope; label="Lab dynamics")
 plot!(p_envelope, t_plot, x_b_envelope; label="B: effective")
 
 p_error = plot(
-    t_plot,
-    abs.(x_a_envelope .- x_lab_envelope);
-    label="A error",
-    xlabel="t",
-    ylabel="absolute envelope error",
-    yscale=:log10,
+  t_plot,
+  abs.(x_a_envelope .- x_lab_envelope);
+  label="A error",
+  xlabel="t",
+  ylabel="absolute envelope error",
+  yscale=:log10,
 )
 plot!(p_error, t_plot, abs.(x_b_envelope .- x_lab_envelope); label="B error")
 
