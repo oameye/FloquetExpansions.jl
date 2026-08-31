@@ -58,8 +58,8 @@ julia> @variables w::Real t::Real;
 
 julia> H = harmonics(cos(w * t) * (a + a'), w, t)
 PeriodicOperator with harmonics -1:1
-  l = -1  =>  0.5 * a + 0.5 * a'
-  l =  1  =>  0.5 * a + 0.5 * a'
+  l = -1  =>  1//2 * a + 1//2 * a'
+  l =  1  =>  1//2 * a + 1//2 * a'
 
 julia> ishermitian(H)
 true
