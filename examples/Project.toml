@@ -12,11 +12,10 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 QuestBase = "7e80f742-43d6-403d-a9ea-981410111d43"
 
 [sources]
-SecondQuantizedAlgebra = {rev = "simplify-expim", url = "https://github.com/qojulia/SecondQuantizedAlgebra.jl"}
+SecondQuantizedAlgebra = {path = "/home/oameye/Projects/SecondQuantizedAlgebra.jl"}
 
 [compat]
 ModelingToolkitBase = "1"
 OrdinaryDiffEq = "7"
 QuantumCumulants = "0.7"
-SecondQuantizedAlgebra = "0.10.2"
 Symbolics = "7.27"
