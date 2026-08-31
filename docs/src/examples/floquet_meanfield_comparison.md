@@ -77,7 +77,7 @@ using OrdinaryDiffEq: Tsit5, solve
 
 params = Dict(
     ω₀ => 1.0,
-    ω => 2,
+    ω => 2.0,
     α => 1.0,
     F => 0.01,
     γ => 0.005,
@@ -140,4 +140,3 @@ plot(p_envelope, p_error; layout=(2, 1))
 ---
 
 *This page was generated using [Literate.jl](https://github.com/fredrikekre/Literate.jl).*
-

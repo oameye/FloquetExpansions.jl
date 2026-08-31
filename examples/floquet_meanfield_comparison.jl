@@ -68,7 +68,7 @@ u0_b = initial_values(eqs_b; defaults=Dict(average(b) => 0.0 + 0.0im))
 #
 using OrdinaryDiffEq: Tsit5, solve
 
-params = Dict(ω₀ => 1.0, ω => 2, α => 1.0, F => 0.01, γ => 0.005)
+params = Dict(ω₀ => 1.0, ω => 2.0, α => 1.0, F => 0.01, γ => 0.005)
 tspan = (0.0, 1000.0)
 prob_a = ODEProblem(sys_a, merge(u0_a, params), tspan)
 prob_b = ODEProblem(sys_b, merge(u0_b, params), tspan)
