@@ -1,0 +1,162 @@
+const LiouvillianAction = Tuple{SQA.QAdd,SQA.QAdd}
+const LiouvillianTerms = Dict{LiouvillianAction,SQA.CNum}
+const LiouvillianScalar = Union{Number,Symbolics.Num,SQA.CNum}
+
+qadd(x::SQA.QAdd) = x
+qadd(x::SQA.QField) = 1 * x
+
+"""
+    Liouvillian
+
+A symbolic linear map on density operators represented as a collected sum of elementary
+actions ``ρ ↦ AρB``. The operator factors are SQA expressions and the scalar coefficients are
+symbolic SQA coefficients.
+
+Use [`hamiltonian_action`](@ref), [`dissipator`](@ref), or the keyword constructor to build
+Liouvillians. Finite-order Floquet expansions can be more general than a generator in explicit
+Lindblad form.
+"""
+struct Liouvillian
+  terms::LiouvillianTerms
+end
+
+function add_liouvillian_term!(
+  terms::LiouvillianTerms, key::LiouvillianAction, coefficient::SQA.CNum
+)
+  iszero(coefficient) && return terms
+  updated = get(terms, key, convert(SQA.CNum, 0)) + coefficient
+  iszero(updated) ? delete!(terms, key) : (terms[key] = updated)
+  return terms
+end
+
+function raw_liouvillian(terms::LiouvillianTerms)
+  normalized = LiouvillianTerms()
+  sizehint!(normalized, length(terms))
+  for (key, coefficient) in terms
+    add_liouvillian_term!(normalized, key, coefficient)
+  end
+  return Liouvillian(normalized)
+end
+
+function action(left::SQA.QField, right::SQA.QField, coefficient=1)
+  return raw_liouvillian(
+    LiouvillianTerms((qadd(left), qadd(right)) => convert(SQA.CNum, coefficient))
+  )
+end
+
+"""
+    hamiltonian_action(H)
+
+Construct the coherent density-operator action ``-i[H, ⋅]``.
+"""
+function hamiltonian_action(H::SQA.QField)
+  Hq = qadd(H)
+  identity = one(Hq)
+  return action(Hq, identity, -im) + action(identity, Hq, im)
+end
+
+"""
+    dissipator(L)
+
+Construct the symbolic Lindblad dissipator
+``D[L](ρ) = LρL† - (L†Lρ + ρL†L)/2``.
+"""
+function dissipator(L::SQA.QField)
+  Lq = qadd(L)
+  identity = one(Lq)
+  norm = adjoint(Lq) * Lq
+  return action(Lq, adjoint(Lq)) +
+         action(norm, identity, -1 // 2) +
+         action(identity, norm, -1 // 2)
+end
+
+"""
+    Liouvillian(H; collapse_operators=(), jumps=(), rates=())
+
+Construct ``-i[H, ⋅] + Σ D[C] + Σ γD[J]``. `collapse_operators` contains complete collapse
+operators, while `jumps` and `rates` contain paired bare jump operators and scalar rates.
+Rates are ordinary symbolic coefficients; no positivity condition is inferred or certified.
+"""
+function Liouvillian(H::SQA.QField; collapse_operators=(), jumps=(), rates=())
+  length(jumps) == length(rates) ||
+    throw(ArgumentError("jumps and rates must have equal lengths"))
+
+  generator = hamiltonian_action(H)
+  for collapse in collapse_operators
+    generator = generator + dissipator(collapse)
+  end
+  for (jump, rate) in zip(jumps, rates)
+    generator = generator + rate * dissipator(jump)
+  end
+  return generator
+end
+
+Base.iszero(L::Liouvillian) = isempty(L.terms)
+Base.isempty(L::Liouvillian) = isempty(L.terms)
+
+Base.zero(::Liouvillian) = Liouvillian(LiouvillianTerms())
+Base.zero(::Type{Liouvillian}) = Liouvillian(LiouvillianTerms())
+
+Base.:(==)(L::Liouvillian, R::Liouvillian) = L.terms == R.terms
+Base.isequal(L::Liouvillian, R::Liouvillian) = isequal(L.terms, R.terms)
+Base.hash(L::Liouvillian, h::UInt) = hash(:Liouvillian, hash(L.terms, h))
+
+function Base.:+(L::Liouvillian, R::Liouvillian)
+  terms = copy(L.terms)
+  for (key, coefficient) in R.terms
+    add_liouvillian_term!(terms, key, coefficient)
+  end
+  return Liouvillian(terms)
+end
+
+Base.:-(L::Liouvillian) = -1 * L
+Base.:-(L::Liouvillian, R::Liouvillian) = L + (-R)
+
+function scale(coefficient::LiouvillianScalar, L::Liouvillian)
+  return scale(convert(SQA.CNum, coefficient), L)
+end
+
+function scale(coefficient::SQA.CNum, L::Liouvillian)
+  iszero(L) && return zero(L)
+  iszero(coefficient) && return zero(L)
+  return raw_liouvillian(
+    LiouvillianTerms(key => coefficient * value for (key, value) in L.terms)
+  )
+end
+
+Base.:*(coefficient::LiouvillianScalar, L::Liouvillian) = scale(coefficient, L)
+Base.:*(L::Liouvillian, coefficient::LiouvillianScalar) = scale(coefficient, L)
+
+"""
+    compose(A, B)
+
+Compose Liouvillian maps so that `B` acts first and `A` acts second. For elementary actions
+`(Aₗ, Aᵣ)` and `(Bₗ, Bᵣ)`, the resulting action is `(AₗBₗ, BᵣAᵣ)`.
+"""
+function compose(A::Liouvillian, B::Liouvillian)
+  iszero(A) && return zero(A)
+  iszero(B) && return zero(B)
+  terms = LiouvillianTerms()
+  for ((left_A, right_A), coefficient_A) in A.terms,
+    ((left_B, right_B), coefficient_B) in B.terms
+
+    key = (left_A * left_B, right_B * right_A)
+    add_liouvillian_term!(terms, key, coefficient_A * coefficient_B)
+  end
+  return Liouvillian(terms)
+end
+
+SQA.commutator(A::Liouvillian, B::Liouvillian) = compose(A, B) - compose(B, A)
+
+function SQA.simplify(L::Liouvillian)
+  terms = LiouvillianTerms()
+  for ((left, right), coefficient) in L.terms
+    key = (SQA.simplify(left), SQA.simplify(right))
+    add_liouvillian_term!(terms, key, coefficient)
+  end
+  return Liouvillian(terms)
+end
+
+function Base.show(io::IO, L::Liouvillian)
+  return print(io, isempty(L) ? "0" : "Liouvillian($(length(L.terms)) terms)")
+end

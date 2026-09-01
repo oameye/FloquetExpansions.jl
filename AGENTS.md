@@ -34,8 +34,9 @@ Tests are organized in subdirectories matching `src/`, run via `test/runtests.jl
 - **Golden rule: tests use only the public API.** Exercise the package as a user
   would through exported or documented interfaces; do not call private methods,
   reach into internal submodules or fields, or assert implementation details.
-  If behavior cannot be tested through the public API, improve the public seam
-  instead of adding a test-only escape hatch.
+  A good test exercises a feature through the public API and checks it against
+  an expected result. If behavior cannot be tested through the public API,
+  improve the public seam instead of adding a test-only escape hatch.
 - `@inferred` for type stability checks
 - `@allocations` for zero-allocation verification on hot paths
 
@@ -98,3 +99,17 @@ Three distinct axes; keep them separate when reporting numbers.
 - **Precompilation time**: compiling package code into the on-disk cache. Paid once per version/dependency change, not per session; where `precompile.jl`'s `@compile_workload` runs.
 - **TTFX**: cold-process latency to the *first* call: `using` load time plus any JIT not cached during precompilation. A bigger `@compile_workload` trades more precompilation time for less TTFX.
 - **Runtime**: steady-state cost of every call after the first, no compilation. What `@btime`/`benchmark/` measure after warmup; target of the zero-allocation passes.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in GitHub Issues for `oameye/FloquetExpansions.jl`; use the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use `needs-triage`, `needs-info`, `ready-to-implement`, `needs-maintainer`, and `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout with root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.

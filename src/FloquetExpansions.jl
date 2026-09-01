@@ -12,6 +12,7 @@ import SecondQuantizedAlgebra as SQA
 using SecondQuantizedAlgebra: expim, exponential_form, trigonometric_form
 export expim, exponential_form, trigonometric_form
 
+include("liouvillian.jl")
 include("periodic_operator.jl")
 include("quasienergy.jl")
 include("collector.jl")
@@ -20,5 +21,6 @@ include("engine.jl")
 export PeriodicOperator, Gauge, VanVleck, QuasienergyOperator, harmonic_range
 export time_average, derivative, antiderivative, support, harmonics
 export FloquetExpansion, floquet_expansion, effective_hamiltonian, kick_operator
+export Liouvillian, hamiltonian_action, dissipator, compose
 
 end # module FloquetExpansions
