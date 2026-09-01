@@ -14,10 +14,9 @@ average, which makes the effective Hamiltonian independent of the initial phase 
 struct VanVleck <: Gauge end
 
 """
-    PeriodicOperator(components::AbstractDict{Int, <:QField})
-    PeriodicOperator(pairs::Pair{Int, <:QField}...)
+    PeriodicOperator(components::AbstractDict{Int, <:QField}, wd)
 
-A ``T``-periodic operator held by Fourier harmonic,
+A ``T``-periodic operator held by Fourier harmonic, with drive frequency `wd`,
 
 ```math
 X(t) = \\sum_l X_l \\, e^{-i l \\omega_d t}
@@ -25,7 +24,8 @@ X(t) = \\sum_l X_l \\, e^{-i l \\omega_d t}
 
 Index `l` selects a harmonic. A missing harmonic and a zero harmonic are the same thing: both
 are absent from the stored components, so `X[l]` returns zero for any `l` and `keys(X)` lists
-only the nonzero ones.
+only the nonzero ones. The frequency is part of `X`, so operators can only be combined when they
+use the same Fourier basis.
 
 `X` is Hermitian exactly when `X[-l] == X[l]'` for every `l`, which is what
 `ishermitian` checks and what `adjoint` produces.
@@ -37,13 +37,15 @@ julia> using LinearAlgebra: ishermitian
 
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> X = PeriodicOperator(1 => a, -1 => a')
+julia> @variables w::Real t::Real;
+
+julia> X = harmonics(a * expim(w * t) + a' * expim(-w * t), w, t)
 PeriodicOperator with harmonics -1:1
-  l = -1  =>  a'
-  l =  1  =>  a
+  l = -1  =>  a
+  l =  1  =>  a'
 
 julia> X[1]
-a
+a'
 
 julia> ishermitian(X)
 true
@@ -53,30 +55,27 @@ See also [`time_average`](@ref), [`derivative`](@ref), [`antiderivative`](@ref).
 """
 struct PeriodicOperator
   components::Dict{Int,SQA.QAdd}
+  wd::Symbolics.Num
 
-  function PeriodicOperator(components::Dict{Int,SQA.QAdd})
+  function PeriodicOperator(components::Dict{Int,SQA.QAdd}, wd)
     kept = Dict{Int,SQA.QAdd}()
     sizehint!(kept, length(components))
     for (l, Xl) in components
       iszero(Xl) || (kept[l] = Xl)
     end
-    return new(kept)
+    return new(kept, Symbolics.Num(wd))
   end
 end
 
 # `Op` is not `<: QAdd`, so every ingest path has to promote.
-_qadd(x::SQA.QAdd) = x
-_qadd(x::SQA.QSym) = 1 * x
+promote_qadd(x::SQA.QAdd) = x
+promote_qadd(x::SQA.QSym) = 1 * x
 
-function PeriodicOperator(components::AbstractDict{Int,<:SQA.QField})
-  return PeriodicOperator(Dict{Int,SQA.QAdd}(l => _qadd(Xl) for (l, Xl) in components))
+function PeriodicOperator(components::AbstractDict{Int,<:SQA.QField}, wd)
+  return PeriodicOperator(
+    Dict{Int,SQA.QAdd}(l => promote_qadd(Xl) for (l, Xl) in components), wd
+  )
 end
-
-function PeriodicOperator(pairs::Pair{Int,<:SQA.QField}...)
-  return PeriodicOperator(Dict{Int,SQA.QAdd}(l => _qadd(Xl) for (l, Xl) in pairs))
-end
-
-PeriodicOperator(X::SQA.QField) = PeriodicOperator(0 => X)
 
 Base.getindex(X::PeriodicOperator, l::Int) = get(X.components, l, zero(SQA.QAdd))
 Base.keys(X::PeriodicOperator) = keys(X.components)
@@ -84,9 +83,15 @@ Base.length(X::PeriodicOperator) = length(X.components)
 Base.iszero(X::PeriodicOperator) = isempty(X.components)
 Base.isempty(X::PeriodicOperator) = isempty(X.components)
 
-Base.:(==)(X::PeriodicOperator, Y::PeriodicOperator) = X.components == Y.components
-Base.isequal(X::PeriodicOperator, Y::PeriodicOperator) = isequal(X.components, Y.components)
-Base.hash(X::PeriodicOperator, h::UInt) = hash(:PeriodicOperator, hash(X.components, h))
+function Base.:(==)(X::PeriodicOperator, Y::PeriodicOperator)
+  return isequal(X.wd, Y.wd) && X.components == Y.components
+end
+function Base.isequal(X::PeriodicOperator, Y::PeriodicOperator)
+  return isequal(X.wd, Y.wd) && isequal(X.components, Y.components)
+end
+function Base.hash(X::PeriodicOperator, h::UInt)
+  return hash(:PeriodicOperator, hash(X.wd, hash(X.components, h)))
+end
 
 """
     support(X::PeriodicOperator) -> UnitRange{Int}
@@ -115,39 +120,55 @@ end
 
 Base.show(io::IO, X::PeriodicOperator) = show(io, MIME"text/plain"(), X)
 
-## Arithmetic ###################################################################################
+function check_frequency(X::PeriodicOperator, Y::PeriodicOperator)
+  isequal(X.wd, Y.wd) || throw(
+    ArgumentError(
+      "cannot combine PeriodicOperators with different drive frequencies: " *
+      "$(X.wd) and $(Y.wd)",
+    ),
+  )
+  return nothing
+end
 
-function _addto!(out::Dict{Int,SQA.QAdd}, l::Int, Xl::SQA.QAdd)
+function addto!(out::Dict{Int,SQA.QAdd}, l::Int, Xl::SQA.QAdd)
   out[l] = haskey(out, l) ? out[l] + Xl : Xl
   return out
 end
 
 function Base.:+(X::PeriodicOperator, Y::PeriodicOperator)
+  check_frequency(X, Y)
   out = copy(X.components)
   for (l, Yl) in Y.components
-    _addto!(out, l, Yl)
+    addto!(out, l, Yl)
   end
-  return PeriodicOperator(out)
+  return PeriodicOperator(out, X.wd)
 end
 
 function Base.:-(X::PeriodicOperator)
-  return PeriodicOperator(Dict{Int,SQA.QAdd}(l => -Xl for (l, Xl) in X.components))
+  return PeriodicOperator(Dict{Int,SQA.QAdd}(l => -Xl for (l, Xl) in X.components), X.wd)
 end
 Base.:-(X::PeriodicOperator, Y::PeriodicOperator) = X + (-Y)
 
 # The static operand is a DC harmonic; `R - time_average(R)` is the recursion's own idiom.
-Base.:+(X::PeriodicOperator, c::SQA.QField) = X + PeriodicOperator(c)
-Base.:+(c::SQA.QField, X::PeriodicOperator) = X + PeriodicOperator(c)
-Base.:-(X::PeriodicOperator, c::SQA.QField) = X + PeriodicOperator(0 => -_qadd(c))
-Base.:-(c::SQA.QField, X::PeriodicOperator) = PeriodicOperator(c) + (-X)
+function Base.:+(X::PeriodicOperator, c::SQA.QField)
+  return X + PeriodicOperator(Dict{Int,SQA.QAdd}(0 => promote_qadd(c)), X.wd)
+end
+function Base.:+(c::SQA.QField, X::PeriodicOperator)
+  return X + PeriodicOperator(Dict{Int,SQA.QAdd}(0 => promote_qadd(c)), X.wd)
+end
+function Base.:-(X::PeriodicOperator, c::SQA.QField)
+  return X + PeriodicOperator(Dict{Int,SQA.QAdd}(0 => -promote_qadd(c)), X.wd)
+end
+function Base.:-(c::SQA.QField, X::PeriodicOperator)
+  return PeriodicOperator(Dict{Int,SQA.QAdd}(0 => promote_qadd(c)), X.wd) + (-X)
+end
 
 function Base.:*(c::Number, X::PeriodicOperator)
-  return PeriodicOperator(Dict{Int,SQA.QAdd}(l => c * Xl for (l, Xl) in X.components))
+  return PeriodicOperator(Dict{Int,SQA.QAdd}(l => c * Xl for (l, Xl) in X.components), X.wd)
 end
 Base.:*(X::PeriodicOperator, c::Number) = c * X
 
-Base.zero(::Type{PeriodicOperator}) = PeriodicOperator(Dict{Int,SQA.QAdd}())
-Base.zero(::PeriodicOperator) = zero(PeriodicOperator)
+Base.zero(X::PeriodicOperator) = PeriodicOperator(Dict{Int,SQA.QAdd}(), X.wd)
 
 """
     adjoint(X::PeriodicOperator) -> PeriodicOperator
@@ -155,7 +176,9 @@ Base.zero(::PeriodicOperator) = zero(PeriodicOperator)
 Hermitian adjoint, harmonic by harmonic: `X'[l] == X[-l]'`.
 """
 function Base.adjoint(X::PeriodicOperator)
-  return PeriodicOperator(Dict{Int,SQA.QAdd}(-l => adjoint(Xl) for (l, Xl) in X.components))
+  return PeriodicOperator(
+    Dict{Int,SQA.QAdd}(-l => adjoint(Xl) for (l, Xl) in X.components), X.wd
+  )
 end
 
 """
@@ -170,7 +193,16 @@ function LinearAlgebra.ishermitian(X::PeriodicOperator)
   return true
 end
 
-## The four operations ##########################################################################
+"""
+    simplify(X::PeriodicOperator) -> PeriodicOperator
+
+Simplify every coefficient of `X` symbolically.
+"""
+function SQA.simplify(X::PeriodicOperator)
+  return PeriodicOperator(
+    Dict{Int,SQA.QAdd}(l => SQA.simplify(Xl) for (l, Xl) in X.components), X.wd
+  )
+end
 
 """
     commutator(K::PeriodicOperator, X::PeriodicOperator) -> PeriodicOperator
@@ -186,19 +218,22 @@ Commutator of two periodic operators, which is the harmonic convolution
 ```jldoctest
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> K = PeriodicOperator(1 => a); X = PeriodicOperator(2 => a');
+julia> @variables w::Real t::Real;
 
-julia> commutator(K, X)[3]
+julia> K = harmonics(a * expim(-w * t), w, t); X = harmonics(a' * expim(-w * t), w, t);
+
+julia> commutator(K, X)[2]
 1
 ```
 """
 function SQA.commutator(K::PeriodicOperator, X::PeriodicOperator)
+  check_frequency(K, X)
   out = Dict{Int,SQA.QAdd}()
   for (p, Kp) in K.components, (q, Xq) in X.components
     c = SQA.commutator(Kp, Xq)
-    iszero(c) || _addto!(out, p + q, c)
+    iszero(c) || addto!(out, p + q, c)
   end
-  return PeriodicOperator(out)
+  return PeriodicOperator(out, K.wd)
 end
 
 """
@@ -209,12 +244,10 @@ Time derivative in units of the drive frequency, `dX/dt` divided by ``\\omega_d`
 ```math
 (\\partial_t X)_l = -i l \\, X_l
 ```
-
-Left inverse of [`antiderivative`](@ref) on operators of vanishing time average.
 """
 function derivative(X::PeriodicOperator)
   return PeriodicOperator(
-    Dict{Int,SQA.QAdd}(l => (-im * l) * Xl for (l, Xl) in X.components)
+    Dict{Int,SQA.QAdd}(l => (-im * l) * Xl for (l, Xl) in X.components), X.wd
   )
 end
 
@@ -222,9 +255,6 @@ end
     time_average(X::PeriodicOperator) -> QAdd
 
 Average of `X` over one period, which is its zeroth harmonic `X[0]`.
-
-Named for the spec's `⟨·⟩` rather than `average`, which SecondQuantizedAlgebra already exports
-for a different operation (the expectation value ``\\langle \\hat{O} \\rangle``).
 """
 time_average(X::PeriodicOperator) = X[0]
 
@@ -237,10 +267,7 @@ Inverse of [`derivative`](@ref), with `gauge` fixing the free integration consta
 (\\partial_t^{-1} X)_l = \\frac{i}{l} X_l \\quad (l \\neq 0)
 ```
 
-`X` must have vanishing time average, which is the image of `d/dt` and therefore this
-operator's domain; pass `X - time_average(X)` if that is not already true. Under
-[`VanVleck`](@ref) the constant is zero, so the result also has vanishing time average.
-
+`X` must have vanishing time average; pass `X - time_average(X)` if that is not already true.
 Weights stay exact rationals, so an `OverflowError` from `Rational{Int}` is possible at high
 order rather than a silent loss of precision.
 
@@ -249,7 +276,9 @@ order rather than a silent loss of precision.
 ```jldoctest
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> X = PeriodicOperator(2 => a);
+julia> @variables w::Real t::Real;
+
+julia> X = harmonics(a * expim(2w * t), w, t);
 
 julia> derivative(antiderivative(X, VanVleck())) == X
 true
@@ -263,6 +292,6 @@ function antiderivative(X::PeriodicOperator, ::VanVleck)
     ),
   )
   return PeriodicOperator(
-    Dict{Int,SQA.QAdd}(l => ((1 // l) * im) * Xl for (l, Xl) in X.components)
+    Dict{Int,SQA.QAdd}(l => ((1 // l) * im) * Xl for (l, Xl) in X.components), X.wd
   )
 end

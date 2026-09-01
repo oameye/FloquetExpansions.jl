@@ -31,6 +31,11 @@ Tests are organized in subdirectories matching `src/`, run via `test/runtests.jl
 
 ### Testing patterns
 
+- **Golden rule: tests use only the public API.** Exercise the package as a user
+  would through exported or documented interfaces; do not call private methods,
+  reach into internal submodules or fields, or assert implementation details.
+  If behavior cannot be tested through the public API, improve the public seam
+  instead of adding a test-only escape hatch.
 - `@inferred` for type stability checks
 - `@allocations` for zero-allocation verification on hot paths
 
@@ -78,6 +83,13 @@ invoked through `make format`.
 ### Documentation and comments
 
 - **Comments: compact, why not what.** Default to no comment; add one only for a non-obvious *why*. Keep it to a couple of lines.
+- **No meta comments.** Never comment to explain what the code does — the code itself is the explanation. Only comment for a non-obvious *why*.
+- **No docstrings on internal helpers.** Let the function name and signature speak. Docstrings belong on the public interface.
+
+### Naming
+
+- **No underscore-prefixed names.** Do not use `_filename.jl`, `_function_name`, or any leading-underscore convention for private internals. Julia's module system handles visibility.
+- **Prefer untyped parameters for higher-order functions.** Julia's pass-through heuristic skips specialization for `Function`-annotated args that aren't called directly — but the same heuristic applies to untyped `f` too. Use `f::F where F` only when you need to force specialization (e.g. nested closures). In practice the difference is negligible; keep signatures simple.
   
 ## Performance terminology
 

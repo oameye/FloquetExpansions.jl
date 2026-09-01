@@ -9,8 +9,6 @@ using ExplicitImports:
   check_no_stale_explicit_imports
 
 @testset "ExplicitImports" begin
-  # `@reexport using SecondQuantizedAlgebra` is deliberate: the operator algebra is the user's
-  # working vocabulary and re-exporting it is the point. It is the one implicit import allowed.
   @test check_no_implicit_imports(
     FloquetExpansions; skip=(Base, Core, SecondQuantizedAlgebra)
   ) === nothing

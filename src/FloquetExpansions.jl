@@ -4,7 +4,6 @@ using Reexport: @reexport
 using LinearAlgebra: LinearAlgebra
 using Symbolics: Symbolics
 
-# Second quantized algebra
 import SecondQuantizedAlgebra as SQA
 @reexport using SecondQuantizedAlgebra
 
