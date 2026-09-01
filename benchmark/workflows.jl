@@ -49,11 +49,11 @@ function benchmark_floquet_expansion!(suite)
   for order in 1:3
     suite["Floquet Expansion"]["Kerr parametric oscillator"]["order $order"] = @benchmarkable begin
       vv = floquet_expansion($kpo, $kpo_ω, $kpo_t, VanVleck(), $order)
-      effective_hamiltonian(vv), kick_operator(vv)
+      effective_generator(vv), micromotion(vv)
     end
     suite["Floquet Expansion"]["Driven qubit"]["order $order"] = @benchmarkable begin
       vv = floquet_expansion($qubit, $qubit_ω, $qubit_t, VanVleck(), $order)
-      effective_hamiltonian(vv), kick_operator(vv)
+      effective_generator(vv), micromotion(vv)
     end
   end
   return nothing

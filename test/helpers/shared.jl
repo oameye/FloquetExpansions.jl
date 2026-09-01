@@ -31,7 +31,7 @@ function maxcoeff(q::SQA.QAdd, subs)
 end
 
 vanishes(q::SQA.QAdd) = iszero(SQA.simplify(q))
-vanishes(X::PeriodicOperator) = all(vanishes(X[l]) for l in keys(X))
+vanishes(X::PeriodicGenerator) = all(vanishes(X[l]) for l in keys(X))
 
 function random_drive(rng, HN, d, M, wd)
   randop() = sum(
@@ -45,5 +45,5 @@ function random_drive(rng, HN, d, M, wd)
     comps[m] = hm
     comps[-m] = adjoint(hm)
   end
-  return PeriodicOperator(comps, wd)
+  return PeriodicGenerator(comps, wd)
 end

@@ -1,68 +1,61 @@
 """
     FloquetExpansion
 
-Result of [`floquet_expansion`](@ref). Read it with [`effective_hamiltonian`](@ref) and
-[`kick_operator`](@ref) rather than by field access.
+Result of [`floquet_expansion`](@ref). Read it with [`effective_generator`](@ref) and
+[`micromotion`](@ref) rather than by field access.
 """
-struct FloquetExpansion{G<:Gauge}
-  H::PeriodicOperator
-  K::Vector{PeriodicOperator}
-  Kdot::Vector{PeriodicOperator}
-  dressedH::Vector{PeriodicOperator}
-  dressedKdot::Vector{PeriodicOperator}
-  Heff::Vector{SQA.QAdd}
+struct FloquetExpansion{G,P,E}
+  generator::P
+  kick_components::Vector{P}
+  kick_derivative_components::Vector{P}
+  dressed_generator::Vector{P}
+  dressed_kick_derivative::Vector{P}
+  effective_components::Vector{E}
+  gauge::G
   order::Int
 end
 
 triindex(n::Int, j::Int) = (n * (n + 1)) ÷ 2 + j + 1
+weight_generator(j::Int) = im^j * (1 // factorial(j))
+weight_kick_derivative(j::Int) = im^j * (1 // factorial(j + 1))
 
-weightH(j::Int) = im^j * (1 // factorial(j))
-weightKdot(j::Int) = im^j * (1 // factorial(j + 1))
+function Base.show(io::IO, ::MIME"text/plain", expansion::FloquetExpansion{G}) where {G}
+  return print(io, "FloquetExpansion{", nameof(G), "} of order ", expansion.order)
+end
 
-function dressed_node(
-  K::Vector{PeriodicOperator}, prev, n::Int, j::Int, H::PeriodicOperator
-)
-  acc = zero(H)
+function dressed_node(K::Vector{P}, previous, n::Int, j::Int, generator::P) where {P}
+  result = zero(generator)
   for k in 1:(n - j + 1)
-    acc = acc + SQA.commutator(K[k], prev(k, j))
+    result = result + SQA.commutator(K[k], previous(k, j))
   end
-  return acc
+  return result
 end
 
 function assemble_resolvent(
-  dressedH::Vector{PeriodicOperator},
-  dressedKdot::Vector{PeriodicOperator},
-  n::Int,
-  H::PeriodicOperator,
-)
-  R = zero(H)
+  dressed_generator::Vector{P}, dressed_kick_derivative::Vector{P}, n::Int, generator::P
+) where {P}
+  result = zero(generator)
   for j in 0:n
-    R = R + weightH(j) * dressedH[triindex(n, j)]
+    result = result + weight_generator(j) * dressed_generator[triindex(n, j)]
   end
   for j in 1:n
-    R = R - weightKdot(j) * dressedKdot[triindex(n, j)]
+    result = result - weight_kick_derivative(j) * dressed_kick_derivative[triindex(n, j)]
   end
-  return R
+  return result
 end
-
-function Base.show(io::IO, ::MIME"text/plain", vv::FloquetExpansion{G}) where {G}
-  return print(io, "FloquetExpansion{", nameof(G), "} of order ", vv.order)
-end
-
-reattach(X::SQA.QAdd, wd, n::Int) = iszero(n) ? X : wd^(-n) * X
-reattach(X::PeriodicOperator, n::Int) = iszero(n) ? X : X.wd^(-n) * X
 
 """
-    floquet_expansion(H::PeriodicOperator, gauge::Gauge, order::Int) -> FloquetExpansion
-    floquet_expansion(H::QAdd, w, t, gauge::Gauge, order::Int) -> FloquetExpansion
+    floquet_expansion(generator::PeriodicGenerator, gauge::Gauge, order::Int) -> FloquetExpansion
+    floquet_expansion(H::QField, w, t, gauge::Gauge, order::Int) -> FloquetExpansion
 
-Expand a periodically driven Hamiltonian into a time-independent effective Hamiltonian and a
-periodic kick operator, to the given `order` in `1/H.wd`. The drive frequency is bound to `H`.
+Expand a periodically driven generator into a time-independent effective generator and a
+periodic micromotion generator, to the given `order` in `1/generator.wd`. The drive frequency is
+bound to `generator`.
 
 The second form parses the time dependence first, so `H` may be given as an ordinary
-time-dependent operator in the drive frequency `w` and time `t`.
+time-dependent Hamiltonian in the drive frequency `w` and time `t`.
 
-Truncation follows the spec: `order = 1` is the rotating-wave approximation, and the error is
+Truncation follows the spec: `order = 1` retains the time average, and the error is
 ``\\mathcal{O}(w_d^{-\\text{order}})``. Note that the Liouvillian literature counts this shifted
 by one.
 
@@ -81,118 +74,120 @@ julia> H = harmonics(w * (a' * a) + g * cos(w * t) * (a + a'), w, t);
 julia> vv = floquet_expansion(H, VanVleck(), 1)
 FloquetExpansion{VanVleck} of order 1
 
-julia> effective_hamiltonian(vv)
+julia> effective_generator(vv)
 w * a' * a
 ```
 
-See also [`effective_hamiltonian`](@ref), [`kick_operator`](@ref), [`harmonics`](@ref).
+See also [`effective_generator`](@ref), [`micromotion`](@ref), and [`harmonics`](@ref).
 """
-function floquet_expansion(H::PeriodicOperator, gauge::Gauge, order::Int)
-  order >= 1 || throw(ArgumentError("order must be >= 1, got $(order)"))
-  LinearAlgebra.ishermitian(H) || throw(
-    ArgumentError(
-      "the drive is not Hermitian: it must satisfy H_{-m} = H_m' (eq:fourierH)"
-    ),
-  )
+function floquet_expansion(
+  generator::P, gauge::G, order::Int
+) where {P<:PeriodicGenerator,G<:Gauge}
+  order >= 1 || throw(ArgumentError("order must be >= 1"))
 
   nodes = (order * (order + 1)) ÷ 2
-  dressedH = [zero(H) for _ in 1:nodes]
-  dressedKdot = [zero(H) for _ in 1:nodes]
-  K = PeriodicOperator[]
-  Kdot = PeriodicOperator[]
-  Heff = SQA.QAdd[]
+  dressed_generator = [zero(generator) for _ in 1:nodes]
+  dressed_kick_derivative = [zero(generator) for _ in 1:nodes]
+  K = P[]
+  Kdot = P[]
+  E = typeof(time_average(generator))
+  effective = E[]
 
   for n in 0:(order - 1)
-    dressedH[triindex(n, 0)] = n == 0 ? H : zero(H)
+    dressed_generator[triindex(n, 0)] = n == 0 ? generator : zero(generator)
 
     for j in 1:n
-      dressedH[triindex(n, j)] = dressed_node(
-        K, (k, _) -> dressedH[triindex(n - k, j - 1)], n, j, H
+      dressed_generator[triindex(n, j)] = dressed_node(
+        K, (k, _) -> dressed_generator[triindex(n - k, j - 1)], n, j, generator
       )
     end
 
     for j in 1:n
-      dressedKdot[triindex(n, j)] = dressed_node(
+      dressed_kick_derivative[triindex(n, j)] = dressed_node(
         K,
-        (k, j_) -> j_ == 1 ? Kdot[n - k + 1] : dressedKdot[triindex(n - k, j_ - 1)],
+        (k, j_) ->
+          j_ == 1 ? Kdot[n - k + 1] : dressed_kick_derivative[triindex(n - k, j_ - 1)],
         n,
         j,
-        H,
+        generator,
       )
     end
 
-    R = assemble_resolvent(dressedH, dressedKdot, n, H)
-    R = SQA.simplify(R)
-
-    Heffn = SQA.simplify(time_average(R))
-    push!(Heff, Heffn)
+    resolvent = SQA.simplify(
+      assemble_resolvent(dressed_generator, dressed_kick_derivative, n, generator)
+    )
+    effective_n = SQA.simplify(time_average(resolvent))
+    push!(effective, effective_n)
 
     if n < order - 1
-      Knext = SQA.simplify(antiderivative(R - Heffn, gauge))
-      push!(K, Knext)
-      push!(Kdot, derivative(Knext))
+      next_kick = SQA.simplify(antiderivative(remove_average(resolvent), gauge))
+      push!(K, next_kick)
+      push!(Kdot, derivative(next_kick))
     end
   end
 
-  return FloquetExpansion{typeof(gauge)}(H, K, Kdot, dressedH, dressedKdot, Heff, order)
+  return FloquetExpansion(
+    generator, K, Kdot, dressed_generator, dressed_kick_derivative, effective, gauge, order
+  )
 end
 
-function floquet_expansion(H::SQA.QAdd, w, t, gauge::Gauge, order::Int)
-  return floquet_expansion(harmonics(H, w, t), gauge, order)
+function floquet_expansion(H::SQA.QField, wd, t, gauge::Gauge, order::Int)
+  return floquet_expansion(harmonics(qadd(H), wd, t), gauge, order)
 end
 
-"""
-    effective_hamiltonian(vv::FloquetExpansion) -> QAdd
-    effective_hamiltonian(vv::FloquetExpansion, n::Int) -> QAdd
+reattach(component, wd, n::Int) = iszero(n) ? component : wd^(-n) * component
 
-The time-independent effective Hamiltonian ``H_\\text{eff}^{[N]} = \\sum_{k<N} H_\\text{eff}^{(k)}``,
-or with `n` the order-`n` contribution alone. The drive frequency stored in `vv.H.wd` is
-reattached, so the order-`n` piece carries ``w_d^{-n}``.
 """
-function effective_hamiltonian(vv::FloquetExpansion)
-  out = zero(SQA.QAdd)
-  for n in 0:(vv.order - 1)
-    out = out + reattach(vv.Heff[n + 1], vv.H.wd, n)
+    effective_generator(expansion::FloquetExpansion) -> T
+    effective_generator(expansion::FloquetExpansion, n::Int) -> T
+
+The time-independent effective generator ``G_\\text{eff}^{[N]} = \\sum_{k<N} G_\\text{eff}^{(k)}``,
+or with `n` the order-`n` contribution alone. The drive frequency stored in
+`expansion.generator.wd` is reattached, so the order-`n` piece carries ``w_d^{-n}``.
+"""
+function effective_generator(expansion::FloquetExpansion)
+  result = zero(expansion.effective_components[1])
+  for n in 0:(expansion.order - 1)
+    result =
+      result + reattach(expansion.effective_components[n + 1], expansion.generator.wd, n)
   end
-  return SQA.simplify(out)
+  return SQA.simplify(result)
 end
 
-function effective_hamiltonian(vv::FloquetExpansion, n::Int)
-  0 <= n < vv.order ||
-    throw(ArgumentError("order $(n) is outside 0:$(vv.order - 1) for this expansion"))
-  return SQA.simplify(reattach(vv.Heff[n + 1], vv.H.wd, n))
+function effective_generator(expansion::FloquetExpansion, n::Int)
+  0 <= n < expansion.order ||
+    throw(ArgumentError("order $(n) is outside 0:$(expansion.order - 1)"))
+  return SQA.simplify(
+    reattach(expansion.effective_components[n + 1], expansion.generator.wd, n)
+  )
 end
 
 """
-    kick_operator(vv::FloquetExpansion) -> PeriodicOperator
-    kick_operator(vv::FloquetExpansion, n::Int) -> PeriodicOperator
-    kick_operator(vv::FloquetExpansion, t) -> QAdd
+    micromotion(expansion::FloquetExpansion) -> PeriodicGenerator
+    micromotion(expansion::FloquetExpansion, n::Int) -> PeriodicGenerator
 
-The periodic kick operator ``K^{[N]} = \\sum_{k<N} K^{(k)}`` generating the micromotion, as
-harmonics or, given a time variable `t`, as the time-dependent operator ``K(t)``.
+The periodic micromotion generator ``K^{[N]} = \\sum_{k<N} K^{(k)}``, as harmonics.
 
-With `n` in `1:vv.order-1`, the order-`n` contribution alone, frequency-scaled like
-[`effective_hamiltonian`](@ref). The kick series has no order-0 contribution.
+With `n` in `1:expansion.order - 1`, the order-`n` contribution alone, frequency-scaled like
+[`effective_generator`](@ref). The micromotion series has no order-0 contribution.
 
 Under [`VanVleck`](@ref) this has vanishing time average, which is what makes
-[`effective_hamiltonian`](@ref) independent of the initial phase of the drive.
+[`effective_generator`](@ref) independent of the initial phase of the drive.
 
-!!! note "ambiguity at an integer argument"
-    An integer second argument selects an order, so `kick_operator(vv, 0)` is invalid rather than
-    a time evaluation. Use `kick_operator(vv)(0)` for the time-dependent kick at `t = 0`.
+Evaluate the returned periodic generator at a symbolic time with `micromotion(expansion)(t)`.
+An integer second argument selects an order; use `micromotion(expansion)(t)` for time
+evaluation.
 """
-function kick_operator(vv::FloquetExpansion)
-  out = zero(vv.H)
-  for k in 1:length(vv.K)
-    out = out + reattach(vv.K[k], k)
+function micromotion(expansion::FloquetExpansion)
+  result = zero(expansion.generator)
+  for (order, kick) in enumerate(expansion.kick_components)
+    result = result + reattach(kick, expansion.generator.wd, order)
   end
-  return out
+  return result
 end
 
-function kick_operator(vv::FloquetExpansion, n::Int)
-  1 <= n < vv.order ||
-    throw(ArgumentError("order $(n) is outside 1:$(vv.order - 1) for this expansion"))
-  return SQA.simplify(reattach(vv.K[n], n))
+function micromotion(expansion::FloquetExpansion, n::Int)
+  1 <= n < expansion.order ||
+    throw(ArgumentError("order $(n) is outside 1:$(expansion.order - 1)"))
+  return SQA.simplify(reattach(expansion.kick_components[n], expansion.generator.wd, n))
 end
-
-kick_operator(vv::FloquetExpansion, t) = kick_operator(vv)(t)

@@ -15,6 +15,6 @@ SecondQuantizedAlgebra = {rev = "main", url = "https://github.com/qojulia/Second
 [compat]
 LinearAlgebra = "1"
 Reexport = "1.2"
-SecondQuantizedAlgebra = "0.10, 0.11"
+SecondQuantizedAlgebra = "0.11"
 Symbolics = "6, 7"
 julia = "1.10"

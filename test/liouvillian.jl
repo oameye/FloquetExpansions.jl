@@ -5,7 +5,7 @@ using Symbolics: @variables
 
 space = FockSpace(:liouvillian)
 a = Destroy(space, :a)
-@variables γ::Real
+@variables γ::Real ω::Real
 
 @testset "Liouvillian channel constructors" begin
   H = a' * a
@@ -50,4 +50,17 @@ end
 @testset "Liouvillian constructor validates paired channels" begin
   @test_throws ArgumentError Liouvillian(a; jumps=(a,), rates=())
   @test_throws ArgumentError Liouvillian(a; jumps=(a,), rates=(1, 2))
+end
+
+@testset "Liouvillians use the common van Vleck expansion" begin
+  static = Liouvillian(a' * a; jumps=(a,), rates=(γ,))
+  driven = Liouvillian(a)
+  generator = PeriodicGenerator(Dict(0 => static, 1 => driven, -1 => driven), ω)
+  expansion = floquet_expansion(generator, VanVleck(), 2)
+
+  @test expansion isa FloquetExpansion
+  @test expansion.generator isa PeriodicGenerator{Liouvillian}
+  @test effective_generator(expansion) isa Liouvillian
+  @test micromotion(expansion) isa PeriodicGenerator{Liouvillian}
+  @test effective_generator(expansion, 0) == static
 end

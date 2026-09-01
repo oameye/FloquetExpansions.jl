@@ -32,7 +32,7 @@ function kpo_drive(ξ, ξc, aξ2)
     comps[m] = Hm
     comps[-m] = adjoint(Hm)
   end
-  return PeriodicOperator(comps, w), H0
+  return PeriodicGenerator(comps, w), H0
 end
 
 function kpo_heff1(ξ, aξ2)
@@ -60,12 +60,12 @@ end
   H, H0 = kpo_drive(ξ, ξ, ξ^2)
   vv = floquet_expansion(H, VanVleck(), 2)
 
-  @test iszero(SQA.simplify(effective_hamiltonian(vv, 0) - H0))
+  @test iszero(SQA.simplify(effective_generator(vv, 0) - H0))
   @test iszero(
-    SQA.simplify(dropconst(w * effective_hamiltonian(vv, 1)) - dropconst(kpo_heff1(ξ, ξ^2)))
+    SQA.simplify(dropconst(w * effective_generator(vv, 1)) - dropconst(kpo_heff1(ξ, ξ^2)))
   )
 
-  got = dropconst(w * effective_hamiltonian(vv, 1))
+  got = dropconst(w * effective_generator(vv, 1))
   @test !any(length(term.ops) == 1 for (term, _) in got)
 end
 
@@ -76,9 +76,9 @@ end
   H, H0 = kpo_drive(ξz, ξc, aξ2)
   vv = floquet_expansion(H, VanVleck(), 2)
 
-  @test iszero(SQA.simplify(effective_hamiltonian(vv, 0) - H0))
+  @test iszero(SQA.simplify(effective_generator(vv, 0) - H0))
   d = SQA.simplify(
-    dropconst(w * effective_hamiltonian(vv, 1)) - dropconst(kpo_heff1(ξz, aξ2))
+    dropconst(w * effective_generator(vv, 1)) - dropconst(kpo_heff1(ξz, aξ2))
   )
   @test maxcoeff(d, Dict(g₃ => 0.7, g₄ => 0.4, ξr => 0.6, ξi => 0.9, δ => 0.2)) < 1.0e-12
 end

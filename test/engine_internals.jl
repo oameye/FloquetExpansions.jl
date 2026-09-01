@@ -10,7 +10,7 @@ a = Destroy(h, :a)
 @variables w::Real g::Real ξ::Real t::Real
 
 function drive()
-  return PeriodicOperator(
+  return PeriodicGenerator(
     Dict(
       0 => 1 * (a' * a),
       1 => g * a,
@@ -25,7 +25,7 @@ end
 comm = SQA.commutator
 
 const SUBS = Dict(w => 1.0, g => 0.7, ξ => 0.3, t => 0.4)
-function agrees(X::PeriodicOperator, Y::PeriodicOperator)
+function agrees(X::PeriodicGenerator, Y::PeriodicGenerator)
   return all(
     maxcoeff(SQA.simplify(X[l] - Y[l]), SUBS) < 1.0e-12 for l in union(keys(X), keys(Y))
   )
@@ -50,7 +50,7 @@ end
     for ks in compositions(n, j)
       term = H
       for k in Iterators.reverse(ks)
-        term = comm(vv.K[k], term)
+        term = comm(vv.kick_components[k], term)
       end
       acc = acc + term
     end
@@ -60,9 +60,9 @@ end
   function refKdot(n, j)
     acc = zero(H)
     for ks in compositions(n + 1, j + 1)
-      term = vv.Kdot[ks[1]]
+      term = vv.kick_derivative_components[ks[1]]
       for k in Iterators.reverse(ks[2:end])
-        term = comm(vv.K[k], term)
+        term = comm(vv.kick_components[k], term)
       end
       acc = acc + term
     end
@@ -70,11 +70,14 @@ end
   end
 
   for n in 0:(N - 1), j in 0:n
-    node = FloquetExpansions.weightH(j) * vv.dressedH[FloquetExpansions.triindex(n, j)]
+    node =
+      FloquetExpansions.weight_generator(j) *
+      vv.dressed_generator[FloquetExpansions.triindex(n, j)]
     @test agrees(node, refH(n, j))
     if j >= 1
       nodeK =
-        FloquetExpansions.weightKdot(j) * vv.dressedKdot[FloquetExpansions.triindex(n, j)]
+        FloquetExpansions.weight_kick_derivative(j) *
+        vv.dressed_kick_derivative[FloquetExpansions.triindex(n, j)]
       @test agrees(nodeK, refKdot(n, j))
     end
   end

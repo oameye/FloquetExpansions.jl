@@ -25,7 +25,7 @@ fold(x, wd) = mod(real(x) + wd / 2, wd) - wd / 2
 @testset "indexing is by harmonic, and the diagonal carries -m*wd" begin
   @variables w::Real
   a = Transition(HN, :σ, 1, 2)
-  H = PeriodicOperator(Dict(0 => 1 * (a' * a), 1 => 1 * a, -1 => 1 * a'), w)
+  H = PeriodicGenerator(Dict(0 => 1 * (a' * a), 1 => 1 * a, -1 => 1 * a'), w)
   Q = QuasienergyOperator(H, 2)
 
   @test harmonic_range(Q) == -2:2
@@ -60,7 +60,7 @@ end
   errs = Float64[]
   for N in 1:5
     vv = floquet_expansion(H, VanVleck(), N)
-    heff = sort!([fold(z, wd) for z in eigvals(tomatrix(effective_hamiltonian(vv), D))])
+    heff = sort!([fold(z, wd) for z in eigvals(tomatrix(effective_generator(vv), D))])
     push!(errs, maximum(minimum(abs(e - q) for q in Qs) for e in heff))
   end
 

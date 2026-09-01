@@ -33,7 +33,7 @@ function harmonic_index(arg, w, t)
 end
 
 """
-    harmonics(H::QAdd, w, t) -> PeriodicOperator
+    harmonics(H::QAdd, w, t) -> PeriodicGenerator
 
 Split a time-dependent operator into its Fourier harmonics, in the convention
 
@@ -57,15 +57,15 @@ julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 julia> @variables w::Real t::Real;
 
 julia> H = harmonics(cos(w * t) * (a + a'), w, t)
-PeriodicOperator with harmonics -1:1
+PeriodicGenerator with harmonics -1:1
   l = -1  =>  1//2 * a + 1//2 * a'
-  l =  1  =>  1//2 * a + 1//2 * a'
+  l = 1  =>  1//2 * a + 1//2 * a'
 
 julia> ishermitian(H)
 true
 ```
 
-See also [`PeriodicOperator`](@ref).
+See also [`PeriodicGenerator`](@ref).
 """
 function harmonics(H::SQA.QAdd, w, t)
   out = Dict{Int,SQA.QAdd}()
@@ -78,17 +78,7 @@ function harmonics(H::SQA.QAdd, w, t)
       out[m] = haskey(out, m) ? out[m] + contribution : contribution
     end
   end
-  return PeriodicOperator(out, w)
+  return PeriodicGenerator(out, w)
 end
 
-harmonics(H::SQA.QSym, w, t) = harmonics(promote_qadd(H), w, t)
-
-"""
-    (X::PeriodicOperator)(t) -> QAdd
-
-Rebuild the time-dependent operator ``\\sum_l X_l e^{-i l \\omega_d t}`` from its harmonics, the
-inverse of [`harmonics`](@ref). The drive frequency is taken from `X.wd`.
-"""
-function (X::PeriodicOperator)(t)
-  return sum(SQA.expim(-l * X.wd * t) * Xl for (l, Xl) in X.components; init=zero(SQA.QAdd))
-end
+harmonics(H::SQA.QSym, w, t) = harmonics(qadd(H), w, t)

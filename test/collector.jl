@@ -120,11 +120,11 @@ end
   @test iszero(derivative(X))
 end
 
-@testset "PeriodicOperator accepts symbolic drives directly" begin
+@testset "PeriodicGenerator accepts symbolic drives directly" begin
   H = a * SQA.expim(w * t) + a' * SQA.expim(-w * t)
   X = harmonics(H, w, t)
   @test X == harmonics(H, w, t)
-  @test @inferred(harmonics(H, w, t)) isa PeriodicOperator
+  @test @inferred(harmonics(H, w, t)) isa PeriodicGenerator
   @test iszero(SQA.simplify(X(t) - SQA.exponential_form(H)))
 
   static = harmonics(1 * (a' * a), w, t)

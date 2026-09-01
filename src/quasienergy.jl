@@ -1,5 +1,5 @@
 """
-    QuasienergyOperator(H::PeriodicOperator, nmax::Int)
+    QuasienergyOperator(H::PeriodicGenerator{SQA.QAdd}, nmax::Int)
 
 The quasienergy operator ``Q = H_S - i\\partial_t`` in Sambe (extended) space, truncated to
 harmonics `-nmax:nmax`:
@@ -10,7 +10,7 @@ Q_{mn} = H_{m-n} - m\\,\\omega_d\\,\\delta_{mn}
 
 Index it by harmonic, `Q[m, n]` with `m, n` in `-nmax:nmax`, not by array position.
 The eigenvalues of `Q` are the quasienergies, defined modulo `H.wd`, and they are what
-[`effective_hamiltonian`](@ref) approximates.
+[`effective_generator`](@ref) approximates for a Hamiltonian generator.
 
 # Examples
 
@@ -31,14 +31,14 @@ julia> Q[1, 1]
 -w + a' * a
 ```
 
-See also [`PeriodicOperator`](@ref), [`floquet_expansion`](@ref).
+See also [`PeriodicGenerator`](@ref), [`floquet_expansion`](@ref).
 """
 struct QuasienergyOperator
   blocks::Matrix{SQA.QAdd}
   nmax::Int
 end
 
-function QuasienergyOperator(H::PeriodicOperator, nmax::Int)
+function QuasienergyOperator(H::PeriodicGenerator{SQA.QAdd}, nmax::Int)
   nmax >= 0 || throw(ArgumentError("nmax must be >= 0, got $(nmax)"))
   n = 2nmax + 1
   blocks = Matrix{SQA.QAdd}(undef, n, n)

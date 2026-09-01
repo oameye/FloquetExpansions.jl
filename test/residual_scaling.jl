@@ -10,7 +10,7 @@ include(joinpath(@__DIR__, "helpers", "shared.jl"))
 const D = 3
 const HN = NLevelSpace(:atom, D)
 
-function tomatrices(X::PeriodicOperator, d::Int)
+function tomatrices(X::PeriodicGenerator, d::Int)
   return Dict{Int,Matrix{ComplexF64}}(l => tomatrix(X[l], d) for l in keys(X))
 end
 
@@ -25,8 +25,8 @@ function frechet_exp(A::Matrix{ComplexF64}, E::Matrix{ComplexF64})
 end
 
 function residual(vv, H, wd, d; nt=24)
-  Heff = tomatrix(effective_hamiltonian(vv), d)
-  Ks = tomatrices(kick_operator(vv), d)
+  Heff = tomatrix(effective_generator(vv), d)
+  Ks = tomatrices(micromotion(vv), d)
   Hs = tomatrices(H, d)
   worst = 0.0
   for k in 0:(nt - 1)

@@ -36,7 +36,7 @@ Q_a = harmonics(H_a, ω, t)
 
 ````@example floquet_meanfield_comparison
 rwa_a = floquet_expansion(Q_a, VanVleck(), 1)
-H_eff_a = simplify(effective_hamiltonian(rwa_a))
+H_eff_a = simplify(effective_generator(rwa_a))
 ````
 
 ````@example floquet_meanfield_comparison
@@ -54,7 +54,7 @@ H_b = simplify(transform(duffing_hamiltonian(x_b, p_b), rot_b))
 ````@example floquet_meanfield_comparison
 Q_b = harmonics(H_b, ω, t)
 rwa_b = floquet_expansion(Q_b, VanVleck(), 1)
-H_eff_b =  simplify(effective_hamiltonian(rwa_b))
+H_eff_b =  simplify(effective_generator(rwa_b))
 ````
 
 ````@example floquet_meanfield_comparison

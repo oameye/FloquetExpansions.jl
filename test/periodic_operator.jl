@@ -10,7 +10,7 @@ h = FockSpace(:cavity)
 a = Destroy(h, :a)
 @variables w::Real t::Real
 
-evaluate(X::PeriodicOperator, t) = X(t)
+evaluate(X::PeriodicGenerator, t) = X(t)
 
 function ddt(q::SQA.QAdd, t)
   D = Differential(t)
@@ -23,7 +23,7 @@ function ddt(q::SQA.QAdd, t)
 end
 
 function drive()
-  return PeriodicOperator(
+  return PeriodicGenerator(
     Dict(
       0 => a' * a,
       1 => a,
@@ -39,12 +39,12 @@ end
 
 @testset "commutator is the commutator of the time-dependent operators" begin
   K = drive()
-  X = PeriodicOperator(Dict(1 => a, -1 => a', 2 => a' * a'), w)
+  X = PeriodicGenerator(Dict(1 => a, -1 => a', 2 => a' * a'), w)
   @test vanishes(
     evaluate(SQA.commutator(K, X), t) - SQA.commutator(evaluate(K, t), evaluate(X, t))
   )
 
-  Y = PeriodicOperator(Dict(1 => a' * a, -2 => a), w)
+  Y = PeriodicGenerator(Dict(1 => a' * a, -2 => a), w)
   jac =
     SQA.commutator(SQA.commutator(K, X), Y) +
     SQA.commutator(SQA.commutator(X, Y), K) +
@@ -58,7 +58,7 @@ end
 end
 
 @testset "antiderivative inverts d/dt" begin
-  X = PeriodicOperator(
+  X = PeriodicGenerator(
     Dict(1 => a, -1 => a', 3 => a' * a, -3 => a' * a, 7 => a' * a' * a), w
   )
   K = antiderivative(X, VanVleck())
@@ -78,7 +78,7 @@ end
 
 @testset "Hermiticity survives every operation" begin
   K = drive()
-  X = PeriodicOperator(Dict(1 => a, -1 => a'), w)
+  X = PeriodicGenerator(Dict(1 => a, -1 => a'), w)
   @test ishermitian(K)
   @test ishermitian(X)
   @test ishermitian(derivative(K))
@@ -88,36 +88,37 @@ end
 end
 
 @testset "harmonic support adds under commutator" begin
-  K = PeriodicOperator(Dict(2 => a, -2 => a'), w)
-  X = PeriodicOperator(Dict(3 => a' * a', -3 => a * a), w)
+  K = PeriodicGenerator(Dict(2 => a, -2 => a'), w)
+  X = PeriodicGenerator(Dict(3 => a' * a', -3 => a * a), w)
   s = support(SQA.commutator(K, X))
   @test first(s) >= first(support(K)) + first(support(X))
   @test last(s) <= last(support(K)) + last(support(X))
 end
 
 @testset "weights stay exact rationals" begin
-  K = antiderivative(PeriodicOperator(Dict(49 => a), w), VanVleck())
+  K = antiderivative(PeriodicGenerator(Dict(49 => a), w), VanVleck())
   @test vanishes(49 * K[49] - im * (1 * a))
 end
 
 @testset "inference" begin
   X = drive()
-  Y = PeriodicOperator(Dict(1 => a), w)
-  @test @inferred(SQA.commutator(X, Y)) isa PeriodicOperator
-  @test @inferred(derivative(X)) isa PeriodicOperator
-  @test @inferred(antiderivative(Y, VanVleck())) isa PeriodicOperator
+  Y = PeriodicGenerator(Dict(1 => a), w)
+  @test @inferred(SQA.commutator(X, Y)) isa PeriodicGenerator
+  @test @inferred(derivative(X)) isa PeriodicGenerator
+  @test @inferred(antiderivative(Y, VanVleck())) isa PeriodicGenerator
   @test @inferred(time_average(X)) isa SQA.QAdd
-  @test @inferred(X + Y) isa PeriodicOperator
-  @test @inferred(X - Y) isa PeriodicOperator
-  @test @inferred(2 * X) isa PeriodicOperator
-  @test @inferred(adjoint(X)) isa PeriodicOperator
+  @test @inferred(X + Y) isa PeriodicGenerator
+  @test @inferred(X - Y) isa PeriodicGenerator
+  @test @inferred(2 * X) isa PeriodicGenerator
+  @test @inferred(adjoint(X)) isa PeriodicGenerator
   @test @inferred(X[1]) isa SQA.QAdd
+  @test adjoint(zero(X)) == zero(X)
 end
 
-@testset "the drive frequency is part of the periodic operator" begin
-  X = PeriodicOperator(Dict(1 => a, -1 => a'), w)
+@testset "the drive frequency is part of the periodic generator" begin
+  X = PeriodicGenerator(Dict(1 => a, -1 => a'), w)
   @test zero(X) + X == X
-  @test_throws MethodError PeriodicOperator(1 => a, -1 => a', w)
-  @test_throws ArgumentError X + PeriodicOperator(Dict(1 => a, -1 => a'), 2w)
-  @test_throws ArgumentError SQA.commutator(X, PeriodicOperator(Dict(1 => a'), 2w))
+  @test_throws MethodError PeriodicGenerator(1 => a, -1 => a', w)
+  @test_throws ArgumentError X + PeriodicGenerator(Dict(1 => a, -1 => a'), 2w)
+  @test_throws ArgumentError SQA.commutator(X, PeriodicGenerator(Dict(1 => a'), 2w))
 end
