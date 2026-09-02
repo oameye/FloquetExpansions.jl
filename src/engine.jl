@@ -7,12 +7,31 @@ Result of [`floquet_expansion`](@ref). Read it with [`effective_generator`](@ref
 struct FloquetExpansion{G<:Gauge,P<:PeriodicGenerator,E}
   generator::P
   kick_components::Vector{P}
-  kick_derivative_components::Vector{P}
-  dressed_generator::Vector{P}
-  dressed_kick_derivative::Vector{P}
   effective_components::Vector{E}
   gauge::G
   order::Int
+end
+
+function Base.getproperty(expansion::FloquetExpansion, name::Symbol)
+  if name === :kick_derivative_components ||
+    name === :dressed_generator ||
+    name === :dressed_kick_derivative
+    throw(
+      ArgumentError(
+        "FloquetExpansion field :$(name) is private; use `effective_generator` and `micromotion`",
+      ),
+    )
+  end
+  return getfield(expansion, name)
+end
+
+function Base.propertynames(::FloquetExpansion{G,P,E}, private::Bool=false) where {G,P,E}
+  names = (:generator, :kick_components, :effective_components, :gauge, :order)
+  return if private
+    (names..., :kick_derivative_components, :dressed_generator, :dressed_kick_derivative)
+  else
+    names
+  end
 end
 
 const GeneratorComponent = Union{SQA.QAdd,Liouvillian}
@@ -24,6 +43,8 @@ weight_kick_derivative(j::Int) = im^j * (1 // factorial(j + 1))
 function Base.show(io::IO, ::MIME"text/plain", expansion::FloquetExpansion{G}) where {G}
   return print(io, "FloquetExpansion{", nameof(G), "} of order ", expansion.order)
 end
+
+Base.show(io::IO, expansion::FloquetExpansion) = show(io, MIME"text/plain"(), expansion)
 
 function dressed_node(K::Vector{P}, previous, n::Int, j::Int, generator::P) where {P}
   result = zero(generator)
@@ -143,9 +164,7 @@ function floquet_expansion(
     end
   end
 
-  return FloquetExpansion(
-    generator, K, Kdot, dressed_generator, dressed_kick_derivative, effective, gauge, order
-  )
+  return FloquetExpansion(generator, K, effective, gauge, order)
 end
 
 function floquet_expansion(

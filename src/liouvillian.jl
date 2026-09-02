@@ -14,9 +14,6 @@ struct RateWeightedJump{O<:SQA.QField,R<:LiouvillianScalar} <: LiouvillianChanne
   rate::R
 end
 
-qadd(x::SQA.QAdd) = x
-qadd(x::SQA.QField) = 1 * x
-
 """
     Liouvillian
 
@@ -95,10 +92,14 @@ symbolic coefficients; no positivity condition is inferred or certified.
 function Liouvillian(H::SQA.QField; channels::LiouvillianChannelCollection=())
   generator = hamiltonian_action(H)
   for channel in channels
-    generator = generator + lower_channel(channel)
+    generator = generator + _channel_liouvillian(channel)
   end
   return generator
 end
+
+@inline _channel_liouvillian(channel::CollapseChannel) = dissipator(channel.operator)
+@inline _channel_liouvillian(channel::RateWeightedJump) =
+  channel.rate * dissipator(channel.operator)
 
 """
     collapse(operator::QField) -> CollapseChannel
@@ -120,9 +121,6 @@ Represent a bare jump operator with a separate symbolic rate. It contributes
 function jump(operator::SQA.QField, rate::LiouvillianScalar)
   return RateWeightedJump(operator, rate)
 end
-
-lower_channel(channel::CollapseChannel) = dissipator(channel.operator)
-lower_channel(channel::RateWeightedJump) = channel.rate * dissipator(channel.operator)
 
 function (L::Liouvillian)(rho::SQA.QField)
   result = zero(SQA.QAdd)
@@ -195,6 +193,40 @@ function SQA.simplify(L::Liouvillian)
     add_term!(result, SQA.simplify(left), SQA.simplify(right), coefficient)
   end
   return result
+end
+
+"""
+    harmonics(L::Liouvillian, w, t) -> PeriodicGenerator{Liouvillian}
+
+Lower a symbolic time-dependent Liouvillian into the common periodic-generator
+representation. The Fourier decomposition is applied independently to the left and right
+operator factors of every action and to its scalar coefficient, so periodic dependence in a
+Hamiltonian, collapse operator, jump operator, rate, or any combination is supported.
+
+Construct the time-dependent map with [`Liouvillian`](@ref), then pass it here before calling
+[`floquet_expansion`](@ref). The result is the same native `PeriodicGenerator{Liouvillian}` as a
+manually assembled periodic Liouvillian.
+"""
+function harmonics(L::Liouvillian, w::Symbolics.Num, t::Symbolics.Num)
+  out = Dict{Int,Liouvillian}()
+  for ((left, right), coefficient) in term_pairs(L)
+    left_harmonics = harmonics(left, w, t)
+    right_harmonics = harmonics(right, w, t)
+
+    for (left_harmonic, left_component) in component_pairs(left_harmonics),
+      (right_harmonic, right_component) in component_pairs(right_harmonics),
+      phase_term in SQA.phase_terms(coefficient)
+
+      phase_coefficient = phase_term.amplitude
+      m, offset = harmonic_index(phase_term.phase, w, t)
+      issymzero(offset) || (phase_coefficient *= SQA.expim(offset))
+      harmonic = left_harmonic + right_harmonic + m
+
+      haskey(out, harmonic) || (out[harmonic] = zero(L))
+      add_term!(out[harmonic], left_component, right_component, phase_coefficient)
+    end
+  end
+  return PeriodicGenerator(out, w, zero(L))
 end
 
 function Base.show(io::IO, L::Liouvillian)

@@ -12,10 +12,9 @@ const SQA = SecondQuantizedAlgebra
 using SecondQuantizedAlgebra: expim, exponential_form, trigonometric_form
 export expim, exponential_form, trigonometric_form
 
-include("liouvillian.jl")
 include("periodic_operator.jl")
+include("liouvillian.jl")
 include("quasienergy.jl")
-include("collector.jl")
 include("engine.jl")
 
 export PeriodicGenerator, Gauge, VanVleck, QuasienergyOperator, harmonic_range
