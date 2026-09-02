@@ -109,3 +109,108 @@ end
   viaharm = floquet_expansion(harmonics(H, w, t), VanVleck(), 3)
   @test vanishes(effective_generator(viaparse) - effective_generator(viaharm))
 end
+
+using Test
+using FloquetExpansions
+import SecondQuantizedAlgebra as SQA
+using Symbolics: Symbolics
+
+include(joinpath(@__DIR__, "helpers", "shared.jl"))
+
+h = FockSpace(:cavity)
+a = Destroy(h, :a)
+@variables w::Real g::Real ξ::Real t::Real
+
+function drive()
+  return PeriodicGenerator(
+    Dict(
+      0 => 1 * (a' * a),
+      1 => g * a,
+      -1 => conj(g) * a',
+      2 => ξ * (a' * a'),
+      -2 => conj(ξ) * (a * a),
+    ),
+    w,
+  )
+end
+
+comm = SQA.commutator
+
+const SUBS = Dict(w => 1.0, g => 0.7, ξ => 0.3, t => 0.4)
+function agrees(X::PeriodicGenerator, Y::PeriodicGenerator)
+  return all(
+    maxcoeff(SQA.simplify(X[l] - Y[l]), SUBS) < 1.0e-12 for l in union(keys(X), keys(Y))
+  )
+end
+
+function compositions(n::Int, j::Int)
+  j == 0 && return n == 0 ? [Int[]] : Vector{Int}[]
+  out = Vector{Int}[]
+  for first in 1:(n - j + 1), rest in compositions(n - first, j - 1)
+    push!(out, [first; rest])
+  end
+  return out
+end
+
+function reference_expansion(H::PeriodicGenerator, wd, N::Int)
+  kicks = typeof(H)[]
+  kick_derivatives = typeof(H)[]
+  effective = typeof(time_average(H))[]
+
+  for n in 0:(N - 1)
+    resolvent = zero(H)
+
+    for j in 0:n
+      contribution = zero(H)
+      for ks in compositions(n, j)
+        term = H
+        for k in Iterators.reverse(ks)
+          term = comm(kicks[k], term)
+        end
+        contribution = contribution + term
+      end
+      resolvent = resolvent + (im^j * (1 // factorial(j))) * contribution
+    end
+
+    for j in 1:n
+      contribution = zero(H)
+      for ks in compositions(n + 1, j + 1)
+        term = kick_derivatives[ks[1]]
+        for k in Iterators.reverse(ks[2:end])
+          term = comm(kicks[k], term)
+        end
+        contribution = contribution + term
+      end
+      resolvent = resolvent - (im^j * (1 // factorial(j + 1))) * contribution
+    end
+
+    resolvent = SQA.simplify(resolvent)
+    push!(effective, time_average(resolvent))
+
+    if n < N - 1
+      average = time_average(resolvent)
+      oscillatory = resolvent - PeriodicGenerator(Dict(0 => average), wd)
+      next_kick = SQA.simplify(antiderivative(oscillatory, VanVleck()))
+      push!(kicks, next_kick)
+      push!(kick_derivatives, derivative(next_kick))
+    end
+  end
+
+  return effective, kicks
+end
+
+@testset "expansion matches composition oracle" begin
+  H = drive()
+  N = 4
+  vv = floquet_expansion(H, VanVleck(), N)
+  expected_effective, expected_kicks = reference_expansion(H, w, N)
+
+  for n in 0:(N - 1)
+    expected = w^(-n) * expected_effective[n + 1]
+    @test maxcoeff(effective_generator(vv, n) - expected, SUBS) < 1.0e-12
+  end
+
+  for n in 1:(N - 1)
+    @test agrees(micromotion(vv, n), w^(-n) * expected_kicks[n])
+  end
+end

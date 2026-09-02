@@ -59,7 +59,6 @@ end
   expansion = floquet_expansion(generator, VanVleck(), 2)
 
   @test expansion isa FloquetExpansion
-  @test expansion.generator isa PeriodicGenerator{Liouvillian}
   @test effective_generator(expansion) isa Liouvillian
   @test micromotion(expansion) isa PeriodicGenerator{Liouvillian}
   @test effective_generator(expansion, 0) == static

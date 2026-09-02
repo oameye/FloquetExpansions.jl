@@ -38,7 +38,7 @@ function raw_liouvillian(terms::LiouvillianTerms)
   return Liouvillian(normalized)
 end
 
-function action(left::SQA.QField, right::SQA.QField, coefficient=1)
+function action(left::SQA.QField, right::SQA.QField, coefficient::LiouvillianScalar=1)
   return raw_liouvillian(
     LiouvillianTerms((qadd(left), qadd(right)) => convert(SQA.CNum, coefficient))
   )
