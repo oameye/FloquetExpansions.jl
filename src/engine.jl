@@ -4,7 +4,7 @@
 Result of [`floquet_expansion`](@ref). Read it with [`effective_generator`](@ref) and
 [`micromotion`](@ref) rather than by field access.
 """
-struct FloquetExpansion{G,P,E}
+struct FloquetExpansion{G<:Gauge,P<:PeriodicGenerator,E}
   generator::P
   kick_components::Vector{P}
   kick_derivative_components::Vector{P}
@@ -85,6 +85,14 @@ function floquet_expansion(
 ) where {P<:PeriodicGenerator,G<:Gauge}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
 
+  if generator isa PeriodicGenerator{SQA.QAdd}
+    LinearAlgebra.ishermitian(generator) || throw(
+      ArgumentError(
+        "the drive is not Hermitian: it must satisfy H_{-m} = H_m' (eq:fourierH)"
+      ),
+    )
+  end
+
   nodes = (order * (order + 1)) ÷ 2
   dressed_generator = [zero(generator) for _ in 1:nodes]
   dressed_kick_derivative = [zero(generator) for _ in 1:nodes]
@@ -131,19 +139,26 @@ function floquet_expansion(
   )
 end
 
-function floquet_expansion(H::SQA.QField, wd, t, gauge::Gauge, order::Int)
+function floquet_expansion(
+  H::SQA.QField, wd::Symbolics.Num, t::Symbolics.Num, gauge::Gauge, order::Int
+)
   return floquet_expansion(harmonics(qadd(H), wd, t), gauge, order)
 end
 
-reattach(component, wd, n::Int) = iszero(n) ? component : wd^(-n) * component
+function reattach(component::T, wd::Symbolics.Num, n::Int) where {T}
+  return iszero(n) ? component : wd^(-n) * component
+end
+function reattach(generator::PeriodicGenerator{T}, n::Int) where {T}
+  return iszero(n) ? generator : generator.wd^(-n) * generator
+end
 
 """
     effective_generator(expansion::FloquetExpansion) -> T
     effective_generator(expansion::FloquetExpansion, n::Int) -> T
 
 The time-independent effective generator ``G_\\text{eff}^{[N]} = \\sum_{k<N} G_\\text{eff}^{(k)}``,
-or with `n` the order-`n` contribution alone. The drive frequency stored in
-`expansion.generator.wd` is reattached, so the order-`n` piece carries ``w_d^{-n}``.
+or with `n` the order-`n` contribution alone. The drive-frequency scaling is reattached, so the
+order-`n` piece carries ``w_d^{-n}``.
 """
 function effective_generator(expansion::FloquetExpansion)
   result = zero(expansion.effective_components[1])
@@ -181,7 +196,7 @@ evaluation.
 function micromotion(expansion::FloquetExpansion)
   result = zero(expansion.generator)
   for (order, kick) in enumerate(expansion.kick_components)
-    result = result + reattach(kick, expansion.generator.wd, order)
+    result = result + reattach(kick, order)
   end
   return result
 end
@@ -189,5 +204,16 @@ end
 function micromotion(expansion::FloquetExpansion, n::Int)
   1 <= n < expansion.order ||
     throw(ArgumentError("order $(n) is outside 1:$(expansion.order - 1)"))
-  return SQA.simplify(reattach(expansion.kick_components[n], expansion.generator.wd, n))
+  return SQA.simplify(reattach(expansion.kick_components[n], n))
+end
+
+effective_hamiltonian(expansion::FloquetExpansion) = effective_generator(expansion)
+function effective_hamiltonian(expansion::FloquetExpansion, n::Int)
+  return effective_generator(expansion, n)
+end
+
+kick_operator(expansion::FloquetExpansion) = micromotion(expansion)
+kick_operator(expansion::FloquetExpansion, n::Int) = micromotion(expansion, n)
+function kick_operator(expansion::FloquetExpansion, t::Union{Number,Symbolics.Num})
+  return micromotion(expansion)(t)
 end

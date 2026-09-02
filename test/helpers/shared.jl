@@ -1,6 +1,7 @@
 using FloquetExpansions
 using LinearAlgebra: I
-import SecondQuantizedAlgebra as SQA
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
+const SQA = SecondQuantizedAlgebra
 using Symbolics: Symbolics
 
 function tomatrix(q::SQA.QAdd, d::Int)

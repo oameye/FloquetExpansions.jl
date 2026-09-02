@@ -23,7 +23,8 @@ end
 function add_liouvillian_term!(
   terms::LiouvillianTerms, key::LiouvillianAction, coefficient::SQA.CNum
 )
-  iszero(coefficient) && return terms
+  left, right = key
+  (iszero(left) || iszero(right) || iszero(coefficient)) && return terms
   updated = get(terms, key, convert(SQA.CNum, 0)) + coefficient
   iszero(updated) ? delete!(terms, key) : (terms[key] = updated)
   return terms

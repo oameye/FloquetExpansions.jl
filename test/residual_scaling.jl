@@ -1,6 +1,7 @@
 using Test
 using FloquetExpansions
-import SecondQuantizedAlgebra as SQA
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
+const SQA = SecondQuantizedAlgebra
 using Symbolics: Symbolics
 using LinearAlgebra: exp, opnorm
 using Random: MersenneTwister, randn

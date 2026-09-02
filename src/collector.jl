@@ -78,7 +78,7 @@ function harmonics(H::SQA.QAdd, w, t)
       out[m] = haskey(out, m) ? out[m] + contribution : contribution
     end
   end
-  return PeriodicGenerator(out, w)
+  return PeriodicGenerator(out, w, zero(H))
 end
 
 harmonics(H::SQA.QSym, w, t) = harmonics(qadd(H), w, t)

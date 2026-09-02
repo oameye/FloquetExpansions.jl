@@ -1,6 +1,7 @@
 using Test
 using FloquetExpansions
-import SecondQuantizedAlgebra as SQA
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
+const SQA = SecondQuantizedAlgebra
 using Symbolics: @variables
 
 space = FockSpace(:liouvillian)
@@ -31,6 +32,13 @@ end
   @test 2 * L == L + L
   @test L * 2 == L + L
   @test SQA.simplify(L - L) == zero(L)
+end
+
+@testset "zero operator factors produce zero maps" begin
+  zero_operator = zero(SQA.QAdd)
+  @test iszero(hamiltonian_action(zero_operator))
+  @test iszero(dissipator(zero_operator))
+  @test iszero(compose(hamiltonian_action(a), hamiltonian_action(zero_operator)))
 end
 
 @testset "Liouvillian composition is map composition" begin

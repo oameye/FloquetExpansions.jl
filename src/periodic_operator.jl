@@ -62,40 +62,49 @@ struct PeriodicGenerator{T}
   components::Dict{Int,T}
   wd::Symbolics.Num
   zero_component::T
+
+  function PeriodicGenerator{T}(
+    components::Dict{Int,T}, wd::Symbolics.Num, zero_component::T
+  ) where {T}
+    isconcretetype(T) ||
+      throw(ArgumentError("generator components must have a concrete element type"))
+    kept = Dict{Int,T}()
+    sizehint!(kept, length(components))
+    for (harmonic, component) in components
+      iszero(component) || (kept[harmonic] = component)
+    end
+    return new{T}(kept, wd, zero_component)
+  end
 end
 
-const PeriodicScalar = Union{Number,Symbolics.Num,SQA.CNum}
+const PeriodicScalar = Union{Real,Complex,Symbolics.Num,SQA.CNum}
 
 function periodic_generator(
-  components::AbstractDict{Int,T}, wd, zero_component::T
+  components::AbstractDict{Int,T}, wd::Symbolics.Num, zero_component::T
 ) where {T}
   isconcretetype(T) ||
     throw(ArgumentError("generator components must have a concrete element type"))
-  kept = Dict{Int,T}()
-  sizehint!(kept, length(components))
-  for (harmonic, component) in components
-    iszero(component) || (kept[harmonic] = component)
-  end
-  return PeriodicGenerator{T}(kept, Symbolics.Num(wd), zero_component)
+  return PeriodicGenerator{T}(Dict{Int,T}(components), wd, zero_component)
 end
 
-function PeriodicGenerator(components::AbstractDict{Int,T}, wd, zero_component::T) where {T}
+function PeriodicGenerator(
+  components::AbstractDict{Int,T}, wd::Symbolics.Num, zero_component::T
+) where {T}
   return periodic_generator(components, wd, zero_component)
 end
 
-function PeriodicGenerator(components::AbstractDict{Int,T}, wd) where {T}
-  isempty(components) &&
-    throw(ArgumentError("an empty PeriodicGenerator needs a zero component prototype"))
-  return PeriodicGenerator(components, wd, zero(first(values(components))))
+function PeriodicGenerator(components::AbstractDict{Int,T}, wd::Symbolics.Num) where {T}
+  isconcretetype(T) ||
+    throw(ArgumentError("generator components must have a concrete element type"))
+  zero_component = isempty(components) ? zero(T) : zero(first(values(components)))
+  return PeriodicGenerator(components, wd, zero_component)
 end
 
-function PeriodicGenerator(components::AbstractDict{Int,<:SQA.QField}, wd)
+function PeriodicGenerator(components::AbstractDict{Int,<:SQA.QField}, wd::Symbolics.Num)
   normalized = Dict{Int,SQA.QAdd}(
     harmonic => qadd(component) for (harmonic, component) in components
   )
-  isempty(normalized) &&
-    throw(ArgumentError("an empty PeriodicGenerator needs a zero component prototype"))
-  return PeriodicGenerator(normalized, wd, zero(first(values(normalized))))
+  return PeriodicGenerator(normalized, wd, zero(SQA.QAdd))
 end
 
 function Base.getindex(G::PeriodicGenerator, harmonic::Int)

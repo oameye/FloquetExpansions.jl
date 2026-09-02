@@ -1,6 +1,7 @@
 using Test
 using FloquetExpansions
-import SecondQuantizedAlgebra as SQA
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
+const SQA = SecondQuantizedAlgebra
 using Symbolics: Symbolics
 
 include(joinpath(@__DIR__, "helpers", "shared.jl"))

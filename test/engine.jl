@@ -1,6 +1,7 @@
 using Test
 using FloquetExpansions
-import SecondQuantizedAlgebra as SQA
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
+const SQA = SecondQuantizedAlgebra
 using Symbolics: Symbolics
 
 include(joinpath(@__DIR__, "helpers", "shared.jl"))
@@ -56,7 +57,7 @@ end
     end
     return -im * acc
   end
-  @test !haskey(K2.components, 0)
+  @test iszero(time_average(K2))
   @test all(vanishes(K2[m] - oracleK2(m)) for m in -4:4 if m != 0)
   @test_throws ArgumentError micromotion(vv, 0)
   @test_throws ArgumentError micromotion(vv, 3)
@@ -97,9 +98,18 @@ end
   @test all(vanishes(back[l] - K[l]) for l in keys(K))
 end
 
-@testset "the expansion accepts a general periodic generator" begin
+@testset "old Hamiltonian accessors remain compatible" begin
+  vv = floquet_expansion(drive(), VanVleck(), 3)
+  @test effective_hamiltonian(vv) == effective_generator(vv)
+  @test effective_hamiltonian(vv, 1) == effective_generator(vv, 1)
+  @test kick_operator(vv) == micromotion(vv)
+  @test kick_operator(vv, 1) == micromotion(vv, 1)
+  @test kick_operator(vv, t) == micromotion(vv)(t)
+end
+
+@testset "a non-Hermitian Hamiltonian drive is refused at ingest" begin
   bad = PeriodicGenerator(Dict(1 => a, -1 => a), w)
-  @test floquet_expansion(bad, VanVleck(), 2) isa FloquetExpansion
+  @test_throws ArgumentError floquet_expansion(bad, VanVleck(), 2)
   @test_throws ArgumentError floquet_expansion(drive(), VanVleck(), 0)
 end
 
@@ -109,8 +119,6 @@ end
   viaharm = floquet_expansion(harmonics(H, w, t), VanVleck(), 3)
   @test vanishes(effective_generator(viaparse) - effective_generator(viaharm))
 end
-
-
 
 h = FockSpace(:cavity)
 a = Destroy(h, :a)

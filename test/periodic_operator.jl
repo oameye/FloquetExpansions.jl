@@ -1,7 +1,8 @@
 using Test
 using FloquetExpansions
 using LinearAlgebra: ishermitian
-import SecondQuantizedAlgebra as SQA
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
+const SQA = SecondQuantizedAlgebra
 using Symbolics: Differential, expand_derivatives
 
 include(joinpath(@__DIR__, "helpers", "shared.jl"))
@@ -121,4 +122,20 @@ end
   @test_throws MethodError PeriodicGenerator(1 => a, -1 => a', w)
   @test_throws ArgumentError X + PeriodicGenerator(Dict(1 => a, -1 => a'), 2w)
   @test_throws ArgumentError SQA.commutator(X, PeriodicGenerator(Dict(1 => a'), 2w))
+end
+
+@testset "constructors normalize zero harmonics" begin
+  X = PeriodicGenerator(Dict(0 => zero(SQA.QAdd), 1 => a), w)
+  @test collect(keys(X)) == [1]
+  @test iszero(X[0])
+  @test !iszero(X)
+
+  Y = PeriodicGenerator(Dict(0 => zero(SQA.QAdd)), w, zero(SQA.QAdd))
+  @test iszero(Y)
+  @test Y[0] == zero(SQA.QAdd)
+
+  Z = PeriodicGenerator(Dict{Int,SQA.QAdd}(), w)
+  @test iszero(Z)
+  @test Z[0] == zero(SQA.QAdd)
+  @test_throws ArgumentError PeriodicGenerator(Dict{Int,Any}(), w)
 end
