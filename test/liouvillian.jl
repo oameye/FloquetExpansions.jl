@@ -9,11 +9,19 @@ space = FockSpace(:liouvillian)
 a = Destroy(space, :a)
 @variables γ::Real ω::Real t::Real
 
+function coeff_to_complex(coeff, substitutions::AbstractDict)
+  dummy = coeff * one(SQA.QAdd)
+  return tomatrix(dummy, 1, substitutions)[1, 1]
+end
+
 function superoperator_matrix(L::Liouvillian, space, d::Int, substitutions::AbstractDict)
   matrix = zeros(ComplexF64, d^2, d^2)
-  for j in 1:d, i in 1:d
-    rho = Transition(space, :sigma, i, j)
-    matrix[:, (j - 1) * d + i] = vec(tomatrix(L(rho), d, substitutions))
+  for ((left, right), coeff) in L.terms
+    left_mat = tomatrix(left, d, substitutions)
+    right_mat = tomatrix(right, d, substitutions)
+    c = coeff_to_complex(coeff, substitutions)
+    iszero(c) && continue
+    matrix .+= c .* kron(transpose(right_mat), left_mat)
   end
   return matrix
 end

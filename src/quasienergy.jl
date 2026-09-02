@@ -66,8 +66,7 @@ function QuasienergyOperator(G::PeriodicGenerator{SQA.QAdd}, nmax::Int)
 end
 
 function QuasienergyOperator(G::PeriodicGenerator{Liouvillian}, nmax::Int)
-  identity = action(one(SQA.QAdd), one(SQA.QAdd))
-  return quasienergy_operator(G, nmax, identity, liouvillian_quasienergy_component)
+  return quasienergy_operator(G, nmax, one(Liouvillian), liouvillian_quasienergy_component)
 end
 
 function Base.getindex(Q::QuasienergyOperator, m::Int, n::Int)

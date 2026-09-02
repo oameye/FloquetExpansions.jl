@@ -23,7 +23,7 @@ symbolic SQA coefficients.
 
 Use [`hamiltonian_action`](@ref), [`dissipator`](@ref), or the channel keyword constructor to
 build Liouvillians. Finite-order Floquet expansions can be more general than a generator in
-explicit Lindblad form. Calling `L(ρ)` applies the symbolic map to an SQA operator `ρ`.
+explicit Lindblad form.
 """
 struct Liouvillian
   terms::LiouvillianTerms
@@ -122,20 +122,14 @@ function jump(operator::SQA.QField, rate::LiouvillianScalar)
   return RateWeightedJump(operator, rate)
 end
 
-function (L::Liouvillian)(rho::SQA.QField)
-  result = zero(SQA.QAdd)
-  rho_q = qadd(rho)
-  for ((left, right), coefficient) in L.terms
-    result = result + coefficient * qadd(left * rho_q * right)
-  end
-  return SQA.simplify(result)
-end
-
 Base.iszero(L::Liouvillian) = isempty(L.terms)
 Base.isempty(L::Liouvillian) = isempty(L.terms)
 
 Base.zero(::Liouvillian) = Liouvillian(LiouvillianTerms())
 Base.zero(::Type{Liouvillian}) = Liouvillian(LiouvillianTerms())
+
+Base.one(::Type{Liouvillian}) = action(one(SQA.QAdd), one(SQA.QAdd))
+Base.one(::Liouvillian) = one(Liouvillian)
 
 Base.:(==)(L::Liouvillian, R::Liouvillian) = L.terms == R.terms
 Base.isequal(L::Liouvillian, R::Liouvillian) = isequal(L.terms, R.terms)

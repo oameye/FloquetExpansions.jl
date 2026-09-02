@@ -53,11 +53,10 @@ end
   driven = hamiltonian_action(a)
   L = PeriodicGenerator(Dict(0 => static, 1 => driven), wd_symbol)
   Q = QuasienergyOperator(L, 1)
-  rho = Transition(space, :rho, 1, 1)
 
   @test Q isa QuasienergyOperator{Liouvillian}
   @test Q[1, 0] == im * driven
-  @test iszero(SQA.simplify(Q[1, 1](rho) - (im * static(rho) - wd_symbol * rho)))
+  @test Q[1, 1] == im * static - wd_symbol * one(Liouvillian)
 end
 
 @testset "quasienergies match the effective Hamiltonian's spectrum" begin
