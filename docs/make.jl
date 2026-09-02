@@ -20,8 +20,7 @@ bib = CitationBibliography("src/refs.bib")
 links = InterLinks(
   "Julia" => "https://docs.julialang.org/en/v1/",
   "Documenter" => "https://documenter.juliadocs.org/stable/",
-  "SecondQuantizedAlgebra" =>
-    "https://qojulia.github.io/SecondQuantizedAlgebra.jl/stable/objects.inv",
+  "SecondQuantizedAlgebra" => "https://qojulia.github.io/SecondQuantizedAlgebra.jl/stable/objects.inv",
 )
 
 # The README.md file is used index (home) page of the documentation.

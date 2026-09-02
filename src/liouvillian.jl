@@ -73,9 +73,7 @@ true
 See also [`compose`](@ref).
 """
 function actions(L::Liouvillian)
-  return (
-    (left, right, coefficient) for ((left, right), coefficient) in term_pairs(L)
-  )
+  return ((left, right, coefficient) for ((left, right), coefficient) in term_pairs(L))
 end
 
 function action(left::SQA.QField, right::SQA.QField, coefficient::LiouvillianScalar=1)
@@ -274,11 +272,12 @@ function harmonics(L::Liouvillian, w::Symbolics.Num, t::Symbolics.Num)
 
     for (left_harmonic, left_component) in component_pairs(left_harmonics),
       (right_harmonic, right_component) in component_pairs(right_harmonics)
+
       foreach_harmonic_phase(coefficient, w, t) do coefficient_harmonic, phase_coefficient
         harmonic = left_harmonic + right_harmonic + coefficient_harmonic
 
         haskey(out, harmonic) || (out[harmonic] = zero(L))
-        add_term!(out[harmonic], left_component, right_component, phase_coefficient)
+        return add_term!(out[harmonic], left_component, right_component, phase_coefficient)
       end
     end
   end

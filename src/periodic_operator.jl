@@ -219,7 +219,8 @@ function harmonics(H::SQA.QAdd, w::Symbolics.Num, t::Symbolics.Num)
     mono = isempty(term.ops) ? one(SQA.QAdd) : prod(term.ops)
     foreach_harmonic_phase(coeff, w, t) do harmonic, phase_coefficient
       contribution = phase_coefficient * mono
-      out[harmonic] = haskey(out, harmonic) ? out[harmonic] + contribution : contribution
+      return out[harmonic] =
+        haskey(out, harmonic) ? out[harmonic] + contribution : contribution
     end
   end
   return PeriodicGenerator(out, w, zero(H))

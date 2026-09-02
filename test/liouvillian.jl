@@ -30,8 +30,7 @@ end
   L = hamiltonian_action(a)
   observed = collect(actions(L))
 
-  @test @inferred(collect(actions(L))) isa
-    Vector{Tuple{SQA.QAdd, SQA.QAdd, SQA.CNum}}
+  @test @inferred(collect(actions(L))) isa Vector{Tuple{SQA.QAdd,SQA.QAdd,SQA.CNum}}
   @test length(observed) == 2
   @test all(length(action_term) == 3 for action_term in observed)
   a_q = a + zero(one(a))
@@ -191,11 +190,7 @@ end
 
 @testset "periodic rate phases keep the shared Fourier convention" begin
   rate = expim(ω * t₀) * cos(ω * t)
-  periodic = harmonics(
-    Liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)),
-    ω,
-    t,
-  )
+  periodic = harmonics(Liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)), ω, t)
 
   @test sort!(collect(keys(periodic))) == [-1, 1]
   @test periodic[-1] == (1 // 2) * expim(ω * t₀) * dissipator(a)
@@ -206,9 +201,7 @@ end
 @testset "non-periodic Liouvillian phases are rejected" begin
   rate = expim(ω * t^2)
   @test_throws ArgumentError harmonics(
-    Liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)),
-    ω,
-    t,
+    Liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)), ω, t
   )
 end
 
