@@ -82,6 +82,8 @@ struct PeriodicGenerator{T}
   end
 end
 
+@inline component_pairs(G::PeriodicGenerator) = pairs(G.components)
+
 const PeriodicScalar = Union{Real,Complex,Symbolics.Num,SQA.CNum}
 
 function periodic_generator(

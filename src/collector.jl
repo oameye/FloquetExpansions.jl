@@ -97,12 +97,12 @@ manually assembled periodic Liouvillian.
 """
 function harmonics(L::Liouvillian, w::Symbolics.Num, t::Symbolics.Num)
   out = Dict{Int,Liouvillian}()
-  for ((left, right), coefficient) in L.terms
+  for ((left, right), coefficient) in term_pairs(L)
     left_harmonics = harmonics(left, w, t)
     right_harmonics = harmonics(right, w, t)
 
-    for (left_harmonic, left_component) in left_harmonics.components,
-      (right_harmonic, right_component) in right_harmonics.components,
+    for (left_harmonic, left_component) in component_pairs(left_harmonics),
+      (right_harmonic, right_component) in component_pairs(right_harmonics),
       phase_term in SQA.phase_terms(coefficient)
 
       phase_coefficient = phase_term.amplitude
@@ -111,9 +111,7 @@ function harmonics(L::Liouvillian, w::Symbolics.Num, t::Symbolics.Num)
       harmonic = left_harmonic + right_harmonic + m
 
       haskey(out, harmonic) || (out[harmonic] = zero(L))
-      add_liouvillian_term!(
-        out[harmonic].terms, (left_component, right_component), phase_coefficient
-      )
+      add_term!(out[harmonic], left_component, right_component, phase_coefficient)
     end
   end
   return PeriodicGenerator(out, w, zero(L))

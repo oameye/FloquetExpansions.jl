@@ -32,24 +32,26 @@ struct Liouvillian
   terms::LiouvillianTerms
 end
 
-function add_liouvillian_term!(
-  terms::LiouvillianTerms, key::LiouvillianAction, coefficient::SQA.CNum
+@inline function add_term!(
+  L::Liouvillian, left::SQA.QAdd, right::SQA.QAdd, coefficient::SQA.CNum
 )
-  left, right = key
-  (iszero(left) || iszero(right) || iszero(coefficient)) && return terms
-  updated = get(terms, key, convert(SQA.CNum, 0)) + coefficient
-  iszero(updated) ? delete!(terms, key) : (terms[key] = updated)
-  return terms
+  (iszero(left) || iszero(right) || iszero(coefficient)) && return L
+  key = (left, right)
+  updated = get(L.terms, key, convert(SQA.CNum, 0)) + coefficient
+  iszero(updated) ? delete!(L.terms, key) : (L.terms[key] = updated)
+  return L
 end
 
 function raw_liouvillian(terms::LiouvillianTerms)
-  normalized = LiouvillianTerms()
-  sizehint!(normalized, length(terms))
-  for (key, coefficient) in terms
-    add_liouvillian_term!(normalized, key, coefficient)
+  normalized = Liouvillian(LiouvillianTerms())
+  sizehint!(normalized.terms, length(terms))
+  for ((left, right), coefficient) in terms
+    add_term!(normalized, left, right, coefficient)
   end
-  return Liouvillian(normalized)
+  return normalized
 end
+
+@inline term_pairs(L::Liouvillian) = pairs(L.terms)
 
 function action(left::SQA.QField, right::SQA.QField, coefficient::LiouvillianScalar=1)
   return raw_liouvillian(
@@ -142,11 +144,11 @@ Base.isequal(L::Liouvillian, R::Liouvillian) = isequal(L.terms, R.terms)
 Base.hash(L::Liouvillian, h::UInt) = hash(:Liouvillian, hash(L.terms, h))
 
 function Base.:+(L::Liouvillian, R::Liouvillian)
-  terms = copy(L.terms)
-  for (key, coefficient) in R.terms
-    add_liouvillian_term!(terms, key, coefficient)
+  result = Liouvillian(copy(L.terms))
+  for ((left, right), coefficient) in term_pairs(R)
+    add_term!(result, left, right, coefficient)
   end
-  return Liouvillian(terms)
+  return result
 end
 
 Base.:-(L::Liouvillian) = -1 * L
@@ -176,25 +178,23 @@ Compose Liouvillian maps so that `B` acts first and `A` acts second. For element
 function compose(A::Liouvillian, B::Liouvillian)
   iszero(A) && return zero(A)
   iszero(B) && return zero(B)
-  terms = LiouvillianTerms()
-  for ((left_A, right_A), coefficient_A) in A.terms,
-    ((left_B, right_B), coefficient_B) in B.terms
+  result = Liouvillian(LiouvillianTerms())
+  for ((left_A, right_A), coefficient_A) in term_pairs(A),
+    ((left_B, right_B), coefficient_B) in term_pairs(B)
 
-    key = (left_A * left_B, right_B * right_A)
-    add_liouvillian_term!(terms, key, coefficient_A * coefficient_B)
+    add_term!(result, left_A * left_B, right_B * right_A, coefficient_A * coefficient_B)
   end
-  return Liouvillian(terms)
+  return result
 end
 
 SQA.commutator(A::Liouvillian, B::Liouvillian) = compose(A, B) - compose(B, A)
 
 function SQA.simplify(L::Liouvillian)
-  terms = LiouvillianTerms()
-  for ((left, right), coefficient) in L.terms
-    key = (SQA.simplify(left), SQA.simplify(right))
-    add_liouvillian_term!(terms, key, coefficient)
+  result = Liouvillian(LiouvillianTerms())
+  for ((left, right), coefficient) in term_pairs(L)
+    add_term!(result, SQA.simplify(left), SQA.simplify(right), coefficient)
   end
-  return Liouvillian(terms)
+  return result
 end
 
 function Base.show(io::IO, L::Liouvillian)

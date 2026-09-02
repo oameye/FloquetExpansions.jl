@@ -58,6 +58,17 @@ end
   @test SQA.simplify(L - L) == zero(L)
 end
 
+@testset "periodic Liouvillian channels collect equal actions" begin
+  operator = a + cos(ω * t) * a'
+  single = harmonics(Liouvillian(zero(SQA.QAdd); channels=(collapse(operator),)), ω, t)
+  doubled = harmonics(
+    Liouvillian(zero(SQA.QAdd); channels=(collapse(operator), collapse(operator))), ω, t
+  )
+
+  @test doubled == 2 * single
+  @test harmonics(doubled(t), ω, t) == doubled
+end
+
 @testset "zero operator factors produce zero maps" begin
   zero_operator = zero(SQA.QAdd)
   @test iszero(hamiltonian_action(zero_operator))
@@ -81,8 +92,7 @@ end
 
 @testset "Liouvillian channel adapters" begin
   @test Liouvillian(a; channels=(collapse(a),)) == hamiltonian_action(a) + dissipator(a)
-  @test Liouvillian(a; channels=(jump(a, γ),)) ==
-    hamiltonian_action(a) + γ * dissipator(a)
+  @test Liouvillian(a; channels=(jump(a, γ),)) == hamiltonian_action(a) + γ * dissipator(a)
   @test Liouvillian(zero(SQA.QAdd); channels=(collapse(2a),)) == dissipator(2a)
   @test_throws MethodError jump(a)
   @test_throws MethodError Liouvillian(a; channels=(a,))
