@@ -1,3 +1,3 @@
-# `PeriodicGenerator` as the Fourier container
+# `PeriodicGenerator` is the Fourier boundary
 
-`PeriodicGenerator{T}` is the canonical periodic Fourier representation. It stores nonzero integer harmonics and the drive frequency, while `T` determines the algebra of the components. There is no `PeriodicOperator` alias or parallel periodic Liouvillian container.
+`PeriodicGenerator` is the canonical representation of a periodic generator: it carries the drive frequency and its nonzero integer harmonics, while missing harmonics evaluate as zero. It replaces the Hamiltonian-only `PeriodicOperator`; no alias or separate periodic Liouvillian container is maintained.

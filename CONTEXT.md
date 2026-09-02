@@ -1,67 +1,53 @@
 # FloquetExpansions.jl
 
-Domain vocabulary for symbolic high-frequency expansions of periodically driven open quantum systems.
+Shared vocabulary for symbolic high-frequency expansions of periodically driven quantum systems.
 
 ## Dynamics
 
 **Periodically driven Lindblad system**:
-An open quantum system whose density operator evolves under a Markovian Lindblad generator that is periodic in time.
-_Avoid_: periodic Liouvillian when the Lindblad structure is part of the model.
+An open quantum system whose Lindblad generator varies periodically with time.
 
 **Lindblad generator**:
-A generator of density-operator evolution written as a Hamiltonian contribution plus dissipative channels.
-The exact generator has the usual trace-preservation and complete-positivity guarantees.
+A density-operator generator written as a Hamiltonian action plus dissipative channels with physically valid rates.
+_Avoid_: using this term for a finite-order effective result unless its Lindblad form is known.
 
 **Liouvillian**:
-A linear generator acting on density operators. A Liouvillian may be more general than a generator presented in Lindblad form, particularly after finite-order algebraic expansions.
-_Avoid_: using Liouvillian and Lindblad generator interchangeably when a physical guarantee matters.
+A linear map that generates or approximates density-operator evolution; it need not have Lindblad form.
+_Avoid_: treating every Liouvillian as completely positive.
 
-**Coherent generator action**:
-The Hamiltonian contribution ``-i[H, \\cdot]`` to a density-operator generator.
-It is a contribution to the common generator algebra, not a separate Floquet API.
+**Hamiltonian action**:
+The coherent contribution ``-i[H, ρ]`` to a density-operator generator.
 
 **Dissipator**:
-The channel action ``D[L](\\rho) = L\\rho L^\\dagger - \\frac{1}{2}\\{L^\\dagger L,\\rho\\}`` associated with a collapse operator.
+The map ``D[L](ρ) = LρL† - (L†Lρ + ρL†L)/2`` associated with a collapse operator.
 
-**Complete collapse operator**:
-An operator appearing directly in a dissipator ``D[L]``. Any amplitude folded into `L` belongs to the collapse operator.
+**Collapse operator**:
+An operator used directly in ``D[L]``; any amplitude or phase belonging to that channel is included in ``L``.
 
 **Rate-weighted jump channel**:
-A jump operator together with a scalar rate, contributing ``\\gamma D[J]`` to the generator.
-The initial symbolic API accepts ordinary scalar rates without representing or certifying sign conditions.
+A bare jump operator and a separate scalar rate contributing ``γD[J]``; the rate is not part of ``J``.
 
 **Time-dependent dissipative channel**:
-A dissipative channel whose operator, scalar rate, or both vary periodically in time.
-Both complete collapse operators and rate-weighted jump channels are supported input forms.
+A dissipative channel whose operator or scalar rate varies periodically with the drive.
 
 ## Floquet expansion
 
-**Lindblad van Vleck expansion**:
-The arbitrary-order high-frequency expansion of a periodically driven Lindblad generator, following Ikeda, Chinzei, and Sato (2021).
-_Avoid_: Floquet–Markov expansion, which implies a particular microscopic bath construction.
-
 **Periodic generator**:
-A time-periodic dynamical generator represented by its Fourier components in the drive-frequency basis.
-The same container is used for Hamiltonian and Liouvillian components.
-_Avoid_: `PeriodicOperator`, which is the superseded Hamiltonian-only name.
+A time-periodic generator expressed through Fourier harmonics in a drive-frequency basis.
+_Avoid_: `PeriodicOperator`, the superseded Hamiltonian-only name.
+
+**Van Vleck expansion**:
+A high-frequency expansion that separates a periodic generator into a time-independent effective generator and periodic micromotion in a chosen gauge.
 
 **Floquet expansion**:
-An order-resolved van Vleck decomposition of a periodic generator into effective generator components and periodic micromotion.
+The finite-order result of applying a high-frequency expansion to a periodic generator, including its effective generator and micromotion.
 
 **Effective generator**:
-The time-independent generator produced by the van Vleck expansion.
-For a Hamiltonian input it is an effective Hamiltonian action; for a Lindblad input it is an effective Liouvillian.
+The time-independent generator that approximates the slow dynamics after the expansion.
 
-**Raw effective generator**:
-The direct arbitrary-order van Vleck result. A finite-order result is not promised to retain GKSL form or complete positivity.
-The initial package returns this raw result and does not apply a positivity repair.
+**Finite-order effective generator**:
+A truncated algebraic result that may not retain Lindblad form or complete positivity.
 
 **Micromotion**:
-The periodic generator in the van Vleck decomposition that relates the original evolution to the effective generator.
-_Avoid_: unitary kick operator when the generator is dissipative.
-
-## Scope
-
-**Symbolic-only support**:
-The supported inputs and outputs are symbolic operator expressions and symbolic scalar coefficients.
-Numerical matrix representations and positivity certificates are outside the initial scope.
+The periodic transformation that relates the original time-dependent dynamics to the effective dynamics; its generator need not be unitary for dissipative systems.
+_Avoid_: calling dissipative micromotion a unitary kick operator.

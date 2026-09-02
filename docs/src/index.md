@@ -69,7 +69,7 @@ space = PauliSpace(:qubit)
 @variables ω::Real t::Real Δ::Real A::Real γ::Real
 H = (Δ / 2) * σz + A * cos(ω * t) * σx
 
-expansion = floquet_expansion(H, ω, t, VanVleck(), 2; channels=(jump(γ*σx),))
+expansion = floquet_expansion(H, ω, t, VanVleck(), 2; channels=(jump(σx, γ),))
 L_eff = effective_generator(expansion)
 K = micromotion(expansion)(t)
 ```
