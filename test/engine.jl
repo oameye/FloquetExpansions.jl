@@ -110,12 +110,7 @@ end
   @test vanishes(effective_generator(viaparse) - effective_generator(viaharm))
 end
 
-using Test
-using FloquetExpansions
-import SecondQuantizedAlgebra as SQA
-using Symbolics: Symbolics
 
-include(joinpath(@__DIR__, "helpers", "shared.jl"))
 
 h = FockSpace(:cavity)
 a = Destroy(h, :a)
