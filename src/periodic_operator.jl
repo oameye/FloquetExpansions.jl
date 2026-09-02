@@ -1,15 +1,21 @@
 """
     Gauge
 
-Supertype of the gauge choices that fix the free constant in [`antiderivative`](@ref).
+Supertype of gauges that fix the free integration constant in [`antiderivative`](@ref).
 """
 abstract type Gauge end
 
 """
     VanVleck()
 
-The van Vleck gauge, ``\\langle K \\rangle = 0``: the micromotion generator has vanishing period
-average, which makes the effective generator independent of the initial phase of the drive.
+Select the van Vleck gauge, ``\\langle K \\rangle = 0``. This gives the micromotion
+generator zero period average and makes the effective generator independent of the drive's
+initial phase.
+
+# References
+
+The van Vleck construction follows [VanVleck1929](@cite), and its Floquet-space formulation
+follows [Eckardt2015](@cite).
 """
 struct VanVleck <: Gauge end
 
@@ -69,26 +75,32 @@ qadd(x::SQA.QAdd) = x
 qadd(x::SQA.QField) = 1 * x
 
 """
-    PeriodicGenerator(components::AbstractDict{Int, T}, wd)
-    PeriodicGenerator(components::AbstractDict{Int, T}, wd, zero_component::T) where {T}
+    PeriodicGenerator(components::AbstractDict{Int,T}, wd)
+    PeriodicGenerator(components::AbstractDict{Int,T}, wd, zero_component::T)
 
-A ``T``-periodic generator held by Fourier harmonic, with drive frequency `wd`,
+Represent a periodic generator by its Fourier harmonics, with drive frequency `wd`,
 
 ```math
 G(t) = \\sum_l G_l \\, e^{-i l \\omega_d t}.
 ```
 
-Index `l` selects a harmonic. A missing harmonic and a zero harmonic are the same thing: both
-are absent from the stored components, so `G[l]` returns zero for any `l` and `keys(G)` lists
-only the nonzero ones. The frequency is part of `G`, so generators can only be combined when they
-use the same Fourier basis.
+Index `l` selects a harmonic. A missing harmonic and a zero harmonic are the same thing:
+both are absent from the stored components, so `G[l]` returns zero for any `l` and `keys(G)`
+lists only the nonzero ones. The frequency is part of `G`, so generators can only be
+combined when they use the same Fourier basis.
 
-For an empty generator, the optional `zero_component` prototype fixes the component type. The
-component type determines the algebra used by addition, commutators, differentiation, and
-simplification.
+# Arguments
 
-`G` is Hermitian exactly when `G[-l] == G[l]'` for every `l`, which is what `ishermitian` checks
-for Hamiltonian components and what `adjoint` produces.
+- `components`: Map integer harmonic labels to their nonzero components.
+- `wd`: Symbolic angular frequency defining the Fourier basis.
+- `zero_component`: Prototype used to determine the component type of an empty generator.
+
+For an empty generator, the optional `zero_component` prototype fixes the component type.
+The component type determines the algebra used by addition, commutators,
+differentiation, and simplification.
+
+`G` is Hermitian exactly when `G[-l] == G[l]'` for every `l`, which is what `ishermitian`
+checks for Hamiltonian components and what `adjoint` produces.
 
 # Examples
 
@@ -161,19 +173,19 @@ function PeriodicGenerator(components::AbstractDict{Int,<:SQA.QField}, wd::Symbo
 end
 
 """
-    harmonics(H::QAdd, w, t) -> PeriodicGenerator
+    harmonics(H::QAdd, w::Symbolics.Num, t::Symbolics.Num) -> PeriodicGenerator
 
-Split a time-dependent operator into its Fourier harmonics, in the convention
+Decompose a time-dependent operator into Fourier harmonics using the convention
 
 ```math
 H(t) = \\sum_m H_m \\, e^{-i m w t}
 ```
 
 `w` is the drive frequency and `t` the time variable, both symbolic. Trigonometric time
-dependence is normalized to phases first, so `cos`, `sin` and `expim` are all accepted, as is
-a constant phase offset such as `cos(w*t + φ)`.
+dependence is normalized to phases first. Thus `cos`, `sin`, and `expim` are all accepted,
+as is a constant phase offset such as `cos(w*t + φ)`.
 
-Inverse of calling the result: `harmonics(H, w, t)(t)` reproduces `H`.
+Calling the returned generator at `t`, as in `harmonics(H, w, t)(t)`, reconstructs `H`.
 
 # Examples
 
@@ -191,6 +203,12 @@ PeriodicGenerator with harmonics -1:1
 
 julia> ishermitian(H)
 true
+
+julia> iszero(time_average(H))
+true
+
+julia> support(H)
+-1:1
 ```
 
 See also [`PeriodicGenerator`](@ref).
@@ -236,8 +254,8 @@ end
 """
     support(G::PeriodicGenerator) -> UnitRange{Int}
 
-Smallest range of harmonic indices containing every nonzero harmonic of `G`, or `0:-1` if `G`
-is zero.
+Return the smallest range of harmonic indices containing every nonzero harmonic of `G`, or
+`0:-1` if `G` is zero.
 """
 function support(G::PeriodicGenerator)
   isempty(G) && return 0:-1
@@ -304,13 +322,15 @@ end
 Base.:*(L::PeriodicGenerator, coefficient::PeriodicScalar) = coefficient * L
 
 """
-    commutator(K::PeriodicGenerator, X::PeriodicGenerator) -> PeriodicGenerator
+    commutator(K::PeriodicGenerator{T}, X::PeriodicGenerator{T}) where {T}
 
-Commutator of two periodic generators, which is the harmonic convolution
+Compute the commutator of two periodic generators by harmonic convolution
 
 ```math
 [K, X]_l = \\sum_p [K_p,\\, X_{l-p}]
 ```
+
+The two generators must use the same drive frequency.
 
 # Examples
 
@@ -339,7 +359,7 @@ end
 """
     time_average(G::PeriodicGenerator) -> T
 
-Average of `G` over one period, which is its zeroth harmonic `G[0]`.
+Return the average of `G` over one period, which is its zeroth harmonic `G[0]`.
 """
 time_average(G::PeriodicGenerator{T}) where {T} = G[0]
 
@@ -356,7 +376,7 @@ end
 """
     derivative(G::PeriodicGenerator) -> PeriodicGenerator
 
-Time derivative in units of the drive frequency, `dG/dt` divided by ``\\omega_d``:
+Return the time derivative divided by the drive frequency, ``\\omega_d^{-1} dG/dt``:
 
 ```math
 (\\partial_t G)_l = -i l \\, G_l.
@@ -375,15 +395,20 @@ end
 """
     antiderivative(X::PeriodicGenerator, gauge::Gauge) -> PeriodicGenerator
 
-Inverse of [`derivative`](@ref), with `gauge` fixing the free integration constant:
+Integrate `X` with respect to dimensionless drive time, with `gauge` fixing the free
+integration constant:
 
 ```math
 (\\partial_t^{-1} X)_l = \\frac{i}{l} X_l \\quad (l \\neq 0)
 ```
 
-`X` must have vanishing time average; pass `X - time_average(X)` if that is not already true.
-Weights stay exact rationals, so an `OverflowError` from `Rational{Int}` is possible at high
-order rather than a silent loss of precision.
+`X` must have vanishing time average; pass `X - time_average(X)` if that is not already
+true.
+
+# Notes
+
+Weights remain exact rationals, so an `OverflowError` from `Rational{Int}` is possible at
+high order rather than a silent loss of precision.
 
 # Examples
 
@@ -410,9 +435,9 @@ function antiderivative(G::PeriodicGenerator{T}, ::VanVleck) where {T}
 end
 
 """
-    simplify(G::PeriodicGenerator) -> PeriodicGenerator
+    simplify(G::PeriodicGenerator{T}) where {T} -> PeriodicGenerator{T}
 
-Simplify every component of `G` symbolically.
+Simplify each component of `G` symbolically.
 """
 function SQA.simplify(G::PeriodicGenerator{T}) where {T}
   return periodic_generator(
@@ -427,7 +452,8 @@ end
 """
     adjoint(G::PeriodicGenerator) -> PeriodicGenerator
 
-Hermitian adjoint, harmonic by harmonic: `adjoint(G)[l] == adjoint(G[-l])`.
+Return the Hermitian adjoint of `G`, reversing the harmonic label:
+`adjoint(G)[l] == adjoint(G[-l])`.
 """
 function Base.adjoint(G::PeriodicGenerator{SQA.QAdd})
   return PeriodicGenerator(
@@ -442,8 +468,8 @@ end
 """
     ishermitian(G::PeriodicGenerator) -> Bool
 
-True when `G[-l] == adjoint(G[l])` for every harmonic, i.e. when the time-dependent generator
-is Hermitian at every time for Hamiltonian components.
+Return `true` when `G[-l] == adjoint(G[l])` for every harmonic, i.e. when the time-dependent
+generator is Hermitian at every time for Hamiltonian components.
 """
 function LinearAlgebra.ishermitian(G::PeriodicGenerator{SQA.QAdd})
   for (harmonic, component) in G.components
@@ -453,10 +479,10 @@ function LinearAlgebra.ishermitian(G::PeriodicGenerator{SQA.QAdd})
 end
 
 """
-    (G::PeriodicGenerator)(t)
+    (G::PeriodicGenerator)(t::Symbolics.Num) -> T
 
-Rebuild the time-dependent generator from its Fourier components. The return
-value has the component type of `G`.
+Evaluate `G` at symbolic time `t` by reconstructing it from its Fourier components. The
+return value has the component type of `G`.
 """
 function (G::PeriodicGenerator)(t::Symbolics.Num)
   return sum(

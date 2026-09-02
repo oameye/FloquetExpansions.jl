@@ -1,8 +1,13 @@
 """
     FloquetExpansion
 
-Result of [`floquet_expansion`](@ref). Read it with [`effective_generator`](@ref) and
-[`micromotion`](@ref) rather than by field access.
+Represent the result of [`floquet_expansion`](@ref). Read it with
+[`effective_generator`](@ref) and [`micromotion`](@ref) rather than by field access.
+
+The stored expansion coefficients are independent of the drive-frequency scaling. The
+accessors reattach the corresponding powers of the input generator's frequency.
+
+See also [`floquet_expansion`](@ref), [`effective_generator`](@ref), [`micromotion`](@ref).
 """
 struct FloquetExpansion{G<:Gauge,P<:PeriodicGenerator,E}
   generator::P
@@ -68,28 +73,40 @@ function assemble_resolvent(
 end
 
 """
-    floquet_expansion(generator::PeriodicGenerator, gauge::Gauge, order::Int) -> FloquetExpansion
-    floquet_expansion(L::Liouvillian, w, t, gauge::Gauge, order::Int) -> FloquetExpansion
-    floquet_expansion(H::QField, w, t, gauge::Gauge, order::Int; channels=()) -> FloquetExpansion
+    floquet_expansion(generator::PeriodicGenerator, gauge, order)
+    floquet_expansion(L::Liouvillian, wd, t, gauge, order)
+    floquet_expansion(H::QField, wd, t, gauge, order; channels=())
 
-Expand a periodically driven generator into a time-independent effective generator and a
-periodic micromotion generator, to the given `order` in `1/generator.wd`. The drive frequency is
-bound to `generator`.
+Expand a periodically driven generator into a time-independent effective generator and
+periodic micromotion, returning a [`FloquetExpansion`](@ref) to the given `order` in the
+inverse drive frequency.
 
-The second form parses the time dependence first, so `H` may be given as an ordinary
-time-dependent Hamiltonian in the drive frequency `w` and time `t`. The `channels` keyword accepts
-[`collapse`](@ref) and [`jump`](@ref) channel values and lowers them into a periodic Liouvillian.
-The `Liouvillian` form is useful when the native map is constructed separately.
+# Arguments
 
-Hamiltonian generators are checked for Hermiticity at ingest, while Liouvillian generators use the
+- `generator`: Prepared periodic Hamiltonian or Liouvillian generator.
+- `L`: Symbolic time-dependent Liouvillian to decompose using `wd` and `t`.
+- `H`: Symbolic time-dependent Hamiltonian to decompose using `wd` and `t`.
+- `wd`: Symbolic drive frequency.
+- `t`: Symbolic time variable.
+- `gauge`: Gauge fixing the micromotion integration constant.
+- `order`: Number of retained orders; must be at least one.
+- `channels`: Tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values added to `H`.
+
+The `L` and `H` forms decompose the time dependence before applying the expansion. Use the
+`L` form when the native map is constructed separately.
+
+Hamiltonian generators are checked for Hermiticity at ingest. Liouvillian generators use the
 common algebra without a Hamiltonian Hermiticity requirement.
 
-Truncation follows the spec: `order = 1` retains the time average, and the error is
-``\\mathcal{O}(w_d^{-\\text{order}})``. Note that the Liouvillian literature counts this shifted
-by one.
+# Notes
 
-The series is ASYMPTOTIC, not convergent. Beyond a problem-dependent optimal order, a higher
-`order` makes the answer worse rather than better.
+Truncation follows the spec: `order = 1` retains the time average, and the error is
+``\\mathcal{O}(w_d^{-\\text{order}})``. Note that the Liouvillian literature counts this
+shifted by one.
+
+The series is asymptotic, not convergent. Beyond a problem-dependent optimal order, a higher
+`order` can make the approximation worse rather than better. For Liouvillian input, a
+finite-order result is not guaranteed to retain GKLS form or complete positivity.
 
 # Examples
 
@@ -105,6 +122,15 @@ FloquetExpansion{VanVleck} of order 1
 
 julia> effective_generator(vv)
 w * a' * a
+
+julia> iszero(micromotion(vv))
+true
+
+julia> effective_hamiltonian(vv) == effective_generator(vv)
+true
+
+julia> kick_operator(vv) == micromotion(vv)
+true
 ```
 
 See also [`effective_generator`](@ref), [`micromotion`](@ref), and [`harmonics`](@ref).
@@ -199,9 +225,12 @@ end
     effective_generator(expansion::FloquetExpansion) -> T
     effective_generator(expansion::FloquetExpansion, n::Int) -> T
 
-The time-independent effective generator ``G_\\text{eff}^{[N]} = \\sum_{k<N} G_\\text{eff}^{(k)}``,
-or with `n` the order-`n` contribution alone. The drive-frequency scaling is reattached, so the
-order-`n` piece carries ``w_d^{-n}``.
+The time-independent effective generator ``G_\\text{eff}^{[N]} = \\sum_{k<N}
+G_\\text{eff}^{(k)}``, or with `n` the order-`n` contribution alone. The drive-frequency
+scaling is reattached, so the order-`n` piece carries ``w_d^{-n}``. The order index must
+satisfy `0 ≤ n < expansion.order`.
+
+See also [`micromotion`](@ref).
 """
 function effective_generator(expansion::FloquetExpansion)
   result = zero(expansion.effective_components[1])
@@ -229,12 +258,11 @@ The periodic micromotion generator ``K^{[N]} = \\sum_{k<N} K^{(k)}``, as harmoni
 With `n` in `1:expansion.order - 1`, the order-`n` contribution alone, frequency-scaled like
 [`effective_generator`](@ref). The micromotion series has no order-0 contribution.
 
-Under [`VanVleck`](@ref) this has vanishing time average, which is what makes
-[`effective_generator`](@ref) independent of the initial phase of the drive.
+Evaluate the returned periodic generator at a symbolic time with
+`micromotion(expansion)(t)`. An integer second argument selects an order; use
+`micromotion(expansion)(t)` for time evaluation.
 
-Evaluate the returned periodic generator at a symbolic time with `micromotion(expansion)(t)`.
-An integer second argument selects an order; use `micromotion(expansion)(t)` for time
-evaluation.
+See also [`effective_generator`](@ref), [`VanVleck`](@ref).
 """
 function micromotion(expansion::FloquetExpansion)
   result = zero(expansion.generator)
@@ -255,6 +283,7 @@ end
     effective_hamiltonian(expansion::FloquetExpansion, n::Int)
 
 Compatibility aliases for [`effective_generator`](@ref) retained for Hamiltonian callers.
+Prefer [`effective_generator`](@ref) for new code.
 """
 effective_hamiltonian(expansion::FloquetExpansion) = effective_generator(expansion)
 function effective_hamiltonian(expansion::FloquetExpansion, n::Int)
@@ -267,6 +296,7 @@ end
     kick_operator(expansion::FloquetExpansion, t::Symbolics.Num)
 
 Compatibility aliases for [`micromotion`](@ref) retained for Hamiltonian callers.
+Prefer [`micromotion`](@ref) for new code.
 """
 kick_operator(expansion::FloquetExpansion) = micromotion(expansion)
 kick_operator(expansion::FloquetExpansion, n::Int) = micromotion(expansion, n)

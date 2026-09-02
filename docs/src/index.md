@@ -8,8 +8,8 @@ hero:
   tagline: Derive effective generators and micromotion symbolically in Julia.
   actions:
     - theme: brand
-      text: API Reference
-      link: API/
+      text: Manual
+      link: manual/system.md
     - theme: alt
       text: Literature
       link: literature/
@@ -74,7 +74,7 @@ L_eff = effective_generator(expansion)
 K = micromotion(expansion)(t)
 ```
 
-See the [API reference](API.md) for the full interface.
+See the [Manual](manual/system.md) for the conceptual interface and API documentation.
 
 ## Main Features
 

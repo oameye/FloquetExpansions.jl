@@ -18,12 +18,11 @@ end
     Liouvillian
 
 A symbolic linear map on density operators represented as a collected sum of elementary
-actions ``ρ ↦ AρB``. The operator factors are SQA expressions and the scalar coefficients are
+actions ``ρ ↦ AρB``. The operator factors are SQA expressions; scalar coefficients are
 symbolic SQA coefficients.
 
-Use [`hamiltonian_action`](@ref), [`dissipator`](@ref), or the channel keyword constructor to
-build Liouvillians. Finite-order Floquet expansions can be more general than a generator in
-explicit Lindblad form.
+Use [`hamiltonian_action`](@ref), [`dissipator`](@ref), or the channel keyword constructor
+to construct Liouvillians.
 """
 struct Liouvillian
   terms::LiouvillianTerms
@@ -53,12 +52,25 @@ end
 """
     actions(L::Liouvillian)
 
-Iterate over the elementary actions in `L`. Each item is a
+Return an iterator over the elementary actions in `L`. Each item is a
 `(left_operator, right_operator, coefficient)` tuple representing
 `ρ ↦ coefficient * left_operator * ρ * right_operator`.
 
-The iteration order is unspecified. The returned iterator is independent of the sparse storage
-used by `L`.
+The iteration order is unspecified. The returned iterator is independent of the sparse
+storage used by `L`.
+
+# Examples
+
+```jldoctest
+julia> h = FockSpace(:cavity); a = Destroy(h, :a);
+
+julia> L = Liouvillian(a' * a; channels=(collapse(a),));
+
+julia> all(length(item) == 3 for item in actions(L))
+true
+```
+
+See also [`compose`](@ref).
 """
 function actions(L::Liouvillian)
   return (
@@ -73,9 +85,12 @@ function action(left::SQA.QField, right::SQA.QField, coefficient::LiouvillianSca
 end
 
 """
-    hamiltonian_action(H)
+    hamiltonian_action(H::QField) -> Liouvillian
 
-Construct the coherent density-operator action ``-i[H, ⋅]``.
+Construct the coherent density-operator action
+``ρ ↦ -i[H, ρ]`` for the Hamiltonian `H`.
+
+See also [`dissipator`](@ref), [`Liouvillian`](@ref).
 """
 function hamiltonian_action(H::SQA.QField)
   Hq = qadd(H)
@@ -84,10 +99,15 @@ function hamiltonian_action(H::SQA.QField)
 end
 
 """
-    dissipator(L)
+    dissipator(L::QField) -> Liouvillian
 
-Construct the symbolic Lindblad dissipator
+Construct the symbolic dissipator
 ``D[L](ρ) = LρL† - (L†Lρ + ρL†L)/2``.
+
+`L` is a complete collapse or jump operator. Use [`jump`](@ref) when a separate scalar rate
+is part of the channel.
+
+See also [`collapse`](@ref), [`jump`](@ref).
 """
 function dissipator(L::SQA.QField)
   Lq = qadd(L)
@@ -99,11 +119,31 @@ function dissipator(L::SQA.QField)
 end
 
 """
-    Liouvillian(H; channels=())
+    Liouvillian(H::QField; channels=()) -> Liouvillian
 
-Construct ``-i[H, ⋅] + Σ D[C] + Σ γD[J]``. Use [`collapse`](@ref) for complete collapse
-operators and [`jump`](@ref) for paired bare jump operators and scalar rates. Rates are ordinary
-symbolic coefficients; no positivity condition is inferred or certified.
+Construct
+``ρ ↦ -i[H, ρ] + Σₐ D[Cₐ](ρ) + Σᵦ γᵦD[Jᵦ](ρ)``.
+
+`channels` is a tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values. Rates are
+ordinary symbolic coefficients; no positivity condition is inferred or certified.
+
+# Arguments
+
+- `H`: Symbolic Hamiltonian expression.
+- `channels`: Tuple or vector of channel values to add to the coherent action.
+
+# Examples
+
+```jldoctest
+julia> h = FockSpace(:cavity); a = Destroy(h, :a);
+
+julia> @variables γ::Real;
+
+julia> L = Liouvillian(a' * a; channels=(jump(a, γ),));
+
+julia> L == hamiltonian_action(a' * a) + γ * dissipator(a)
+true
+```
 """
 function Liouvillian(H::SQA.QField; channels::LiouvillianChannelCollection=())
   generator = hamiltonian_action(H)
@@ -120,9 +160,11 @@ end
 """
     collapse(operator::QField) -> CollapseChannel
 
-Represent a complete collapse operator. It contributes ``D[operator]`` to a [`Liouvillian`](@ref)
-with unit channel weight. Any amplitude or phase belonging to the collapse process is included in
-`operator`.
+Represent a complete collapse operator. It contributes ``D[operator]`` to a
+[`Liouvillian`](@ref) with unit channel weight. Any amplitude or phase belonging to the
+collapse process is included in `operator`.
+
+See also [`dissipator`](@ref), [`jump`](@ref).
 """
 function collapse(operator::SQA.QField)
   return CollapseChannel(operator)
@@ -133,6 +175,8 @@ end
 
 Represent a bare jump operator with a separate symbolic rate. It contributes
 ``rate D[operator]`` to a [`Liouvillian`](@ref). The rate is not folded into the operator.
+
+See also [`dissipator`](@ref), [`collapse`](@ref).
 """
 function jump(operator::SQA.QField, rate::LiouvillianScalar)
   return RateWeightedJump(operator, rate)
@@ -178,10 +222,13 @@ Base.:*(coefficient::LiouvillianScalar, L::Liouvillian) = scale(coefficient, L)
 Base.:*(L::Liouvillian, coefficient::LiouvillianScalar) = scale(coefficient, L)
 
 """
-    compose(A, B)
+    compose(A::Liouvillian, B::Liouvillian) -> Liouvillian
 
-Compose Liouvillian maps so that `B` acts first and `A` acts second. For elementary actions
-`(Aₗ, Aᵣ)` and `(Bₗ, Bᵣ)`, the resulting action is `(AₗBₗ, BᵣAᵣ)`.
+Compose maps so that `B` acts first and `A` acts second. For elementary actions
+``cₐ Aₗρ Aᵣ`` and ``cᵦ Bₗρ Bᵣ``, the composed action is
+``cₐcᵦ AₗBₗρ BᵣAᵣ``.
+
+See also [`actions`](@ref).
 """
 function compose(A::Liouvillian, B::Liouvillian)
   iszero(A) && return zero(A)
@@ -208,14 +255,16 @@ end
 """
     harmonics(L::Liouvillian, w, t) -> PeriodicGenerator{Liouvillian}
 
-Lower a symbolic time-dependent Liouvillian into the common periodic-generator
+Decompose a symbolic time-dependent Liouvillian into the common periodic-generator
 representation. The Fourier decomposition is applied independently to the left and right
 operator factors of every action and to its scalar coefficient, so periodic dependence in a
 Hamiltonian, collapse operator, jump operator, rate, or any combination is supported.
 
-Construct the time-dependent map with [`Liouvillian`](@ref), then pass it here before calling
-[`floquet_expansion`](@ref). The result is the same native `PeriodicGenerator{Liouvillian}` as a
-manually assembled periodic Liouvillian.
+Use [`Liouvillian`](@ref) to construct the time-dependent map before calling
+[`floquet_expansion`](@ref). The result is the same native
+`PeriodicGenerator{Liouvillian}` as a manually assembled periodic Liouvillian.
+
+See also [`PeriodicGenerator`](@ref), [`floquet_expansion`](@ref).
 """
 function harmonics(L::Liouvillian, w::Symbolics.Num, t::Symbolics.Num)
   out = Dict{Int,Liouvillian}()

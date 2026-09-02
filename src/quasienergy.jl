@@ -1,7 +1,8 @@
 """
     QuasienergyOperator(G::PeriodicGenerator, nmax::Int)
 
-The quasienergy operator in Sambe (extended) space, truncated to harmonics `-nmax:nmax`.
+Construct the quasienergy operator in Sambe (extended) space, truncated to harmonics
+`-nmax:nmax`.
 For a Hamiltonian generator, its blocks are
 
 ```math
@@ -14,10 +15,16 @@ For a Liouvillian generator, the energy-like Floquet-Liouville operator has bloc
 Q_{mn} = i\\,\\mathcal{L}_{m-n} - m\\,\\omega_d\\,\\delta_{mn}.
 ```
 
-Index it by harmonic, `Q[m, n]` with `m, n` in `-nmax:nmax`, not by array position.
-The eigenvalues of `Q` are the quasienergies, defined modulo `G.wd`. For a dissipative generator
-they are generally complex: the real part describes oscillation and the imaginary part describes
-decay or growth. This type stores symbolic blocks only; numerical vectorization is separate.
+Index it by harmonic, `Q[m, n]` with `m, n` in `-nmax:nmax`, rather than by array position.
+The eigenvalues of `Q` are the quasienergies, defined modulo `G.wd`. For a dissipative
+generator they are generally complex: the real part describes oscillation and the imaginary
+part describes decay or growth. This type stores symbolic blocks only; numerical
+vectorization is separate.
+
+# Arguments
+
+- `G`: Periodic Hamiltonian or Liouvillian generator.
+- `nmax`: Maximum absolute harmonic label retained in the truncation.
 
 # Examples
 
@@ -36,6 +43,9 @@ a
 
 julia> Q[1, 1]
 -w + a' * a
+
+julia> harmonic_range(Q)
+-1:1
 ```
 
 See also [`PeriodicGenerator`](@ref), [`floquet_expansion`](@ref).
@@ -79,7 +89,9 @@ Base.size(Q::QuasienergyOperator) = (2Q.nmax + 1, 2Q.nmax + 1)
 """
     harmonic_range(Q::QuasienergyOperator) -> UnitRange{Int}
 
-The harmonics `Q` is truncated to, i.e. the valid index range for `Q[m, n]`.
+Return the harmonic index range retained by `Q`, i.e. the valid index range for `Q[m, n]`.
+
+See also [`QuasienergyOperator`](@ref).
 """
 harmonic_range(Q::QuasienergyOperator) = (-Q.nmax):(Q.nmax)
 
