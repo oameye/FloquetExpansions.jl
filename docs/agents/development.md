@@ -32,6 +32,17 @@ Use the smallest check that answers the current question, then run the full rele
 - `make docs` checks docstrings and builds the documentation.
 - `make bench` measures benchmark changes; report precompilation, TTFX, and steady-state runtime separately.
 
+Run `make docs` from the repository root with Julia's normal depot and project
+environment. Preserve the user's existing `JULIA_DEPOT_PATH` and `JULIA_PROJECT`
+so Julia can reuse the established package downloads and precompiled caches. A
+first run after a Julia, dependency, or source change may still precompile.
+
+When the execution environment cannot write the normal depot, request writable
+access or hand the command back to the user. Keep the validation command as
+`make docs`; use a temporary depot only when the user explicitly requests an
+isolated environment, because it discards cache reuse and can force a full
+recompilation.
+
 For new behavior, add a public-API regression test and a doctest or API documentation update when the user-facing interface changes. Use `@inferred` for type-stability contracts and `@allocations` for hot-path allocation contracts. Finish when the relevant checks pass and the diff accounts for the changed behavior, tests, and docs.
 
 Generated documentation, local manifests, test logs, and benchmark output are ignored by the repository; leave them untracked and out of handoff summaries.

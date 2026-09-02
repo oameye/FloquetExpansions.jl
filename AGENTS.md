@@ -14,7 +14,7 @@ The package is at v0.0.1 and its public API and internal representations are exp
 
 ## Development workflow
 
-For an implementation change, read [`docs/agents/development.md`](docs/agents/development.md). For module boundaries or representation changes, also read [`docs/agents/architecture.md`](docs/agents/architecture.md) and the relevant ADRs.
+For a source, test, documentation, or dependency change, read [`docs/agents/development.md`](docs/agents/development.md). For module boundaries or representation changes, also read [`docs/agents/architecture.md`](docs/agents/architecture.md) and the relevant ADRs.
 
 Common tasks are defined by the Makefile:
 
