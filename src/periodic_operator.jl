@@ -13,6 +13,12 @@ average, which makes the effective generator independent of the initial phase of
 """
 struct VanVleck <: Gauge end
 
+function validate_component_type(::Type{T}) where {T}
+  isconcretetype(T) ||
+    throw(ArgumentError("generator components must have a concrete element type"))
+  return nothing
+end
+
 """
     PeriodicGenerator(components::AbstractDict{Int, T}, wd)
     PeriodicGenerator(components::AbstractDict{Int, T}, wd, zero_component::T) where {T}
@@ -66,8 +72,7 @@ struct PeriodicGenerator{T}
   function PeriodicGenerator{T}(
     components::Dict{Int,T}, wd::Symbolics.Num, zero_component::T
   ) where {T}
-    isconcretetype(T) ||
-      throw(ArgumentError("generator components must have a concrete element type"))
+    validate_component_type(T)
     kept = Dict{Int,T}()
     sizehint!(kept, length(components))
     for (harmonic, component) in components
@@ -82,8 +87,6 @@ const PeriodicScalar = Union{Real,Complex,Symbolics.Num,SQA.CNum}
 function periodic_generator(
   components::AbstractDict{Int,T}, wd::Symbolics.Num, zero_component::T
 ) where {T}
-  isconcretetype(T) ||
-    throw(ArgumentError("generator components must have a concrete element type"))
   return PeriodicGenerator{T}(Dict{Int,T}(components), wd, zero_component)
 end
 
@@ -94,8 +97,7 @@ function PeriodicGenerator(
 end
 
 function PeriodicGenerator(components::AbstractDict{Int,T}, wd::Symbolics.Num) where {T}
-  isconcretetype(T) ||
-    throw(ArgumentError("generator components must have a concrete element type"))
+  validate_component_type(T)
   zero_component = isempty(components) ? zero(T) : zero(first(values(components)))
   return PeriodicGenerator(components, wd, zero_component)
 end
@@ -104,7 +106,7 @@ function PeriodicGenerator(components::AbstractDict{Int,<:SQA.QField}, wd::Symbo
   normalized = Dict{Int,SQA.QAdd}(
     harmonic => qadd(component) for (harmonic, component) in components
   )
-  return PeriodicGenerator(normalized, wd, zero(SQA.QAdd))
+  return periodic_generator(normalized, wd, zero(SQA.QAdd))
 end
 
 function Base.getindex(G::PeriodicGenerator, harmonic::Int)
@@ -356,7 +358,7 @@ end
 Rebuild the time-dependent generator from its Fourier components. The return
 value has the component type of `G`.
 """
-function (G::PeriodicGenerator)(t)
+function (G::PeriodicGenerator)(t::Symbolics.Num)
   return sum(
     SQA.expim(-harmonic * G.wd * t) * component for (harmonic, component) in G.components;
     init=zero(G.zero_component),

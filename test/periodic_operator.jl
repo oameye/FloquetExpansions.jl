@@ -122,6 +122,7 @@ end
   @test_throws MethodError PeriodicGenerator(1 => a, -1 => a', w)
   @test_throws ArgumentError X + PeriodicGenerator(Dict(1 => a, -1 => a'), 2w)
   @test_throws ArgumentError SQA.commutator(X, PeriodicGenerator(Dict(1 => a'), 2w))
+  @test_throws MethodError X(0.4)
 end
 
 @testset "constructors normalize zero harmonics" begin

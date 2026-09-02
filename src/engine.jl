@@ -15,6 +15,8 @@ struct FloquetExpansion{G<:Gauge,P<:PeriodicGenerator,E}
   order::Int
 end
 
+const GeneratorComponent = Union{SQA.QAdd,Liouvillian}
+
 triindex(n::Int, j::Int) = (n * (n + 1)) ÷ 2 + j + 1
 weight_generator(j::Int) = im^j * (1 // factorial(j))
 weight_kick_derivative(j::Int) = im^j * (1 // factorial(j + 1))
@@ -46,14 +48,20 @@ end
 
 """
     floquet_expansion(generator::PeriodicGenerator, gauge::Gauge, order::Int) -> FloquetExpansion
-    floquet_expansion(H::QField, w, t, gauge::Gauge, order::Int) -> FloquetExpansion
+    floquet_expansion(L::Liouvillian, w, t, gauge::Gauge, order::Int) -> FloquetExpansion
+    floquet_expansion(H::QField, w, t, gauge::Gauge, order::Int; channels=()) -> FloquetExpansion
 
 Expand a periodically driven generator into a time-independent effective generator and a
 periodic micromotion generator, to the given `order` in `1/generator.wd`. The drive frequency is
 bound to `generator`.
 
 The second form parses the time dependence first, so `H` may be given as an ordinary
-time-dependent Hamiltonian in the drive frequency `w` and time `t`.
+time-dependent Hamiltonian in the drive frequency `w` and time `t`. The `channels` keyword accepts
+[`collapse`](@ref) and [`jump`](@ref) channel values and lowers them into a periodic Liouvillian.
+The `Liouvillian` form is useful when the native map is constructed separately.
+
+Hamiltonian generators are checked for Hermiticity at ingest, while Liouvillian generators use the
+common algebra without a Hamiltonian Hermiticity requirement.
 
 Truncation follows the spec: `order = 1` retains the time average, and the error is
 ``\\mathcal{O}(w_d^{-\\text{order}})``. Note that the Liouvillian literature counts this shifted
@@ -96,8 +104,9 @@ function floquet_expansion(
   nodes = (order * (order + 1)) ÷ 2
   dressed_generator = [zero(generator) for _ in 1:nodes]
   dressed_kick_derivative = [zero(generator) for _ in 1:nodes]
-  K = P[]
-  Kdot = P[]
+  generator_type = typeof(generator)
+  K = generator_type[]
+  Kdot = generator_type[]
   E = typeof(time_average(generator))
   effective = E[]
 
@@ -140,15 +149,30 @@ function floquet_expansion(
 end
 
 function floquet_expansion(
-  H::SQA.QField, wd::Symbolics.Num, t::Symbolics.Num, gauge::Gauge, order::Int
+  L::Liouvillian, wd::Symbolics.Num, t::Symbolics.Num, gauge::Gauge, order::Int
 )
-  return floquet_expansion(harmonics(qadd(H), wd, t), gauge, order)
+  return floquet_expansion(harmonics(L, wd, t), gauge, order)
 end
 
-function reattach(component::T, wd::Symbolics.Num, n::Int) where {T}
+function floquet_expansion(
+  H::SQA.QField,
+  wd::Symbolics.Num,
+  t::Symbolics.Num,
+  gauge::Gauge,
+  order::Int;
+  channels::LiouvillianChannelCollection=(),
+)
+  if isempty(channels)
+    return floquet_expansion(harmonics(qadd(H), wd, t), gauge, order)
+  end
+  L = Liouvillian(H; channels)
+  return floquet_expansion(harmonics(L, wd, t), gauge, order)
+end
+
+function reattach(component::GeneratorComponent, wd::Symbolics.Num, n::Int)
   return iszero(n) ? component : wd^(-n) * component
 end
-function reattach(generator::PeriodicGenerator{T}, n::Int) where {T}
+function reattach(generator::PeriodicGenerator{T}, n::Int) where {T<:GeneratorComponent}
   return iszero(n) ? generator : generator.wd^(-n) * generator
 end
 
@@ -207,13 +231,26 @@ function micromotion(expansion::FloquetExpansion, n::Int)
   return SQA.simplify(reattach(expansion.kick_components[n], n))
 end
 
+"""
+    effective_hamiltonian(expansion::FloquetExpansion)
+    effective_hamiltonian(expansion::FloquetExpansion, n::Int)
+
+Compatibility aliases for [`effective_generator`](@ref) retained for Hamiltonian callers.
+"""
 effective_hamiltonian(expansion::FloquetExpansion) = effective_generator(expansion)
 function effective_hamiltonian(expansion::FloquetExpansion, n::Int)
   return effective_generator(expansion, n)
 end
 
+"""
+    kick_operator(expansion::FloquetExpansion)
+    kick_operator(expansion::FloquetExpansion, n::Int)
+    kick_operator(expansion::FloquetExpansion, t::Symbolics.Num)
+
+Compatibility aliases for [`micromotion`](@ref) retained for Hamiltonian callers.
+"""
 kick_operator(expansion::FloquetExpansion) = micromotion(expansion)
 kick_operator(expansion::FloquetExpansion, n::Int) = micromotion(expansion, n)
-function kick_operator(expansion::FloquetExpansion, t::Union{Number,Symbolics.Num})
+function kick_operator(expansion::FloquetExpansion, t::Symbolics.Num)
   return micromotion(expansion)(t)
 end

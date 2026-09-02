@@ -20,6 +20,10 @@ function tomatrix(q::SQA.QAdd, d::Int)
   return M
 end
 
+function tomatrix(q::SQA.QAdd, d::Int, substitutions::AbstractDict)
+  return tomatrix(SQA.substitute(q, substitutions), d)
+end
+
 function maxcoeff(q::SQA.QAdd, subs)
   m = 0.0
   for (_, coeff) in q
@@ -34,7 +38,7 @@ end
 vanishes(q::SQA.QAdd) = iszero(SQA.simplify(q))
 vanishes(X::PeriodicGenerator) = all(vanishes(X[l]) for l in keys(X))
 
-function random_drive(rng, HN, d, M, wd)
+function random_drive(rng, HN, d, M, wd::Symbolics.Num)
   randop() = sum(
     complex(randn(rng), randn(rng)) * SQA.Transition(HN, :σ, i, j) for i in 1:d, j in 1:d
   )

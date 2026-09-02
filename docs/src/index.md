@@ -40,7 +40,7 @@ features:
 CurrentModule = FloquetExpansions
 ```
 
-`FloquetExpansions.jl` computes high-frequency expansions for periodically driven quantum systems. Given a periodic Liouvillian ``\mathcal{L}(t)``, it derives a static effective Liouvillian ``\mathcal{L}_\mathrm{eff}`` and the generator ``\mathcal{K}(t)`` of a periodic micromotion superoperator ``\mathcal{M}(t)=e^{\mathcal{K}(t)}`` such that
+`FloquetExpansions.jl` computes high-frequency expansions for periodically driven quantum systems. Given a periodic generator ``\mathcal{G}(t)``—Hamiltonian or Liouvillian—it derives a static effective generator ``\mathcal{G}_\mathrm{eff}`` and the generator ``\mathcal{K}(t)`` of a periodic micromotion superoperator ``\mathcal{M}(t)=e^{\mathcal{K}(t)}`` such that
 
 ```math
 \mathcal{V}(t,0) = \mathcal{M}(t) e^{t\mathcal{L}_\mathrm{eff}} \mathcal{M}(0)^{-1}.
@@ -66,11 +66,11 @@ space = PauliSpace(:qubit)
 σz = Pauli(space, :σ, 3)
 σx = Pauli(space, :σ, 1)
 
-@variables ω::Real t::Real Δ::Real A::Real
+@variables ω::Real t::Real Δ::Real A::Real γ::Real
 H = (Δ / 2) * σz + A * cos(ω * t) * σx
 
-expansion = floquet_expansion(H, ω, t, VanVleck(), 2)
-Heff = effective_generator(expansion)
+expansion = floquet_expansion(H, ω, t, VanVleck(), 2; channels=(jump(γ*σx),))
+L_eff = effective_generator(expansion)
 K = micromotion(expansion)(t)
 ```
 

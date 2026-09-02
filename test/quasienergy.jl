@@ -10,13 +10,16 @@ include(joinpath(@__DIR__, "helpers", "shared.jl"))
 
 const D = 2
 const HN = NLevelSpace(:atom, D)
+@variables wd_symbol::Real
 
-function sambe(Q::QuasienergyOperator, d::Int)
+function sambe(Q::QuasienergyOperator, d::Int, substitutions::AbstractDict)
   r = harmonic_range(Q)
   n = length(r)
   M = zeros(ComplexF64, n * d, n * d)
   for (i, m) in enumerate(r), (j, k) in enumerate(r)
-    M[((i - 1) * d + 1):(i * d), ((j - 1) * d + 1):(j * d)] = tomatrix(Q[m, k], d)
+    M[((i - 1) * d + 1):(i * d), ((j - 1) * d + 1):(j * d)] = tomatrix(
+      Q[m, k], d, substitutions
+    )
   end
   return M
 end
@@ -45,12 +48,17 @@ end
 
 @testset "quasienergies match the effective Hamiltonian's spectrum" begin
   wd = 60.0
-  H = random_drive(MersenneTwister(0x51E), HN, D, 1, wd)
+  H = random_drive(MersenneTwister(0x51E), HN, D, 1, wd_symbol)
+  substitutions = Dict(wd_symbol => wd)
 
   quasienergies(nmax) = sort!(
     unique!(
       round.(
-        [fold(z, wd) for z in eigvals(sambe(QuasienergyOperator(H, nmax), D))]; digits=8
+        [
+          fold(z, wd) for
+          z in eigvals(sambe(QuasienergyOperator(H, nmax), D, substitutions))
+        ];
+        digits=8,
       ),
     ),
   )
@@ -61,7 +69,9 @@ end
   errs = Float64[]
   for N in 1:5
     vv = floquet_expansion(H, VanVleck(), N)
-    heff = sort!([fold(z, wd) for z in eigvals(tomatrix(effective_generator(vv), D))])
+    heff = sort!([
+      fold(z, wd) for z in eigvals(tomatrix(effective_generator(vv), D, substitutions))
+    ])
     push!(errs, maximum(minimum(abs(e - q) for q in Qs) for e in heff))
   end
 

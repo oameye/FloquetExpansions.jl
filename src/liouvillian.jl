@@ -1,6 +1,18 @@
 const LiouvillianAction = Tuple{SQA.QAdd,SQA.QAdd}
 const LiouvillianTerms = Dict{LiouvillianAction,SQA.CNum}
 const LiouvillianScalar = Union{Number,Symbolics.Num,SQA.CNum}
+const LiouvillianChannelCollection = Union{Tuple,AbstractVector}
+
+abstract type LiouvillianChannel end
+
+struct CollapseChannel{O<:SQA.QField} <: LiouvillianChannel
+  operator::O
+end
+
+struct RateWeightedJump{O<:SQA.QField,R<:LiouvillianScalar} <: LiouvillianChannel
+  operator::O
+  rate::R
+end
 
 qadd(x::SQA.QAdd) = x
 qadd(x::SQA.QField) = 1 * x
@@ -12,9 +24,9 @@ A symbolic linear map on density operators represented as a collected sum of ele
 actions ``ρ ↦ AρB``. The operator factors are SQA expressions and the scalar coefficients are
 symbolic SQA coefficients.
 
-Use [`hamiltonian_action`](@ref), [`dissipator`](@ref), or the keyword constructor to build
-Liouvillians. Finite-order Floquet expansions can be more general than a generator in explicit
-Lindblad form.
+Use [`hamiltonian_action`](@ref), [`dissipator`](@ref), or the channel keyword constructor to
+build Liouvillians. Finite-order Floquet expansions can be more general than a generator in
+explicit Lindblad form. Calling `L(ρ)` applies the symbolic map to an SQA operator `ρ`.
 """
 struct Liouvillian
   terms::LiouvillianTerms
@@ -72,24 +84,51 @@ function dissipator(L::SQA.QField)
 end
 
 """
-    Liouvillian(H; collapse_operators=(), jumps=(), rates=())
+    Liouvillian(H; channels=())
 
-Construct ``-i[H, ⋅] + Σ D[C] + Σ γD[J]``. `collapse_operators` contains complete collapse
-operators, while `jumps` and `rates` contain paired bare jump operators and scalar rates.
-Rates are ordinary symbolic coefficients; no positivity condition is inferred or certified.
+Construct ``-i[H, ⋅] + Σ D[C] + Σ γD[J]``. Use [`collapse`](@ref) for complete collapse
+operators and [`jump`](@ref) for paired bare jump operators and scalar rates. Rates are ordinary
+symbolic coefficients; no positivity condition is inferred or certified.
 """
-function Liouvillian(H::SQA.QField; collapse_operators=(), jumps=(), rates=())
-  length(jumps) == length(rates) ||
-    throw(ArgumentError("jumps and rates must have equal lengths"))
-
+function Liouvillian(H::SQA.QField; channels::LiouvillianChannelCollection=())
   generator = hamiltonian_action(H)
-  for collapse in collapse_operators
-    generator = generator + dissipator(collapse)
-  end
-  for (jump, rate) in zip(jumps, rates)
-    generator = generator + rate * dissipator(jump)
+  for channel in channels
+    generator = generator + lower_channel(channel)
   end
   return generator
+end
+
+"""
+    collapse(operator::QField) -> CollapseChannel
+
+Represent a complete collapse operator. It contributes ``D[operator]`` to a [`Liouvillian`](@ref)
+with unit channel weight. Any amplitude or phase belonging to the collapse process is included in
+`operator`.
+"""
+function collapse(operator::SQA.QField)
+  return CollapseChannel(operator)
+end
+
+"""
+    jump(operator::QField; rate) -> RateWeightedJump
+
+Represent a bare jump operator with a separate symbolic rate. It contributes
+``rate D[operator]`` to a [`Liouvillian`](@ref). The rate is not folded into the operator.
+"""
+function jump(operator::SQA.QField; rate::LiouvillianScalar)
+  return RateWeightedJump(operator, rate)
+end
+
+lower_channel(channel::CollapseChannel) = dissipator(channel.operator)
+lower_channel(channel::RateWeightedJump) = channel.rate * dissipator(channel.operator)
+
+function (L::Liouvillian)(rho::SQA.QField)
+  result = zero(SQA.QAdd)
+  rho_q = qadd(rho)
+  for ((left, right), coefficient) in L.terms
+    result = result + coefficient * qadd(left * rho_q * right)
+  end
+  return SQA.simplify(result)
 end
 
 Base.iszero(L::Liouvillian) = isempty(L.terms)

@@ -63,6 +63,9 @@ invoked through `make format`.
   # Bad
   FockSpace(name = :a)
   ```
+- **Use keyword shorthand when forwarding same-named locals.** Write
+  `f(args...; kwarg1, kwarg2)`, not
+  `f(args...; kwarg1 = kwarg1, kwarg2 = kwarg2)`.
 
 ### Type system
 

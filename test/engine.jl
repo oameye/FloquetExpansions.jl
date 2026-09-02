@@ -105,6 +105,7 @@ end
   @test kick_operator(vv) == micromotion(vv)
   @test kick_operator(vv, 1) == micromotion(vv, 1)
   @test kick_operator(vv, t) == micromotion(vv)(t)
+  @test_throws MethodError kick_operator(vv, 0.4)
 end
 
 @testset "a non-Hermitian Hamiltonian drive is refused at ingest" begin
@@ -120,32 +121,6 @@ end
   @test vanishes(effective_generator(viaparse) - effective_generator(viaharm))
 end
 
-h = FockSpace(:cavity)
-a = Destroy(h, :a)
-@variables w::Real g::Real ξ::Real t::Real
-
-function drive()
-  return PeriodicGenerator(
-    Dict(
-      0 => 1 * (a' * a),
-      1 => g * a,
-      -1 => conj(g) * a',
-      2 => ξ * (a' * a'),
-      -2 => conj(ξ) * (a * a),
-    ),
-    w,
-  )
-end
-
-comm = SQA.commutator
-
-const SUBS = Dict(w => 1.0, g => 0.7, ξ => 0.3, t => 0.4)
-function agrees(X::PeriodicGenerator, Y::PeriodicGenerator)
-  return all(
-    maxcoeff(SQA.simplify(X[l] - Y[l]), SUBS) < 1.0e-12 for l in union(keys(X), keys(Y))
-  )
-end
-
 function compositions(n::Int, j::Int)
   j == 0 && return n == 0 ? [Int[]] : Vector{Int}[]
   out = Vector{Int}[]
@@ -155,7 +130,7 @@ function compositions(n::Int, j::Int)
   return out
 end
 
-function reference_expansion(H::PeriodicGenerator, wd, N::Int)
+function reference_expansion(H::PeriodicGenerator, wd::Symbolics.Num, N::Int)
   kicks = typeof(H)[]
   kick_derivatives = typeof(H)[]
   effective = typeof(time_average(H))[]

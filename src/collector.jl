@@ -67,7 +67,7 @@ true
 
 See also [`PeriodicGenerator`](@ref).
 """
-function harmonics(H::SQA.QAdd, w, t)
+function harmonics(H::SQA.QAdd, w::Symbolics.Num, t::Symbolics.Num)
   out = Dict{Int,SQA.QAdd}()
   for (term, coeff) in SQA.exponential_form(H)
     mono = isempty(term.ops) ? one(SQA.QAdd) : prod(term.ops)
@@ -81,4 +81,40 @@ function harmonics(H::SQA.QAdd, w, t)
   return PeriodicGenerator(out, w, zero(H))
 end
 
-harmonics(H::SQA.QSym, w, t) = harmonics(qadd(H), w, t)
+harmonics(H::SQA.QSym, w::Symbolics.Num, t::Symbolics.Num) = harmonics(qadd(H), w, t)
+
+"""
+    harmonics(L::Liouvillian, w, t) -> PeriodicGenerator{Liouvillian}
+
+Lower a symbolic time-dependent Liouvillian into the common periodic-generator
+representation. The Fourier decomposition is applied independently to the left and right
+operator factors of every action and to its scalar coefficient, so periodic dependence in a
+Hamiltonian, collapse operator, jump operator, rate, or any combination is supported.
+
+Construct the time-dependent map with [`Liouvillian`](@ref), then pass it here before calling
+[`floquet_expansion`](@ref). The result is the same native `PeriodicGenerator{Liouvillian}` as a
+manually assembled periodic Liouvillian.
+"""
+function harmonics(L::Liouvillian, w::Symbolics.Num, t::Symbolics.Num)
+  out = Dict{Int,Liouvillian}()
+  for ((left, right), coefficient) in L.terms
+    left_harmonics = harmonics(left, w, t)
+    right_harmonics = harmonics(right, w, t)
+
+    for (left_harmonic, left_component) in left_harmonics.components,
+      (right_harmonic, right_component) in right_harmonics.components,
+      phase_term in SQA.phase_terms(coefficient)
+
+      phase_coefficient = phase_term.amplitude
+      m, offset = harmonic_index(phase_term.phase, w, t)
+      issymzero(offset) || (phase_coefficient *= SQA.expim(offset))
+      harmonic = left_harmonic + right_harmonic + m
+
+      haskey(out, harmonic) || (out[harmonic] = zero(L))
+      add_liouvillian_term!(
+        out[harmonic].terms, (left_component, right_component), phase_coefficient
+      )
+    end
+  end
+  return PeriodicGenerator(out, w, zero(L))
+end
