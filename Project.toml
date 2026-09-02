@@ -1,6 +1,6 @@
 name = "FloquetExpansions"
 uuid = "3d8c71b5-958b-4b86-b80e-339bb07db863"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Orjan Ameye <orjan.ameye@hotmail.com>"]
 
 [deps]

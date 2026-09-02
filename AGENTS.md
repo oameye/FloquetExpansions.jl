@@ -2,15 +2,21 @@
 
 ## What is this?
 
-A Julia package for the computation of FloquetExpansions included the Van-Vleck high frequency expansion and the Floquet-Magnus expansion.
- 
+A Julia package for symbolic high-frequency expansions of periodically driven quantum systems. The current public implementation is the Van Vleck expansion for Hamiltonian and Liouvillian generators.
+
+## Development stage
+
+The package is at v0.0.1 and its public API and internal representations are experimental. Breaking changes are welcome when they improve correctness, clarity, or the domain model. When making one, update all in-repository callers, tests, documentation, `CONTEXT.md`, and relevant ADRs in the same change. Compatibility aliases and migration shims need an explicit reason.
+
 ## Git policy
 
-**Never commit or push.** Neither Claude nor any subagent may run `git commit`, `git push`, or any git command that modifies history. All commits are made by the user, except explicity told otherwise.
+**Never commit or push.** Neither Claude nor any subagent may run `git commit`, `git push`, or any git command that modifies history. All commits are made by the user, except when explicitly instructed otherwise.
 
 ## Development workflow
 
-Common tasks via the Makefile:
+For an implementation change, read [`docs/agents/development.md`](docs/agents/development.md). For module boundaries or representation changes, also read [`docs/agents/architecture.md`](docs/agents/architecture.md) and the relevant ADRs.
+
+Common tasks are defined by the Makefile:
 
 ```sh
 make test       # run all tests (Pkg.test)
@@ -27,7 +33,7 @@ Use the `julia-mcp` MCP server (tools: `julia_eval`, `julia_list_sessions`, `jul
 
 ### Test structure
 
-Tests are organized in subdirectories matching `src/`, run via `test/runtests.jl` (ParallelTestRunner).
+Tests for each module are `test/*.jl`; shared fixtures live in `test/helpers/`, and static quality checks live in `test/quality/`. `test/runtests.jl` discovers and runs them with ParallelTestRunner.
 
 ### Testing patterns
 
@@ -70,12 +76,11 @@ invoked through `make format`.
 ### Type system
 
 - **No abstract-typed fields.** Every struct field must be concretely typed.
-- **`ProductSpace{T}` uses concrete `Tuple` storage.** The type parameter `T` is a concrete tuple type.
 
 ### Performance
 
 - **Type stability first.** All operations should be inferable — verify with `@inferred`.
-- **Minimize allocations in the pipeline.** The streaming passes in `passes.jl` are the hot path. Sink type-parameters (`F` in `where {F}`) force specialization so nested `do`-blocks inline with zero closure allocation.
+- **Minimize allocations in the core paths.** Pay particular attention to Fourier lowering, recursive expansion, and Liouvillian term composition. Sink type-parameters (`F` in `where {F}`) force specialization so nested `do`-blocks inline with zero closure allocation.
 - **No kwargs in hot paths.** Keyword arguments prevent specialization and can allocate. Expose kwargs at the API boundary, forward to positional-arg inner functions.
 
 ### Imports and style
