@@ -1,16 +1,23 @@
 """
-    QuasienergyOperator(H::PeriodicGenerator{SQA.QAdd}, nmax::Int)
+    QuasienergyOperator(G::PeriodicGenerator, nmax::Int)
 
-The quasienergy operator ``Q = H_S - i\\partial_t`` in Sambe (extended) space, truncated to
-harmonics `-nmax:nmax`:
+The quasienergy operator in Sambe (extended) space, truncated to harmonics `-nmax:nmax`.
+For a Hamiltonian generator, its blocks are
 
 ```math
 Q_{mn} = H_{m-n} - m\\,\\omega_d\\,\\delta_{mn}
 ```
 
+For a Liouvillian generator, the energy-like Floquet-Liouville operator has blocks
+
+```math
+Q_{mn} = i\\,\\mathcal{L}_{m-n} - m\\,\\omega_d\\,\\delta_{mn}.
+```
+
 Index it by harmonic, `Q[m, n]` with `m, n` in `-nmax:nmax`, not by array position.
-The eigenvalues of `Q` are the quasienergies, defined modulo `H.wd`, and they are what
-[`effective_generator`](@ref) approximates for a Hamiltonian generator.
+The eigenvalues of `Q` are the quasienergies, defined modulo `G.wd`. For a dissipative generator
+they are generally complex: the real part describes oscillation and the imaginary part describes
+decay or growth. This type stores symbolic blocks only; numerical vectorization is separate.
 
 # Examples
 
@@ -33,19 +40,34 @@ julia> Q[1, 1]
 
 See also [`PeriodicGenerator`](@ref), [`floquet_expansion`](@ref).
 """
-struct QuasienergyOperator
-  blocks::Matrix{SQA.QAdd}
+struct QuasienergyOperator{T}
+  blocks::Matrix{T}
   nmax::Int
 end
 
-function QuasienergyOperator(H::PeriodicGenerator{SQA.QAdd}, nmax::Int)
+hamiltonian_quasienergy_component(component::SQA.QAdd) = component
+liouvillian_quasienergy_component(component::Liouvillian) = im * component
+
+function quasienergy_operator(
+  G::PeriodicGenerator{T}, nmax::Int, identity::T, transform::F
+) where {T,F}
   nmax >= 0 || throw(ArgumentError("nmax must be >= 0, got $(nmax)"))
   n = 2nmax + 1
-  blocks = Matrix{SQA.QAdd}(undef, n, n)
+  blocks = Matrix{T}(undef, n, n)
   for (i, m) in enumerate((-nmax):nmax), (j, k) in enumerate((-nmax):nmax)
-    blocks[i, j] = m == k ? H[m - k] - (m * H.wd) * one(SQA.QAdd) : H[m - k]
+    block = transform(G[m - k])
+    blocks[i, j] = m == k ? block - (m * G.wd) * identity : block
   end
-  return QuasienergyOperator(blocks, nmax)
+  return QuasienergyOperator{T}(blocks, nmax)
+end
+
+function QuasienergyOperator(G::PeriodicGenerator{SQA.QAdd}, nmax::Int)
+  return quasienergy_operator(G, nmax, one(SQA.QAdd), hamiltonian_quasienergy_component)
+end
+
+function QuasienergyOperator(G::PeriodicGenerator{Liouvillian}, nmax::Int)
+  identity = action(one(SQA.QAdd), one(SQA.QAdd))
+  return quasienergy_operator(G, nmax, identity, liouvillian_quasienergy_component)
 end
 
 function Base.getindex(Q::QuasienergyOperator, m::Int, n::Int)

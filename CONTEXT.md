@@ -51,3 +51,7 @@ A truncated algebraic result that may not retain Lindblad form or complete posit
 **Micromotion**:
 The periodic transformation that relates the original time-dependent dynamics to the effective dynamics; its generator need not be unitary for dissipative systems.
 _Avoid_: calling dissipative micromotion a unitary kick operator.
+
+**Dissipative quasienergy**:
+A generally complex eigenvalue of the energy-like Floquet-Liouville operator for a periodically driven open system; its real part describes oscillation while its imaginary part describes decay or growth, and it is defined modulo the drive frequency.
+_Avoid_: assuming dissipative quasienergies are real or that every Liouvillian is completely positive.

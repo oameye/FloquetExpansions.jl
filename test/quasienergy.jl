@@ -46,6 +46,20 @@ fold(x, wd) = mod(real(x) + wd / 2, wd) - wd / 2
   @test_throws ArgumentError QuasienergyOperator(H, -1)
 end
 
+@testset "dissipative quasienergy blocks use the Liouvillian convention" begin
+  space = NLevelSpace(:dissipative_quasienergy, 2)
+  a = Transition(space, :σ, 1, 2)
+  static = Liouvillian(zero(SQA.QAdd); channels=(jump(a, 1),))
+  driven = hamiltonian_action(a)
+  L = PeriodicGenerator(Dict(0 => static, 1 => driven), wd_symbol)
+  Q = QuasienergyOperator(L, 1)
+  rho = Transition(space, :rho, 1, 1)
+
+  @test Q isa QuasienergyOperator{Liouvillian}
+  @test Q[1, 0] == im * driven
+  @test iszero(SQA.simplify(Q[1, 1](rho) - (im * static(rho) - wd_symbol * rho)))
+end
+
 @testset "quasienergies match the effective Hamiltonian's spectrum" begin
   wd = 60.0
   H = random_drive(MersenneTwister(0x51E), HN, D, 1, wd_symbol)
