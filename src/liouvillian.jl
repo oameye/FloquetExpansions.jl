@@ -50,6 +50,22 @@ end
 
 @inline term_pairs(L::Liouvillian) = pairs(L.terms)
 
+"""
+    actions(L::Liouvillian)
+
+Iterate over the elementary actions in `L`. Each item is a
+`(left_operator, right_operator, coefficient)` tuple representing
+`ρ ↦ coefficient * left_operator * ρ * right_operator`.
+
+The iteration order is unspecified. The returned iterator is independent of the sparse storage
+used by `L`.
+"""
+function actions(L::Liouvillian)
+  return (
+    (left, right, coefficient) for ((left, right), coefficient) in term_pairs(L)
+  )
+end
+
 function action(left::SQA.QField, right::SQA.QField, coefficient::LiouvillianScalar=1)
   return raw_liouvillian(
     LiouvillianTerms((qadd(left), qadd(right)) => convert(SQA.CNum, coefficient))
@@ -208,16 +224,13 @@ function harmonics(L::Liouvillian, w::Symbolics.Num, t::Symbolics.Num)
     right_harmonics = harmonics(right, w, t)
 
     for (left_harmonic, left_component) in component_pairs(left_harmonics),
-      (right_harmonic, right_component) in component_pairs(right_harmonics),
-      phase_term in SQA.phase_terms(coefficient)
+      (right_harmonic, right_component) in component_pairs(right_harmonics)
+      foreach_harmonic_phase(coefficient, w, t) do coefficient_harmonic, phase_coefficient
+        harmonic = left_harmonic + right_harmonic + coefficient_harmonic
 
-      phase_coefficient = phase_term.amplitude
-      m, offset = harmonic_index(phase_term.phase, w, t)
-      issymzero(offset) || (phase_coefficient *= SQA.expim(offset))
-      harmonic = left_harmonic + right_harmonic + m
-
-      haskey(out, harmonic) || (out[harmonic] = zero(L))
-      add_term!(out[harmonic], left_component, right_component, phase_coefficient)
+        haskey(out, harmonic) || (out[harmonic] = zero(L))
+        add_term!(out[harmonic], left_component, right_component, phase_coefficient)
+      end
     end
   end
   return PeriodicGenerator(out, w, zero(L))

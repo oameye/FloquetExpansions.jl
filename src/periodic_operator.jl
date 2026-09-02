@@ -47,6 +47,18 @@ function harmonic_index(arg, w, t)
   return -m, offset
 end
 
+@inline function foreach_harmonic_phase(
+  f::F, coefficient::SQA.CNum, w::Symbolics.Num, t::Symbolics.Num
+) where {F}
+  for phase_term in SQA.phase_terms(coefficient)
+    harmonic, offset = harmonic_index(phase_term.phase, w, t)
+    phase_coefficient = phase_term.amplitude
+    issymzero(offset) || (phase_coefficient *= SQA.expim(offset))
+    f(harmonic, phase_coefficient)
+  end
+  return nothing
+end
+
 function validate_component_type(::Type{T}) where {T}
   isconcretetype(T) ||
     throw(ArgumentError("generator components must have a concrete element type"))
@@ -187,11 +199,9 @@ function harmonics(H::SQA.QAdd, w::Symbolics.Num, t::Symbolics.Num)
   out = Dict{Int,SQA.QAdd}()
   for (term, coeff) in SQA.exponential_form(H)
     mono = isempty(term.ops) ? one(SQA.QAdd) : prod(term.ops)
-    for phase_term in SQA.phase_terms(coeff)
-      m, offset = harmonic_index(phase_term.phase, w, t)
-      contribution = phase_term.amplitude * mono
-      issymzero(offset) || (contribution = contribution * SQA.expim(offset))
-      out[m] = haskey(out, m) ? out[m] + contribution : contribution
+    foreach_harmonic_phase(coeff, w, t) do harmonic, phase_coefficient
+      contribution = phase_coefficient * mono
+      out[harmonic] = haskey(out, harmonic) ? out[harmonic] + contribution : contribution
     end
   end
   return PeriodicGenerator(out, w, zero(H))

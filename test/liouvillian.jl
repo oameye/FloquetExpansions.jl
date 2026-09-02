@@ -7,7 +7,7 @@ include(joinpath(@__DIR__, "helpers", "shared.jl"))
 
 space = FockSpace(:liouvillian)
 a = Destroy(space, :a)
-@variables γ::Real ω::Real t::Real
+@variables γ::Real ω::Real t::Real t₀::Real
 
 function coeff_to_complex(coeff, substitutions::AbstractDict)
   dummy = coeff * one(SQA.QAdd)
@@ -16,7 +16,7 @@ end
 
 function superoperator_matrix(L::Liouvillian, space, d::Int, substitutions::AbstractDict)
   matrix = zeros(ComplexF64, d^2, d^2)
-  for ((left, right), coeff) in L.terms
+  for (left, right, coeff) in actions(L)
     left_mat = tomatrix(left, d, substitutions)
     right_mat = tomatrix(right, d, substitutions)
     c = coeff_to_complex(coeff, substitutions)
@@ -24,6 +24,20 @@ function superoperator_matrix(L::Liouvillian, space, d::Int, substitutions::Abst
     matrix .+= c .* kron(transpose(right_mat), left_mat)
   end
   return matrix
+end
+
+@testset "Liouvillian actions expose semantic terms" begin
+  L = hamiltonian_action(a)
+  observed = collect(actions(L))
+
+  @test @inferred(collect(actions(L))) isa
+    Vector{Tuple{SQA.QAdd, SQA.QAdd, SQA.CNum}}
+  @test length(observed) == 2
+  @test all(length(action_term) == 3 for action_term in observed)
+  a_q = a + zero(one(a))
+  minus_im = convert(SQA.CNum, -im)
+  plus_im = convert(SQA.CNum, im)
+  @test Set(observed) == Set(((a_q, one(a), minus_im), (one(a), a_q, plus_im)))
 end
 
 function independent_dissipator_matrix(C::Matrix{ComplexF64})
@@ -173,6 +187,29 @@ end
 
   @test sort!(collect(keys(periodic))) == [-2, -1, 0, 1, 2]
   @test harmonics(periodic(t), ω, t) == periodic
+end
+
+@testset "periodic rate phases keep the shared Fourier convention" begin
+  rate = expim(ω * t₀) * cos(ω * t)
+  periodic = harmonics(
+    Liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)),
+    ω,
+    t,
+  )
+
+  @test sort!(collect(keys(periodic))) == [-1, 1]
+  @test periodic[-1] == (1 // 2) * expim(ω * t₀) * dissipator(a)
+  @test periodic[1] == (1 // 2) * expim(ω * t₀) * dissipator(a)
+  @test harmonics(periodic(t), ω, t) == periodic
+end
+
+@testset "non-periodic Liouvillian phases are rejected" begin
+  rate = expim(ω * t^2)
+  @test_throws ArgumentError harmonics(
+    Liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)),
+    ω,
+    t,
+  )
 end
 
 @testset "a zero periodic Liouvillian keeps its public zero prototype" begin
