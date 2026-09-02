@@ -110,12 +110,12 @@ function collapse(operator::SQA.QField)
 end
 
 """
-    jump(operator::QField; rate) -> RateWeightedJump
+    jump(operator::QField, rate) -> RateWeightedJump
 
 Represent a bare jump operator with a separate symbolic rate. It contributes
 ``rate D[operator]`` to a [`Liouvillian`](@ref). The rate is not folded into the operator.
 """
-function jump(operator::SQA.QField; rate::LiouvillianScalar)
+function jump(operator::SQA.QField, rate::LiouvillianScalar)
   return RateWeightedJump(operator, rate)
 end
 

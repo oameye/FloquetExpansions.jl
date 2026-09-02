@@ -38,14 +38,14 @@ end
   complete = dissipator(a)
   weighted = γ * dissipator(a')
 
-  L = Liouvillian(H; channels=(collapse(a), jump(a'; rate=γ)))
+  L = Liouvillian(H; channels=(collapse(a), jump(a', γ)))
 
   @test L == coherent + complete + weighted
   @test L isa Liouvillian
   @test @inferred(hamiltonian_action(H)) isa Liouvillian
   @test @inferred(dissipator(a)) isa Liouvillian
   @test @inferred(γ * dissipator(a')) isa Liouvillian
-  @test @inferred(Liouvillian(H; channels=(jump(a; rate=γ),))) isa Liouvillian
+  @test @inferred(Liouvillian(H; channels=(jump(a, γ),))) isa Liouvillian
 end
 
 @testset "Liouvillian arithmetic collects equal actions" begin
@@ -81,15 +81,15 @@ end
 
 @testset "Liouvillian channel adapters" begin
   @test Liouvillian(a; channels=(collapse(a),)) == hamiltonian_action(a) + dissipator(a)
-  @test Liouvillian(a; channels=(jump(a; rate=γ),)) ==
+  @test Liouvillian(a; channels=(jump(a, γ),)) ==
     hamiltonian_action(a) + γ * dissipator(a)
   @test Liouvillian(zero(SQA.QAdd); channels=(collapse(2a),)) == dissipator(2a)
-  @test_throws UndefKeywordError jump(a)
+  @test_throws MethodError jump(a)
   @test_throws MethodError Liouvillian(a; channels=(a,))
 end
 
 @testset "Liouvillians use the common van Vleck expansion" begin
-  static = Liouvillian(a' * a; channels=(jump(a; rate=γ),))
+  static = Liouvillian(a' * a; channels=(jump(a, γ),))
   driven = Liouvillian(a)
   generator = PeriodicGenerator(Dict(0 => static, 1 => driven, -1 => driven), ω)
   expansion = floquet_expansion(generator, VanVleck(), 2)
@@ -106,13 +106,13 @@ end
   jump_operator = expim(-ω * t) * a
   rate = 1 + cos(ω * t)
 
-  native = Liouvillian(H; channels=(collapse(collapse_operator), jump(jump_operator; rate)))
+  native = Liouvillian(H; channels=(collapse(collapse_operator), jump(jump_operator, rate)))
   periodic = harmonics(native, ω, t)
 
   @test periodic isa PeriodicGenerator{Liouvillian}
   @test @inferred(harmonics(native, ω, t)) isa PeriodicGenerator{Liouvillian}
   @test harmonics(periodic(t), ω, t) == periodic
-  @test periodic[0] == Liouvillian(a' * a; channels=(collapse(a), jump(a; rate=1)))
+  @test periodic[0] == Liouvillian(a' * a; channels=(collapse(a), jump(a, 1)))
   expected_oscillatory = hamiltonian_action((1 // 2) * (a + a')) + (1 // 2) * dissipator(a)
   @test periodic[1] == expected_oscillatory
   @test periodic[-1] == expected_oscillatory
@@ -124,7 +124,7 @@ end
     t,
     VanVleck(),
     1;
-    channels=(collapse(collapse_operator), jump(jump_operator; rate)),
+    channels=(collapse(collapse_operator), jump(jump_operator, rate)),
   )
   explicit = floquet_expansion(periodic, VanVleck(), 1)
 
@@ -136,7 +136,7 @@ end
     Liouvillian(zero(SQA.QAdd); channels=(collapse(collapse_operator),)), ω, t
   )
   weighted_only = harmonics(
-    Liouvillian(zero(SQA.QAdd); channels=(jump(jump_operator; rate=1),)), ω, t
+    Liouvillian(zero(SQA.QAdd); channels=(jump(jump_operator, 1),)), ω, t
   )
   @test complete_only == weighted_only
 end
@@ -147,7 +147,7 @@ end
   rate = 1 + cos(ω * t)
   periodic = harmonics(
     Liouvillian(
-      zero(SQA.QAdd); channels=(collapse(collapse_operator), jump(jump_operator; rate))
+      zero(SQA.QAdd); channels=(collapse(collapse_operator), jump(jump_operator, rate))
     ),
     ω,
     t,
@@ -175,7 +175,7 @@ end
   collapse_operator = expim(-ω * t) * sigma
   jump_operator = sigma + expim(ω * t) * sigma'
   rate = 1 + expim(ω * t) + expim(-ω * t)
-  native = Liouvillian(H; channels=(collapse(collapse_operator), jump(jump_operator; rate)))
+  native = Liouvillian(H; channels=(collapse(collapse_operator), jump(jump_operator, rate)))
   periodic = harmonics(native, ω, t)
   substitutions = Dict(ω => 3.0, t => 0.37)
 
