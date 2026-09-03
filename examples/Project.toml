@@ -10,9 +10,6 @@ QuantumCumulants = "35bcea6d-e19f-57db-af74-8011de6c7255"
 SecondQuantizedAlgebra = "f7aa4685-e143-4cb6-a7f3-073579757907"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
-[sources]
-SecondQuantizedAlgebra = {rev = "main", url = "https://github.com/qojulia/SecondQuantizedAlgebra.jl"}
-
 [compat]
 ModelingToolkitBase = "1"
 OrdinaryDiffEq = "7"
