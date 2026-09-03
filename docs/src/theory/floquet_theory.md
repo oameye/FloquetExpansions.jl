@@ -48,8 +48,8 @@ The package uses the Fourier convention
 \mathcal{G}(t)=\sum_{m\in\mathbb{Z}}\mathcal{G}_m e^{-im\omega t}.
 ~~~
 
-[PeriodicGenerator](@ref) stores these harmonics together with the drive frequency. Its zeroth
-harmonic is the period average, and missing harmonics are zero. Use [harmonics](@ref) to convert a
+[`PeriodicGenerator`](@ref) stores these harmonics together with the drive frequency. Its zeroth
+harmonic is the period average, and missing harmonics are zero. Use [`harmonics`](@ref) to convert a
 symbolic Hamiltonian or Liouvillian.
 
 ## Hamiltonian Floquet states
@@ -109,7 +109,7 @@ Q_{mn}=H_{m-n}-m\omega_d\,\delta_{mn}.
 ~~~
 
 The diagonal blocks are replicas of the averaged Hamiltonian, shifted by integer multiples of the
-drive frequency; nonzero harmonics couple different replicas. [QuasienergyOperator](@ref)
+drive frequency; nonzero harmonics couple different replicas. [`QuasienergyOperator`](@ref)
 constructs a finite symbolic truncation of these blocks. This exact time-domain-to-Sambe-space
 mapping is the formulation introduced by Shirley and placed on an extended-space footing by Sambe
 [Shirley1965, Sambe1973](@cite).

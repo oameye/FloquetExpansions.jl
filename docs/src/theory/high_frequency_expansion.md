@@ -191,4 +191,4 @@ energy units, perturbative order, and integration constants. The package chooses
 van Vleck gauge, which is the phase-independent effective-frame convention used in the Floquet
 formulations of Goldman and Dalibard and Eckardt [Goldman2014, Eckardt2015](@cite).
 
-See [floquet_expansion](@ref) for the computational interface.
+See [`floquet_expansion`](@ref) for the computational interface.
