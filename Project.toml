@@ -1,6 +1,6 @@
 name = "FloquetExpansions"
 uuid = "3d8c71b5-958b-4b86-b80e-339bb07db863"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Orjan Ameye <orjan.ameye@hotmail.com>"]
 
 [deps]
@@ -15,6 +15,6 @@ SecondQuantizedAlgebra = {rev = "main", url = "https://github.com/qojulia/Second
 [compat]
 LinearAlgebra = "1"
 Reexport = "1.2"
-SecondQuantizedAlgebra = "0.10, 0.11"
+SecondQuantizedAlgebra = "0.11"
 Symbolics = "6, 7"
 julia = "1.10"

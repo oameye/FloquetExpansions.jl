@@ -1,7 +1,8 @@
 using Test
 using FloquetExpansions
 using LinearAlgebra: ishermitian
-import SecondQuantizedAlgebra as SQA
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
+const SQA = SecondQuantizedAlgebra
 
 h = FockSpace(:cavity)
 a = Destroy(h, :a)
@@ -120,11 +121,18 @@ end
   @test iszero(derivative(X))
 end
 
-@testset "PeriodicOperator accepts symbolic drives directly" begin
+@testset "a zero operator retains its component prototype" begin
+  X = harmonics(zero(SQA.QAdd), w, t)
+  @test iszero(X)
+  @test X[0] == zero(SQA.QAdd)
+  @test time_average(X) == zero(SQA.QAdd)
+end
+
+@testset "PeriodicGenerator accepts symbolic drives directly" begin
   H = a * SQA.expim(w * t) + a' * SQA.expim(-w * t)
   X = harmonics(H, w, t)
   @test X == harmonics(H, w, t)
-  @test @inferred(harmonics(H, w, t)) isa PeriodicOperator
+  @test @inferred(harmonics(H, w, t)) isa PeriodicGenerator
   @test iszero(SQA.simplify(X(t) - SQA.exponential_form(H)))
 
   static = harmonics(1 * (a' * a), w, t)

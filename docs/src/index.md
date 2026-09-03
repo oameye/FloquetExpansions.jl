@@ -5,11 +5,11 @@ layout: home
 hero:
   name: FloquetExpansions.jl
   text: High-frequency expansions for periodically driven quantum systems
-  tagline: Derive effective Hamiltonians and micromotion operators symbolically in Julia.
+  tagline: Derive effective generators and micromotion symbolically in Julia.
   actions:
     - theme: brand
-      text: API Reference
-      link: API/
+      text: Manual
+      link: manual/system.md
     - theme: alt
       text: Literature
       link: literature/
@@ -20,13 +20,13 @@ hero:
 features:
   - icon: 〰️
     title: High frequency expansion
-    details: Compute a time-independent effective Hamiltonian together with the kick operator governing micromotion.
+    details: Compute a time-independent effective generator together with its periodic micromotion.
   - icon: ∑
     title: Symbolic operator algebra
     details: Build drives from SecondQuantizedAlgebra.jl expressions and retain exact symbolic coefficients throughout the expansion.
   - icon: 🌀
     title: Different gauges
-    details: Use a zero-average kick operator, making the effective Hamiltonian independent of the drive's initial phase.
+    details: Use a zero-average micromotion generator, making the effective generator independent of the drive's initial phase.
   - icon:
       src: https://sciml.ai/assets/favicon.png
       alt: SciML logo
@@ -40,10 +40,10 @@ features:
 CurrentModule = FloquetExpansions
 ```
 
-`FloquetExpansions.jl` computes high-frequency expansions for periodically driven quantum systems. Given a periodic Hamiltonian ``H(t)``, it derives a static effective Hamiltonian ``H_\mathrm{eff}`` and a periodic kick operator ``K(t)`` such that
+`FloquetExpansions.jl` computes high-frequency expansions for periodically driven quantum systems. Given a periodic generator ``\mathcal{G}(t)``—Hamiltonian or Liouvillian—it derives a static effective generator ``\mathcal{G}_\mathrm{eff}`` and the generator ``\mathcal{K}(t)`` of a periodic micromotion superoperator ``\mathcal{M}(t)=e^{\mathcal{K}(t)}`` such that
 
 ```math
-U(t) = e^{-i K(t)} e^{-i H_\mathrm{eff} t} e^{i K(0)}.
+\mathcal{V}(t,0) = \mathcal{M}(t) e^{t\mathcal{L}_\mathrm{eff}} \mathcal{M}(0)^{-1}.
 ```
 
 The package currently implements the van Vleck expansion, a high-frequency approximation that separates slow effective dynamics from fast micromotion [Eckardt2015](@cite).
@@ -66,18 +66,18 @@ space = PauliSpace(:qubit)
 σz = Pauli(space, :σ, 3)
 σx = Pauli(space, :σ, 1)
 
-@variables ω::Real t::Real Δ::Real A::Real
+@variables ω::Real t::Real Δ::Real A::Real γ::Real
 H = (Δ / 2) * σz + A * cos(ω * t) * σx
 
-expansion = floquet_expansion(H, ω, t, VanVleck(), 2)
-Heff = effective_hamiltonian(expansion)
-K = kick_operator(expansion, t)
+expansion = floquet_expansion(H, ω, t, VanVleck(), 2; channels=(jump(σx, γ),))
+L_eff = effective_generator(expansion)
+K = micromotion(expansion)(t)
 ```
 
-See the [API reference](API.md) for the full interface.
+See the [Manual](manual/system.md) for the conceptual interface and API documentation.
 
 ## Main Features
 
 ### High-frequency expansion
 
-[`floquet_expansion`](@ref) accepts either a harmonic representation or a symbolic time-dependent operator. Its result exposes [`effective_hamiltonian`](@ref) and [`kick_operator`](@ref) without materializing a Floquet-Sambe matrix.
+[`floquet_expansion`](@ref) accepts either a periodic generator or a symbolic time-dependent Hamiltonian. Its result exposes [`effective_generator`](@ref) and [`micromotion`](@ref) without materializing a Floquet-Sambe matrix.

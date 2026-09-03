@@ -1,6 +1,7 @@
 using Test
 using FloquetExpansions
-import SecondQuantizedAlgebra as SQA
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
+const SQA = SecondQuantizedAlgebra
 using Symbolics: Symbolics
 using LinearAlgebra: exp, opnorm
 using Random: MersenneTwister, randn
@@ -9,9 +10,12 @@ include(joinpath(@__DIR__, "helpers", "shared.jl"))
 
 const D = 3
 const HN = NLevelSpace(:atom, D)
+@variables wd_symbol::Real
 
-function tomatrices(X::PeriodicOperator, d::Int)
-  return Dict{Int,Matrix{ComplexF64}}(l => tomatrix(X[l], d) for l in keys(X))
+function tomatrices(X::PeriodicGenerator, d::Int, substitutions::AbstractDict)
+  return Dict{Int,Matrix{ComplexF64}}(
+    l => tomatrix(X[l], d, substitutions) for l in keys(X)
+  )
 end
 
 function frechet_exp(A::Matrix{ComplexF64}, E::Matrix{ComplexF64})
@@ -25,9 +29,10 @@ function frechet_exp(A::Matrix{ComplexF64}, E::Matrix{ComplexF64})
 end
 
 function residual(vv, H, wd, d; nt=24)
-  Heff = tomatrix(effective_hamiltonian(vv), d)
-  Ks = tomatrices(kick_operator(vv), d)
-  Hs = tomatrices(H, d)
+  substitutions = Dict(wd_symbol => wd)
+  Heff = tomatrix(effective_generator(vv), d, substitutions)
+  Ks = tomatrices(micromotion(vv), d, substitutions)
+  Hs = tomatrices(H, d, substitutions)
   worst = 0.0
   for k in 0:(nt - 1)
     t = 2π * k / (nt * wd)
@@ -61,7 +66,7 @@ end
 
   for N in 2:5
     errs = [
-      let H = random_drive(MersenneTwister(0xF10), HN, D, 2, wd)
+      let H = random_drive(MersenneTwister(0xF10), HN, D, 2, wd_symbol)
         residual(floquet_expansion(H, VanVleck(), N), H, wd, D)
       end for wd in wds
     ]
@@ -70,7 +75,7 @@ end
   end
 
   rwa = [
-    let H = random_drive(MersenneTwister(0xF10), HN, D, 2, wd)
+    let H = random_drive(MersenneTwister(0xF10), HN, D, 2, wd_symbol)
       residual(floquet_expansion(H, VanVleck(), 1), H, wd, D)
     end for wd in wds
   ]

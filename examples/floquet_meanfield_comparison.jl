@@ -1,5 +1,8 @@
 # # Counting pump photons: a mean-field comparison
 
+# This example follows the Floquet expansion by counting pump photons described in
+# [Seibold2024](@cite).
+
 using FloquetExpansions
 
 h_a = FockSpace(:cavity)
@@ -30,7 +33,7 @@ Q_a = harmonics(H_a, ω, t)
 #
 
 rwa_a = floquet_expansion(Q_a, VanVleck(), 1)
-H_eff_a = simplify(effective_hamiltonian(rwa_a))
+H_eff_a = simplify(effective_generator(rwa_a))
 
 #
 
@@ -48,7 +51,7 @@ H_b = simplify(transform(duffing_hamiltonian(x_b, p_b), rot_b))
 
 Q_b = harmonics(H_b, ω, t)
 rwa_b = floquet_expansion(Q_b, VanVleck(), 1)
-H_eff_b = simplify(effective_hamiltonian(rwa_b))
+H_eff_b = simplify(effective_generator(rwa_b))
 
 #
 
@@ -116,3 +119,9 @@ p_error = plot(
 plot!(p_error, t_plot, abs.(x_b_envelope .- x_lab_envelope); label="B error")
 
 plot(p_envelope, p_error; layout=(2, 1))
+
+# ## References
+#
+# ```@bibliography
+# Canonical = false
+# ```
