@@ -47,7 +47,7 @@ makedocs(;
   plugins=[bib, CodeBlocks(), LandingPage(), links],
   clean=true,
   linkcheck=false,
-  draft=true,#,(!CI),
+  draft=false,#,(!CI),
   doctest=false, # run in test suite
   checkdocs=:exports,
 )
