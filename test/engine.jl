@@ -98,16 +98,6 @@ end
   @test all(vanishes(back[l] - K[l]) for l in keys(K))
 end
 
-@testset "old Hamiltonian accessors remain compatible" begin
-  vv = floquet_expansion(drive(), VanVleck(), 3)
-  @test effective_hamiltonian(vv) == effective_generator(vv)
-  @test effective_hamiltonian(vv, 1) == effective_generator(vv, 1)
-  @test kick_operator(vv) == micromotion(vv)
-  @test kick_operator(vv, 1) == micromotion(vv, 1)
-  @test kick_operator(vv, t) == micromotion(vv)(t)
-  @test_throws MethodError kick_operator(vv, 0.4)
-end
-
 @testset "a non-Hermitian Hamiltonian drive is refused at ingest" begin
   bad = PeriodicGenerator(Dict(1 => a, -1 => a), w)
   @test_throws ArgumentError floquet_expansion(bad, VanVleck(), 2)

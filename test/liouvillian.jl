@@ -16,7 +16,7 @@ end
 
 function superoperator_matrix(L::Liouvillian, space, d::Int, substitutions::AbstractDict)
   matrix = zeros(ComplexF64, d^2, d^2)
-  for (left, right, coeff) in actions(L)
+  for (left, right, coeff) in terms(L)
     left_mat = tomatrix(left, d, substitutions)
     right_mat = tomatrix(right, d, substitutions)
     c = coeff_to_complex(coeff, substitutions)
@@ -26,13 +26,13 @@ function superoperator_matrix(L::Liouvillian, space, d::Int, substitutions::Abst
   return matrix
 end
 
-@testset "Liouvillian actions expose semantic terms" begin
+@testset "Liouvillian terms expose semantic triples" begin
   L = hamiltonian_action(a)
-  observed = collect(actions(L))
+  observed = collect(terms(L))
 
-  @test @inferred(collect(actions(L))) isa Vector{Tuple{SQA.QAdd,SQA.QAdd,SQA.CNum}}
+  @test @inferred(collect(terms(L))) isa Vector{Tuple{SQA.QAdd,SQA.QAdd,SQA.CNum}}
   @test length(observed) == 2
-  @test all(length(action_term) == 3 for action_term in observed)
+  @test all(length(term) == 3 for term in observed)
   a_q = a + zero(one(a))
   minus_im = convert(SQA.CNum, -im)
   plus_im = convert(SQA.CNum, im)
@@ -59,17 +59,17 @@ end
   complete = dissipator(a)
   weighted = γ * dissipator(a')
 
-  L = Liouvillian(H; channels=(collapse(a), jump(a', γ)))
+  L = liouvillian(H; channels=(collapse(a), jump(a', γ)))
 
   @test L == coherent + complete + weighted
   @test L isa Liouvillian
   @test @inferred(hamiltonian_action(H)) isa Liouvillian
   @test @inferred(dissipator(a)) isa Liouvillian
   @test @inferred(γ * dissipator(a')) isa Liouvillian
-  @test @inferred(Liouvillian(H; channels=(jump(a, γ),))) isa Liouvillian
+  @test @inferred(liouvillian(H; channels=(jump(a, γ),))) isa Liouvillian
 end
 
-@testset "Liouvillian arithmetic collects equal actions" begin
+@testset "Liouvillian arithmetic collects equal terms" begin
   L = hamiltonian_action(a' * a)
 
   @test iszero(L - L)
@@ -79,11 +79,11 @@ end
   @test SQA.simplify(L - L) == zero(L)
 end
 
-@testset "periodic Liouvillian channels collect equal actions" begin
+@testset "periodic Liouvillian channels collect equal terms" begin
   operator = a + cos(ω * t) * a'
-  single = harmonics(Liouvillian(zero(SQA.QAdd); channels=(collapse(operator),)), ω, t)
+  single = harmonics(liouvillian(zero(SQA.QAdd); channels=(collapse(operator),)), ω, t)
   doubled = harmonics(
-    Liouvillian(zero(SQA.QAdd); channels=(collapse(operator), collapse(operator))), ω, t
+    liouvillian(zero(SQA.QAdd); channels=(collapse(operator), collapse(operator))), ω, t
   )
 
   @test doubled == 2 * single
@@ -112,16 +112,16 @@ end
 end
 
 @testset "Liouvillian channel adapters" begin
-  @test Liouvillian(a; channels=(collapse(a),)) == hamiltonian_action(a) + dissipator(a)
-  @test Liouvillian(a; channels=(jump(a, γ),)) == hamiltonian_action(a) + γ * dissipator(a)
-  @test Liouvillian(zero(SQA.QAdd); channels=(collapse(2a),)) == dissipator(2a)
+  @test liouvillian(a; channels=(collapse(a),)) == hamiltonian_action(a) + dissipator(a)
+  @test liouvillian(a; channels=(jump(a, γ),)) == hamiltonian_action(a) + γ * dissipator(a)
+  @test liouvillian(zero(SQA.QAdd); channels=(collapse(2a),)) == dissipator(2a)
   @test_throws MethodError jump(a)
-  @test_throws MethodError Liouvillian(a; channels=(a,))
+  @test_throws MethodError liouvillian(a; channels=(a,))
 end
 
 @testset "Liouvillians use the common van Vleck expansion" begin
-  static = Liouvillian(a' * a; channels=(jump(a, γ),))
-  driven = Liouvillian(a)
+  static = liouvillian(a' * a; channels=(jump(a, γ),))
+  driven = liouvillian(a)
   generator = PeriodicGenerator(Dict(0 => static, 1 => driven, -1 => driven), ω)
   expansion = floquet_expansion(generator, VanVleck(), 2)
 
@@ -137,13 +137,13 @@ end
   jump_operator = expim(-ω * t) * a
   rate = 1 + cos(ω * t)
 
-  native = Liouvillian(H; channels=(collapse(collapse_operator), jump(jump_operator, rate)))
+  native = liouvillian(H; channels=(collapse(collapse_operator), jump(jump_operator, rate)))
   periodic = harmonics(native, ω, t)
 
   @test periodic isa PeriodicGenerator{Liouvillian}
   @test @inferred(harmonics(native, ω, t)) isa PeriodicGenerator{Liouvillian}
   @test harmonics(periodic(t), ω, t) == periodic
-  @test periodic[0] == Liouvillian(a' * a; channels=(collapse(a), jump(a, 1)))
+  @test periodic[0] == liouvillian(a' * a; channels=(collapse(a), jump(a, 1)))
   expected_oscillatory = hamiltonian_action((1 // 2) * (a + a')) + (1 // 2) * dissipator(a)
   @test periodic[1] == expected_oscillatory
   @test periodic[-1] == expected_oscillatory
@@ -164,10 +164,10 @@ end
   @test effective_generator(keyword) == effective_generator(explicit)
 
   complete_only = harmonics(
-    Liouvillian(zero(SQA.QAdd); channels=(collapse(collapse_operator),)), ω, t
+    liouvillian(zero(SQA.QAdd); channels=(collapse(collapse_operator),)), ω, t
   )
   weighted_only = harmonics(
-    Liouvillian(zero(SQA.QAdd); channels=(jump(jump_operator, 1),)), ω, t
+    liouvillian(zero(SQA.QAdd); channels=(jump(jump_operator, 1),)), ω, t
   )
   @test complete_only == weighted_only
 end
@@ -177,7 +177,7 @@ end
   jump_operator = a + expim(-ω * t) * a'
   rate = 1 + cos(ω * t)
   periodic = harmonics(
-    Liouvillian(
+    liouvillian(
       zero(SQA.QAdd); channels=(collapse(collapse_operator), jump(jump_operator, rate))
     ),
     ω,
@@ -190,7 +190,7 @@ end
 
 @testset "periodic rate phases keep the shared Fourier convention" begin
   rate = expim(ω * t₀) * cos(ω * t)
-  periodic = harmonics(Liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)), ω, t)
+  periodic = harmonics(liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)), ω, t)
 
   @test sort!(collect(keys(periodic))) == [-1, 1]
   @test periodic[-1] == (1 // 2) * expim(ω * t₀) * dissipator(a)
@@ -201,7 +201,7 @@ end
 @testset "non-periodic Liouvillian phases are rejected" begin
   rate = expim(ω * t^2)
   @test_throws ArgumentError harmonics(
-    Liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)), ω, t
+    liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)), ω, t
   )
 end
 
@@ -223,7 +223,7 @@ end
   collapse_operator = expim(-ω * t) * sigma
   jump_operator = sigma + expim(ω * t) * sigma'
   rate = 1 + expim(ω * t) + expim(-ω * t)
-  native = Liouvillian(H; channels=(collapse(collapse_operator), jump(jump_operator, rate)))
+  native = liouvillian(H; channels=(collapse(collapse_operator), jump(jump_operator, rate)))
   periodic = harmonics(native, ω, t)
   substitutions = Dict(ω => 3.0, t => 0.37)
 

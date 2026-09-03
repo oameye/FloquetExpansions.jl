@@ -8,14 +8,14 @@ abstract type Gauge end
 """
     VanVleck()
 
-Select the van Vleck gauge, ``\\langle K \\rangle = 0``. This gives the micromotion
+Select the van Vleck gauge, ``\\langle \\mathcal{K} \\rangle = 0``. This gives the micromotion
 generator zero period average and makes the effective generator independent of the drive's
 initial phase.
 
 # References
 
 The van Vleck construction follows [VanVleck1929](@cite), and its Floquet-space formulation
-follows [Eckardt2015](@cite).
+follows [Rahav2003](@cite), [Eckardt2015](@cite), and [Bukov2015](@cite).
 """
 struct VanVleck <: Gauge end
 
@@ -75,10 +75,10 @@ qadd(x::SQA.QAdd) = x
 qadd(x::SQA.QField) = 1 * x
 
 """
-    PeriodicGenerator(components::AbstractDict{Int,T}, wd)
-    PeriodicGenerator(components::AbstractDict{Int,T}, wd, zero_component::T)
+    PeriodicGenerator(components::AbstractDict{Int,T}, ωd)
+    PeriodicGenerator(components::AbstractDict{Int,T}, ωd, zero_component::T)
 
-Represent a periodic generator by its Fourier harmonics, with drive frequency `wd`,
+Represent a periodic generator by its Fourier harmonics, with drive frequency `ωd`,
 
 ```math
 G(t) = \\sum_l G_l \\, e^{-i l \\omega_d t}.
@@ -92,7 +92,7 @@ combined when they use the same Fourier basis.
 # Arguments
 
 - `components`: Map integer harmonic labels to their nonzero components.
-- `wd`: Symbolic angular frequency defining the Fourier basis.
+- `ωd`: Symbolic angular frequency defining the Fourier basis.
 - `zero_component`: Prototype used to determine the component type of an empty generator.
 
 For an empty generator, the optional `zero_component` prototype fixes the component type.
@@ -109,9 +109,9 @@ julia> using LinearAlgebra: ishermitian
 
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> @variables w::Real t::Real;
+julia> @variables ω::Real t::Real;
 
-julia> G = harmonics(a * expim(w * t) + a' * expim(-w * t), w, t)
+julia> G = harmonics(a * expim(ω * t) + a' * expim(-ω * t), ω, t)
 PeriodicGenerator with harmonics -1:1
   l = -1  =>  a
   l = 1  =>  a'
@@ -173,19 +173,19 @@ function PeriodicGenerator(components::AbstractDict{Int,<:SQA.QField}, wd::Symbo
 end
 
 """
-    harmonics(H::QAdd, w::Symbolics.Num, t::Symbolics.Num) -> PeriodicGenerator
+    harmonics(H::QAdd, ω::Symbolics.Num, t::Symbolics.Num) -> PeriodicGenerator
 
 Decompose a time-dependent operator into Fourier harmonics using the convention
 
 ```math
-H(t) = \\sum_m H_m \\, e^{-i m w t}
+H(t) = \\sum_m H_m \\, e^{-i m ω t}
 ```
 
-`w` is the drive frequency and `t` the time variable, both symbolic. Trigonometric time
+`ω` is the drive frequency and `t` the time variable, both symbolic. Trigonometric time
 dependence is normalized to phases first. Thus `cos`, `sin`, and `expim` are all accepted,
-as is a constant phase offset such as `cos(w*t + φ)`.
+as is a constant phase offset such as `cos(ω*t + φ)`.
 
-Calling the returned generator at `t`, as in `harmonics(H, w, t)(t)`, reconstructs `H`.
+Calling the returned generator at `t`, as in `harmonics(H, ω, t)(t)`, reconstructs `H`.
 
 # Examples
 
@@ -194,9 +194,9 @@ julia> using LinearAlgebra: ishermitian
 
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> @variables w::Real t::Real;
+julia> @variables ω::Real t::Real;
 
-julia> H = harmonics(cos(w * t) * (a + a'), w, t)
+julia> H = harmonics(cos(ω * t) * (a + a'), ω, t)
 PeriodicGenerator with harmonics -1:1
   l = -1  =>  1//2 * a + 1//2 * a'
   l = 1  =>  1//2 * a + 1//2 * a'
@@ -338,9 +338,9 @@ The two generators must use the same drive frequency.
 ```jldoctest
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> @variables w::Real t::Real;
+julia> @variables ω::Real t::Real;
 
-julia> K = harmonics(a * expim(-w * t), w, t); X = harmonics(a' * expim(-w * t), w, t);
+julia> K = harmonics(a * expim(-ω * t), ω, t); X = harmonics(a' * expim(-ω * t), ω, t);
 
 julia> commutator(K, X)[2]
 1
@@ -416,9 +416,9 @@ high order rather than a silent loss of precision.
 ```jldoctest
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> @variables w::Real t::Real;
+julia> @variables ω::Real t::Real;
 
-julia> X = harmonics(a * expim(2w * t), w, t);
+julia> X = harmonics(a * expim(2ω * t), ω, t);
 
 julia> derivative(antiderivative(X, VanVleck())) == X
 true

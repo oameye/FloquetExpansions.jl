@@ -21,7 +21,7 @@ PeriodicGenerator{T}  ──►  Van Vleck recursion  ──►  FloquetExpansio
 | Module | Owns | Public seam |
 | --- | --- | --- |
 | `periodic_operator.jl` | Fourier harmonics, drive frequency, harmonic calculus, gauges | `PeriodicGenerator`, `harmonics`, `time_average`, `derivative`, `antiderivative` |
-| `liouvillian.jl` | Collected `ρ ↦ AρB` actions, channels, composition, Liouvillian lowering | `Liouvillian`, `actions`, `collapse`, `jump`, `compose`, `harmonics` |
+| `liouvillian.jl` | Collected `ρ ↦ AρB` terms, channels, composition, Liouvillian lowering | `Liouvillian`, `terms`, `collapse`, `jump`, `compose`, `harmonics` |
 | `engine.jl` | Generic Van Vleck recursion and order scaling | `FloquetExpansion`, `floquet_expansion`, `effective_generator`, `micromotion` |
 | `quasienergy.jl` | Symbolic Sambe blocks and harmonic indexing | `QuasienergyOperator`, `harmonic_range` |
 
@@ -30,7 +30,7 @@ The package delegates operator multiplication, adjoints, normal ordering, and co
 ## Representation rules
 
 - A missing Fourier harmonic and a zero harmonic are semantically equivalent.
-- A Liouvillian is a collected sum of left/right actions; its sparse dictionary is an implementation detail exposed through `actions`.
+- A Liouvillian is a collected sum of left/right terms; its sparse dictionary is an implementation detail exposed through `terms`.
 - A finite-order effective generator is returned as the raw algebraic truncation. Lindblad form or complete positivity is not inferred or repaired.
 - Dissipative quasienergy blocks use the energy-like Floquet-Liouville convention documented in ADR 0008; numerical vectorization remains an adapter concern.
 

@@ -12,10 +12,79 @@ common Fourier representation.
 
 ## Symbolic substrate
 
-FloquetExpansions operates on symbolic operators from
-[SecondQuantizedAlgebra.jl](@extref SecondQuantizedAlgebra :doc:`index`). SQA provides Hilbert
-spaces, quantum operators, symbolic coefficients, and their algebra; this manual focuses on the
-generator and Floquet layers built on top of that substrate.
+FloquetExpansions does not define a separate operator algebra. It operates on symbolic operators
+from [SecondQuantizedAlgebra.jl](@extref SecondQuantizedAlgebra :doc:`index`), or SQA, and adds the
+generator and Floquet layers on top of them.
+
+There are two distinct symbolic layers:
+
+- SQA defines Hilbert spaces, quantum operators, and the algebra used when operators are added or
+  multiplied.
+- [Symbolics.jl](https://symbolics.juliasymbolics.org/stable/) defines scalar symbolic expressions
+  such as frequencies, coupling strengths, amplitudes, and time. Use `@variables` to create them;
+  declare real quantities with `::Real` and potentially complex quantities with `::Number`.
+
+For complex scalar symbols, prefer `::Number` to `::Complex`.[^complex_symbol]
+
+### Choosing an operator algebra
+
+The Hilbert-space type selects the operator model and its defining relations:
+
+| Physical subsystem | SQA space | Operators | Defining relation |
+| --- | --- | --- | --- |
+| Bosonic mode | [`FockSpace`](@extref SecondQuantizedAlgebra.FockSpace) | [`Destroy`](@extref SecondQuantizedAlgebra.Destroy), [`Create`](@extref SecondQuantizedAlgebra.Create) | ``[a, a^\dagger] = 1`` |
+| Finite-level system | [`NLevelSpace`](@extref SecondQuantizedAlgebra.NLevelSpace) | [`Transition`](@extref SecondQuantizedAlgebra.Transition) | ``\sigma_{ij}\sigma_{kl} = \delta_{jk}\sigma_{il}`` |
+| Qubit in Pauli form | [`PauliSpace`](@extref SecondQuantizedAlgebra.PauliSpace) | [`Pauli`](@extref SecondQuantizedAlgebra.Pauli) | ``\sigma_j\sigma_k = \delta_{jk}I + i\epsilon_{jkl}\sigma_l`` |
+| Spin | [`SpinSpace`](@extref SecondQuantizedAlgebra.SpinSpace) | [`Spin`](@extref SecondQuantizedAlgebra.Spin) | ``[S_j,S_k] = i\epsilon_{jkl}S_l`` |
+| Canonical quadratures | [`PhaseSpace`](@extref SecondQuantizedAlgebra.PhaseSpace) | [`Position`](@extref SecondQuantizedAlgebra.Position), [`Momentum`](@extref SecondQuantizedAlgebra.Momentum) | ``[p,x] = -i`` |
+| Collective finite-level ensemble | [`CollectiveNLevelSpace`](@extref SecondQuantizedAlgebra.CollectiveNLevelSpace) | [`CollectiveTransition`](@extref SecondQuantizedAlgebra.CollectiveTransition) | ``[S^{ij},S^{kl}] = \delta_{jk}S^{il} - \delta_{li}S^{kj}`` |
+
+Use [`ProductSpace`](@extref SecondQuantizedAlgebra.ProductSpace) (written `⊗` or `tensor`) to combine
+independent subsystems. For example, a cavity–atom model can contain a [`Destroy`](@extref SecondQuantizedAlgebra.Destroy)
+operator acting on subspace `1` and a [`Transition`](@extref SecondQuantizedAlgebra.Transition) operator acting on
+subspace `2`. See the [SQA documentation](@extref SecondQuantizedAlgebra :doc:`index`) for the complete operator and
+Hilbert-space API.
+
+SQA expressions use ordinary Julia arithmetic. Products are eagerly put into the canonical form
+for the selected algebra; `simplify`, [`normal_order`](@extref SecondQuantizedAlgebra.normal_order),
+and [`commutator`](@extref SecondQuantizedAlgebra.commutator) provide explicit algebraic operations.
+
+For example, this combines a bosonic cavity mode with a two-level atom using SQA, while Symbolics.jl supplies the scalar parameters:
+
+```julia-repl
+julia> using FloquetExpansions
+
+julia> using Symbolics: @variables
+
+julia> cavity = FockSpace(:cavity); atom = NLevelSpace(:atom, 2);
+
+julia> system = cavity ⊗ atom
+ℋ(cavity) ⊗ ℋ(atom)
+
+julia> @qnumbers a::Destroy(system, 1) σ::Transition(system, 1, 2, 2);
+
+julia> @variables ωc::Real ωa::Real g::Real A::Real ωd::Real t::Real
+
+julia> H = ωc * a' * a + ωa * σ' * σ + g * (a' * σ + a * σ') + A * cos(ωd * t) * (a + a');
+
+julia> simplify(commutator(a, σ))
+0
+
+julia> G = harmonics(H, ωd, t);
+
+julia> G[0]
+ωa * σ₂₂ + g * a * σ₂₁ + ωc * a' * a + g * a' * σ₁₂
+
+julia> G[1]
+(1//2)*A * a + (1//2)*A * a'
+```
+
+Here `H` is an SQA operator expression whose coefficients contain `Symbolics.Num` values.
+[`harmonics`](@ref) preserves that exact algebra while converting the time dependence into Floquet
+components.
+
+[^complex_symbol]: Use `::Number` rather than `::Complex` when you want one atomic complex parameter;
+  `::Complex` represents it as `Complex{Num}` with separate symbolic real and imaginary parts.
 
 ## Generators of quantum dynamics
 
@@ -54,6 +123,7 @@ Lindblad form and does not, by itself, certify positivity or complete positivity
 
 ```@docs
 Liouvillian
+liouvillian
 ```
 
 ### GKLS (Lindblad) form
@@ -76,8 +146,7 @@ The elementary dissipator is
 - \frac{1}{2}\left(J^\dagger J\rho + \rho J^\dagger J\right).
 ```
 
-The following constructors encode these channel terms. Their docstrings define the distinction
-between a complete collapse operator and a bare jump operator with a separate rate.
+The following constructors encode these channel terms. We allow for both form of a quantum channel: a complete collapse operator or a bare jump operator with a separate rate.
 
 ```@docs
 dissipator
@@ -92,10 +161,10 @@ jump
 ```
 
 The package accepts symbolic rates as algebraic coefficients. It does not infer that a symbolic
-rate is nonnegative, nor does constructing a [`Liouvillian`](@ref) certify that the result is a
+rate is nonnegative, nor does constructing a [`liouvillian`](@ref) certify that the result is a
 GKLS generator.
 
-### Actions and composition
+### Terms and composition
 
 The left/right representation writes a map as
 
@@ -103,11 +172,12 @@ The left/right representation writes a map as
 \mathcal{L}[\rho] = \sum_j c_j A_{j,\mathrm{L}}\rho A_{j,\mathrm{R}}.
 ```
 
-[`actions`](@ref) exposes the terms as semantic triples `(left, right, coefficient)`. This gives
-callers a stable way to inspect a map without depending on its sparse storage.
+The [`terms`](@ref) iterator exposes each contribution as a semantic triple
+`(left, right, coefficient)`. This gives callers a stable way to inspect a map without depending
+on its sparse storage.
 
 ```@docs
-actions
+terms
 ```
 
 Liouvillian maps compose as ordinary linear maps: in `compose(A, B)`, `B` acts first and `A` acts
@@ -199,9 +269,7 @@ LinearAlgebra.ishermitian(::PeriodicGenerator{SecondQuantizedAlgebra.QAdd})
 
 [`QuasienergyOperator`](@ref) is an alternative representation in truncated Sambe space. It
 assembles the Fourier components into blocks indexed by harmonic labels, which is useful for
-quasienergy calculations and for the Floquet–Liouville analogue in open systems. The API docstring
-below gives the Hamiltonian and Liouvillian block conventions, truncation, and interpretation of
-complex dissipative quasienergies.
+quasienergy calculations and for the Floquet–Liouville analogue in open systems.
 
 ```@docs
 QuasienergyOperator

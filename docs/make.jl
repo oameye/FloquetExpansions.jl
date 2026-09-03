@@ -16,7 +16,7 @@ ENV["GKSwstype"] = "100"
 
 include("pages.jl")
 
-bib = CitationBibliography("src/refs.bib")
+bib = CitationBibliography("src/refs.bib"; style=:authoryear)
 links = InterLinks(
   "Julia" => "https://docs.julialang.org/en/v1/",
   "Documenter" => "https://documenter.juliadocs.org/stable/",
@@ -47,7 +47,7 @@ makedocs(;
   plugins=[bib, CodeBlocks(), LandingPage(), links],
   clean=true,
   linkcheck=false,
-  draft=false,#,(!CI),
+  draft=true,#,(!CI),
   doctest=false, # run in test suite
   checkdocs=:exports,
 )

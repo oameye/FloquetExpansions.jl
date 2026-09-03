@@ -1,5 +1,8 @@
 # # Counting pump photons: a mean-field comparison
 
+# This example follows the Floquet expansion by counting pump photons described in
+# [Seibold2024](@cite).
+
 using FloquetExpansions
 
 h_a = FockSpace(:cavity)
@@ -116,3 +119,9 @@ p_error = plot(
 plot!(p_error, t_plot, abs.(x_b_envelope .- x_lab_envelope); label="B error")
 
 plot(p_envelope, p_error; layout=(2, 1))
+
+# ## References
+#
+# ```@bibliography
+# Canonical = false
+# ```

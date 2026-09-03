@@ -74,8 +74,8 @@ end
 
 """
     floquet_expansion(generator::PeriodicGenerator, gauge, order)
-    floquet_expansion(L::Liouvillian, wd, t, gauge, order)
-    floquet_expansion(H::QField, wd, t, gauge, order; channels=())
+    floquet_expansion(L::Liouvillian, ωd, t, gauge, order)
+    floquet_expansion(H::QField, ωd, t, gauge, order; channels=())
 
 Expand a periodically driven generator into a time-independent effective generator and
 periodic micromotion, returning a [`FloquetExpansion`](@ref) to the given `order` in the
@@ -84,9 +84,9 @@ inverse drive frequency.
 # Arguments
 
 - `generator`: Prepared periodic Hamiltonian or Liouvillian generator.
-- `L`: Symbolic time-dependent Liouvillian to decompose using `wd` and `t`.
-- `H`: Symbolic time-dependent Hamiltonian to decompose using `wd` and `t`.
-- `wd`: Symbolic drive frequency.
+- `L`: Symbolic time-dependent Liouvillian to decompose using `ωd` and `t`.
+- `H`: Symbolic time-dependent Hamiltonian to decompose using `ωd` and `t`.
+- `ωd`: Symbolic drive frequency.
 - `t`: Symbolic time variable.
 - `gauge`: Gauge fixing the micromotion integration constant.
 - `order`: Number of retained orders; must be at least one.
@@ -101,7 +101,7 @@ common algebra without a Hamiltonian Hermiticity requirement.
 # Notes
 
 Truncation follows the spec: `order = 1` retains the time average, and the error is
-``\\mathcal{O}(w_d^{-\\text{order}})``. Note that the Liouvillian literature counts this
+``\\mathcal{O}(\\omega_d^{-\\text{order}})``. Note that the Liouvillian literature counts this
 shifted by one.
 
 The series is asymptotic, not convergent. Beyond a problem-dependent optimal order, a higher
@@ -113,23 +113,17 @@ finite-order result is not guaranteed to retain GKLS form or complete positivity
 ```jldoctest
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> @variables w::Real t::Real g::Real;
+julia> @variables ω::Real t::Real g::Real;
 
-julia> H = harmonics(w * (a' * a) + g * cos(w * t) * (a + a'), w, t);
+julia> H = harmonics(ω * (a' * a) + g * cos(ω * t) * (a + a'), ω, t);
 
 julia> vv = floquet_expansion(H, VanVleck(), 1)
 FloquetExpansion{VanVleck} of order 1
 
 julia> effective_generator(vv)
-w * a' * a
+ω * a' * a
 
 julia> iszero(micromotion(vv))
-true
-
-julia> effective_hamiltonian(vv) == effective_generator(vv)
-true
-
-julia> kick_operator(vv) == micromotion(vv)
 true
 ```
 
@@ -210,7 +204,7 @@ function floquet_expansion(
   if isempty(channels)
     return floquet_expansion(harmonics(qadd(H), wd, t), gauge, order)
   end
-  L = Liouvillian(H; channels)
+  L = liouvillian(H; channels)
   return floquet_expansion(harmonics(L, wd, t), gauge, order)
 end
 
@@ -253,7 +247,8 @@ end
     micromotion(expansion::FloquetExpansion) -> PeriodicGenerator
     micromotion(expansion::FloquetExpansion, n::Int) -> PeriodicGenerator
 
-The periodic micromotion generator ``K^{[N]} = \\sum_{k<N} K^{(k)}``, as harmonics.
+The periodic micromotion generator ``\\mathcal{K}^{[N]} = \\sum_{k<N} \\mathcal{K}^{(k)}``, as
+harmonics.
 
 With `n` in `1:expansion.order - 1`, the order-`n` contribution alone, frequency-scaled like
 [`effective_generator`](@ref). The micromotion series has no order-0 contribution.
@@ -276,30 +271,4 @@ function micromotion(expansion::FloquetExpansion, n::Int)
   1 <= n < expansion.order ||
     throw(ArgumentError("order $(n) is outside 1:$(expansion.order - 1)"))
   return SQA.simplify(reattach(expansion.kick_components[n], n))
-end
-
-"""
-    effective_hamiltonian(expansion::FloquetExpansion)
-    effective_hamiltonian(expansion::FloquetExpansion, n::Int)
-
-Compatibility aliases for [`effective_generator`](@ref) retained for Hamiltonian callers.
-Prefer [`effective_generator`](@ref) for new code.
-"""
-effective_hamiltonian(expansion::FloquetExpansion) = effective_generator(expansion)
-function effective_hamiltonian(expansion::FloquetExpansion, n::Int)
-  return effective_generator(expansion, n)
-end
-
-"""
-    kick_operator(expansion::FloquetExpansion)
-    kick_operator(expansion::FloquetExpansion, n::Int)
-    kick_operator(expansion::FloquetExpansion, t::Symbolics.Num)
-
-Compatibility aliases for [`micromotion`](@ref) retained for Hamiltonian callers.
-Prefer [`micromotion`](@ref) for new code.
-"""
-kick_operator(expansion::FloquetExpansion) = micromotion(expansion)
-kick_operator(expansion::FloquetExpansion, n::Int) = micromotion(expansion, n)
-function kick_operator(expansion::FloquetExpansion, t::Symbolics.Num)
-  return micromotion(expansion)(t)
 end

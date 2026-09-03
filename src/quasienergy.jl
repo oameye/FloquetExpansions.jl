@@ -31,10 +31,10 @@ vectorization is separate.
 ```jldoctest
 julia> h = FockSpace(:cavity); a = Destroy(h, :a);
 
-julia> @variables w::Real t::Real;
+julia> @variables ω::Real t::Real;
 
 julia> Q = QuasienergyOperator(
-           harmonics(a' * a + a * expim(-w * t) + a' * expim(w * t), w, t), 1
+           harmonics(a' * a + a * expim(-ω * t) + a' * expim(ω * t), ω, t), 1
        )
 QuasienergyOperator over harmonics -1:1
 
@@ -42,7 +42,7 @@ julia> Q[1, 0]
 a
 
 julia> Q[1, 1]
--w + a' * a
+-ω + a' * a
 
 julia> harmonic_range(Q)
 -1:1
