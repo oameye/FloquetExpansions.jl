@@ -222,12 +222,7 @@ function floquet_expansion(
 end
 
 function _floquet_expansion_channels(
-  H::SQA.QField,
-  wd::Symbolics.Num,
-  t::Symbolics.Num,
-  gauge::Gauge,
-  order::Int,
-  ::Tuple{},
+  H::SQA.QField, wd::Symbolics.Num, t::Symbolics.Num, gauge::Gauge, order::Int, ::Tuple{}
 )
   return _floquet_expansion(harmonics(qadd(H), wd, t), gauge, order, NoProvenance())
 end
