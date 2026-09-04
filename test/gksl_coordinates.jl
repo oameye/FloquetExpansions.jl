@@ -32,8 +32,8 @@ end
   @test d[2, 1] == im
   @test d[2, 2] == 1
   @test all(d[i, j] == conj(d[j, i]) for i in axes(d, 1), j in axes(d, 2))
-  @test SQA.simplify(extracted_H - H) == 0
-  @test SQA.simplify(hamiltonian(L) - H) == 0
+  @test iszero(SQA.simplify(extracted_H - H))
+  @test iszero(SQA.simplify(hamiltonian(L) - H))
 end
 
 @testset "nonorthogonal rational dissipative frame" begin
@@ -59,7 +59,7 @@ end
 
   extracted_H = hamiltonian(L, frame)
 
-  @test SQA.simplify(extracted_H - a' * a) == 0
+  @test iszero(SQA.simplify(extracted_H - a' * a))
   @test kossakowski(L, frame)[1, 1] == 1
 end
 
@@ -115,8 +115,8 @@ end
 
   @test d == d0
   @test d[1, 2] == -im
-  @test SQA.simplify(H_eff - H) == 0
-  @test SQA.simplify(H0 - H) == 0
+  @test iszero(SQA.simplify(H_eff - H))
+  @test iszero(SQA.simplify(H0 - H))
 end
 
 @testset "Hamiltonian expansions retain their coherent accessors" begin
