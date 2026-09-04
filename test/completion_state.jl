@@ -51,11 +51,11 @@ end
   @test Gram() isa CompletionAlgorithm
   @test Spectral() isa CompletionAlgorithm
 
-  # The high-level physical path retained provenance and therefore reaches the algorithm seam.
+  # The high-level physical path reaches the automatic-completion algorithm seam.
   @test occursin("not implemented", error_text(() -> positive_completion(physical, Gram())))
 
-  # Manually lowered Liouvillians do not claim provenance and need an explicit frame.
-  @test occursin("provenance", error_text(() -> positive_completion(lowered, Gram())))
+  # Explicitly constructed Liouvillians need a dissipative frame.
+  @test occursin("DissipativeFrame", error_text(() -> positive_completion(lowered, Gram())))
   @test occursin(
     "not implemented", error_text(() -> positive_completion(lowered, Spectral(), frame))
   )
