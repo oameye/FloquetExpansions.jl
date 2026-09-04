@@ -163,9 +163,8 @@ end
 Construct
 ``ρ ↦ -i[H, ρ] + Σₐ D[Cₐ](ρ) + Σᵦ γᵦD[Jᵦ](ρ)``.
 
-`channels` is a tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values. A
-[`jump`](@ref) rate is a physical rate: it must be real and is assumed nonnegative when
-symbolic.
+`channels` is a tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values. See
+[`jump`](@ref) for the physical-rate requirements on `γᵦ`.
 
 # Arguments
 
@@ -249,16 +248,18 @@ end
 """
     jump(operator::QField, rate) -> RateWeightedJump
 
-Create a physical rate-weighted channel from a bare jump operator `J` and a separate rate
-``γ``. When passed to a [`liouvillian`](@ref), it contributes ``γ D[J](ρ)``.
+Create a physical rate-weighted channel ``γ D[J]`` from a bare jump operator `J` and rate `γ`.
+The rate may be time dependent and periodic, but it must be provably real. Negative numeric rates
+are rejected. A real symbolic expression is accepted under the assumption that the expression as
+a whole is nonnegative; no sign analysis of its factors is performed.
 
-The rate must be provably real. A provably negative numeric rate is rejected immediately.
-A symbolic real rate or real symbolic expression is accepted as an explicit physical
-assumption that the whole expression satisfies ``γ ≥ 0``; FloquetExpansions does not split a
-symbolic expression into separately signed factors. Use [`collapse`](@ref) when the complete
-channel amplitude is already folded into the operator.
+Thus `jump(J, γ₀ + γ₁*cos(ω*t))` is supported for real symbolic parameters. A genuinely complex
+coefficient such as `expim(ω*t)` is not a physical rate. For signed or complex algebraic
+coefficients, use `c * dissipator(J)` instead.
 
-See also [`collapse`](@ref), [`liouvillian`](@ref).
+Use [`collapse`](@ref) when the complete channel amplitude is already folded into the operator.
+
+See also [`collapse`](@ref), [`dissipator`](@ref), [`liouvillian`](@ref).
 """
 function jump(operator::SQA.QField, rate::LiouvillianScalar)
   coefficient = _validated_jump_rate(rate)

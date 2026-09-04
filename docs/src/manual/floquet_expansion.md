@@ -53,8 +53,7 @@ VanVleck
 
 Prepare the time dependence as a [`PeriodicGenerator`](@ref), or pass a symbolic Hamiltonian or
 Liouvillian together with its drive frequency and time variable. The expansion returns a
-[`FloquetExpansion`](@ref) containing the retained effective-generator and micromotion
-coefficients together with its finite-realization state.
+[`FloquetExpansion`](@ref) containing the effective-generator and micromotion coefficients.
 
 ```@docs
 FloquetExpansion
@@ -66,8 +65,8 @@ floquet_expansion
 
 ## Reading the result
 
-For an expansion truncated at order ``N``, the retained effective generator and micromotion have
-the inverse-frequency structure
+For an expansion with `order = N`, the retained effective generator and micromotion have the
+inverse-frequency structure
 
 ```math
 \mathcal{G}_\mathrm{eff}^{[N]} =
@@ -77,19 +76,12 @@ the inverse-frequency structure
 \sum_{n=1}^{N-1}\omega_d^{-n}\mathcal{K}^{(n)}.
 ```
 
-The stored coefficients do not include these powers of the drive frequency. The component
-accessors attach the scaling when the result is read. [`effective_component`](@ref) always returns
-one retained perturbative contribution. [`effective_generator`](@ref) instead returns the finite
-realization. For a raw expansion this is the truncated sum above; a positively completed
-Liouvillian may replace only that finite realization, as described in
-[Positive completion](@ref).
+The distinction between the finite effective generator and its retained perturbative components
+becomes important after positive completion; see [Positive completion](@ref).
 
 ```@docs
 effective_generator
 effective_component
-```
-
-```@docs
 micromotion
 ```
 
@@ -109,9 +101,8 @@ d = kossakowski(vv, frame)
 d1 = kossakowski_component(vv, frame, 1)
 ```
 
-The component accessors include the corresponding inverse-drive-frequency scaling, consistently
-with [`effective_component`](@ref). The operator-frame construction and Liouvillian-level
-Kossakowski representation are described in [System](@ref).
+The operator-frame construction and Liouvillian-level Kossakowski representation are described in
+[System](@ref).
 
 ```@docs
 hamiltonian_component
@@ -125,7 +116,6 @@ inverse-frequency contributions, but the expansion is asymptotic rather than con
 a problem-dependent optimal order, retaining more terms can make the approximation worse for a
 fixed drive.
 
-For dissipative systems, a finite-order effective Liouvillian is an algebraic truncation of the
-common map expansion and is not guaranteed to retain GKLS form or complete positivity. The
-separate [Positive completion](@ref) manual describes the finite-realization completion layer and
-its relation to the retained perturbative data.
+For periodically driven open systems, a direct finite-order high-frequency expansion need not
+retain a GKLS effective generator even when the microscopic generator is of Lindblad form
+[Schnell2021](@cite). See [Positive completion](@ref) for the CP-preserving continuation.

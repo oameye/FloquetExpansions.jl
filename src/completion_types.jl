@@ -1,46 +1,42 @@
 """
     Completion
 
-Type-state hierarchy for the finite realization carried by a [`FloquetExpansion`](@ref).
-Raw perturbative expansions use [`Uncompleted`](@ref); positive-completion algorithms replace
-that state without rewriting the retained Floquet coefficients or micromotion.
+Abstract completion state of a [`FloquetExpansion`](@ref). See [`positive_completion`](@ref).
 """
 abstract type Completion end
 
 """
     Uncompleted <: Completion
 
-Completion state of a raw Floquet expansion. Retained effective-generator and micromotion
-components are the perturbative data produced by [`floquet_expansion`](@ref).
+State of a Floquet expansion before positive completion.
 """
 struct Uncompleted <: Completion end
 
 """
     CompletionAlgorithm
 
-Algorithm family for constructing a completely-positive finite realization of a
-Liouvillian Floquet expansion.
+Abstract algorithm selector for [`positive_completion`](@ref).
 """
 abstract type CompletionAlgorithm end
 
 """
     Gram <: CompletionAlgorithm
 
-Algebraic Gram-factor completion algorithm.
+Select Gram-factor positive completion.
 """
 struct Gram <: CompletionAlgorithm end
 
 """
     Spectral <: CompletionAlgorithm
 
-Spectral/HCM completion algorithm.
+Select spectral/HCM positive completion.
 """
 struct Spectral <: CompletionAlgorithm end
 
 """
     CompletionFactorization
 
-Common supertype for algorithm-specific positive-completion factorizations.
+Abstract type for factorization data produced by a positive-completion algorithm.
 """
 abstract type CompletionFactorization end
 
@@ -71,8 +67,6 @@ struct MicroscopicProvenance <: FloquetProvenance
   order::Vector{DissipativeSeedRef}
 end
 
-# Filled by the completion algorithms in later implementation stages. Every field is
-# concretely parameterized so storing a completed state cannot introduce abstract fields.
 struct PositiveCompletion{A<:CompletionAlgorithm,F,K,C,P,R,X<:CompletionFactorization,E} <:
        Completion
   algorithm::A

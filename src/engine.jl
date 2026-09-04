@@ -1,18 +1,14 @@
 """
     FloquetExpansion
 
-Represent the result of [`floquet_expansion`](@ref). Read it with
-[`effective_generator`](@ref), [`effective_component`](@ref), and [`micromotion`](@ref)
-rather than by field access.
+Result of [`floquet_expansion`](@ref). Read it with [`effective_generator`](@ref),
+[`effective_component`](@ref), and [`micromotion`](@ref) rather than by field access.
 
-The stored expansion coefficients are independent of the drive-frequency scaling. The
-accessors reattach the corresponding powers of the input generator's frequency. A raw
-expansion carries [`Uncompleted`](@ref) state; positive completion changes only the finite
-no-index effective-generator realization and leaves the retained perturbative components and
-micromotion unchanged.
+Stored expansion coefficients do not include inverse powers of the drive frequency; the public
+accessors restore that scaling. Positive completion may change [`effective_generator`](@ref), but
+never the retained [`effective_component`](@ref) or [`micromotion`](@ref).
 
-See also [`floquet_expansion`](@ref), [`effective_generator`](@ref),
-[`effective_component`](@ref), [`micromotion`](@ref).
+See also [`floquet_expansion`](@ref), [`positive_completion`](@ref).
 """
 struct FloquetExpansion{G<:Gauge,P<:PeriodicGenerator,E,C<:Completion,R<:FloquetProvenance}
   generator::P
@@ -153,9 +149,9 @@ end
     floquet_expansion(L::Liouvillian, ωd, t, gauge, order)
     floquet_expansion(H::QField, ωd, t, gauge, order; channels=())
 
-Expand a periodically driven generator into a time-independent effective generator and
-periodic micromotion, returning a [`FloquetExpansion`](@ref) to the given `order` in the
-inverse drive frequency.
+Expand a periodically driven generator into a time-independent effective generator and periodic
+micromotion, returning a [`FloquetExpansion`](@ref) with `order` retained inverse-frequency
+contributions.
 
 # Arguments
 
@@ -168,24 +164,19 @@ inverse drive frequency.
 - `order`: Number of retained orders; must be at least one.
 - `channels`: Tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values added to `H`.
 
-The `L` and `H` forms decompose the time dependence before applying the expansion. Use the
-`L` form when the native map is constructed separately. The high-level Hamiltonian form with
-`channels` retains microscopic channel provenance for later automatic positive completion;
-generic `Liouvillian`, [`harmonics`](@ref), and [`PeriodicGenerator`](@ref) inputs remain
-provenance-free.
+The `L` and `H` forms decompose the time dependence before applying the expansion. If physical
+`channels` are supplied through the `H` form, [`positive_completion`](@ref) can be called without
+an explicit dissipative frame. For an explicitly constructed Liouvillian or periodic generator,
+pass a [`DissipativeFrame`](@ref) to [`positive_completion`](@ref).
 
 Hamiltonian generators are checked for Hermiticity at ingest. Liouvillian generators use the
 common algebra without a Hamiltonian Hermiticity requirement.
 
 # Notes
 
-Truncation follows the spec: `order = 1` retains the time average, and the error is
-``\\mathcal{O}(\\omega_d^{-\\text{order}})``. Note that the Liouvillian literature counts this
-shifted by one.
-
-The series is asymptotic, not convergent. Beyond a problem-dependent optimal order, a higher
-`order` can make the approximation worse rather than better. For Liouvillian input, a
-finite-order result is not guaranteed to retain GKLS form or complete positivity.
+`order = 1` retains the period average; the neglected terms start at
+``\\mathcal{O}(\\omega_d^{-\\text{order}})``. The high-frequency series is asymptotic rather than
+convergent.
 
 # Examples
 
@@ -207,7 +198,7 @@ true
 ```
 
 See also [`effective_generator`](@ref), [`effective_component`](@ref), [`micromotion`](@ref),
-and [`harmonics`](@ref).
+[`positive_completion`](@ref), and [`harmonics`](@ref).
 """
 function floquet_expansion(
   generator::P, gauge::G, order::Int
@@ -261,14 +252,13 @@ end
 """
     effective_generator(expansion::FloquetExpansion) -> T
 
-Return the finite time-independent effective generator. For a raw expansion this is
+Return the effective generator represented by `expansion`. Before positive completion this is
 
 ``\\mathcal{G}_\\mathrm{eff}^{[N]} = \\sum_{n<N}
 \\omega_d^{-n}\\mathcal{G}_\\mathrm{eff}^{(n)}``.
 
-For a positively completed expansion, the no-index accessor returns the completed finite
-realization instead. The retained perturbative coefficients are always read with
-[`effective_component`](@ref).
+After positive completion it is the completed generator. Use [`effective_component`](@ref) to
+inspect the retained perturbative contributions.
 
 See also [`effective_component`](@ref), [`micromotion`](@ref), [`positive_completion`](@ref).
 """
@@ -292,12 +282,10 @@ end
 """
     effective_component(expansion::FloquetExpansion, n::Int) -> T
 
-Return the retained order-`n` effective-generator contribution, including its
-inverse-drive-frequency scaling ``\\omega_d^{-n}``. The index must satisfy
-`0 ≤ n < expansion.order`.
+Return the retained order-`n` effective-generator contribution, including the scaling
+``\\omega_d^{-n}``. The index must satisfy `0 ≤ n < expansion.order`.
 
-Positive completion never rewrites these perturbative coefficients: the accessor therefore
-returns the same retained component before and after completion.
+Positive completion leaves this contribution unchanged.
 
 See also [`effective_generator`](@ref), [`micromotion`](@ref).
 """
@@ -314,17 +302,12 @@ end
     micromotion(expansion::FloquetExpansion) -> PeriodicGenerator
     micromotion(expansion::FloquetExpansion, n::Int) -> PeriodicGenerator
 
-The periodic micromotion generator ``\\mathcal{K}^{[N]} = \\sum_{k<N} \\mathcal{K}^{(k)}``, as
-harmonics.
+Return the retained micromotion generator as harmonics. With `n` in
+`1:expansion.order - 1`, return only the order-`n` contribution, including its inverse-frequency
+scaling. The micromotion series has no order-0 contribution.
 
-With `n` in `1:expansion.order - 1`, the order-`n` contribution alone, frequency-scaled like
-[`effective_component`](@ref). The micromotion series has no order-0 contribution.
-
-Evaluate the returned periodic generator at a symbolic time with
-`micromotion(expansion)(t)`. An integer second argument selects an order; use
-`micromotion(expansion)(t)` for time evaluation.
-
-Positive completion leaves all retained micromotion components unchanged.
+Evaluate the result at symbolic time `t` with `micromotion(expansion)(t)`. Positive completion
+leaves the retained micromotion unchanged.
 
 See also [`effective_generator`](@ref), [`effective_component`](@ref), [`VanVleck`](@ref).
 """

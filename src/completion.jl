@@ -29,18 +29,20 @@ end
     positive_completion(expansion::FloquetExpansion, algorithm::CompletionAlgorithm,
                         frame::DissipativeFrame)
 
-Construct a completely-positive finite realization of a Liouvillian Floquet expansion.
-The returned object is a new [`FloquetExpansion`](@ref): retained effective components,
-micromotion, gauge, expansion order, and the input periodic generator are preserved.
-Only the finite no-index [`effective_generator`](@ref) realization changes.
+Return a positively completed Liouvillian Floquet expansion.
 
-The overload without a frame uses microscopic channel provenance retained by the high-level
-Hamiltonian-plus-channels constructor. A manually lowered Liouvillian has no such provenance and
-therefore requires the explicit `frame` overload. Calling `positive_completion` on a Hamiltonian
-expansion or on an already completed expansion is an error.
+The returned [`FloquetExpansion`](@ref) preserves the retained effective components and
+micromotion. [`effective_generator`](@ref) returns the completed finite generator, while
+[`effective_component`](@ref) and [`micromotion`](@ref) continue to return the retained
+high-frequency data.
 
-`Gram()` and `Spectral()` establish the public algorithm selection API; their mathematical
-implementations are provided by the corresponding completion stages.
+The two-argument form is available for expansions constructed from
+`floquet_expansion(H, ωd, t, gauge, order; channels=...)`. For an expansion constructed from an
+explicit [`Liouvillian`](@ref), [`harmonics`](@ref), or [`PeriodicGenerator`](@ref), pass a
+[`DissipativeFrame`](@ref) explicitly.
+
+Positive completion is defined only for Liouvillian expansions. Calling it on an already
+completed expansion is an error. Use [`Gram`](@ref) or [`Spectral`](@ref) to select the algorithm.
 """
 function positive_completion(
   expansion::FloquetExpansion{G,P,E,Uncompleted,MicroscopicProvenance},
@@ -54,7 +56,7 @@ function positive_completion(
 ) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
   return throw(
     ArgumentError(
-      "automatic positive completion requires microscopic channel provenance; pass a `DissipativeFrame` explicitly for a manually lowered Liouvillian",
+      "automatic positive completion requires an expansion constructed with `channels`; pass a `DissipativeFrame` for an explicitly constructed Liouvillian",
     ),
   )
 end
