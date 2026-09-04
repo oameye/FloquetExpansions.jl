@@ -226,6 +226,9 @@ function _validated_jump_rate(rate::LiouvillianScalar)
   end
 
   coefficient = convert(SQA.CNum, rate)
+  coefficient == conj(coefficient) ||
+    throw(ArgumentError("jump rate must be provably real; got `$rate`"))
+
   value = SQA.to_num(coefficient)
   if value isa Symbolics.Num
     return coefficient
