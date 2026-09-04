@@ -26,4 +26,4 @@ jobs:
           git commit -m 'fix: close remaining #57 CI gaps'
           git push origin HEAD:feat/completion-state-provenance
 
-# one-shot helper; remove after successful patch
+# one-shot helper; remove after successful patch (retry 2)
