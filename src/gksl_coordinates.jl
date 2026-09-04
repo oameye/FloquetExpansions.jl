@@ -51,7 +51,9 @@ end
 function canonical_qadd(operator::SQA.QField)
   result = SQA.simplify(SQA.expand_completeness(qadd(operator)))
   isempty(result.indices) || throw(
-    GKSLCoordinateError("DissipativeFrame does not support operators with bound symbolic sums")
+    GKSLCoordinateError(
+      "DissipativeFrame does not support operators with bound symbolic sums"
+    ),
   )
   return result
 end
@@ -70,7 +72,9 @@ function projected_operator(operator::SQA.QField)
   scalar = scalar_part(canonical)
   projected = iszero(scalar) ? canonical : SQA.simplify(canonical - scalar * one(canonical))
   iszero(projected) && throw(
-    GKSLCoordinateError("a dissipative-frame direction cannot be proportional to the identity")
+    GKSLCoordinateError(
+      "a dissipative-frame direction cannot be proportional to the identity"
+    ),
   )
   return projected
 end
@@ -171,8 +175,9 @@ function inverse_coefficients(matrix::KossakowskiMatrix)
         break
       end
     end
-    iszero(candidate) &&
-      throw(GKSLCoordinateError("dissipative-frame coordinate pivot is structurally singular"))
+    iszero(candidate) && throw(
+      GKSLCoordinateError("dissipative-frame coordinate pivot is structurally singular")
+    )
 
     if candidate != column
       for trailing in 1:n
@@ -382,13 +387,17 @@ function extract_gksl(L::Liouvillian, frame::DissipativeFrame)
   matrix = multiply_coefficients(left, adjoint_coefficients(frame.pivot_inverse))
   simplify_matrix!(matrix)
   matrix_is_hermitian(matrix) || throw(
-    GKSLCoordinateError("extracted Kossakowski matrix is not Hermitian in the supplied frame")
+    GKSLCoordinateError(
+      "extracted Kossakowski matrix is not Hermitian in the supplied frame"
+    ),
   )
 
   dissipative = dissipative_liouvillian(frame, matrix)
   residual = canonical_liouvillian(L - dissipative)
   has_two_sided_terms(residual) && throw(
-    GKSLCoordinateError("Liouvillian contains dissipative directions outside the supplied frame")
+    GKSLCoordinateError(
+      "Liouvillian contains dissipative directions outside the supplied frame"
+    ),
   )
   H = residual_hamiltonian(residual)
   return H, matrix
