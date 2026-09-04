@@ -157,6 +157,15 @@ function _liouvillian_from_provenance(H::SQA.QField, provenance::MicroscopicProv
   return generator
 end
 
+@inline _channel_liouvillian(channel::CollapseChannel) = dissipator(channel.operator)
+@inline _channel_liouvillian(channel::RateWeightedJump) =
+  channel.rate * dissipator(channel.operator)
+function _channel_liouvillian(::Any)
+  return throw(
+    ArgumentError("channels must contain only `collapse(...)` and `jump(...)` values")
+  )
+end
+
 """
     liouvillian(H::QField; channels=()) -> Liouvillian
 
@@ -185,12 +194,12 @@ true
 ```
 """
 function liouvillian(H::SQA.QField; channels::LiouvillianChannelCollection=())
-  return _liouvillian_from_provenance(H, _microscopic_provenance(channels))
+  generator = hamiltonian_action(H)
+  for channel in channels
+    generator = generator + _channel_liouvillian(channel)
+  end
+  return generator
 end
-
-@inline _channel_liouvillian(channel::CollapseChannel) = dissipator(channel.operator)
-@inline _channel_liouvillian(channel::RateWeightedJump) =
-  channel.rate * dissipator(channel.operator)
 
 """
     collapse(operator::QField) -> CollapseChannel
@@ -207,45 +216,34 @@ function collapse(operator::SQA.QField)
   return CollapseChannel(operator)
 end
 
-function _validated_jump_rate(rate::LiouvillianScalar)
+function _known_numeric_jump_rate(rate::LiouvillianScalar)
   if rate isa Symbolics.Num
-    iszero(imag(rate)) ||
-      throw(ArgumentError("jump rate must be provably real; got `$rate`"))
-    return convert(SQA.CNum, rate)
+    value = Symbolics.value(rate)
+    return value isa Real ? value : nothing
   elseif rate isa Real
-    rate < 0 && throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
-    return convert(SQA.CNum, rate)
-  elseif rate isa Complex
-    iszero(imag(rate)) ||
-      throw(ArgumentError("jump rate must be provably real; got `$rate`"))
+    return rate
+  elseif rate isa Complex && iszero(imag(rate))
     real_rate = real(rate)
-    if real_rate isa Real && !(real_rate isa Symbolics.Num) && real_rate < 0
-      throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
+    if real_rate isa Symbolics.Num
+      value = Symbolics.value(real_rate)
+      return value isa Real ? value : nothing
+    elseif real_rate isa Real
+      return real_rate
     end
-    return convert(SQA.CNum, rate)
   end
+  return nothing
+end
 
+function _validated_jump_rate(rate::LiouvillianScalar)
   coefficient = convert(SQA.CNum, rate)
   coefficient == conj(coefficient) ||
     throw(ArgumentError("jump rate must be provably real; got `$rate`"))
 
-  value = SQA.to_num(coefficient)
-  if value isa Symbolics.Num
-    return coefficient
-  elseif value isa Real
-    value < 0 && throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
-    return coefficient
-  elseif value isa Complex
-    iszero(imag(value)) ||
-      throw(ArgumentError("jump rate must be provably real; got `$rate`"))
-    real_value = real(value)
-    if real_value isa Real && !(real_value isa Symbolics.Num) && real_value < 0
-      throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
-    end
-    return coefficient
-  end
+  numeric_rate = _known_numeric_jump_rate(rate)
+  numeric_rate !== nothing && numeric_rate < 0 &&
+    throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
 
-  return throw(ArgumentError("jump rate must be provably real; got `$rate`"))
+  return coefficient
 end
 
 """
