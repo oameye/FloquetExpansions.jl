@@ -263,7 +263,7 @@ end
 
 Return the finite time-independent effective generator. For a raw expansion this is
 
-``\\mathcal{G}_\\mathrm{eff}^{[N]} = \\sum_{n<N]
+``\\mathcal{G}_\\mathrm{eff}^{[N]} = \\sum_{n<N}
 \\omega_d^{-n}\\mathcal{G}_\\mathrm{eff}^{(n)}``.
 
 For a positively completed expansion, the no-index accessor returns the completed finite
