@@ -43,7 +43,7 @@ end
   @test iszero(SQA.simplify(hamiltonian(L) - H))
 end
 
-@testset "nonorthogonal frames transform Kossakowski coordinates by congruence" begin
+@testset "nonorthogonal frames transform Kossakowski coordinates exactly" begin
   f1 = a + a^2
   f2 = a - a^2
   rotated_frame = DissipativeFrame(f1, f2)
@@ -53,13 +53,15 @@ end
 
   rotated = kossakowski(L, rotated_frame)
   native = kossakowski(L, native_frame)
-  transform = [1 1; 1 -1]
 
   @test rotated[1, 1] == 4
   @test rotated[1, 2] == 6
   @test rotated[2, 1] == 6
   @test rotated[2, 2] == 9
-  @test native == transform * rotated * transform'
+  @test native[1, 1] == 25
+  @test native[1, 2] == -5
+  @test native[2, 1] == -5
+  @test native[2, 2] == 1
   @test hamiltonian_action(hamiltonian(L, rotated_frame)) == hamiltonian_action(H)
 end
 
