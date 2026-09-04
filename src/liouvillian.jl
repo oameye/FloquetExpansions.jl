@@ -241,7 +241,7 @@ function _validated_jump_rate(rate::LiouvillianScalar)
     return coefficient
   end
 
-  throw(ArgumentError("jump rate must be provably real; got `$rate`"))
+  return throw(ArgumentError("jump rate must be provably real; got `$rate`"))
 end
 
 """
