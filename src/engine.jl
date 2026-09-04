@@ -2,38 +2,56 @@
     FloquetExpansion
 
 Represent the result of [`floquet_expansion`](@ref). Read it with
-[`effective_generator`](@ref) and [`micromotion`](@ref) rather than by field access.
+[`effective_generator`](@ref), [`effective_component`](@ref), and [`micromotion`](@ref)
+rather than by field access.
 
 The stored expansion coefficients are independent of the drive-frequency scaling. The
-accessors reattach the corresponding powers of the input generator's frequency.
+accessors reattach the corresponding powers of the input generator's frequency. A raw
+expansion carries [`Uncompleted`](@ref) state; positive completion changes only the finite
+no-index effective-generator realization and leaves the retained perturbative components and
+micromotion unchanged.
 
-See also [`floquet_expansion`](@ref), [`effective_generator`](@ref), [`micromotion`](@ref).
+See also [`floquet_expansion`](@ref), [`effective_generator`](@ref),
+[`effective_component`](@ref), [`micromotion`](@ref).
 """
-struct FloquetExpansion{G<:Gauge,P<:PeriodicGenerator,E}
+struct FloquetExpansion{G<:Gauge,P<:PeriodicGenerator,E,C<:Completion,R<:FloquetProvenance}
   generator::P
   kick_components::Vector{P}
   effective_components::Vector{E}
   gauge::G
   order::Int
+  completion::C
+  provenance::R
 end
 
 function Base.getproperty(expansion::FloquetExpansion, name::Symbol)
+  if name === :provenance
+    throw(ArgumentError("FloquetExpansion field :provenance is private"))
+  end
   if name === :kick_derivative_components ||
     name === :dressed_generator ||
     name === :dressed_kick_derivative
     throw(
       ArgumentError(
-        "FloquetExpansion field :$(name) is private; use `effective_generator` and `micromotion`",
+        "FloquetExpansion field :$(name) is private; use `effective_generator`, `effective_component`, and `micromotion`",
       ),
     )
   end
   return getfield(expansion, name)
 end
 
-function Base.propertynames(::FloquetExpansion{G,P,E}, private::Bool=false) where {G,P,E}
-  names = (:generator, :kick_components, :effective_components, :gauge, :order)
+function Base.propertynames(
+  ::FloquetExpansion{G,P,E,C,R}, private::Bool=false
+) where {G,P,E,C,R}
+  names = (:generator, :kick_components, :effective_components, :gauge, :order, :completion)
   return if private
-    (names..., :kick_derivative_components, :dressed_generator, :dressed_kick_derivative)
+    (
+      names...,
+      :provenance,
+      :kick_derivative_components,
+      :dressed_generator,
+      :dressed_kick_derivative,
+    )
   else
     names
   end
@@ -93,7 +111,10 @@ inverse drive frequency.
 - `channels`: Tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values added to `H`.
 
 The `L` and `H` forms decompose the time dependence before applying the expansion. Use the
-`L` form when the native map is constructed separately.
+`L` form when the native map is constructed separately. The high-level Hamiltonian form with
+`channels` retains microscopic channel provenance for later automatic positive completion;
+generic `Liouvillian`, [`harmonics`](@ref), and [`PeriodicGenerator`](@ref) inputs remain
+provenance-free.
 
 Hamiltonian generators are checked for Hermiticity at ingest. Liouvillian generators use the
 common algebra without a Hamiltonian Hermiticity requirement.
@@ -127,11 +148,12 @@ julia> iszero(micromotion(vv))
 true
 ```
 
-See also [`effective_generator`](@ref), [`micromotion`](@ref), and [`harmonics`](@ref).
+See also [`effective_generator`](@ref), [`effective_component`](@ref), [`micromotion`](@ref),
+and [`harmonics`](@ref).
 """
-function floquet_expansion(
-  generator::P, gauge::G, order::Int
-) where {P<:PeriodicGenerator,G<:Gauge}
+function _floquet_expansion(
+  generator::P, gauge::G, order::Int, provenance::R
+) where {P<:PeriodicGenerator,G<:Gauge,R<:FloquetProvenance}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
 
   if generator isa PeriodicGenerator{SQA.QAdd}
@@ -184,13 +206,19 @@ function floquet_expansion(
     end
   end
 
-  return FloquetExpansion(generator, K, effective, gauge, order)
+  return FloquetExpansion(generator, K, effective, gauge, order, Uncompleted(), provenance)
+end
+
+function floquet_expansion(
+  generator::P, gauge::G, order::Int
+) where {P<:PeriodicGenerator,G<:Gauge}
+  return _floquet_expansion(generator, gauge, order, NoProvenance())
 end
 
 function floquet_expansion(
   L::Liouvillian, wd::Symbolics.Num, t::Symbolics.Num, gauge::Gauge, order::Int
 )
-  return floquet_expansion(harmonics(L, wd, t), gauge, order)
+  return _floquet_expansion(harmonics(L, wd, t), gauge, order, NoProvenance())
 end
 
 function floquet_expansion(
@@ -202,10 +230,12 @@ function floquet_expansion(
   channels::LiouvillianChannelCollection=(),
 )
   if isempty(channels)
-    return floquet_expansion(harmonics(qadd(H), wd, t), gauge, order)
+    return _floquet_expansion(harmonics(qadd(H), wd, t), gauge, order, NoProvenance())
   end
-  L = liouvillian(H; channels)
-  return floquet_expansion(harmonics(L, wd, t), gauge, order)
+
+  provenance = _microscopic_provenance(channels)
+  L = _liouvillian_from_provenance(H, provenance)
+  return _floquet_expansion(harmonics(L, wd, t), gauge, order, provenance)
 end
 
 function reattach(component::GeneratorComponent, wd::Symbolics.Num, n::Int)
@@ -217,16 +247,21 @@ end
 
 """
     effective_generator(expansion::FloquetExpansion) -> T
-    effective_generator(expansion::FloquetExpansion, n::Int) -> T
 
-The time-independent effective generator ``G_\\text{eff}^{[N]} = \\sum_{k<N}
-G_\\text{eff}^{(k)}``, or with `n` the order-`n` contribution alone. The drive-frequency
-scaling is reattached, so the order-`n` piece carries ``w_d^{-n}``. The order index must
-satisfy `0 ≤ n < expansion.order`.
+Return the finite time-independent effective generator. For a raw expansion this is
 
-See also [`micromotion`](@ref).
+``\\mathcal{G}_\\mathrm{eff}^{[N]} = \\sum_{n<N}
+\\omega_d^{-n}\\mathcal{G}_\\mathrm{eff}^{(n)}``.
+
+For a positively completed expansion, the no-index accessor returns the completed finite
+realization instead. The retained perturbative coefficients are always read with
+[`effective_component`](@ref).
+
+See also [`effective_component`](@ref), [`micromotion`](@ref), [`positive_completion`](@ref).
 """
-function effective_generator(expansion::FloquetExpansion)
+function effective_generator(
+  expansion::FloquetExpansion{G,P,E,Uncompleted,R}
+) where {G,P,E,R}
   result = zero(expansion.effective_components[1])
   for n in 0:(expansion.order - 1)
     result =
@@ -235,7 +270,25 @@ function effective_generator(expansion::FloquetExpansion)
   return SQA.simplify(result)
 end
 
-function effective_generator(expansion::FloquetExpansion, n::Int)
+function effective_generator(
+  expansion::FloquetExpansion{G,P,E,C,R}
+) where {G,P,E,C<:PositiveCompletion,R}
+  return getfield(expansion, :completion).generator
+end
+
+"""
+    effective_component(expansion::FloquetExpansion, n::Int) -> T
+
+Return the retained order-`n` effective-generator contribution, including its
+inverse-drive-frequency scaling ``\\omega_d^{-n}``. The index must satisfy
+`0 ≤ n < expansion.order`.
+
+Positive completion never rewrites these perturbative coefficients: the accessor therefore
+returns the same retained component before and after completion.
+
+See also [`effective_generator`](@ref), [`micromotion`](@ref).
+"""
+function effective_component(expansion::FloquetExpansion, n::Int)
   0 <= n < expansion.order ||
     throw(ArgumentError("order $(n) is outside 0:$(expansion.order - 1)"))
   return SQA.simplify(
@@ -251,13 +304,15 @@ The periodic micromotion generator ``\\mathcal{K}^{[N]} = \\sum_{k<N} \\mathcal{
 harmonics.
 
 With `n` in `1:expansion.order - 1`, the order-`n` contribution alone, frequency-scaled like
-[`effective_generator`](@ref). The micromotion series has no order-0 contribution.
+[`effective_component`](@ref). The micromotion series has no order-0 contribution.
 
 Evaluate the returned periodic generator at a symbolic time with
 `micromotion(expansion)(t)`. An integer second argument selects an order; use
 `micromotion(expansion)(t)` for time evaluation.
 
-See also [`effective_generator`](@ref), [`VanVleck`](@ref).
+Positive completion leaves all retained micromotion components unchanged.
+
+See also [`effective_generator`](@ref), [`effective_component`](@ref), [`VanVleck`](@ref).
 """
 function micromotion(expansion::FloquetExpansion)
   result = zero(expansion.generator)

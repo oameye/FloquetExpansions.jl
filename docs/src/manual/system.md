@@ -146,7 +146,9 @@ The elementary dissipator is
 - \frac{1}{2}\left(J^\dagger J\rho + \rho J^\dagger J\right).
 ```
 
-The following constructors encode these channel terms. We allow for both form of a quantum channel: a complete collapse operator or a bare jump operator with a separate rate.
+The channel constructors distinguish two physical representations: [`collapse`](@ref) takes the
+complete collapse amplitude, while [`jump`](@ref) takes a bare jump operator and a separate physical
+rate.
 
 ```@docs
 dissipator
@@ -160,9 +162,16 @@ collapse
 jump
 ```
 
-The package accepts symbolic rates as algebraic coefficients. It does not infer that a symbolic
-rate is nonnegative, nor does constructing a [`liouvillian`](@ref) certify that the result is a
-GKLS generator.
+A `jump(J, γ)` rate must be provably real. A provably negative numeric rate is rejected. A symbolic
+real rate, including a composite real expression, is accepted under the explicit physical
+assumption that the expression as a whole satisfies ``γ \ge 0``; FloquetExpansions does not infer
+signs of its individual factors. This assumption is retained by the high-level Floquet constructor
+for later positive completion.
+
+This physical restriction belongs to [`jump`](@ref), not to the generic [`Liouvillian`](@ref)
+algebra. If a signed or complex scalar coefficient is required for an algebraic map, construct it
+explicitly, for example as `c * dissipator(J)`. Such a term is a general Liouvillian contribution
+and is not represented as a physical rate-weighted jump.
 
 ### Dissipative frames and Kossakowski coordinates
 

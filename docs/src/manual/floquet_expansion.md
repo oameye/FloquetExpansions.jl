@@ -53,7 +53,8 @@ VanVleck
 
 Prepare the time dependence as a [`PeriodicGenerator`](@ref), or pass a symbolic Hamiltonian or
 Liouvillian together with its drive frequency and time variable. The expansion returns a
-[`FloquetExpansion`](@ref) containing the effective-generator and micromotion coefficients.
+[`FloquetExpansion`](@ref) containing the retained effective-generator and micromotion
+coefficients together with its finite-realization state.
 
 ```@docs
 FloquetExpansion
@@ -65,8 +66,8 @@ floquet_expansion
 
 ## Reading the result
 
-For an expansion truncated at order ``N``, the effective generator and micromotion have the
-inverse-frequency structure
+For an expansion truncated at order ``N``, the retained effective generator and micromotion have
+the inverse-frequency structure
 
 ```math
 \mathcal{G}_\mathrm{eff}^{[N]} =
@@ -76,11 +77,16 @@ inverse-frequency structure
 \sum_{n=1}^{N-1}\omega_d^{-n}\mathcal{K}^{(n)}.
 ```
 
-The stored coefficients do not include these powers of the drive frequency. The accessors attach
-the scaling when the result is read.
+The stored coefficients do not include these powers of the drive frequency. The component
+accessors attach the scaling when the result is read. [`effective_component`](@ref) always returns
+one retained perturbative contribution. [`effective_generator`](@ref) instead returns the finite
+realization: for an [`Uncompleted`](@ref) expansion this is the truncated sum above, while a
+positively completed expansion may replace that finite realization without modifying any retained
+component.
 
 ```@docs
 effective_generator
+effective_component
 ```
 
 ```@docs
@@ -103,14 +109,50 @@ d = kossakowski(vv, frame)
 d1 = kossakowski_component(vv, frame, 1)
 ```
 
-The component accessors include the corresponding inverse-drive-frequency scaling, just as
-[`effective_generator`](@ref) does. The operator-frame construction and Liouvillian-level
+The component accessors include the corresponding inverse-drive-frequency scaling, consistently
+with [`effective_component`](@ref). The operator-frame construction and Liouvillian-level
 Kossakowski representation are described in [System](@ref).
 
 ```@docs
 hamiltonian_component
 kossakowski_component
 ```
+
+## Completion state
+
+Raw Floquet expansions carry [`Uncompleted`](@ref) state. Positive completion is defined as a
+new `FloquetExpansion → FloquetExpansion` transformation: the input periodic generator, retained
+effective components, micromotion components, gauge, and expansion order remain unchanged, while
+the finite no-index effective Liouvillian may be replaced by a completely-positive realization.
+This separation keeps the controlled high-frequency data distinct from the higher-order
+continuation used to restore complete positivity.
+
+```@docs
+Completion
+Uncompleted
+CompletionAlgorithm
+Gram
+Spectral
+CompletionFactorization
+positive_completion
+```
+
+`Gram()` and `Spectral()` select the two completion families. This release establishes their type
+state and dispatch boundary; the Gram and spectral completion constructions themselves are added in
+the corresponding implementation stages. Calling `positive_completion` therefore does not yet
+construct a completed generator.
+
+The overload without an explicit dissipative frame is intended for the high-level physical
+constructor
+
+```julia
+floquet_expansion(H, ωd, t, gauge, order; channels=...)
+```
+
+which retains microscopic collapse/jump information internally before lowering to the generic
+Liouvillian algebra. An expansion constructed from an already lowered [`Liouvillian`](@ref), from
+[`harmonics`](@ref), or directly from a [`PeriodicGenerator`](@ref) does not claim such microscopic
+provenance. The explicit-frame overload remains available for those algebraic input paths.
 
 ## Order and interpretation
 
@@ -119,6 +161,7 @@ inverse-frequency contributions, but the expansion is asymptotic rather than con
 a problem-dependent optimal order, retaining more terms can make the approximation worse for a
 fixed drive.
 
-For dissipative systems, the finite-order effective Liouvillian is an algebraic truncation of the
-common map expansion. It is not projected back into GKLS form, so complete positivity and other
-physicality properties require a separate analysis.
+For dissipative systems, an [`Uncompleted`](@ref) finite-order effective Liouvillian is an
+algebraic truncation of the common map expansion and is not guaranteed to retain GKLS form or
+complete positivity. Positive completion changes the finite realization without rewriting the
+already controlled perturbative components or micromotion.

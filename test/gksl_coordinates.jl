@@ -255,5 +255,5 @@ end
   expansion = floquet_expansion(harmonics(H, ω, t), VanVleck(), 1)
 
   @test @inferred(hamiltonian(expansion)) == effective_generator(expansion)
-  @test @inferred(hamiltonian_component(expansion, 0)) == effective_generator(expansion, 0)
+  @test @inferred(hamiltonian_component(expansion, 0)) == effective_component(expansion, 0)
 end
