@@ -80,9 +80,9 @@ the inverse-frequency structure
 The stored coefficients do not include these powers of the drive frequency. The component
 accessors attach the scaling when the result is read. [`effective_component`](@ref) always returns
 one retained perturbative contribution. [`effective_generator`](@ref) instead returns the finite
-realization: for an [`Uncompleted`](@ref) expansion this is the truncated sum above, while a
-positively completed expansion may replace that finite realization without modifying any retained
-component.
+realization. For a raw expansion this is the truncated sum above; a positively completed
+Liouvillian may replace only that finite realization, as described in
+[Positive completion](@ref).
 
 ```@docs
 effective_generator
@@ -118,42 +118,6 @@ hamiltonian_component
 kossakowski_component
 ```
 
-## Completion state
-
-Raw Floquet expansions carry [`Uncompleted`](@ref) state. Positive completion is defined as a
-new `FloquetExpansion → FloquetExpansion` transformation: the input periodic generator, retained
-effective components, micromotion components, gauge, and expansion order remain unchanged, while
-the finite no-index effective Liouvillian may be replaced by a completely-positive realization.
-This separation keeps the controlled high-frequency data distinct from the higher-order
-continuation used to restore complete positivity.
-
-```@docs
-Completion
-Uncompleted
-CompletionAlgorithm
-Gram
-Spectral
-CompletionFactorization
-positive_completion
-```
-
-`Gram()` and `Spectral()` select the two completion families. This release establishes their type
-state and dispatch boundary; the Gram and spectral completion constructions themselves are added in
-the corresponding implementation stages. Calling `positive_completion` therefore does not yet
-construct a completed generator.
-
-The overload without an explicit dissipative frame is intended for the high-level physical
-constructor
-
-```julia
-floquet_expansion(H, ωd, t, gauge, order; channels=...)
-```
-
-which retains microscopic collapse/jump information internally before lowering to the generic
-Liouvillian algebra. An expansion constructed from an already lowered [`Liouvillian`](@ref), from
-[`harmonics`](@ref), or directly from a [`PeriodicGenerator`](@ref) does not claim such microscopic
-provenance. The explicit-frame overload remains available for those algebraic input paths.
-
 ## Order and interpretation
 
 The package uses `order = 1` for the period average. Increasing `order` retains additional
@@ -161,7 +125,7 @@ inverse-frequency contributions, but the expansion is asymptotic rather than con
 a problem-dependent optimal order, retaining more terms can make the approximation worse for a
 fixed drive.
 
-For dissipative systems, an [`Uncompleted`](@ref) finite-order effective Liouvillian is an
-algebraic truncation of the common map expansion and is not guaranteed to retain GKLS form or
-complete positivity. Positive completion changes the finite realization without rewriting the
-already controlled perturbative components or micromotion.
+For dissipative systems, a finite-order effective Liouvillian is an algebraic truncation of the
+common map expansion and is not guaranteed to retain GKLS form or complete positivity. The
+separate [Positive completion](@ref) manual describes the finite-realization completion layer and
+its relation to the retained perturbative data.
