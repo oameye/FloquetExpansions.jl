@@ -13,9 +13,10 @@ a = Destroy(fock, :a)
   frame = @inferred DissipativeFrame(a, a^2)
 
   @test frame == DissipativeFrame((a, a^2))
+  @test frame == DissipativeFrame([a, a^2])
   @test frame != DissipativeFrame(a^2, a)
-  @test_throws ArgumentError DissipativeFrame(a, 2a)
-  @test_throws ArgumentError DissipativeFrame(one(a), a)
+  @test_throws GKSLCoordinateError DissipativeFrame(a, 2a)
+  @test_throws GKSLCoordinateError DissipativeFrame(one(a), a)
 end
 
 @testset "exact complex Kossakowski extraction" begin
@@ -98,8 +99,8 @@ end
   L = liouvillian(zero(SQA.QAdd); channels=(collapse(a + a^2),))
   frame = DissipativeFrame(a)
 
-  @test_throws ArgumentError kossakowski(L, frame)
-  @test_throws ArgumentError hamiltonian(L, frame)
+  @test_throws GKSLCoordinateError kossakowski(L, frame)
+  @test_throws GKSLCoordinateError hamiltonian(L, frame)
 end
 
 @testset "Floquet GKSL coordinate accessors" begin
@@ -117,6 +118,24 @@ end
   @test d[1, 2] == -im
   @test iszero(SQA.simplify(H_eff - H))
   @test iszero(SQA.simplify(H0 - H))
+end
+
+@testset "nonzero first-order Kossakowski component" begin
+  coherent_harmonic = hamiltonian_action(a'^2 * a^2)
+  dissipative_harmonic = dissipator(a)
+  generator = PeriodicGenerator(Dict(-1 => coherent_harmonic, 1 => dissipative_harmonic), ω)
+  expansion = floquet_expansion(generator, VanVleck(), 2)
+  frame = DissipativeFrame(a, a' * a^2)
+
+  d1 = @inferred kossakowski_component(expansion, frame, 1)
+
+  @test all(
+    iszero(SQA.simplify(d1[i, j] - conj(d1[j, i]))) for i in axes(d1, 1), j in axes(d1, 2)
+  )
+  @test iszero(SQA.simplify(d1[1, 1]))
+  @test iszero(SQA.simplify(d1[2, 2]))
+  @test iszero(SQA.simplify(d1[1, 2] + 2im / ω))
+  @test iszero(SQA.simplify(d1[2, 1] - 2im / ω))
 end
 
 @testset "Hamiltonian expansions retain their coherent accessors" begin
