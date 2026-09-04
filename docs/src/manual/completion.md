@@ -72,7 +72,8 @@ An expansion constructed from an already lowered [`Liouvillian`](@ref), from
 channel provenance. For those paths, completion requires an explicit [`DissipativeFrame`](@ref).
 
 The frame itself is an ordered operator basis for the dissipative module, as described in
-[System](@ref). It is not stored in the generic Liouvillian or periodic-generator algebra.
+[System](@ref). The physical collapse/jump semantics, including real time-periodic rates, are also
+documented there rather than in the completion layer.
 
 ## Micromotion
 
@@ -85,20 +86,3 @@ completed finite effective generator.
 A change of micromotion would only be required if one demanded exact equality with the original
 finite truncated propagator at all times rather than perturbative agreement through the retained
 order.
-
-## Physical jump rates
-
-The microscopic `jump(J, γ)` constructor represents a physical rate-weighted channel
-``γ\mathcal{D}[J]``. Its rate may be time dependent and periodic, but it must be real; symbolic
-real expressions are accepted under the physical assumption that the whole rate is nonnegative.
-For example, a periodic rate such as ``γ_0 + γ_1\cos(ωt)`` is supported, whereas a genuinely
-complex coefficient such as ``e^{iωt}`` is not a physical jump rate.
-
-Signed or complex coefficients remain available in the generic Liouvillian algebra through
-expressions such as
-
-```julia
-c * dissipator(J)
-```
-
-so the physical `jump` semantics do not restrict the Fourier algebra used by the Floquet engine.
