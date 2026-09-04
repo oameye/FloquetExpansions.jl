@@ -56,7 +56,7 @@ end
 
   extracted_H = hamiltonian(L, frame)
 
-  @test hamiltonian_action(extracted_H) == hamiltonian_action(H)
+  @test SQA.simplify(extracted_H - a' * a) == 0
   @test kossakowski(L, frame)[1, 1] == 1
 end
 
