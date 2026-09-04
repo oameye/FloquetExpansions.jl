@@ -26,8 +26,8 @@ nonorthogonal.
 
 See also [`kossakowski`](@ref), [`hamiltonian`](@ref).
 """
-struct DissipativeFrame
-  operators::Vector{SQA.QAdd}
+struct DissipativeFrame{O<:Tuple}
+  operators::O
   monomials::Vector{SQA.QTerm}
   coordinates::KossakowskiMatrix
   pivot_rows::Vector{Int}
@@ -51,9 +51,7 @@ end
 function canonical_qadd(operator::SQA.QField)
   result = SQA.simplify(SQA.expand_completeness(qadd(operator)))
   isempty(result.indices) || throw(
-    GKSLCoordinateError(
-      "DissipativeFrame does not support operators with bound symbolic sums"
-    ),
+    ArgumentError("GKSL coordinates do not support operators with bound symbolic sums")
   )
   return result
 end
@@ -72,9 +70,7 @@ function projected_operator(operator::SQA.QField)
   scalar = scalar_part(canonical)
   projected = iszero(scalar) ? canonical : SQA.simplify(canonical - scalar * one(canonical))
   iszero(projected) && throw(
-    GKSLCoordinateError(
-      "a dissipative-frame direction cannot be proportional to the identity"
-    ),
+    ArgumentError("a dissipative-frame direction cannot be proportional to the identity")
   )
   return projected
 end
@@ -148,9 +144,7 @@ function independent_pivot_rows(coordinates::KossakowskiMatrix)
   end
 
   length(pivots) == direction_count || throw(
-    GKSLCoordinateError(
-      "dissipative-frame directions are linearly dependent modulo the identity"
-    ),
+    ArgumentError("dissipative-frame directions are linearly dependent modulo the identity")
   )
   return pivots
 end
@@ -214,17 +208,12 @@ function inverse_coefficients(matrix::KossakowskiMatrix)
 end
 
 function build_dissipative_frame(operators)
-  isempty(operators) &&
-    throw(GKSLCoordinateError("DissipativeFrame requires at least one direction"))
-  projected = SQA.QAdd[]
-  sizehint!(projected, length(operators))
-  for operator in operators
+  isempty(operators) && throw(ArgumentError("DissipativeFrame requires at least one direction"))
+  projected = map(Tuple(operators)) do operator
     operator isa SQA.QField || throw(
-      GKSLCoordinateError(
-        "every dissipative-frame direction must be an SQA operator expression"
-      ),
+      ArgumentError("every dissipative-frame direction must be an SQA operator expression")
     )
-    push!(projected, projected_operator(operator))
+    return projected_operator(operator)
   end
 
   monomials = SQA.QTerm[]
@@ -395,9 +384,7 @@ function extract_gksl(L::Liouvillian, frame::DissipativeFrame)
   dissipative = dissipative_liouvillian(frame, matrix)
   residual = canonical_liouvillian(L - dissipative)
   has_two_sided_terms(residual) && throw(
-    GKSLCoordinateError(
-      "Liouvillian contains dissipative directions outside the supplied frame"
-    ),
+    ArgumentError("Liouvillian contains dissipative directions outside the supplied frame")
   )
   H = residual_hamiltonian(residual)
   return H, matrix
