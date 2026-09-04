@@ -86,7 +86,7 @@ function assemble_resolvent(
   return result
 end
 
-function _require_hermitian_drive(generator::PeriodicGenerator{SQA.QAdd})
+function require_hermitian_drive(generator::PeriodicGenerator{SQA.QAdd})
   LinearAlgebra.ishermitian(generator) || throw(
     ArgumentError(
       "the drive is not Hermitian: it must satisfy H_{-m} = H_m' (eq:fourierH)"
@@ -95,12 +95,12 @@ function _require_hermitian_drive(generator::PeriodicGenerator{SQA.QAdd})
   return generator
 end
 
-function _floquet_expansion(
+function floquet_expansion_impl(
   generator::P, gauge::G, order::Int, provenance::R
 ) where {P<:PeriodicGenerator,G<:Gauge,R<:FloquetProvenance}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
 
-  generator isa PeriodicGenerator{SQA.QAdd} && _require_hermitian_drive(generator)
+  generator isa PeriodicGenerator{SQA.QAdd} && require_hermitian_drive(generator)
 
   nodes = (order * (order + 1)) ÷ 2
   dressed_generator = [zero(generator) for _ in 1:nodes]
@@ -208,22 +208,22 @@ See also [`effective_generator`](@ref), [`effective_component`](@ref), [`micromo
 function floquet_expansion(
   generator::P, gauge::G, order::Int
 ) where {P<:PeriodicGenerator,G<:Gauge}
-  return _floquet_expansion(generator, gauge, order, NoProvenance())
+  return floquet_expansion_impl(generator, gauge, order, NoProvenance())
 end
 
 function floquet_expansion(
   L::Liouvillian, wd::Symbolics.Num, t::Symbolics.Num, gauge::Gauge, order::Int
 )
-  return _floquet_expansion(harmonics(L, wd, t), gauge, order, NoProvenance())
+  return floquet_expansion_impl(harmonics(L, wd, t), gauge, order, NoProvenance())
 end
 
-function _floquet_expansion_channels(
+function floquet_expansion_channels(
   H::SQA.QField, wd::Symbolics.Num, t::Symbolics.Num, gauge::Gauge, order::Int, ::Tuple{}
 )
-  return _floquet_expansion(harmonics(qadd(H), wd, t), gauge, order, NoProvenance())
+  return floquet_expansion_impl(harmonics(qadd(H), wd, t), gauge, order, NoProvenance())
 end
 
-function _floquet_expansion_channels(
+function floquet_expansion_channels(
   H::SQA.QField,
   wd::Symbolics.Num,
   t::Symbolics.Num,
@@ -239,10 +239,10 @@ function _floquet_expansion_channels(
       ),
     )
 
-  _require_hermitian_drive(harmonics(qadd(H), wd, t))
-  provenance = _microscopic_provenance(channels)
-  L = _liouvillian_from_provenance(H, provenance)
-  return _floquet_expansion(harmonics(L, wd, t), gauge, order, provenance)
+  require_hermitian_drive(harmonics(qadd(H), wd, t))
+  provenance = microscopic_provenance(channels)
+  L = liouvillian_from_provenance(H, provenance)
+  return floquet_expansion_impl(harmonics(L, wd, t), gauge, order, provenance)
 end
 
 function floquet_expansion(
@@ -253,7 +253,7 @@ function floquet_expansion(
   order::Int;
   channels::LiouvillianChannelCollection=(),
 )
-  return _floquet_expansion_channels(H, wd, t, gauge, order, channels)
+  return floquet_expansion_channels(H, wd, t, gauge, order, channels)
 end
 
 function reattach(component::GeneratorComponent, wd::Symbolics.Num, n::Int)
