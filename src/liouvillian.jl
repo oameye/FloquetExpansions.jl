@@ -210,6 +210,8 @@ end
 
 function _validated_jump_rate(rate::LiouvillianScalar)
   if rate isa Symbolics.Num
+    iszero(imag(rate)) ||
+      throw(ArgumentError("jump rate must be provably real; got `$rate`"))
     return convert(SQA.CNum, rate)
   elseif rate isa Real
     rate < 0 && throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
