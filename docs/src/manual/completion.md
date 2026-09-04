@@ -10,10 +10,11 @@ a GKLS effective generator, even when the microscopic dynamics is Markovian and 
 positive [Schnell2021](@cite). Positive completion restores complete positivity without changing
 the perturbative information fixed by the high-frequency expansion.
 
-For `order = N`, write the retained Kossakowski series as
+For a truncation through order ``N`` (`order = N + 1` in the API), write the retained Kossakowski
+series as
 
 ```math
-d^{[N]}(\epsilon)=\sum_{n=0}^{N-1}\epsilon^n d^{(n)},
+d^{[N]}(\epsilon)=\sum_{n=0}^{N}\epsilon^n d^{(n)},
 \qquad \epsilon=\omega_d^{-1}.
 ```
 
@@ -22,7 +23,7 @@ A positive completion constructs a finite matrix ``\widetilde d^{[N]}(\epsilon)`
 ```math
 \widetilde d^{[N]}(\epsilon)\succeq0,
 \qquad
-\widetilde d^{[N]}(\epsilon)-d^{[N]}(\epsilon)=\mathcal O(\epsilon^N).
+\widetilde d^{[N]}(\epsilon)-d^{[N]}(\epsilon)=\mathcal O(\epsilon^{N+1}).
 ```
 
 Thus the completion modifies only terms beyond the retained order. The perturbative effective
@@ -32,7 +33,7 @@ generator.
 ## Micromotion
 
 The retained kick operator does not need to be modified. If
-``\mathcal L_{\rm CP}^{[N]}-\mathcal L_{\rm eff}^{[N]}=\mathcal O(\epsilon^N)``, then the same
+``\mathcal L_{\rm CP}^{[N]}-\mathcal L_{\rm eff}^{[N]}=\mathcal O(\epsilon^{N+1})``, then the same
 retained micromotion gives a completed approximation with the same accuracy,
 
 ```math
