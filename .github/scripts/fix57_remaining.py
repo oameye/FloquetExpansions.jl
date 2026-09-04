@@ -42,17 +42,14 @@ engine.write_text(text.replace(old,new,1))
 liouvillian = Path('src/liouvillian.jl')
 text = liouvillian.read_text()
 old = '''function _validated_jump_rate(rate::LiouvillianScalar)
-  if rate isa Real && !(rate isa Symbolics.Num) && rate < 0
-    throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
-  end
-
   coefficient = convert(SQA.CNum, rate)
   value = SQA.to_num(coefficient)
-  imaginary_part = imag(value)
-  iszero(imaginary_part) ||
+  conjugation_residual = Symbolics.simplify(conj(value) - value)
+  iszero(conjugation_residual) ||
     throw(ArgumentError("jump rate must be provably real; got `$rate`"))
 
-  if value isa Real && !(value isa Symbolics.Num) && value < 0
+  unwrapped = Symbolics.value(Symbolics.simplify(value))
+  if unwrapped isa Real && unwrapped < 0
     throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
   end
   return coefficient
