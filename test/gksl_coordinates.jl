@@ -1,6 +1,9 @@
 using Test
 using FloquetExpansions
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 using Symbolics: @variables
+
+const SQA = SecondQuantizedAlgebra
 
 fock = FockSpace(:gksl_coordinates)
 a = Destroy(fock, :a)
@@ -38,7 +41,7 @@ end
   f2 = a - a^2
   frame = DissipativeFrame(f1, f2)
   H = (3 // 5) * a' * a
-  L = liouvillian(H; channels=(collapse(2f1 + 3f2),))
+  L = liouvillian(H; channels=(collapse(2 * f1 + 3 * f2),))
 
   d = kossakowski(L, frame)
 
