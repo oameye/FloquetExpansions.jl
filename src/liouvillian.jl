@@ -209,16 +209,15 @@ function collapse(operator::SQA.QField)
 end
 
 function _validated_jump_rate(rate::LiouvillianScalar)
+  if rate isa Real && rate < 0
+    throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
+  elseif rate isa Complex && !isreal(rate)
+    throw(ArgumentError("jump rate must be provably real; got `$rate`"))
+  end
+
   coefficient = convert(SQA.CNum, rate)
   value = SQA.to_num(coefficient)
-  conjugation_residual = Symbolics.simplify(conj(value) - value)
-  iszero(conjugation_residual) ||
-    throw(ArgumentError("jump rate must be provably real; got `$rate`"))
-
-  unwrapped = Symbolics.value(Symbolics.simplify(value))
-  if unwrapped isa Real && unwrapped < 0
-    throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
-  end
+  iszero(imag(value)) || throw(ArgumentError("jump rate must be provably real; got `$rate`"))
   return coefficient
 end
 
