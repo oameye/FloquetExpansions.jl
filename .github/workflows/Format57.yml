@@ -1,0 +1,30 @@
+name: Format 57
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.ref == 'refs/heads/feat/completion-state-provenance'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/completion-state-provenance
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - run: |
+          ${HOME}/.julia/bin/jlfmt --inplace src/engine.jl
+          if git diff --quiet -- src/engine.jl; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/engine.jl
+          git commit -m 'style: format #57 engine changes'
+          git push origin HEAD:feat/completion-state-provenance
