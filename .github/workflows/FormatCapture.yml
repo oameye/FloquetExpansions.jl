@@ -1,0 +1,18 @@
+name: Format Capture
+
+on:
+  pull_request:
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+      - name: Install JuliaFormatter
+        run: |
+          julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Capture formatting diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace .
+          git diff -- src/FloquetExpansions.jl src/gksl_coordinates.jl
