@@ -240,7 +240,8 @@ function _validated_jump_rate(rate::LiouvillianScalar)
     throw(ArgumentError("jump rate must be provably real; got `$rate`"))
 
   numeric_rate = _known_numeric_jump_rate(rate)
-  numeric_rate !== nothing && numeric_rate < 0 &&
+  numeric_rate !== nothing &&
+    numeric_rate < 0 &&
     throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
 
   return coefficient

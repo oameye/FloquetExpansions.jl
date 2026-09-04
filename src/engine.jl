@@ -231,9 +231,13 @@ function _floquet_expansion_channels(
   order::Int,
   channels::LiouvillianChannelCollection,
 )
-  channels isa AbstractVector && isempty(channels) && throw(
-    ArgumentError("an explicit channel vector must be nonempty; omit `channels` for no channels")
-  )
+  channels isa AbstractVector &&
+    isempty(channels) &&
+    throw(
+      ArgumentError(
+        "an explicit channel vector must be nonempty; omit `channels` for no channels"
+      ),
+    )
 
   _require_hermitian_drive(harmonics(qadd(H), wd, t))
   provenance = _microscopic_provenance(channels)
