@@ -2,42 +2,11 @@ from pathlib import Path
 
 engine = Path('src/engine.jl')
 text = engine.read_text()
-text = text.replace('\\sum_{n<N]','\\sum_{n<N}',1)
-old = '''function micromotion(expansion::FloquetExpansion)
-  result = zero(expansion.generator)
-  for (order, kick) in enumerate(expansion.kick_components)
-    result = result + reattach(kick, order)
-  end
-  return result
-end
-
-function micromotion(expansion::FloquetExpansion, n::Int)
-  1 <= n < expansion.order ||
-    throw(ArgumentError("order $(n) is outside 1:$(expansion.order - 1)"))
-  return SQA.simplify(reattach(expansion.kick_components[n], n))
-end
-'''
-new = '''function micromotion(
-  expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P<:PeriodicGenerator,E,C,R}
-  result = zero(expansion.generator)::P
-  for (order, kick) in enumerate(expansion.kick_components)
-    result = result + reattach(kick, order)
-  end
-  return result::P
-end
-
-function micromotion(
-  expansion::FloquetExpansion{G,P,E,C,R}, n::Int
-) where {G,P<:PeriodicGenerator,E,C,R}
-  1 <= n < expansion.order ||
-    throw(ArgumentError("order $(n) is outside 1:$(expansion.order - 1)"))
-  return SQA.simplify(reattach(expansion.kick_components[n], n))::P
-end
-'''
-if old not in text:
-    raise SystemExit('micromotion block not found')
-engine.write_text(text.replace(old,new,1))
+old_doc = r'\sum_{n<N]'
+new_doc = r'\sum_{n<N}'
+if old_doc not in text:
+    raise SystemExit('effective-generator doc typo not found')
+engine.write_text(text.replace(old_doc, new_doc, 1))
 
 liouvillian = Path('src/liouvillian.jl')
 text = liouvillian.read_text()
@@ -93,4 +62,4 @@ end
 '''
 if old not in text:
     raise SystemExit('jump validator block not found')
-liouvillian.write_text(text.replace(old,new,1))
+liouvillian.write_text(text.replace(old, new, 1))
