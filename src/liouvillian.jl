@@ -233,8 +233,11 @@ end
 
 function validated_jump_rate(rate::LiouvillianScalar)
   coefficient = convert(SQA.CNum, rate)
-  coefficient == conj(coefficient) ||
-    throw(ArgumentError("jump rate must be provably real; got `$rate`"))
+  real_valued =
+    rate isa Real ||
+    (rate isa Complex && iszero(imag(rate))) ||
+    coefficient == conj(coefficient)
+  real_valued || throw(ArgumentError("jump rate must be provably real; got `$rate`"))
 
   numeric_rate = known_numeric_jump_rate(rate)
   numeric_rate !== nothing &&

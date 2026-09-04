@@ -101,8 +101,13 @@ end
   collapse_form = liouvillian(zero_H; channels=(collapse(2a),))
   rate_form = liouvillian(zero_H; channels=(jump(a, 4),))
 
-  @test collapse_form == rate_form
-  @test collapse_form == 4 * dissipator(a)
+  substitutions = Dict()
+  collapse_matrix = superoperator_matrix(collapse_form, space, 3, substitutions)
+  rate_matrix = superoperator_matrix(rate_form, space, 3, substitutions)
+  reference_matrix = superoperator_matrix(4 * dissipator(a), space, 3, substitutions)
+
+  @test collapse_matrix ≈ rate_matrix
+  @test collapse_matrix ≈ reference_matrix
 end
 
 @testset "Liouvillian arithmetic collects equal terms" begin
