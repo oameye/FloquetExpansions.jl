@@ -4,7 +4,7 @@ Finite-order Floquet Liouvillian expansions may leave the GKSL cone even when th
 
 ## Result model
 
-Completion preserves the unified `FloquetExpansion` result model. A raw expansion carries an `Uncompleted` completion state. `positive_completion(vv, Gram())` or `positive_completion(vv, Spectral())` returns another `FloquetExpansion` carrying a concrete completed state. Completing an already completed expansion is an error; there is no `uncomplete` operation.
+Completion preserves the unified `FloquetExpansion` result model. A raw expansion carries an `Uncompleted` completion state. `positive_completion(vv, Gram())` or `positive_completion(vv, Spectral())` returns another `FloquetExpansion` carrying a concrete completed state. Completing an already completed expansion is an error; there is no operation that removes the completion state.
 
 The retained `effective_components`, Hamiltonian components, gauge, and micromotion are not rewritten. The no-index `effective_generator(cp)` returns the finite completed generator, while `effective_component(cp, n)` continues to return the original retained order-`n` Floquet coefficient.
 
