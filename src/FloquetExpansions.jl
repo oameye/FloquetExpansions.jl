@@ -24,6 +24,7 @@ export time_average, derivative, antiderivative, support, harmonics
 export FloquetExpansion, floquet_expansion, effective_generator, micromotion
 export Liouvillian,
   liouvillian, terms, hamiltonian_action, dissipator, compose, collapse, jump
-export DissipativeFrame, hamiltonian, hamiltonian_component, kossakowski, kossakowski_component
+export DissipativeFrame,
+  hamiltonian, hamiltonian_component, kossakowski, kossakowski_component
 
 end # module FloquetExpansions
