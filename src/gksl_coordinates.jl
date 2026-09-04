@@ -75,6 +75,16 @@ function projected_operator(operator::SQA.QField)
   return projected
 end
 
+project_frame_operator(operator::SQA.QField) = projected_operator(operator)
+function project_frame_operator(operator)
+  throw(ArgumentError("every dissipative-frame direction must be an SQA operator expression"))
+end
+
+frame_operator_tuple(operators::Tuple) = map(project_frame_operator, operators)
+function frame_operator_tuple(operators::AbstractVector)
+  return Tuple(project_frame_operator(operator) for operator in operators)
+end
+
 function sorted_term_pairs(operator::SQA.QAdd)
   pairs = collect(operator)
   sort!(pairs; by=pair -> SQA.term_order_key(first(pair)))
@@ -209,12 +219,7 @@ end
 
 function build_dissipative_frame(operators)
   isempty(operators) && throw(ArgumentError("DissipativeFrame requires at least one direction"))
-  projected = map(Tuple(operators)) do operator
-    operator isa SQA.QField || throw(
-      ArgumentError("every dissipative-frame direction must be an SQA operator expression")
-    )
-    return projected_operator(operator)
-  end
+  projected = frame_operator_tuple(operators)
 
   monomials = SQA.QTerm[]
   for operator in projected
