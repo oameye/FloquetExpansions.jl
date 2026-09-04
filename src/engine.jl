@@ -86,18 +86,21 @@ function assemble_resolvent(
   return result
 end
 
+function _require_hermitian_drive(generator::PeriodicGenerator{SQA.QAdd})
+  LinearAlgebra.ishermitian(generator) || throw(
+    ArgumentError(
+      "the drive is not Hermitian: it must satisfy H_{-m} = H_m' (eq:fourierH)"
+    ),
+  )
+  return generator
+end
+
 function _floquet_expansion(
   generator::P, gauge::G, order::Int, provenance::R
 ) where {P<:PeriodicGenerator,G<:Gauge,R<:FloquetProvenance}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
 
-  if generator isa PeriodicGenerator{SQA.QAdd}
-    LinearAlgebra.ishermitian(generator) || throw(
-      ArgumentError(
-        "the drive is not Hermitian: it must satisfy H_{-m} = H_m' (eq:fourierH)"
-      ),
-    )
-  end
+  generator isa PeriodicGenerator{SQA.QAdd} && _require_hermitian_drive(generator)
 
   nodes = (order * (order + 1)) ÷ 2
   dressed_generator = [zero(generator) for _ in 1:nodes]
@@ -164,13 +167,15 @@ contributions.
 - `order`: Number of retained orders; must be at least one.
 - `channels`: Tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values added to `H`.
 
-The `L` and `H` forms decompose the time dependence before applying the expansion. If physical
-`channels` are supplied through the `H` form, [`positive_completion`](@ref) can be called without
-an explicit dissipative frame. For an explicitly constructed Liouvillian or periodic generator,
-pass a [`DissipativeFrame`](@ref) to [`positive_completion`](@ref).
+The `L` and `H` forms decompose the time dependence before applying the expansion. Physical
+`channels` supplied through the `H` form are retained as microscopic input for positive completion;
+explicitly constructed Liouvillian inputs remain valid and can be completed from their Floquet
+data or in a supplied [`DissipativeFrame`](@ref).
 
-Hamiltonian generators are checked for Hermiticity at ingest. Liouvillian generators use the
-common algebra without a Hamiltonian Hermiticity requirement.
+Hamiltonian generators are checked for Hermiticity at ingest, including the Hamiltonian part of
+the `H; channels=...` form. Liouvillian generators use the common algebra without a Hamiltonian
+Hermiticity requirement. An explicit channel vector must be nonempty; omit `channels` or pass `()`
+for a Hamiltonian-only expansion.
 
 # Notes
 
@@ -226,6 +231,11 @@ function _floquet_expansion_channels(
   order::Int,
   channels::LiouvillianChannelCollection,
 )
+  channels isa AbstractVector && isempty(channels) && throw(
+    ArgumentError("an explicit channel vector must be nonempty; omit `channels` for no channels")
+  )
+
+  _require_hermitian_drive(harmonics(qadd(H), wd, t))
   provenance = _microscopic_provenance(channels)
   L = _liouvillian_from_provenance(H, provenance)
   return _floquet_expansion(harmonics(L, wd, t), gauge, order, provenance)
