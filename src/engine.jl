@@ -263,7 +263,7 @@ end
 
 Return the finite time-independent effective generator. For a raw expansion this is
 
-``\\mathcal{G}_\\mathrm{eff}^{[N]} = \\sum_{n<N}
+``\\mathcal{G}_\\mathrm{eff}^{[N]} = \\sum_{n<N]
 \\omega_d^{-n}\\mathcal{G}_\\mathrm{eff}^{(n)}``.
 
 For a positively completed expansion, the no-index accessor returns the completed finite
@@ -328,16 +328,20 @@ Positive completion leaves all retained micromotion components unchanged.
 
 See also [`effective_generator`](@ref), [`effective_component`](@ref), [`VanVleck`](@ref).
 """
-function micromotion(expansion::FloquetExpansion)
-  result = zero(expansion.generator)
+function micromotion(
+  expansion::FloquetExpansion{G,P,E,C,R}
+) where {G,P<:PeriodicGenerator,E,C,R}
+  result = zero(expansion.generator)::P
   for (order, kick) in enumerate(expansion.kick_components)
-    result = result + reattach(kick, order)
+    result = (result + reattach(kick, order))::P
   end
-  return result
+  return result::P
 end
 
-function micromotion(expansion::FloquetExpansion, n::Int)
+function micromotion(
+  expansion::FloquetExpansion{G,P,E,C,R}, n::Int
+) where {G,P<:PeriodicGenerator,E,C,R}
   1 <= n < expansion.order ||
     throw(ArgumentError("order $(n) is outside 1:$(expansion.order - 1)"))
-  return SQA.simplify(reattach(expansion.kick_components[n], n))
+  return SQA.simplify(reattach(expansion.kick_components[n], n))::P
 end
