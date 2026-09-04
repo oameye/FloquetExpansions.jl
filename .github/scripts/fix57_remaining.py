@@ -2,28 +2,13 @@ from pathlib import Path
 
 engine = Path('src/engine.jl')
 text = engine.read_text()
-old_doc = r'\sum_{n<N]'
-new_doc = r'\sum_{n<N}'
-if old_doc not in text:
-    raise SystemExit('effective-generator doc typo not found')
-engine.write_text(text.replace(old_doc, new_doc, 1))
+text = text.replace(r'\sum_{n<N]', r'\sum_{n<N}', 1)
+engine.write_text(text)
 
 liouvillian = Path('src/liouvillian.jl')
 text = liouvillian.read_text()
-old = '''function _validated_jump_rate(rate::LiouvillianScalar)
-  coefficient = convert(SQA.CNum, rate)
-  value = SQA.to_num(coefficient)
-  conjugation_residual = Symbolics.simplify(conj(value) - value)
-  iszero(conjugation_residual) ||
-    throw(ArgumentError("jump rate must be provably real; got `$rate`"))
-
-  unwrapped = Symbolics.value(Symbolics.simplify(value))
-  if unwrapped isa Real && unwrapped < 0
-    throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
-  end
-  return coefficient
-end
-'''
+start = text.index('function _validated_jump_rate(rate::LiouvillianScalar)')
+stop = text.index('\nend\n\n"""\n    jump(', start) + len('\nend')
 new = '''function _validated_jump_rate(rate::LiouvillianScalar)
   if rate isa Symbolics.Num
     return convert(SQA.CNum, rate)
@@ -58,8 +43,5 @@ new = '''function _validated_jump_rate(rate::LiouvillianScalar)
   end
 
   throw(ArgumentError("jump rate must be provably real; got `$rate`"))
-end
-'''
-if old not in text:
-    raise SystemExit('jump validator block not found')
-liouvillian.write_text(text.replace(old, new, 1))
+end'''
+liouvillian.write_text(text[:start] + new + text[stop:])
