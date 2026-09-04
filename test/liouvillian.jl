@@ -1,13 +1,13 @@
 using Test
 using FloquetExpansions
-using Symbolics: Symbolics, @variables
+using Symbolics: Num, Symbolics, @variables
 using LinearAlgebra: I, kron
 
 include(joinpath(@__DIR__, "helpers", "shared.jl"))
 
 space = FockSpace(:liouvillian)
 a = Destroy(space, :a)
-@variables γ::Real ω::Real t::Real t₀::Real
+@variables γ::Real δ::Real ω::Real t::Real t₀::Real
 
 function coeff_to_complex(coeff, substitutions::AbstractDict)
   dummy = coeff * one(SQA.QAdd)
@@ -74,17 +74,35 @@ end
 
   @test liouvillian(zero_H; channels=(jump(a, 0),)) == zero(Liouvillian)
   @test liouvillian(zero_H; channels=(jump(a, 2),)) == 2 * dissipator(a)
+  @test liouvillian(zero_H; channels=(jump(a, 2 + 0im),)) == 2 * dissipator(a)
   @test liouvillian(zero_H; channels=(jump(a, γ),)) == γ * dissipator(a)
   @test liouvillian(zero_H; channels=(jump(a, 1 + cos(ω * t)),)) ==
     (1 + cos(ω * t)) * dissipator(a)
+
+  phase_rate = 1 + expim(ω * t) + expim(-ω * t)
+  phase_liouvillian = liouvillian(zero_H; channels=(jump(a, phase_rate),))
+  @test phase_liouvillian == phase_rate * dissipator(a)
+  @test sort!(collect(keys(harmonics(phase_liouvillian, ω, t)))) == [-1, 0, 1]
 
   # A symbolic expression is assumed nonnegative as a whole; its factors are not sign-split.
   @test liouvillian(zero_H; channels=(jump(a, -γ),)) == -γ * dissipator(a)
 
   @test_throws ArgumentError jump(a, -1)
   @test_throws ArgumentError jump(a, -1.0)
+  @test_throws ArgumentError jump(a, -2 + 0im)
+  @test_throws ArgumentError jump(a, Num(-1))
   @test_throws ArgumentError jump(a, im)
+  @test_throws ArgumentError jump(a, γ + im * δ)
   @test_throws ArgumentError jump(a, expim(ω * t₀))
+end
+
+@testset "collapse amplitudes and jump rates remain distinct representations" begin
+  zero_H = zero(SQA.QAdd)
+  collapse_form = liouvillian(zero_H; channels=(collapse(2a),))
+  rate_form = liouvillian(zero_H; channels=(jump(a, 4),))
+
+  @test collapse_form == rate_form
+  @test collapse_form == 4 * dissipator(a)
 end
 
 @testset "Liouvillian arithmetic collects equal terms" begin
