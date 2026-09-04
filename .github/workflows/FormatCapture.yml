@@ -16,7 +16,7 @@ jobs:
         with:
           version: '1'
       - name: Install JuliaFormatter
-        run: julia -e 'using Pkg; Pkg.Apps.add(name="JuliaFormatter")'
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
       - name: Capture formatter diff
         run: |
           ${HOME}/.julia/bin/jlfmt --inplace src/gksl_coordinates.jl
