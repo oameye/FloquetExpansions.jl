@@ -36,29 +36,17 @@ micromotion. [`effective_generator`](@ref) returns the completed finite generato
 [`effective_component`](@ref) and [`micromotion`](@ref) continue to return the retained
 high-frequency data.
 
-The two-argument form is available for expansions constructed from
-`floquet_expansion(H, ωd, t, gauge, order; channels=...)`. For an expansion constructed from an
-explicit [`Liouvillian`](@ref), [`harmonics`](@ref), or [`PeriodicGenerator`](@ref), pass a
-[`DissipativeFrame`](@ref) explicitly.
+The two-argument form lets the completion algorithm determine a dissipative frame from the
+available Floquet data and, when present, microscopic channel information. Pass a
+[`DissipativeFrame`](@ref) explicitly to fix the representation.
 
 Positive completion is defined only for Liouvillian expansions. Calling it on an already
 completed expansion is an error. Use [`Gram`](@ref) or [`Spectral`](@ref) to select the algorithm.
 """
 function positive_completion(
-  expansion::FloquetExpansion{G,P,E,Uncompleted,MicroscopicProvenance},
-  algorithm::CompletionAlgorithm,
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
+  expansion::FloquetExpansion{G,P,E,Uncompleted,R}, algorithm::CompletionAlgorithm
+) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian,R}
   return _positive_completion(expansion, algorithm)
-end
-
-function positive_completion(
-  ::FloquetExpansion{G,P,E,Uncompleted,NoProvenance}, ::CompletionAlgorithm
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
-  return throw(
-    ArgumentError(
-      "automatic positive completion requires an expansion constructed with `channels`; pass a `DissipativeFrame` for an explicitly constructed Liouvillian",
-    ),
-  )
 end
 
 function positive_completion(
