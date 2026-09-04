@@ -1,8 +1,20 @@
 const KossakowskiMatrix = Matrix{SQA.CNum}
 
 """
+    GKSLCoordinateError
+
+Raised when exact GKSL coordinates cannot be constructed in a requested dissipative frame.
+"""
+struct GKSLCoordinateError <: Exception
+  message::String
+end
+
+Base.showerror(io::IO, error::GKSLCoordinateError) = print(io, error.message)
+
+"""
     DissipativeFrame(operators...)
     DissipativeFrame(operators::Tuple)
+    DissipativeFrame(operators::AbstractVector)
 
 An ordered operator frame for Kossakowski coordinates. Operators are canonicalized with
 SQA completeness relations and represented modulo the identity, since scalar shifts of a
@@ -39,7 +51,7 @@ end
 function canonical_qadd(operator::SQA.QField)
   result = SQA.simplify(SQA.expand_completeness(qadd(operator)))
   isempty(result.indices) || throw(
-    ArgumentError("DissipativeFrame does not support operators with bound symbolic sums")
+    GKSLCoordinateError("DissipativeFrame does not support operators with bound symbolic sums")
   )
   return result
 end
@@ -58,7 +70,7 @@ function projected_operator(operator::SQA.QField)
   scalar = scalar_part(canonical)
   projected = iszero(scalar) ? canonical : SQA.simplify(canonical - scalar * one(canonical))
   iszero(projected) && throw(
-    ArgumentError("a dissipative-frame direction cannot be proportional to the identity")
+    GKSLCoordinateError("a dissipative-frame direction cannot be proportional to the identity")
   )
   return projected
 end
@@ -132,7 +144,7 @@ function independent_pivot_rows(coordinates::KossakowskiMatrix)
   end
 
   length(pivots) == direction_count || throw(
-    ArgumentError(
+    GKSLCoordinateError(
       "dissipative-frame directions are linearly dependent modulo the identity"
     ),
   )
@@ -141,7 +153,7 @@ end
 
 function inverse_coefficients(matrix::KossakowskiMatrix)
   rows, columns = size(matrix)
-  rows == columns || throw(ArgumentError("coefficient matrix must be square"))
+  rows == columns || throw(DimensionMismatch("coefficient matrix must be square"))
   n = rows
   left = copy(matrix)
   right = coefficient_matrix(n, n)
@@ -159,8 +171,9 @@ function inverse_coefficients(matrix::KossakowskiMatrix)
         break
       end
     end
-    iszero(candidate) &&
-      throw(ArgumentError("dissipative-frame coordinate pivot is structurally singular"))
+    iszero(candidate) && throw(
+      GKSLCoordinateError("dissipative-frame coordinate pivot is structurally singular")
+    )
 
     if candidate != column
       for trailing in 1:n
@@ -198,12 +211,14 @@ end
 
 function build_dissipative_frame(operators)
   isempty(operators) &&
-    throw(ArgumentError("DissipativeFrame requires at least one direction"))
+    throw(GKSLCoordinateError("DissipativeFrame requires at least one direction"))
   projected = SQA.QAdd[]
   sizehint!(projected, length(operators))
   for operator in operators
     operator isa SQA.QField || throw(
-      ArgumentError("every dissipative-frame direction must be an SQA operator expression"),
+      GKSLCoordinateError(
+        "every dissipative-frame direction must be an SQA operator expression"
+      ),
     )
     push!(projected, projected_operator(operator))
   end
@@ -234,6 +249,7 @@ function build_dissipative_frame(operators)
 end
 
 DissipativeFrame(operators::Tuple) = build_dissipative_frame(operators)
+DissipativeFrame(operators::AbstractVector) = build_dissipative_frame(operators)
 DissipativeFrame(operators::SQA.QField...) = build_dissipative_frame(operators)
 
 function canonical_liouvillian(L::Liouvillian)
@@ -350,14 +366,15 @@ function residual_hamiltonian(residual::Liouvillian)
     elseif isone(left) && !isone(right)
       continue
     else
-      throw(ArgumentError("Liouvillian residual is not a Hamiltonian commutator"))
+      throw(GKSLCoordinateError("Liouvillian residual is not a Hamiltonian commutator"))
     end
   end
   H = SQA.simplify(H)
   iszero(canonical_liouvillian(canonical - hamiltonian_action(H))) ||
-    throw(ArgumentError("Liouvillian residual is not a Hamiltonian commutator"))
-  iszero(SQA.simplify(canonical_qadd(H - adjoint(H)))) ||
-    throw(ArgumentError("extracted Hamiltonian is not Hermitian modulo the identity"))
+    throw(GKSLCoordinateError("Liouvillian residual is not a Hamiltonian commutator"))
+  iszero(SQA.simplify(canonical_qadd(H - adjoint(H)))) || throw(
+    GKSLCoordinateError("extracted Hamiltonian is not Hermitian modulo the identity")
+  )
   return H
 end
 
@@ -367,13 +384,13 @@ function extract_gksl(L::Liouvillian, frame::DissipativeFrame)
   matrix = multiply_coefficients(left, adjoint_coefficients(frame.pivot_inverse))
   simplify_matrix!(matrix)
   matrix_is_hermitian(matrix) || throw(
-    ArgumentError("extracted Kossakowski matrix is not Hermitian in the supplied frame")
+    GKSLCoordinateError("extracted Kossakowski matrix is not Hermitian in the supplied frame")
   )
 
   dissipative = dissipative_liouvillian(frame, matrix)
   residual = canonical_liouvillian(L - dissipative)
   has_two_sided_terms(residual) && throw(
-    ArgumentError("Liouvillian contains dissipative directions outside the supplied frame"),
+    GKSLCoordinateError("Liouvillian contains dissipative directions outside the supplied frame")
   )
   H = residual_hamiltonian(residual)
   return H, matrix
@@ -397,10 +414,8 @@ end
 
 """
     kossakowski(L::Liouvillian, frame::DissipativeFrame)
-    kossakowski(expansion::FloquetExpansion, frame::DissipativeFrame)
 
-Return the Hermitian Kossakowski matrix of a Liouvillian, or of the finite effective
-Liouvillian of a Floquet expansion, in the ordered dissipative `frame`.
+Return the Hermitian Kossakowski matrix of `L` in the ordered dissipative `frame`.
 
 The matrix is extracted from the two-sided sandwich block and is exact in the symbolic SQA
 algebra. The supplied frame must contain every dissipative direction of the Liouvillian.
@@ -412,38 +427,14 @@ function kossakowski(L::Liouvillian, frame::DissipativeFrame)
   return matrix
 end
 
-function kossakowski(
-  expansion::FloquetExpansion{G,P,E}, frame::DissipativeFrame
-) where {G,P,E<:Liouvillian}
-  return kossakowski(effective_generator(expansion), frame)
-end
-
-"""
-    kossakowski_component(expansion::FloquetExpansion, frame::DissipativeFrame, n::Int)
-
-Return the order-`n` Kossakowski contribution of a Liouvillian Floquet expansion in the
-ordered dissipative `frame`, including the corresponding inverse-drive-frequency scaling.
-
-See also [`kossakowski`](@ref), [`effective_generator`](@ref).
-"""
-function kossakowski_component(
-  expansion::FloquetExpansion{G,P,E}, frame::DissipativeFrame, n::Int
-) where {G,P,E<:Liouvillian}
-  return kossakowski(effective_generator(expansion, n), frame)
-end
-
 """
     hamiltonian(L::Liouvillian[, frame::DissipativeFrame])
-    hamiltonian(expansion::FloquetExpansion)
 
-Return the coherent Hamiltonian in the canonical dissipative gauge, modulo an additive
-multiple of the identity. With an explicit `frame`, the Liouvillian is simultaneously
-checked to admit exact GKSL coordinates in that frame.
+Return the coherent Hamiltonian of `L` in the canonical dissipative gauge, modulo an
+additive multiple of the identity. With an explicit `frame`, the Liouvillian is
+simultaneously checked to admit exact GKSL coordinates in that frame.
 
-For Hamiltonian Floquet expansions this is the effective Hamiltonian itself. For Liouvillian
-expansions the dissipative sandwich support is removed before extracting the commutator.
-
-See also [`hamiltonian_component`](@ref), [`kossakowski`](@ref).
+See also [`kossakowski`](@ref), [`hamiltonian_component`](@ref).
 """
 function hamiltonian(L::Liouvillian, frame::DissipativeFrame)
   H, _ = extract_gksl(L, frame)
@@ -455,32 +446,4 @@ function hamiltonian(L::Liouvillian)
   has_two_sided_terms(canonical) || return residual_hamiltonian(canonical)
   frame = support_frame(canonical)
   return hamiltonian(canonical, frame)
-end
-
-function hamiltonian(expansion::FloquetExpansion{G,P,E}) where {G,P,E<:SQA.QAdd}
-  return effective_generator(expansion)
-end
-function hamiltonian(expansion::FloquetExpansion{G,P,E}) where {G,P,E<:Liouvillian}
-  return hamiltonian(effective_generator(expansion))
-end
-
-"""
-    hamiltonian_component(expansion::FloquetExpansion, n::Int)
-
-Return the coherent order-`n` contribution of a Floquet expansion, including its
-inverse-drive-frequency scaling. The Hamiltonian is defined modulo an additive scalar
-multiple of the identity.
-
-See also [`hamiltonian`](@ref), [`effective_generator`](@ref).
-"""
-function hamiltonian_component(
-  expansion::FloquetExpansion{G,P,E}, n::Int
-) where {G,P,E<:SQA.QAdd}
-  return effective_generator(expansion, n)
-end
-
-function hamiltonian_component(
-  expansion::FloquetExpansion{G,P,E}, n::Int
-) where {G,P,E<:Liouvillian}
-  return hamiltonian(effective_generator(expansion, n))
 end
