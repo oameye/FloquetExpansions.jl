@@ -171,9 +171,8 @@ function inverse_coefficients(matrix::KossakowskiMatrix)
         break
       end
     end
-    iszero(candidate) && throw(
-      GKSLCoordinateError("dissipative-frame coordinate pivot is structurally singular")
-    )
+    iszero(candidate) &&
+      throw(GKSLCoordinateError("dissipative-frame coordinate pivot is structurally singular"))
 
     if candidate != column
       for trailing in 1:n
@@ -216,9 +215,7 @@ function build_dissipative_frame(operators)
   sizehint!(projected, length(operators))
   for operator in operators
     operator isa SQA.QField || throw(
-      GKSLCoordinateError(
-        "every dissipative-frame direction must be an SQA operator expression"
-      ),
+      GKSLCoordinateError("every dissipative-frame direction must be an SQA operator expression"),
     )
     push!(projected, projected_operator(operator))
   end
@@ -372,9 +369,8 @@ function residual_hamiltonian(residual::Liouvillian)
   H = SQA.simplify(H)
   iszero(canonical_liouvillian(canonical - hamiltonian_action(H))) ||
     throw(GKSLCoordinateError("Liouvillian residual is not a Hamiltonian commutator"))
-  iszero(SQA.simplify(canonical_qadd(H - adjoint(H)))) || throw(
-    GKSLCoordinateError("extracted Hamiltonian is not Hermitian modulo the identity")
-  )
+  iszero(SQA.simplify(canonical_qadd(H - adjoint(H)))) ||
+    throw(GKSLCoordinateError("extracted Hamiltonian is not Hermitian modulo the identity"))
   return H
 end
 
