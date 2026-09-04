@@ -48,7 +48,7 @@ end
 @inline coefficient_one() = convert(SQA.CNum, 1)
 @inline simplify_coefficient(value::SQA.CNum) = SQA.simplify(value)
 
-function canonical_qadd(operator::SQA.QField)
+function canonical_qadd(operator::SQA.QField)::SQA.QAdd
   result = SQA.simplify(SQA.expand_completeness(qadd(operator)))
   isempty(result.indices) || throw(
     ArgumentError("GKSL coordinates do not support operators with bound symbolic sums")
@@ -65,7 +65,7 @@ function scalar_part(operator::SQA.QAdd)
   return scalar
 end
 
-function projected_operator(operator::SQA.QField)
+function projected_operator(operator::SQA.QField)::SQA.QAdd
   canonical = canonical_qadd(operator)
   scalar = scalar_part(canonical)
   projected = iszero(scalar) ? canonical : SQA.simplify(canonical - scalar * one(canonical))
@@ -75,13 +75,16 @@ function projected_operator(operator::SQA.QField)
   return projected
 end
 
-project_frame_operator(operator::SQA.QField) = projected_operator(operator)
+project_frame_operator(operator::SQA.QField)::SQA.QAdd = projected_operator(operator)
 function project_frame_operator(operator)
   return throw(
     ArgumentError("every dissipative-frame direction must be an SQA operator expression")
   )
 end
 
+function frame_operator_tuple(operators::Tuple{Vararg{SQA.QField,N}}) where {N}
+  return ntuple(index -> project_frame_operator(operators[index]), Val(N))
+end
 frame_operator_tuple(operators::Tuple) = map(project_frame_operator, operators)
 function frame_operator_tuple(operators::AbstractVector)
   return Tuple(project_frame_operator(operator) for operator in operators)
