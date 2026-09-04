@@ -25,10 +25,6 @@ export FloquetExpansion, floquet_expansion, effective_generator, micromotion
 export Liouvillian,
   liouvillian, terms, hamiltonian_action, dissipator, compose, collapse, jump
 export GKSLCoordinateError,
-  DissipativeFrame,
-  hamiltonian,
-  hamiltonian_component,
-  kossakowski,
-  kossakowski_component
+  DissipativeFrame, hamiltonian, hamiltonian_component, kossakowski, kossakowski_component
 
 end # module FloquetExpansions
