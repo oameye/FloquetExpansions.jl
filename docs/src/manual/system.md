@@ -164,6 +164,35 @@ The package accepts symbolic rates as algebraic coefficients. It does not infer 
 rate is nonnegative, nor does constructing a [`liouvillian`](@ref) certify that the result is a
 GKLS generator.
 
+### Dissipative frames and Kossakowski coordinates
+
+A [`Liouvillian`](@ref) does not carry a preferred Lindblad representation. When a dissipative
+operator frame ``\{F_\mu\}`` is known, FloquetExpansions can extract the coherent Hamiltonian and
+Kossakowski matrix exactly in the symbolic operator algebra:
+
+```math
+\mathcal L(\rho) = -i[H,\rho]
++ \sum_{\mu\nu} d_{\mu\nu}
+\left(F_\mu \rho F_\nu^\dagger
+- \frac12\{F_\nu^\dagger F_\mu,\rho\}\right).
+```
+
+A [`DissipativeFrame`](@ref) is an ordered set of linearly independent operator directions modulo
+the identity. Its ordering fixes the coordinates of the Kossakowski matrix; the frame need not be
+orthogonal or normalized. Extraction uses the two-sided sandwich terms directly and verifies the
+remaining one-sided action as a Hamiltonian commutator. No Hilbert-space matrix representation or
+finite-dimensional cutoff is introduced.
+
+```@docs
+DissipativeFrame
+kossakowski
+hamiltonian
+```
+
+The coherent Hamiltonian is defined modulo an additive multiple of the identity, which does not
+change its commutator action. Kossakowski coordinates of a raw Floquet expansion use the same frame
+and are described in [Floquet expansion](@ref).
+
 ### Terms and composition
 
 The left/right representation writes a map as
