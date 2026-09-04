@@ -1,4 +1,4 @@
-function _with_completion(expansion::FloquetExpansion, completion::PositiveCompletion)
+function with_completion(expansion::FloquetExpansion, completion::PositiveCompletion)
   return FloquetExpansion(
     getfield(expansion, :generator),
     getfield(expansion, :kick_components),
@@ -10,13 +10,13 @@ function _with_completion(expansion::FloquetExpansion, completion::PositiveCompl
   )
 end
 
-function _positive_completion(::FloquetExpansion, algorithm::CompletionAlgorithm)
+function positive_completion_impl(::FloquetExpansion, algorithm::CompletionAlgorithm)
   return throw(
     ArgumentError("$(nameof(typeof(algorithm))) positive completion is not implemented yet")
   )
 end
 
-function _positive_completion(
+function positive_completion_impl(
   ::FloquetExpansion, algorithm::CompletionAlgorithm, ::DissipativeFrame
 )
   return throw(
@@ -46,7 +46,7 @@ completed expansion is an error. Use [`Gram`](@ref) or [`Spectral`](@ref) to sel
 function positive_completion(
   expansion::FloquetExpansion{G,P,E,Uncompleted,R}, algorithm::CompletionAlgorithm
 ) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian,R}
-  return _positive_completion(expansion, algorithm)
+  return positive_completion_impl(expansion, algorithm)
 end
 
 function positive_completion(
@@ -54,7 +54,7 @@ function positive_completion(
   algorithm::CompletionAlgorithm,
   frame::DissipativeFrame,
 ) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian,R}
-  return _positive_completion(expansion, algorithm, frame)
+  return positive_completion_impl(expansion, algorithm, frame)
 end
 
 function positive_completion(
