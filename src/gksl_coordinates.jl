@@ -77,7 +77,9 @@ end
 
 project_frame_operator(operator::SQA.QField) = projected_operator(operator)
 function project_frame_operator(operator)
-  throw(ArgumentError("every dissipative-frame direction must be an SQA operator expression"))
+  return throw(
+    ArgumentError("every dissipative-frame direction must be an SQA operator expression")
+  )
 end
 
 frame_operator_tuple(operators::Tuple) = map(project_frame_operator, operators)
@@ -154,7 +156,9 @@ function independent_pivot_rows(coordinates::KossakowskiMatrix)
   end
 
   length(pivots) == direction_count || throw(
-    ArgumentError("dissipative-frame directions are linearly dependent modulo the identity")
+    ArgumentError(
+      "dissipative-frame directions are linearly dependent modulo the identity"
+    ),
   )
   return pivots
 end
@@ -218,7 +222,8 @@ function inverse_coefficients(matrix::KossakowskiMatrix)
 end
 
 function build_dissipative_frame(operators)
-  isempty(operators) && throw(ArgumentError("DissipativeFrame requires at least one direction"))
+  isempty(operators) &&
+    throw(ArgumentError("DissipativeFrame requires at least one direction"))
   projected = frame_operator_tuple(operators)
 
   monomials = SQA.QTerm[]
@@ -389,7 +394,7 @@ function extract_gksl(L::Liouvillian, frame::DissipativeFrame)
   dissipative = dissipative_liouvillian(frame, matrix)
   residual = canonical_liouvillian(L - dissipative)
   has_two_sided_terms(residual) && throw(
-    ArgumentError("Liouvillian contains dissipative directions outside the supplied frame")
+    ArgumentError("Liouvillian contains dissipative directions outside the supplied frame"),
   )
   H = residual_hamiltonian(residual)
   return H, matrix
