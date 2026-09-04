@@ -17,6 +17,7 @@ include("liouvillian.jl")
 include("quasienergy.jl")
 include("engine.jl")
 include("gksl_coordinates.jl")
+include("gksl_floquet.jl")
 
 export PeriodicGenerator, Gauge, VanVleck, QuasienergyOperator, harmonic_range
 export time_average, derivative, antiderivative, support, harmonics
