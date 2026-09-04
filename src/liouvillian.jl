@@ -211,12 +211,11 @@ end
 function _validated_jump_rate(rate::LiouvillianScalar)
   coefficient = convert(SQA.CNum, rate)
   value = SQA.to_num(coefficient)
-  imaginary_part = Symbolics.simplify(imag(value))
-  iszero(imaginary_part) ||
+  conjugation_residual = Symbolics.simplify(conj(value) - value)
+  iszero(conjugation_residual) ||
     throw(ArgumentError("jump rate must be provably real; got `$rate`"))
 
-  real_part = Symbolics.simplify(real(value))
-  unwrapped = Symbolics.value(real_part)
+  unwrapped = Symbolics.value(Symbolics.simplify(value))
   if unwrapped isa Real && unwrapped < 0
     throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
   end

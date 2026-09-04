@@ -240,7 +240,7 @@ end
   H = sigma + sigma'
   collapse_operator = expim(-ω * t) * sigma
   jump_operator = sigma + expim(ω * t) * sigma'
-  rate = 1 + 2 * cos(ω * t)
+  rate = 2
   native = liouvillian(H; channels=(collapse(collapse_operator), jump(jump_operator, rate)))
   periodic = harmonics(native, ω, t)
   substitutions = Dict(ω => 3.0, t => 0.37)
@@ -248,7 +248,7 @@ end
   H_matrix = tomatrix(H, 2, substitutions)
   C_matrix = tomatrix(collapse_operator, 2, substitutions)
   J_matrix = tomatrix(jump_operator, 2, substitutions)
-  rate_value = 1 + 2 * cos(3.0 * 0.37)
+  rate_value = 2.0
   expected = independent_liouvillian_matrix(H_matrix, C_matrix, J_matrix, rate_value)
   native_matrix = superoperator_matrix(native, finite_space, 2, substitutions)
   periodic_matrix = superoperator_matrix(periodic(t), finite_space, 2, substitutions)

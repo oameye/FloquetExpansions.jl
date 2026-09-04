@@ -90,6 +90,64 @@ function assemble_resolvent(
   return result
 end
 
+function _floquet_expansion(
+  generator::P, gauge::G, order::Int, provenance::R
+) where {P<:PeriodicGenerator,G<:Gauge,R<:FloquetProvenance}
+  order >= 1 || throw(ArgumentError("order must be >= 1"))
+
+  if generator isa PeriodicGenerator{SQA.QAdd}
+    LinearAlgebra.ishermitian(generator) || throw(
+      ArgumentError(
+        "the drive is not Hermitian: it must satisfy H_{-m} = H_m' (eq:fourierH)"
+      ),
+    )
+  end
+
+  nodes = (order * (order + 1)) ÷ 2
+  dressed_generator = [zero(generator) for _ in 1:nodes]
+  dressed_kick_derivative = [zero(generator) for _ in 1:nodes]
+  generator_type = typeof(generator)
+  K = generator_type[]
+  Kdot = generator_type[]
+  E = typeof(time_average(generator))
+  effective = E[]
+
+  for n in 0:(order - 1)
+    dressed_generator[triindex(n, 0)] = n == 0 ? generator : zero(generator)
+
+    for j in 1:n
+      dressed_generator[triindex(n, j)] = dressed_node(
+        K, (k, _) -> dressed_generator[triindex(n - k, j - 1)], n, j, generator
+      )
+    end
+
+    for j in 1:n
+      dressed_kick_derivative[triindex(n, j)] = dressed_node(
+        K,
+        (k, j_) ->
+          j_ == 1 ? Kdot[n - k + 1] : dressed_kick_derivative[triindex(n - k, j_ - 1)],
+        n,
+        j,
+        generator,
+      )
+    end
+
+    resolvent = SQA.simplify(
+      assemble_resolvent(dressed_generator, dressed_kick_derivative, n, generator)
+    )
+    effective_n = SQA.simplify(time_average(resolvent))
+    push!(effective, effective_n)
+
+    if n < order - 1
+      next_kick = SQA.simplify(antiderivative(remove_average(resolvent), gauge))
+      push!(K, next_kick)
+      push!(Kdot, derivative(next_kick))
+    end
+  end
+
+  return FloquetExpansion(generator, K, effective, gauge, order, Uncompleted(), provenance)
+end
+
 """
     floquet_expansion(generator::PeriodicGenerator, gauge, order)
     floquet_expansion(L::Liouvillian, ωd, t, gauge, order)
@@ -151,64 +209,6 @@ true
 See also [`effective_generator`](@ref), [`effective_component`](@ref), [`micromotion`](@ref),
 and [`harmonics`](@ref).
 """
-function _floquet_expansion(
-  generator::P, gauge::G, order::Int, provenance::R
-) where {P<:PeriodicGenerator,G<:Gauge,R<:FloquetProvenance}
-  order >= 1 || throw(ArgumentError("order must be >= 1"))
-
-  if generator isa PeriodicGenerator{SQA.QAdd}
-    LinearAlgebra.ishermitian(generator) || throw(
-      ArgumentError(
-        "the drive is not Hermitian: it must satisfy H_{-m} = H_m' (eq:fourierH)"
-      ),
-    )
-  end
-
-  nodes = (order * (order + 1)) ÷ 2
-  dressed_generator = [zero(generator) for _ in 1:nodes]
-  dressed_kick_derivative = [zero(generator) for _ in 1:nodes]
-  generator_type = typeof(generator)
-  K = generator_type[]
-  Kdot = generator_type[]
-  E = typeof(time_average(generator))
-  effective = E[]
-
-  for n in 0:(order - 1)
-    dressed_generator[triindex(n, 0)] = n == 0 ? generator : zero(generator)
-
-    for j in 1:n
-      dressed_generator[triindex(n, j)] = dressed_node(
-        K, (k, _) -> dressed_generator[triindex(n - k, j - 1)], n, j, generator
-      )
-    end
-
-    for j in 1:n
-      dressed_kick_derivative[triindex(n, j)] = dressed_node(
-        K,
-        (k, j_) ->
-          j_ == 1 ? Kdot[n - k + 1] : dressed_kick_derivative[triindex(n - k, j_ - 1)],
-        n,
-        j,
-        generator,
-      )
-    end
-
-    resolvent = SQA.simplify(
-      assemble_resolvent(dressed_generator, dressed_kick_derivative, n, generator)
-    )
-    effective_n = SQA.simplify(time_average(resolvent))
-    push!(effective, effective_n)
-
-    if n < order - 1
-      next_kick = SQA.simplify(antiderivative(remove_average(resolvent), gauge))
-      push!(K, next_kick)
-      push!(Kdot, derivative(next_kick))
-    end
-  end
-
-  return FloquetExpansion(generator, K, effective, gauge, order, Uncompleted(), provenance)
-end
-
 function floquet_expansion(
   generator::P, gauge::G, order::Int
 ) where {P<:PeriodicGenerator,G<:Gauge}
@@ -221,6 +221,30 @@ function floquet_expansion(
   return _floquet_expansion(harmonics(L, wd, t), gauge, order, NoProvenance())
 end
 
+function _floquet_expansion_channels(
+  H::SQA.QField,
+  wd::Symbolics.Num,
+  t::Symbolics.Num,
+  gauge::Gauge,
+  order::Int,
+  ::Tuple{},
+)
+  return _floquet_expansion(harmonics(qadd(H), wd, t), gauge, order, NoProvenance())
+end
+
+function _floquet_expansion_channels(
+  H::SQA.QField,
+  wd::Symbolics.Num,
+  t::Symbolics.Num,
+  gauge::Gauge,
+  order::Int,
+  channels::LiouvillianChannelCollection,
+)
+  provenance = _microscopic_provenance(channels)
+  L = _liouvillian_from_provenance(H, provenance)
+  return _floquet_expansion(harmonics(L, wd, t), gauge, order, provenance)
+end
+
 function floquet_expansion(
   H::SQA.QField,
   wd::Symbolics.Num,
@@ -229,13 +253,7 @@ function floquet_expansion(
   order::Int;
   channels::LiouvillianChannelCollection=(),
 )
-  if isempty(channels)
-    return _floquet_expansion(harmonics(qadd(H), wd, t), gauge, order, NoProvenance())
-  end
-
-  provenance = _microscopic_provenance(channels)
-  L = _liouvillian_from_provenance(H, provenance)
-  return _floquet_expansion(harmonics(L, wd, t), gauge, order, provenance)
+  return _floquet_expansion_channels(H, wd, t, gauge, order, channels)
 end
 
 function reattach(component::GeneratorComponent, wd::Symbolics.Num, n::Int)
@@ -267,7 +285,7 @@ function effective_generator(
     result =
       result + reattach(expansion.effective_components[n + 1], expansion.generator.wd, n)
   end
-  return SQA.simplify(result)
+  return SQA.simplify(result)::E
 end
 
 function effective_generator(
@@ -288,12 +306,13 @@ returns the same retained component before and after completion.
 
 See also [`effective_generator`](@ref), [`micromotion`](@ref).
 """
-function effective_component(expansion::FloquetExpansion, n::Int)
+function effective_component(
+  expansion::FloquetExpansion{G,P,E,C,R}, n::Int
+) where {G,P,E<:GeneratorComponent,C,R}
   0 <= n < expansion.order ||
     throw(ArgumentError("order $(n) is outside 0:$(expansion.order - 1)"))
-  return SQA.simplify(
-    reattach(expansion.effective_components[n + 1], expansion.generator.wd, n)
-  )
+  component = reattach(expansion.effective_components[n + 1], expansion.generator.wd, n)::E
+  return SQA.simplify(component)::E
 end
 
 """
