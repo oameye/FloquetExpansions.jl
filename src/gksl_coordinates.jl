@@ -215,7 +215,9 @@ function build_dissipative_frame(operators)
   sizehint!(projected, length(operators))
   for operator in operators
     operator isa SQA.QField || throw(
-      GKSLCoordinateError("every dissipative-frame direction must be an SQA operator expression"),
+      GKSLCoordinateError(
+        "every dissipative-frame direction must be an SQA operator expression"
+      ),
     )
     push!(projected, projected_operator(operator))
   end
