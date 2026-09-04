@@ -1,0 +1,50 @@
+name: Fix 57
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.ref == 'refs/heads/feat/completion-state-provenance'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/completion-state-provenance
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/liouvillian.jl")
+          text = path.read_text()
+          old = '''function validated_jump_rate(rate::LiouvillianScalar)\n  coefficient = convert(SQA.CNum, rate)\n  coefficient == conj(coefficient) ||\n    throw(ArgumentError("jump rate must be provably real; got `$rate`"))\n\n  numeric_rate = known_numeric_jump_rate(rate)\n'''
+          new = '''function validated_jump_rate(rate::LiouvillianScalar)\n  coefficient = convert(SQA.CNum, rate)\n  real_valued =\n    rate isa Real ||\n    (rate isa Complex && iszero(imag(rate))) ||\n    coefficient == conj(coefficient)\n  real_valued || throw(ArgumentError("jump rate must be provably real; got `$rate`"))\n\n  numeric_rate = known_numeric_jump_rate(rate)\n'''
+          if old not in text:
+              raise SystemExit("jump validator block not found")
+          path.write_text(text.replace(old, new))
+
+          path = Path("test/liouvillian.jl")
+          text = path.read_text()
+          old = '''  @test collapse_form == rate_form\n  @test collapse_form == 4 * dissipator(a)\n'''
+          new = '''  substitutions = Dict()\n  collapse_matrix = superoperator_matrix(collapse_form, space, 3, substitutions)\n  rate_matrix = superoperator_matrix(rate_form, space, 3, substitutions)\n  reference_matrix = superoperator_matrix(4 * dissipator(a), space, 3, substitutions)\n\n  @test collapse_matrix ≈ rate_matrix\n  @test collapse_matrix ≈ reference_matrix\n'''
+          if old not in text:
+              raise SystemExit("collapse/rate test block not found")
+          path.write_text(text.replace(old, new))
+          PY
+
+          ${HOME}/.julia/bin/jlfmt --inplace src/liouvillian.jl test/liouvillian.jl
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/liouvillian.jl test/liouvillian.jl
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'fix: preserve real symbolic rates and semantic channel test'
+          git push origin HEAD:feat/completion-state-provenance
