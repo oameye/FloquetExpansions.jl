@@ -86,6 +86,32 @@ effective_generator
 ```@docs
 micromotion
 ```
+
+### Coherent and dissipative components
+
+For a Hamiltonian expansion, [`hamiltonian`](@ref) returns the finite effective Hamiltonian and
+[`hamiltonian_component`](@ref) returns one retained inverse-frequency contribution. For a
+Liouvillian expansion, the same accessors return its coherent Hamiltonian sector, defined modulo an
+additive multiple of the identity.
+
+A raw Liouvillian Floquet expansion does not carry a preferred dissipative representation.
+Kossakowski coordinates therefore require an explicit [`DissipativeFrame`](@ref):
+
+```julia
+frame = DissipativeFrame(a, a^2)
+d = kossakowski(vv, frame)
+d1 = kossakowski_component(vv, frame, 1)
+```
+
+The component accessors include the corresponding inverse-drive-frequency scaling, just as
+[`effective_generator`](@ref) does. The operator-frame construction and Liouvillian-level
+Kossakowski representation are described in [System](@ref).
+
+```@docs
+hamiltonian_component
+kossakowski_component
+```
+
 ## Order and interpretation
 
 The package uses `order = 1` for the period average. Increasing `order` retains additional

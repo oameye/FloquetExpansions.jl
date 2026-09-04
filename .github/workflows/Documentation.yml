@@ -17,6 +17,7 @@ on:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
+  actions: write
   contents: write
   pages: write
   id-token: write
@@ -39,6 +40,8 @@ jobs:
         with:
           version: '1'
       - uses: julia-actions/cache@v3
+        with:
+          save-always: false
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-docdeploy@v1
         env:
