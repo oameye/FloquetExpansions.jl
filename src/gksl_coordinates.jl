@@ -25,10 +25,12 @@ end
 function Base.:(==)(left::DissipativeFrame, right::DissipativeFrame)
   return left.operators == right.operators
 end
-Base.isequal(left::DissipativeFrame, right::DissipativeFrame) =
-  isequal(left.operators, right.operators)
-Base.hash(frame::DissipativeFrame, h::UInt) =
-  hash(:DissipativeFrame, hash(frame.operators, h))
+function Base.isequal(left::DissipativeFrame, right::DissipativeFrame)
+  return isequal(left.operators, right.operators)
+end
+function Base.hash(frame::DissipativeFrame, h::UInt)
+  return hash(:DissipativeFrame, hash(frame.operators, h))
+end
 
 @inline coefficient_zero() = convert(SQA.CNum, 0)
 @inline coefficient_one() = convert(SQA.CNum, 1)
@@ -63,7 +65,7 @@ end
 
 function sorted_term_pairs(operator::SQA.QAdd)
   pairs = collect(operator)
-  sort!(pairs; by = pair -> SQA.term_order_key(first(pair)))
+  sort!(pairs; by=pair -> SQA.term_order_key(first(pair)))
   return pairs
 end
 
@@ -107,8 +109,8 @@ function independent_pivot_rows(coordinates::KossakowskiMatrix)
 
     if candidate != pivot_row
       for trailing in 1:monomial_count
-        work[pivot_row, trailing], work[candidate, trailing] =
-          work[candidate, trailing], work[pivot_row, trailing]
+        work[pivot_row, trailing], work[candidate, trailing] = work[candidate, trailing],
+        work[pivot_row, trailing]
       end
     end
 
@@ -130,7 +132,9 @@ function independent_pivot_rows(coordinates::KossakowskiMatrix)
   end
 
   length(pivots) == direction_count || throw(
-    ArgumentError("dissipative-frame directions are linearly dependent modulo the identity")
+    ArgumentError(
+      "dissipative-frame directions are linearly dependent modulo the identity"
+    ),
   )
   return pivots
 end
@@ -155,23 +159,24 @@ function inverse_coefficients(matrix::KossakowskiMatrix)
         break
       end
     end
-    iszero(candidate) && throw(
-      ArgumentError("dissipative-frame coordinate pivot is structurally singular")
-    )
+    iszero(candidate) &&
+      throw(ArgumentError("dissipative-frame coordinate pivot is structurally singular"))
 
     if candidate != column
       for trailing in 1:n
-        left[column, trailing], left[candidate, trailing] =
-          left[candidate, trailing], left[column, trailing]
-        right[column, trailing], right[candidate, trailing] =
-          right[candidate, trailing], right[column, trailing]
+        left[column, trailing], left[candidate, trailing] = left[candidate, trailing],
+        left[column, trailing]
+        right[column, trailing], right[candidate, trailing] = right[candidate, trailing],
+        right[column, trailing]
       end
     end
 
     pivot_inverse = inv(left[column, column])
     for trailing in 1:n
       left[column, trailing] = simplify_coefficient(left[column, trailing] * pivot_inverse)
-      right[column, trailing] = simplify_coefficient(right[column, trailing] * pivot_inverse)
+      right[column, trailing] = simplify_coefficient(
+        right[column, trailing] * pivot_inverse
+      )
     end
 
     for row in 1:n
@@ -192,12 +197,13 @@ function inverse_coefficients(matrix::KossakowskiMatrix)
 end
 
 function build_dissipative_frame(operators)
-  isempty(operators) && throw(ArgumentError("DissipativeFrame requires at least one direction"))
+  isempty(operators) &&
+    throw(ArgumentError("DissipativeFrame requires at least one direction"))
   projected = SQA.QAdd[]
   sizehint!(projected, length(operators))
   for operator in operators
     operator isa SQA.QField || throw(
-      ArgumentError("every dissipative-frame direction must be an SQA operator expression")
+      ArgumentError("every dissipative-frame direction must be an SQA operator expression"),
     )
     push!(projected, projected_operator(operator))
   end
@@ -241,20 +247,16 @@ function canonical_liouvillian(L::Liouvillian)
       combined = simplify_coefficient(coefficient * left_coefficient * right_coefficient)
       iszero(combined) && continue
       add_term!(
-        result,
-        monomial_operator(left_term),
-        monomial_operator(right_term),
-        combined,
+        result, monomial_operator(left_term), monomial_operator(right_term), combined
       )
     end
   end
   return result
 end
 
-function multiply_coefficients(
-  left::KossakowskiMatrix, right::KossakowskiMatrix
-)
-  size(left, 2) == size(right, 1) || throw(DimensionMismatch("matrix dimensions do not match"))
+function multiply_coefficients(left::KossakowskiMatrix, right::KossakowskiMatrix)
+  size(left, 2) == size(right, 1) ||
+    throw(DimensionMismatch("matrix dimensions do not match"))
   result = coefficient_matrix(size(left, 1), size(right, 2))
   for row in axes(result, 1), column in axes(result, 2)
     value = coefficient_zero()
@@ -278,7 +280,9 @@ function sandwich_pivot_matrix(L::Liouvillian, frame::DissipativeFrame)
   q = length(frame.operators)
   result = coefficient_matrix(q, q)
   pivot_terms = frame.monomials[frame.pivot_rows]
-  pivot_index = Dict{SQA.QTerm,Int}(term => index for (index, term) in enumerate(pivot_terms))
+  pivot_index = Dict{SQA.QTerm,Int}(
+    term => index for (index, term) in enumerate(pivot_terms)
+  )
 
   for (left, right, coefficient) in terms(canonical_liouvillian(L))
     (isone(left) || isone(right)) && continue
@@ -309,12 +313,14 @@ end
 
 function dissipative_liouvillian(frame::DissipativeFrame, matrix::KossakowskiMatrix)
   q = length(frame.operators)
-  size(matrix) == (q, q) || throw(DimensionMismatch("Kossakowski matrix does not match frame"))
+  size(matrix) == (q, q) ||
+    throw(DimensionMismatch("Kossakowski matrix does not match frame"))
   result = zero(Liouvillian)
   for row in 1:q, column in 1:q
     coefficient = simplify_coefficient(matrix[row, column])
     iszero(coefficient) && continue
-    result = result + coefficient * cross_dissipator(frame.operators[row], frame.operators[column])
+    result =
+      result + coefficient * cross_dissipator(frame.operators[row], frame.operators[column])
   end
   return canonical_liouvillian(result)
 end
@@ -348,12 +354,10 @@ function residual_hamiltonian(residual::Liouvillian)
     end
   end
   H = SQA.simplify(H)
-  iszero(canonical_liouvillian(canonical - hamiltonian_action(H))) || throw(
-    ArgumentError("Liouvillian residual is not a Hamiltonian commutator")
-  )
-  iszero(SQA.simplify(canonical_qadd(H - adjoint(H)))) || throw(
-    ArgumentError("extracted Hamiltonian is not Hermitian modulo the identity")
-  )
+  iszero(canonical_liouvillian(canonical - hamiltonian_action(H))) ||
+    throw(ArgumentError("Liouvillian residual is not a Hamiltonian commutator"))
+  iszero(SQA.simplify(canonical_qadd(H - adjoint(H)))) ||
+    throw(ArgumentError("extracted Hamiltonian is not Hermitian modulo the identity"))
   return H
 end
 
@@ -369,7 +373,7 @@ function extract_gksl(L::Liouvillian, frame::DissipativeFrame)
   dissipative = dissipative_liouvillian(frame, matrix)
   residual = canonical_liouvillian(L - dissipative)
   has_two_sided_terms(residual) && throw(
-    ArgumentError("Liouvillian contains dissipative directions outside the supplied frame")
+    ArgumentError("Liouvillian contains dissipative directions outside the supplied frame"),
   )
   H = residual_hamiltonian(residual)
   return H, matrix
@@ -387,7 +391,7 @@ function support_frame(L::Liouvillian)
       right_term in terms_found || push!(terms_found, right_term)
     end
   end
-  sort!(terms_found; by = SQA.term_order_key)
+  sort!(terms_found; by=SQA.term_order_key)
   return DissipativeFrame(Tuple(monomial_operator(term) for term in terms_found))
 end
 
@@ -453,10 +457,12 @@ function hamiltonian(L::Liouvillian)
   return hamiltonian(canonical, frame)
 end
 
-hamiltonian(expansion::FloquetExpansion{G,P,E}) where {G,P,E<:SQA.QAdd} =
-  effective_generator(expansion)
-hamiltonian(expansion::FloquetExpansion{G,P,E}) where {G,P,E<:Liouvillian} =
-  hamiltonian(effective_generator(expansion))
+function hamiltonian(expansion::FloquetExpansion{G,P,E}) where {G,P,E<:SQA.QAdd}
+  return effective_generator(expansion)
+end
+function hamiltonian(expansion::FloquetExpansion{G,P,E}) where {G,P,E<:Liouvillian}
+  return hamiltonian(effective_generator(expansion))
+end
 
 """
     hamiltonian_component(expansion::FloquetExpansion, n::Int)
@@ -467,9 +473,11 @@ multiple of the identity.
 
 See also [`hamiltonian`](@ref), [`effective_generator`](@ref).
 """
-hamiltonian_component(
+function hamiltonian_component(
   expansion::FloquetExpansion{G,P,E}, n::Int
-) where {G,P,E<:SQA.QAdd} = effective_generator(expansion, n)
+) where {G,P,E<:SQA.QAdd}
+  return effective_generator(expansion, n)
+end
 
 function hamiltonian_component(
   expansion::FloquetExpansion{G,P,E}, n::Int
