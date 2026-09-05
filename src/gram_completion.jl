@@ -58,9 +58,7 @@ function condition_coefficients(values::Vector{CompletionScalar})
   return result
 end
 
-function seed_completion_conditions!(
-  conditions::CompletionConditions, ::NoProvenance
-)
+function seed_completion_conditions!(conditions::CompletionConditions, ::NoProvenance)
   return conditions
 end
 
@@ -97,9 +95,7 @@ function append_frame_candidate!(operators::Vector{SQA.QAdd}, operator::SQA.QFie
   return operators
 end
 
-function append_provenance_directions!(
-  operators::Vector{SQA.QAdd}, ::NoProvenance
-)
+function append_provenance_directions!(operators::Vector{SQA.QAdd}, ::NoProvenance)
   return operators
 end
 
@@ -141,9 +137,7 @@ function automatic_dissipative_frame(expansion::FloquetExpansion)
   return DissipativeFrame(Tuple(operators))
 end
 
-function raw_kossakowski_series(
-  expansion::FloquetExpansion, frame::DissipativeFrame
-)
+function raw_kossakowski_series(expansion::FloquetExpansion, frame::DissipativeFrame)
   components = getfield(expansion, :effective_components)
   result = KossakowskiMatrix[]
   sizehint!(result, length(components))
@@ -176,11 +170,9 @@ function matrix_series_onset(series::MatrixSeries, N::Int)
   return -1
 end
 
-function throw_elimination_obstruction(
-  elimination::HermitianElimination, grade::Int
-)
+function throw_elimination_obstruction(elimination::HermitianElimination, grade::Int)
   if elimination.status == HERMITIAN_NEGATIVE_PIVOT ||
-     elimination.status == HERMITIAN_NONPOSITIVE_PIVOT
+    elimination.status == HERMITIAN_NONPOSITIVE_PIVOT
     throw(
       ArgumentError(
         "Gram completion encountered a retained negative Hermitian direction at grade $grade: $(elimination.obstruction)",
@@ -205,7 +197,9 @@ function classify_unresolved_dark_series!(
   leading = hermitian_eliminate(residual[onset + 1], conditions)
   throw_elimination_obstruction(leading, onset)
   leading.active_rank == 0 && throw(
-    ArgumentError("Gram completion could not resolve the dark-sector leading form at grade $onset")
+    ArgumentError(
+      "Gram completion could not resolve the dark-sector leading form at grade $onset"
+    ),
   )
 
   isodd(onset) && throw(
@@ -213,16 +207,14 @@ function classify_unresolved_dark_series!(
       "Gram completion requires a fractional/Puiseux collapse-amplitude onset at grade $onset; recursive dark-sector handling is required",
     ),
   )
-  throw(
+  return throw(
     ArgumentError(
       "Gram completion found a new even dark-sector onset at grade $onset; recursive dark-sector handling is implemented in the next completion stage",
     ),
   )
 end
 
-function vertical_series_stack(
-  upper::MatrixSeries, lower::MatrixSeries, N::Int
-)
+function vertical_series_stack(upper::MatrixSeries, lower::MatrixSeries, N::Int)
   validate_series_order(N)
   upper_rows, columns = validate_matrix_series(upper)
   lower_rows, lower_columns = validate_matrix_series(lower)
@@ -235,14 +227,11 @@ function vertical_series_stack(
   return result
 end
 
-function gram_factor_series(
-  series::MatrixSeries, N::Int, conditions::CompletionConditions
-)
+function gram_factor_series(series::MatrixSeries, N::Int, conditions::CompletionConditions)
   q, columns = validate_matrix_series(series)
   q == columns || throw(DimensionMismatch("Kossakowski series must be square"))
-  hermitian_series(series) || throw(
-    ArgumentError("Gram completion requires a Hermitian retained Kossakowski series")
-  )
+  hermitian_series(series) ||
+    throw(ArgumentError("Gram completion requires a Hermitian retained Kossakowski series"))
 
   elimination = hermitian_eliminate(series[1], conditions)
   throw_elimination_obstruction(elimination, 0)
@@ -250,7 +239,8 @@ function gram_factor_series(
   dark_rank = q - active_rank
 
   if active_rank == 0
-    matrix_series_onset(series, N) < 0 || classify_unresolved_dark_series!(series, N, conditions)
+    matrix_series_onset(series, N) < 0 ||
+      classify_unresolved_dark_series!(series, N, conditions)
     factor = [completion_matrix_zeros(q, 0) for _ in 0:N]
     return factor, GramStage(0, 0, q)
   end
@@ -278,9 +268,7 @@ function gram_factor_series(
   return factor, GramStage(0, active_rank, dark_rank)
 end
 
-function physical_factor_amplitudes(
-  factor::MatrixSeries, wd::Symbolics.Num, N::Int
-)
+function physical_factor_amplitudes(factor::MatrixSeries, wd::Symbolics.Num, N::Int)
   rows, columns = validate_matrix_series(factor)
   amplitudes = KossakowskiMatrix[]
   sizehint!(amplitudes, N + 1)
@@ -324,9 +312,7 @@ function finite_factor(amplitudes::Vector{KossakowskiMatrix})
   return result
 end
 
-function completed_collapse_channels(
-  frame::DissipativeFrame, factor::KossakowskiMatrix
-)
+function completed_collapse_channels(frame::DissipativeFrame, factor::KossakowskiMatrix)
   size(factor, 1) == length(frame.operators) ||
     throw(DimensionMismatch("Gram factor does not match the dissipative frame"))
   result = CollapseChannel{SQA.QAdd}[]
@@ -382,7 +368,9 @@ function gram_positive_completion(
 end
 
 function positive_completion_impl(expansion::FloquetExpansion, algorithm::Gram)
-  return gram_positive_completion(expansion, automatic_dissipative_frame(expansion), algorithm)
+  return gram_positive_completion(
+    expansion, automatic_dissipative_frame(expansion), algorithm
+  )
 end
 
 function positive_completion_impl(

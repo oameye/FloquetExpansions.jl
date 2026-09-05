@@ -30,11 +30,7 @@ export FloquetExpansion,
 export Completion, Uncompleted, CompletionAlgorithm, Gram, Spectral, CompletionFactorization
 export GramFactorization
 export positive_completion,
-  dissipative_frame,
-  channels,
-  positivity_conditions,
-  regularity_conditions,
-  factorization
+  dissipative_frame, channels, positivity_conditions, regularity_conditions, factorization
 export Liouvillian,
   liouvillian, terms, hamiltonian_action, dissipator, compose, collapse, jump
 export DissipativeFrame,
