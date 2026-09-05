@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788546264125,
+  "lastUpdate": 1788591424369,
   "repoUrl": "https://github.com/oameye/FloquetExpansions.jl",
   "entries": {
     "Benchmark Results": [
@@ -358,6 +358,78 @@ window.BENCHMARK_DATA = {
           {
             "name": "Fourier Expansion/Kerr parametric oscillator/symbolic input",
             "value": 937926,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=321968\nallocs=7514\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "orjan.ameye@hotmail.com",
+            "name": "Orjan Ameye",
+            "username": "oameye"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6e45ee6131429599744e6cb5cbaf61aafee6f145",
+          "message": "feat: add completion state, microscopic provenance, and strict jump-rate semantics (#67)\n\n* feat: add completion state, microscopic provenance, and strict jump-rate semantics\n\n* ci: apply targeted #57 CI corrections\n\n* ci: retrigger targeted #57 corrections\n\n* ci: run targeted #57 corrections on branch push\n\n* ci: stage #57 correction script\n\n* ci: simplify targeted #57 correction runner\n\n* fix: address #57 CI regressions\n\n* ci: remove temporary #57 correction workflow\n\n* ci: remove temporary #57 correction script\n\n* ci: apply exact formatter output for #57\n\n* style: format #57 engine changes\n\n* fix: restore micromotion inference\n\n* fix: enforce jump-rate semantics without symbolic complex simplification\n\n* ci: remove temporary formatter workflow\n\n* ci: add targeted #57 repair script\n\n* ci: run targeted #57 repair\n\n* ci: retarget #57 repair to current source\n\n* ci: rerun targeted #57 repair\n\n* ci: narrow #57 repair to remaining gaps\n\n* ci: trigger narrowed #57 repair\n\n* ci: make #57 repair whitespace-robust\n\n* ci: retry robust #57 repair\n\n* fix: close remaining #57 CI gaps\n\n* ci: remove one-shot #57 repair workflow\n\n* ci: remove one-shot #57 repair script\n\n* ci: apply final #57 formatter pass\n\n* style: format final #57 fixes\n\n* ci: remove final #57 formatter helper\n\n* fix: reject complex symbolic jump rates\n\n* docs: separate positive completion manual\n\n* docs: add positive completion manual\n\n* docs: add completion manual to navigation\n\n* docs: keep completion manual focused\n\n* docs: rebalance completion manual and API docstrings\n\n* test: assert public completion guidance\n\n* fix: validate compact symbolic jump phases\n\n* fix completion dispatch against architecture spec\n\n* fix completion order convention in manual\n\n* simplify physical channel lowering and jump validation\n\n* tighten physical Floquet constructor semantics\n\n* expand public completion-state boundary tests\n\n* cover physical jump-rate boundary cases\n\n* ci: temporarily format #57 source changes\n\n* style: format #57 source changes\n\n* refactor completion helper names\n\n* ci: apply #57 internal naming cleanup\n\n* refactor: clean #57 internal helper names\n\n* ci: remove temporary #57 formatter workflow\n\n* ci: apply final #57 test fixes\n\n* fix: preserve real symbolic rates and semantic channel test\n\n* ci: remove temporary #57 fix workflow\n\n* test: compare collapse and rate channels in GKSL coordinates\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+          "timestamp": "2026-09-05T08:49:23+02:00",
+          "tree_id": "e7f1968a88b69f0fa6494ea110314ff1c1cd489f",
+          "url": "https://github.com/oameye/FloquetExpansions.jl/commit/6e45ee6131429599744e6cb5cbaf61aafee6f145"
+        },
+        "date": 1788591423331,
+        "tool": "julia",
+        "benches": [
+          {
+            "name": "Floquet Expansion/Driven qubit/order 1",
+            "value": 336293,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=193552\nallocs=3899\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Driven qubit/order 2",
+            "value": 424491,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=330656\nallocs=5712\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Driven qubit/order 3",
+            "value": 580888.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=596400\nallocs=9165\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 1",
+            "value": 678738,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=379072\nallocs=8011\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 2",
+            "value": 980276,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=780976\nallocs=13586\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 3",
+            "value": 2381588,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2458224\nallocs=37511\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Fourier Expansion/Driven qubit/symbolic input",
+            "value": 316669.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=154336\nallocs=3554\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Fourier Expansion/Kerr parametric oscillator/symbolic input",
+            "value": 650202,
             "unit": "ns",
             "extra": "gctime=0\nmemory=321968\nallocs=7514\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
           }
