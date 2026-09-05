@@ -5,22 +5,7 @@ using Symbolics: @variables
 
 const SQA = SecondQuantizedAlgebra
 
-function phase_matrix(rows::Tuple...)
-  columns = length(first(rows))
-  result = fill(convert(SQA.CNum, 0), length(rows), columns)
-  for row in eachindex(rows), column in 1:columns
-    result[row, column] = convert(SQA.CNum, rows[row][column])
-  end
-  return result
-end
-
-function phase_matrix_equal(left, right)
-  size(left) == size(right) || return false
-  for index in eachindex(left)
-    iszero(SQA.simplify(left[index] - right[index])) || return false
-  end
-  return true
-end
+symbolic_zero(expression) = iszero(SQA.simplify(expression))
 
 @testset "Liouvillian Van Vleck phase reproduces the analytical driven qubit" begin
   pauli = PauliSpace(:liouvillian_vv_phase_qubit)
@@ -46,24 +31,30 @@ end
   @test micromotion(parsed) == micromotion(explicit)
 
   @test iszero(hamiltonian_component(parsed, 1))
-  @test iszero(
-    SQA.simplify(hamiltonian_component(parsed, 2) + (E^2 / (2 * ω^2)) * σz)
-  )
+  @test symbolic_zero(hamiltonian_component(parsed, 2) + (E^2 / (2 * ω^2)) * σz)
 
-  expected_second = phase_matrix(
-    (0, -im * γ * E^2 / (4 * ω^2), 0),
-    (im * γ * E^2 / (4 * ω^2), -γ * E^2 / (2 * ω^2), 0),
-    (0, 0, γ * E^2 / (2 * ω^2)),
-  )
-  @test phase_matrix_equal(kossakowski_component(parsed, frame, 2), expected_second)
+  d2 = kossakowski_component(parsed, frame, 2)
+  @test symbolic_zero(d2[1, 1])
+  @test symbolic_zero(d2[1, 2] + im * γ * E^2 / (4 * ω^2))
+  @test symbolic_zero(d2[1, 3])
+  @test symbolic_zero(d2[2, 1] - im * γ * E^2 / (4 * ω^2))
+  @test symbolic_zero(d2[2, 2] + γ * E^2 / (2 * ω^2))
+  @test symbolic_zero(d2[2, 3])
+  @test symbolic_zero(d2[3, 1])
+  @test symbolic_zero(d2[3, 2])
+  @test symbolic_zero(d2[3, 3] - γ * E^2 / (2 * ω^2))
 
   z2 = E^2 / ω^2
-  expected_finite = phase_matrix(
-    (γ / 4, (im * γ / 4) * (1 - z2), 0),
-    ((-im * γ / 4) * (1 - z2), (γ / 4) * (1 - 2z2), 0),
-    (0, 0, (γ / 2) * z2),
-  )
-  @test phase_matrix_equal(kossakowski(parsed, frame), expected_finite)
+  d = kossakowski(parsed, frame)
+  @test symbolic_zero(d[1, 1] - γ / 4)
+  @test symbolic_zero(d[1, 2] - (im * γ / 4) * (1 - z2))
+  @test symbolic_zero(d[1, 3])
+  @test symbolic_zero(d[2, 1] + (im * γ / 4) * (1 - z2))
+  @test symbolic_zero(d[2, 2] - (γ / 4) * (1 - 2z2))
+  @test symbolic_zero(d[2, 3])
+  @test symbolic_zero(d[3, 1])
+  @test symbolic_zero(d[3, 2])
+  @test symbolic_zero(d[3, 3] - (γ / 2) * z2)
 end
 
 @testset "Liouvillian phase gives the analytical modulated-loss commutator" begin
@@ -101,10 +92,14 @@ end
   end
   @test micromotion(parsed) == micromotion(explicit)
 
-  expected_first = phase_matrix(
-    (0, 0, χ / ω),
-    (0, -2 * χ / ω, 0),
-    (χ / ω, 0, 0),
-  )
-  @test phase_matrix_equal(kossakowski_component(parsed, frame, 1), expected_first)
+  d1 = kossakowski_component(parsed, frame, 1)
+  @test symbolic_zero(d1[1, 1])
+  @test symbolic_zero(d1[1, 2])
+  @test symbolic_zero(d1[1, 3] - χ / ω)
+  @test symbolic_zero(d1[2, 1])
+  @test symbolic_zero(d1[2, 2] + 2χ / ω)
+  @test symbolic_zero(d1[2, 3])
+  @test symbolic_zero(d1[3, 1] - χ / ω)
+  @test symbolic_zero(d1[3, 2])
+  @test symbolic_zero(d1[3, 3])
 end
