@@ -1,0 +1,21 @@
+name: Format 60 probe
+
+on:
+  push:
+    branches:
+      - feat/recursive-gram-onsets
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show formatted diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace src/gram_recursion.jl
+          git diff -- src/gram_recursion.jl
