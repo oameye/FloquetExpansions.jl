@@ -11,7 +11,7 @@ struct CompletionObstruction <: Exception
 end
 
 function Base.showerror(io::IO, error::CompletionObstruction)
-  print(
+  return print(
     io,
     "Gram completion obstruction at rate order ",
     error.rate_order,
@@ -33,7 +33,7 @@ struct FractionalJumpOnset <: Exception
 end
 
 function Base.showerror(io::IO, error::FractionalJumpOnset)
-  print(
+  return print(
     io,
     "Gram completion requires a fractional/Puiseux collapse-amplitude onset at rate order ",
     error.rate_order,
@@ -46,13 +46,17 @@ function throw_recursive_elimination_obstruction(
   if elimination.status == HERMITIAN_NEGATIVE_PIVOT
     throw(
       CompletionObstruction(
-        rate_order, coefficient_from_completion(elimination.obstruction), :negative_direction
+        rate_order,
+        coefficient_from_completion(elimination.obstruction),
+        :negative_direction,
       ),
     )
   elseif elimination.status == HERMITIAN_NONPOSITIVE_PIVOT
     throw(
       CompletionObstruction(
-        rate_order, coefficient_from_completion(elimination.obstruction), :nonpositive_direction
+        rate_order,
+        coefficient_from_completion(elimination.obstruction),
+        :nonpositive_direction,
       ),
     )
   elseif elimination.status == HERMITIAN_ZERO_DIAGONAL_COUPLING
@@ -68,9 +72,7 @@ function throw_recursive_elimination_obstruction(
 end
 
 function unresolved_recursive_leading_form(rate_order::Int)
-  return CompletionObstruction(
-    rate_order, convert(SQA.CNum, 0), :unresolved_leading_form
-  )
+  return CompletionObstruction(rate_order, convert(SQA.CNum, 0), :unresolved_leading_form)
 end
 
 function horizontal_series_stack(left::MatrixSeries, right::MatrixSeries, N::Int)
@@ -98,10 +100,7 @@ function upper_zero_pad_series(factor::MatrixSeries, rows::Int, N::Int)
 end
 
 function classify_recursive_onset!(
-  series::MatrixSeries,
-  onset::Int,
-  conditions::CompletionConditions,
-  rate_offset::Int,
+  series::MatrixSeries, onset::Int, conditions::CompletionConditions, rate_offset::Int
 )
   leading = hermitian_eliminate(series[onset + 1], conditions)
   global_rate_order = rate_offset + onset
@@ -128,10 +127,7 @@ function recurse_from_onset(
 end
 
 function recursive_gram_factor_series(
-  series::MatrixSeries,
-  N::Int,
-  conditions::CompletionConditions,
-  rate_offset::Int=0,
+  series::MatrixSeries, N::Int, conditions::CompletionConditions, rate_offset::Int=0
 )
   q, columns = validate_matrix_series(series)
   q == columns || throw(DimensionMismatch("Kossakowski series must be square"))
@@ -233,9 +229,7 @@ function positive_completion_impl(
 end
 
 function positive_completion_impl(
-  expansion::FloquetExpansion{G,P,E,Uncompleted,R},
-  algorithm::Gram,
-  frame::DissipativeFrame,
+  expansion::FloquetExpansion{G,P,E,Uncompleted,R}, algorithm::Gram, frame::DissipativeFrame
 ) where {G,P,E,R}
   return recursive_gram_positive_completion(expansion, frame, algorithm)
 end
