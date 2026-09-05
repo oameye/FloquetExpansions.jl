@@ -37,8 +37,58 @@ function completion_matrix(matrix::KossakowskiMatrix)
   return result
 end
 
+function exact_numeric_radical_replacement(node)
+  Symbolics.iscall(node) || return nothing
+  Symbolics.operation(node) === sqrt || return nothing
+  arguments = Symbolics.arguments(node)
+  length(arguments) == 1 || return nothing
+  argument = only(arguments)
+  rational = if argument isa Integer
+    argument // 1
+  elseif argument isa Rational
+    argument
+  else
+    return nothing
+  end
+  rational > 1 || return nothing
+
+  reciprocal = inv(rational)
+  reciprocal_root = Symbolics.Num(
+    Symbolics.term(sqrt, Symbolics.unwrap(Symbolics.Num(reciprocal)); type=Real)
+  )
+  return Symbolics.Num(rational) * reciprocal_root
+end
+
+function collect_exact_numeric_radicals!(
+  replacements::Dict{Symbolics.Num,Symbolics.Num}, node
+)
+  Symbolics.iscall(node) || return replacements
+  replacement = exact_numeric_radical_replacement(node)
+  if replacement !== nothing
+    replacements[Symbolics.Num(node)] = replacement
+    return replacements
+  end
+  for argument in Symbolics.arguments(node)
+    collect_exact_numeric_radicals!(replacements, argument)
+  end
+  return replacements
+end
+
+function preserve_exact_numeric_radicals(value::Symbolics.Num)
+  simplified = Symbolics.simplify(value)
+  replacements = Dict{Symbolics.Num,Symbolics.Num}()
+  collect_exact_numeric_radicals!(replacements, Symbolics.unwrap(simplified))
+  isempty(replacements) && return simplified
+  return Symbolics.substitute(simplified, replacements)
+end
+
 function coefficient_from_completion(value::CompletionScalar)
-  return SQA.simplify(convert(SQA.CNum, simplify_scalar(value)))
+  simplified = simplify_scalar(value)
+  exact_value = complex(
+    preserve_exact_numeric_radicals(real(simplified)),
+    preserve_exact_numeric_radicals(imag(simplified)),
+  )
+  return SQA.simplify(convert(SQA.CNum, exact_value))
 end
 
 function coefficient_matrix_from_completion(matrix::CompletionMatrix)
