@@ -349,9 +349,7 @@ function gram_positive_completion(
   completed_channels = completed_collapse_channels(frame, finite)
   raw_generator = effective_generator(expansion)
   coherent = hamiltonian(raw_generator, frame)
-  generator = canonical_liouvillian(
-    hamiltonian_action(coherent) + dissipative_liouvillian(frame, completed_matrix)
-  )
+  generator = liouvillian(coherent; channels=completed_channels)
 
   factorization = GramFactorization(amplitudes, factor_onsets(amplitudes), [stage])
   completion = PositiveCompletion(
