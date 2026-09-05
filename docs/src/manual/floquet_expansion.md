@@ -65,7 +65,7 @@ floquet_expansion
 
 ## Reading the result
 
-For an expansion truncated at order ``N``, the effective generator and micromotion have the
+For an expansion with `order = N`, the retained effective generator and micromotion have the
 inverse-frequency structure
 
 ```math
@@ -76,14 +76,12 @@ inverse-frequency structure
 \sum_{n=1}^{N-1}\omega_d^{-n}\mathcal{K}^{(n)}.
 ```
 
-The stored coefficients do not include these powers of the drive frequency. The accessors attach
-the scaling when the result is read.
+The distinction between the finite effective generator and its retained perturbative components
+becomes important after positive completion; see [Positive completion](@ref).
 
 ```@docs
 effective_generator
-```
-
-```@docs
+effective_component
 micromotion
 ```
 
@@ -103,9 +101,8 @@ d = kossakowski(vv, frame)
 d1 = kossakowski_component(vv, frame, 1)
 ```
 
-The component accessors include the corresponding inverse-drive-frequency scaling, just as
-[`effective_generator`](@ref) does. The operator-frame construction and Liouvillian-level
-Kossakowski representation are described in [System](@ref).
+The operator-frame construction and Liouvillian-level Kossakowski representation are described in
+[System](@ref).
 
 ```@docs
 hamiltonian_component
@@ -119,6 +116,6 @@ inverse-frequency contributions, but the expansion is asymptotic rather than con
 a problem-dependent optimal order, retaining more terms can make the approximation worse for a
 fixed drive.
 
-For dissipative systems, the finite-order effective Liouvillian is an algebraic truncation of the
-common map expansion. It is not projected back into GKLS form, so complete positivity and other
-physicality properties require a separate analysis.
+For periodically driven open systems, a direct finite-order high-frequency expansion need not
+retain a GKLS effective generator even when the microscopic generator is of Lindblad form
+[Schnell2021](@cite). See [Positive completion](@ref) for the CP-preserving continuation.

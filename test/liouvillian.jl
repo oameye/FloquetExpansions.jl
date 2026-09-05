@@ -1,13 +1,13 @@
 using Test
 using FloquetExpansions
-using Symbolics: Symbolics, @variables
+using Symbolics: Num, Symbolics, @variables
 using LinearAlgebra: I, kron
 
 include(joinpath(@__DIR__, "helpers", "shared.jl"))
 
 space = FockSpace(:liouvillian)
 a = Destroy(space, :a)
-@variables γ::Real ω::Real t::Real t₀::Real
+@variables γ::Real δ::Real ω::Real t::Real t₀::Real
 
 function coeff_to_complex(coeff, substitutions::AbstractDict)
   dummy = coeff * one(SQA.QAdd)
@@ -69,6 +69,48 @@ end
   @test @inferred(liouvillian(H; channels=(jump(a, γ),))) isa Liouvillian
 end
 
+@testset "jump rates are real and nonnegative by physical assumption" begin
+  zero_H = zero(SQA.QAdd)
+
+  @test liouvillian(zero_H; channels=(jump(a, 0),)) == zero(Liouvillian)
+  @test liouvillian(zero_H; channels=(jump(a, 2),)) == 2 * dissipator(a)
+  @test liouvillian(zero_H; channels=(jump(a, 2 + 0im),)) == 2 * dissipator(a)
+  @test liouvillian(zero_H; channels=(jump(a, γ),)) == γ * dissipator(a)
+  @test liouvillian(zero_H; channels=(jump(a, 1 + cos(ω * t)),)) ==
+    (1 + cos(ω * t)) * dissipator(a)
+
+  phase_rate = 1 + expim(ω * t) + expim(-ω * t)
+  phase_liouvillian = liouvillian(zero_H; channels=(jump(a, phase_rate),))
+  @test phase_liouvillian == phase_rate * dissipator(a)
+  @test sort!(collect(keys(harmonics(phase_liouvillian, ω, t)))) == [-1, 0, 1]
+
+  # A symbolic expression is assumed nonnegative as a whole; its factors are not sign-split.
+  @test liouvillian(zero_H; channels=(jump(a, -γ),)) == -γ * dissipator(a)
+
+  @test_throws ArgumentError jump(a, -1)
+  @test_throws ArgumentError jump(a, -1.0)
+  @test_throws ArgumentError jump(a, -2 + 0im)
+  @test_throws ArgumentError jump(a, Num(-1))
+  @test_throws ArgumentError jump(a, im)
+  @test_throws ArgumentError jump(a, γ + im * δ)
+  @test_throws ArgumentError jump(a, expim(ω * t₀))
+end
+
+@testset "collapse amplitudes and jump rates remain distinct representations" begin
+  zero_H = zero(SQA.QAdd)
+  collapse_form = liouvillian(zero_H; channels=(collapse(2a),))
+  rate_form = liouvillian(zero_H; channels=(jump(a, 4),))
+  frame = DissipativeFrame(a)
+
+  collapse_d = @inferred kossakowski(collapse_form, frame)
+  rate_d = @inferred kossakowski(rate_form, frame)
+
+  @test collapse_d == rate_d
+  @test collapse_d[1, 1] == 4
+  @test iszero(hamiltonian(collapse_form, frame))
+  @test iszero(hamiltonian(rate_form, frame))
+end
+
 @testset "Liouvillian arithmetic collects equal terms" begin
   L = hamiltonian_action(a' * a)
 
@@ -116,7 +158,7 @@ end
   @test liouvillian(a; channels=(jump(a, γ),)) == hamiltonian_action(a) + γ * dissipator(a)
   @test liouvillian(zero(SQA.QAdd); channels=(collapse(2a),)) == dissipator(2a)
   @test_throws MethodError jump(a)
-  @test_throws MethodError liouvillian(a; channels=(a,))
+  @test_throws ArgumentError liouvillian(a; channels=(a,))
 end
 
 @testset "Liouvillians use the common van Vleck expansion" begin
@@ -128,7 +170,7 @@ end
   @test expansion isa FloquetExpansion
   @test effective_generator(expansion) isa Liouvillian
   @test micromotion(expansion) isa PeriodicGenerator{Liouvillian}
-  @test effective_generator(expansion, 0) == static
+  @test effective_component(expansion, 0) == static
 end
 
 @testset "periodic channel forms lower through the public Liouvillian seam" begin
@@ -188,9 +230,11 @@ end
   @test harmonics(periodic(t), ω, t) == periodic
 end
 
-@testset "periodic rate phases keep the shared Fourier convention" begin
-  rate = expim(ω * t₀) * cos(ω * t)
-  periodic = harmonics(liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)), ω, t)
+@testset "general Liouvillian coefficients keep the shared Fourier convention" begin
+  coefficient = expim(ω * t₀) * cos(ω * t)
+  @test_throws ArgumentError jump(a, coefficient)
+
+  periodic = harmonics(coefficient * dissipator(a), ω, t)
 
   @test sort!(collect(keys(periodic))) == [-1, 1]
   @test periodic[-1] == (1 // 2) * expim(ω * t₀) * dissipator(a)
@@ -199,10 +243,8 @@ end
 end
 
 @testset "non-periodic Liouvillian phases are rejected" begin
-  rate = expim(ω * t^2)
-  @test_throws ArgumentError harmonics(
-    liouvillian(zero(SQA.QAdd); channels=(jump(a, rate),)), ω, t
-  )
+  coefficient = expim(ω * t^2)
+  @test_throws ArgumentError harmonics(coefficient * dissipator(a), ω, t)
 end
 
 @testset "a zero periodic Liouvillian keeps its public zero prototype" begin
@@ -222,7 +264,7 @@ end
   H = sigma + sigma'
   collapse_operator = expim(-ω * t) * sigma
   jump_operator = sigma + expim(ω * t) * sigma'
-  rate = 1 + expim(ω * t) + expim(-ω * t)
+  rate = 2
   native = liouvillian(H; channels=(collapse(collapse_operator), jump(jump_operator, rate)))
   periodic = harmonics(native, ω, t)
   substitutions = Dict(ω => 3.0, t => 0.37)
@@ -230,7 +272,7 @@ end
   H_matrix = tomatrix(H, 2, substitutions)
   C_matrix = tomatrix(collapse_operator, 2, substitutions)
   J_matrix = tomatrix(jump_operator, 2, substitutions)
-  rate_value = real(1 + cis(3.0 * 0.37) + cis(-3.0 * 0.37))
+  rate_value = 2.0
   expected = independent_liouvillian_matrix(H_matrix, C_matrix, J_matrix, rate_value)
   native_matrix = superoperator_matrix(native, finite_space, 2, substitutions)
   periodic_matrix = superoperator_matrix(periodic(t), finite_space, 2, substitutions)

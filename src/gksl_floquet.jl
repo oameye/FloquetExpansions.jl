@@ -19,12 +19,12 @@ end
 Return the order-`n` Kossakowski contribution of a Liouvillian Floquet expansion in the
 ordered dissipative `frame`, including the corresponding inverse-drive-frequency scaling.
 
-See also [`kossakowski`](@ref), [`effective_generator`](@ref).
+See also [`kossakowski`](@ref), [`effective_component`](@ref).
 """
 function kossakowski_component(
   expansion::FloquetExpansion{G,P,E}, frame::DissipativeFrame, n::Int
 ) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
-  generator = effective_generator(expansion, n)::E
+  generator = effective_component(expansion, n)::E
   return kossakowski(generator, frame)::KossakowskiMatrix
 end
 
@@ -57,17 +57,17 @@ Return the coherent order-`n` contribution of a Floquet expansion, including its
 inverse-drive-frequency scaling. The Hamiltonian is defined modulo an additive scalar
 multiple of the identity.
 
-See also [`hamiltonian`](@ref), [`effective_generator`](@ref).
+See also [`hamiltonian`](@ref), [`effective_component`](@ref).
 """
 function hamiltonian_component(
   expansion::FloquetExpansion{G,P,E}, n::Int
 ) where {G,P<:PeriodicGenerator{SQA.QAdd},E<:SQA.QAdd}
-  return effective_generator(expansion, n)::E
+  return effective_component(expansion, n)::E
 end
 
 function hamiltonian_component(
   expansion::FloquetExpansion{G,P,E}, n::Int
 ) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
-  generator = effective_generator(expansion, n)::E
+  generator = effective_component(expansion, n)::E
   return hamiltonian(generator)::SQA.QAdd
 end

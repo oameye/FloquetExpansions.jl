@@ -146,7 +146,9 @@ The elementary dissipator is
 - \frac{1}{2}\left(J^\dagger J\rho + \rho J^\dagger J\right).
 ```
 
-The following constructors encode these channel terms. We allow for both form of a quantum channel: a complete collapse operator or a bare jump operator with a separate rate.
+The channel constructors distinguish two physical representations: [`collapse`](@ref) takes the
+complete collapse amplitude, while [`jump`](@ref) takes a bare jump operator and a separate physical
+rate.
 
 ```@docs
 dissipator
@@ -159,10 +161,6 @@ collapse
 ```@docs
 jump
 ```
-
-The package accepts symbolic rates as algebraic coefficients. It does not infer that a symbolic
-rate is nonnegative, nor does constructing a [`liouvillian`](@ref) certify that the result is a
-GKLS generator.
 
 ### Dissipative frames and Kossakowski coordinates
 

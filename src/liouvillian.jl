@@ -9,9 +9,10 @@ struct CollapseChannel{O<:SQA.QField} <: LiouvillianChannel
   operator::O
 end
 
-struct RateWeightedJump{O<:SQA.QField,R<:LiouvillianScalar} <: LiouvillianChannel
+struct RateWeightedJump{O<:SQA.QField} <: LiouvillianChannel
   operator::O
-  rate::R
+  rate::SQA.CNum
+  assumption::NonnegativeRateAssumption
 end
 
 """
@@ -116,14 +117,57 @@ function dissipator(L::SQA.QField)
          action(identity, norm, -1 // 2)
 end
 
+function microscopic_provenance(channels::LiouvillianChannelCollection)
+  collapse_operators = SQA.QAdd[]
+  jump_operators = SQA.QAdd[]
+  jump_rates = SQA.CNum[]
+  rate_assumptions = NonnegativeRateAssumption[]
+  order = DissipativeSeedRef[]
+
+  for channel in channels
+    if channel isa CollapseChannel
+      push!(collapse_operators, qadd(channel.operator))
+      push!(order, DissipativeSeedRef(COLLAPSE_SEED, length(collapse_operators)))
+    elseif channel isa RateWeightedJump
+      push!(jump_operators, qadd(channel.operator))
+      push!(jump_rates, channel.rate)
+      push!(rate_assumptions, channel.assumption)
+      push!(order, DissipativeSeedRef(JUMP_SEED, length(jump_operators)))
+    else
+      throw(
+        ArgumentError("channels must contain only `collapse(...)` and `jump(...)` values")
+      )
+    end
+  end
+
+  return MicroscopicProvenance(
+    collapse_operators, jump_operators, jump_rates, rate_assumptions, order
+  )
+end
+
+function liouvillian_from_provenance(H::SQA.QField, provenance::MicroscopicProvenance)
+  generator = hamiltonian_action(H)
+  for operator in provenance.collapse_operators
+    generator = generator + dissipator(operator)
+  end
+  for i in eachindex(provenance.jump_operators)
+    generator =
+      generator + provenance.jump_rates[i] * dissipator(provenance.jump_operators[i])
+  end
+  return generator
+end
+
+@inline channel_liouvillian(channel::CollapseChannel) = dissipator(channel.operator)
+@inline channel_liouvillian(channel::RateWeightedJump) =
+  channel.rate * dissipator(channel.operator)
 """
     liouvillian(H::QField; channels=()) -> Liouvillian
 
 Construct
 ``ρ ↦ -i[H, ρ] + Σₐ D[Cₐ](ρ) + Σᵦ γᵦD[Jᵦ](ρ)``.
 
-`channels` is a tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values. Rates are
-ordinary symbolic coefficients; no positivity condition is inferred or certified.
+`channels` is a tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values. See
+[`jump`](@ref) for the physical-rate requirements on `γᵦ`.
 
 # Arguments
 
@@ -146,14 +190,13 @@ true
 function liouvillian(H::SQA.QField; channels::LiouvillianChannelCollection=())
   generator = hamiltonian_action(H)
   for channel in channels
-    generator = generator + _channel_liouvillian(channel)
+    channel isa LiouvillianChannel || throw(
+      ArgumentError("channels must contain only `collapse(...)` and `jump(...)` values")
+    )
+    generator = generator + channel_liouvillian(channel)
   end
   return generator
 end
-
-@inline _channel_liouvillian(channel::CollapseChannel) = dissipator(channel.operator)
-@inline _channel_liouvillian(channel::RateWeightedJump) =
-  channel.rate * dissipator(channel.operator)
 
 """
     collapse(operator::QField) -> CollapseChannel
@@ -170,19 +213,59 @@ function collapse(operator::SQA.QField)
   return CollapseChannel(operator)
 end
 
+function known_numeric_jump_rate(rate::LiouvillianScalar)
+  if rate isa Symbolics.Num
+    value = Symbolics.value(rate)
+    return value isa Real ? value : nothing
+  elseif rate isa Real
+    return rate
+  elseif rate isa Complex && iszero(imag(rate))
+    real_rate = real(rate)
+    if real_rate isa Symbolics.Num
+      value = Symbolics.value(real_rate)
+      return value isa Real ? value : nothing
+    elseif real_rate isa Real
+      return real_rate
+    end
+  end
+  return nothing
+end
+
+function validated_jump_rate(rate::LiouvillianScalar)
+  coefficient = convert(SQA.CNum, rate)
+  real_valued =
+    rate isa Real ||
+    (rate isa Complex && iszero(imag(rate))) ||
+    coefficient == conj(coefficient)
+  real_valued || throw(ArgumentError("jump rate must be provably real; got `$rate`"))
+
+  numeric_rate = known_numeric_jump_rate(rate)
+  numeric_rate !== nothing &&
+    numeric_rate < 0 &&
+    throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
+
+  return coefficient
+end
+
 """
     jump(operator::QField, rate) -> RateWeightedJump
 
-Create a channel from a bare jump operator `J` and a separate symbolic rate. When passed to a
-[`liouvillian`](@ref), it contributes `rate` times the [`dissipator`](@ref) of `operator`, that
-is, ``rate D[J](ρ)``, where
-``D[J](ρ) = JρJ† - (J†Jρ + ρJ†J)/2``.
-Here, `J` denotes `operator`; the rate is not folded into it.
+Create a physical rate-weighted channel ``γ D[J]`` from a bare jump operator `J` and rate `γ`.
+The rate may be time dependent and periodic, but it must be provably real. Negative numeric rates
+are rejected. A real symbolic expression is accepted under the assumption that the expression as
+a whole is nonnegative; no sign analysis of its factors is performed.
 
-See also [`collapse`](@ref), [`liouvillian`](@ref).
+Thus `jump(J, γ₀ + γ₁*cos(ω*t))` is supported for real symbolic parameters. A genuinely complex
+coefficient such as `expim(ω*t)` is not a physical rate. For signed or complex algebraic
+coefficients, use `c * dissipator(J)` instead.
+
+Use [`collapse`](@ref) when the complete channel amplitude is already folded into the operator.
+
+See also [`collapse`](@ref), [`dissipator`](@ref), [`liouvillian`](@ref).
 """
 function jump(operator::SQA.QField, rate::LiouvillianScalar)
-  return RateWeightedJump(operator, rate)
+  coefficient = validated_jump_rate(rate)
+  return RateWeightedJump(operator, coefficient, NonnegativeRateAssumption(coefficient))
 end
 
 Base.iszero(L::Liouvillian) = isempty(L.terms)

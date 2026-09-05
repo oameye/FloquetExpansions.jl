@@ -37,14 +37,14 @@ end
   Ms = [-2, -1, 1, 2]
   vv = floquet_expansion(H, VanVleck(), 3)
 
-  @test vanishes(effective_generator(vv, 0) - H[0])
+  @test vanishes(effective_component(vv, 0) - H[0])
 
   K1 = micromotion(vv, 1)
   @test sort!(collect(keys(K1))) == Ms
   @test all(vanishes(K1[m] - (im / (m * w)) * H[m]) for m in Ms)
 
   @test vanishes(
-    effective_generator(vv, 1) -
+    effective_component(vv, 1) -
     sum((-1 // 2) * (1 / (m * w)) * comm(H[m], H[-m]) for m in Ms),
   )
 
@@ -71,7 +71,7 @@ end
         oracleHeff2 + comm(comm(H[-m], H[m - mp]), H[mp]) * (1 / (3 * m * mp * w^2))
     end
   end
-  @test vanishes(effective_generator(vv, 2) - oracleHeff2)
+  @test vanishes(effective_component(vv, 2) - oracleHeff2)
 end
 
 @testset "truncation follows the spec, X^[N] = sum_{k<N}" begin
@@ -85,7 +85,7 @@ end
     lo = floquet_expansion(H, VanVleck(), N - 1)
     hi = floquet_expansion(H, VanVleck(), N)
     @test all(
-      vanishes(effective_generator(hi, n) - effective_generator(lo, n)) for n in 0:(N - 2)
+      vanishes(effective_component(hi, n) - effective_component(lo, n)) for n in 0:(N - 2)
     )
     @test agrees(micromotion(hi) - micromotion(lo), micromotion(hi, N - 1))
   end
@@ -175,7 +175,7 @@ end
 
   for n in 0:(N - 1)
     expected = w^(-n) * expected_effective[n + 1]
-    @test maxcoeff(effective_generator(vv, n) - expected, SUBS) < 1.0e-12
+    @test maxcoeff(effective_component(vv, n) - expected, SUBS) < 1.0e-12
   end
 
   for n in 1:(N - 1)
