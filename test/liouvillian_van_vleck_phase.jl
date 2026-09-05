@@ -16,7 +16,10 @@ end
 
 function phase_matrix_equal(left, right)
   size(left) == size(right) || return false
-  return all(iszero(SQA.simplify(left[index] - right[index])) for index in eachindex(left))
+  for index in eachindex(left)
+    iszero(SQA.simplify(left[index] - right[index])) || return false
+  end
+  return true
 end
 
 @testset "Liouvillian Van Vleck phase reproduces the analytical driven qubit" begin
@@ -76,8 +79,9 @@ end
   v = κ2 * r2 / 2
   χ = κ1 * κ2 * r1 * r2 / 2
 
-  time_domain =
-    κ1 * (1 + r1 * cos(ω * t)) * D1 + κ2 * (1 + r2 * sin(ω * t)) * D2
+  one_photon_loss = κ1 * (1 + r1 * cos(ω * t)) * D1
+  two_photon_loss = κ2 * (1 + r2 * sin(ω * t)) * D2
+  time_domain = one_photon_loss + two_photon_loss
   parsed = floquet_expansion(time_domain, ω, t, VanVleck(), 2)
   explicit = floquet_expansion(
     PeriodicGenerator(
