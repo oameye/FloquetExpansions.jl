@@ -38,12 +38,7 @@ end
   σz = Pauli(pauli, :sigma, 3)
   frame = DissipativeFrame(σz, σy)
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx,
-    ω,
-    t,
-    VanVleck(),
-    3;
-    channels=(collapse(σz),),
+    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
   )
   completion = @inferred positive_completion(expansion, Spectral(), frame)
   spectral = factorization(completion)
@@ -66,12 +61,7 @@ end
 @testset "non-diagonal leading spectral frame is rejected" begin
   frame = DissipativeFrame(a, a^2)
   expansion = floquet_expansion(
-    0 * a,
-    ω,
-    t,
-    VanVleck(),
-    1;
-    channels=(collapse(a + a^2), collapse(a + im * a^2)),
+    0 * a, ω, t, VanVleck(), 1; channels=(collapse(a + a^2), collapse(a + im * a^2))
   )
   @test_throws ArgumentError positive_completion(expansion, Spectral(), frame)
 end

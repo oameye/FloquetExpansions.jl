@@ -17,8 +17,9 @@ end
 function spectral_leading_diagonal(series::MatrixSeries)
   q, columns = validate_matrix_series(series)
   q == columns || throw(DimensionMismatch("Kossakowski series must be square"))
-  hermitian_series(series) ||
-    throw(ArgumentError("Spectral completion requires a Hermitian retained Kossakowski series"))
+  hermitian_series(series) || throw(
+    ArgumentError("Spectral completion requires a Hermitian retained Kossakowski series")
+  )
 
   leading = series[1]
   for column in 1:q, row in 1:q
@@ -118,18 +119,16 @@ function spectral_branch_series(
     for k in 1:(order - 1)
       normalization += completion_dot(vectors[k + 1], vectors[order - k + 1])
     end
-    vectors[order + 1][branch] =
-      simplify_scalar(-hermitian_real(normalization) / completion_scalar(2))
+    vectors[order + 1][branch] = simplify_scalar(
+      -hermitian_real(normalization) / completion_scalar(2)
+    )
   end
 
   return rates, vectors
 end
 
 function hcm_completed_rate(
-  rates::ScalarSeries,
-  wd::Symbolics.Num,
-  N::Int,
-  conditions::CompletionConditions,
+  rates::ScalarSeries, wd::Symbolics.Num, N::Int, conditions::CompletionConditions
 )
   onset = series_onset(rates, N)
   onset < 0 && return coefficient_zero(), -1, false
@@ -138,7 +137,9 @@ function hcm_completed_rate(
   sign = structural_sign(leading, conditions)
   if sign == SIGN_NEGATIVE || sign == SIGN_NONPOSITIVE
     throw(
-      CompletionObstruction(onset, coefficient_from_completion(leading), :negative_spectral_rate)
+      CompletionObstruction(
+        onset, coefficient_from_completion(leading), :negative_spectral_rate
+      ),
     )
   elseif sign == SIGN_UNKNOWN
     require_positivity!(conditions, leading)
@@ -153,7 +154,9 @@ function hcm_completed_rate(
     finite_root += scale * root[grade + 1]
   end
   rate = completion_scalar(iszero(onset) ? 1 : wd^(-onset)) * finite_root^2
-  return coefficient_from_completion(hermitian_real(simplify_scalar(rate))), onset, isodd(onset)
+  return coefficient_from_completion(hermitian_real(simplify_scalar(rate))),
+  onset,
+  isodd(onset)
 end
 
 function finite_spectral_vector(
@@ -192,9 +195,7 @@ function spectral_completed_matrix(
 end
 
 function spectral_completed_channels(
-  frame::DissipativeFrame,
-  rates::Vector{SQA.CNum},
-  vectors::Vector{Vector{SQA.CNum}},
+  frame::DissipativeFrame, rates::Vector{SQA.CNum}, vectors::Vector{Vector{SQA.CNum}}
 )
   result = RateWeightedJump{SQA.QAdd}[]
   for branch in eachindex(rates)
@@ -241,7 +242,9 @@ function spectral_positive_completion(
   )
   matrix_is_hermitian(completed_matrix) ||
     throw(ArgumentError("completed spectral Kossakowski matrix is not Hermitian"))
-  completed_channels = spectral_completed_channels(frame, completed_rates, completed_vectors)
+  completed_channels = spectral_completed_channels(
+    frame, completed_rates, completed_vectors
+  )
 
   raw_generator = effective_generator(expansion)
   coherent = hamiltonian(raw_generator, frame)
