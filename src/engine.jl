@@ -56,13 +56,13 @@ end
 const GeneratorComponent = Union{SQA.QAdd,Liouvillian}
 
 triindex(n::Int, j::Int) = (n * (n + 1)) ÷ 2 + j + 1
-lie_transform_phase(::Type{SQA.QAdd}) = im
-lie_transform_phase(::Type{Liouvillian}) = -1
-function weight_generator(::Type{T}, j::Int) where {T<:GeneratorComponent}
-  return lie_transform_phase(T)^j * (1 // factorial(j))
+lie_transform_phase(::PeriodicGenerator{SQA.QAdd}) = im
+lie_transform_phase(::PeriodicGenerator{Liouvillian}) = -1
+function weight_generator(generator::PeriodicGenerator, j::Int)
+  return lie_transform_phase(generator)^j * (1 // factorial(j))
 end
-function weight_kick_derivative(::Type{T}, j::Int) where {T<:GeneratorComponent}
-  return lie_transform_phase(T)^j * (1 // factorial(j + 1))
+function weight_kick_derivative(generator::PeriodicGenerator, j::Int)
+  return lie_transform_phase(generator)^j * (1 // factorial(j + 1))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", expansion::FloquetExpansion{G}) where {G}
@@ -82,13 +82,13 @@ end
 function assemble_resolvent(
   dressed_generator::Vector{P}, dressed_kick_derivative::Vector{P}, n::Int, generator::P
 ) where {P<:PeriodicGenerator}
-  T = eltype(typeof(generator))
   result = zero(generator)
   for j in 0:n
-    result = result + weight_generator(T, j) * dressed_generator[triindex(n, j)]
+    result = result + weight_generator(generator, j) * dressed_generator[triindex(n, j)]
   end
   for j in 1:n
-    result = result - weight_kick_derivative(T, j) * dressed_kick_derivative[triindex(n, j)]
+    result =
+      result - weight_kick_derivative(generator, j) * dressed_kick_derivative[triindex(n, j)]
   end
   return result
 end
