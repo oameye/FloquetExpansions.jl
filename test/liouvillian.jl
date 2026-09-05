@@ -100,14 +100,15 @@ end
   zero_H = zero(SQA.QAdd)
   collapse_form = liouvillian(zero_H; channels=(collapse(2a),))
   rate_form = liouvillian(zero_H; channels=(jump(a, 4),))
+  frame = DissipativeFrame(a)
 
-  substitutions = Dict()
-  collapse_matrix = superoperator_matrix(collapse_form, space, 3, substitutions)
-  rate_matrix = superoperator_matrix(rate_form, space, 3, substitutions)
-  reference_matrix = superoperator_matrix(4 * dissipator(a), space, 3, substitutions)
+  collapse_d = @inferred kossakowski(collapse_form, frame)
+  rate_d = @inferred kossakowski(rate_form, frame)
 
-  @test collapse_matrix ≈ rate_matrix
-  @test collapse_matrix ≈ reference_matrix
+  @test collapse_d == rate_d
+  @test collapse_d[1, 1] == 4
+  @test iszero(hamiltonian(collapse_form, frame))
+  @test iszero(hamiltonian(rate_form, frame))
 end
 
 @testset "Liouvillian arithmetic collects equal terms" begin
