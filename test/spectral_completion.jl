@@ -67,8 +67,14 @@ end
   coherent_rotation = hamiltonian_action(σx)
   diagonal_difference = dissipator(σy) - dissipator(σz)
   leading = dissipator(σz) + 4 * dissipator(σy)
+  quadrature = im * (1 // 2) * diagonal_difference
   generator = PeriodicGenerator(
-    Dict(0 => leading, 1 => coherent_rotation, -1 => diagonal_difference), ω
+    Dict(
+      0 => leading,
+      1 => coherent_rotation + quadrature,
+      -1 => coherent_rotation - quadrature,
+    ),
+    ω,
   )
   expansion = floquet_expansion(generator, VanVleck(), 2)
   mixing = kossakowski_component(expansion, frame, 1)
@@ -99,8 +105,14 @@ end
   coherent_rotation = hamiltonian_action(σx)
   diagonal_difference = dissipator(σy) - dissipator(σz)
   leading = dissipator(σz) + dissipator(σy)
+  quadrature = im * (1 // 2) * diagonal_difference
   generator = PeriodicGenerator(
-    Dict(0 => leading, 1 => coherent_rotation, -1 => diagonal_difference), ω
+    Dict(
+      0 => leading,
+      1 => coherent_rotation + quadrature,
+      -1 => coherent_rotation - quadrature,
+    ),
+    ω,
   )
   expansion = floquet_expansion(generator, VanVleck(), 2)
   mixing = kossakowski_component(expansion, frame, 1)
@@ -119,8 +131,14 @@ end
 
   coherent_rotation = hamiltonian_action(σx)
   cross_dissipator = dissipator(σy + σz) - dissipator(σy) - dissipator(σz)
+  quadrature = im * (1 // 2) * cross_dissipator
   generator = PeriodicGenerator(
-    Dict(0 => dissipator(σz), 1 => coherent_rotation, -1 => cross_dissipator), ω
+    Dict(
+      0 => dissipator(σz),
+      1 => coherent_rotation - quadrature,
+      -1 => coherent_rotation + quadrature,
+    ),
+    ω,
   )
   expansion = floquet_expansion(generator, VanVleck(), 2)
   completion = positive_completion(expansion, Spectral(), frame)
