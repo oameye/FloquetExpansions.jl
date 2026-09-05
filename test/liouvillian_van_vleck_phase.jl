@@ -32,7 +32,7 @@ end
   parsed = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(jump(σminus, γ),))
 
   L0 = liouvillian((1 // 2) * σz; channels=(jump(σminus, γ),))
-  L1 = hamiltonian_action((E // 2) * σx)
+  L1 = hamiltonian_action(((1 // 2) * E) * σx)
   explicit = floquet_expansion(
     PeriodicGenerator(Dict(0 => L0, 1 => L1, -1 => L1), ω), VanVleck(), 3
   )
