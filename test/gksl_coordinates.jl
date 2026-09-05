@@ -68,6 +68,16 @@ end
 @testset "Hamiltonian is recovered modulo the identity" begin
   frame = DissipativeFrame(a)
   H = a' * a + 7 * one(a)
+  L = liouvillian(H; channels=(collapse(a),))
+
+  extracted_H = hamiltonian(L, frame)
+
+  @test iszero(SQA.simplify(extracted_H - a' * a))
+  @test kossakowski(L, frame)[1, 1] == 1
+end
+
+@testset "pure Hamiltonian Liouvillian has a zero dissipative sector" begin
+  H = Δ * a' * a + 5 * one(a)
   L = liouvillian(H)
   frame = DissipativeFrame(a, a^2)
 
