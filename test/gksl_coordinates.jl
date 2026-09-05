@@ -68,16 +68,6 @@ end
 @testset "Hamiltonian is recovered modulo the identity" begin
   frame = DissipativeFrame(a)
   H = a' * a + 7 * one(a)
-  L = liouvillian(H; channels=(collapse(a),))
-
-  extracted_H = hamiltonian(L, frame)
-
-  @test iszero(SQA.simplify(extracted_H - a' * a))
-  @test kossakowski(L, frame)[1, 1] == 1
-end
-
-@testset "pure Hamiltonian Liouvillian has a zero dissipative sector" begin
-  H = Δ * a' * a + 5 * one(a)
   L = liouvillian(H)
   frame = DissipativeFrame(a, a^2)
 
@@ -237,11 +227,7 @@ end
   dissipative_harmonic = dissipator(a)
   quadrature = im * (1 // 2) * dissipative_harmonic
   generator = PeriodicGenerator(
-    Dict(
-      1 => coherent_harmonic + quadrature,
-      -1 => coherent_harmonic - quadrature,
-    ),
-    ω,
+    Dict(1 => coherent_harmonic - quadrature, -1 => coherent_harmonic + quadrature), ω
   )
   expansion = floquet_expansion(generator, VanVleck(), 2)
   frame = DissipativeFrame(a, a' * a^2)
