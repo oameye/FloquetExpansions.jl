@@ -94,18 +94,61 @@ end
 function validate_retained_contract(completion, expansion, frame, retained_order)
   @test dissipative_frame(completion) == frame
   for order in 0:retained_order
+    raw_kossakowski = kossakowski_component(expansion, frame, order)
+    @test validation_matrix_hermitian(raw_kossakowski)
     @test effective_component(completion, order) == effective_component(expansion, order)
     @test hamiltonian_component(completion, order) == hamiltonian_component(expansion, order)
     @test validation_matrix_equal(
-      kossakowski_component(completion, order),
-      kossakowski_component(expansion, frame, order),
+      kossakowski_component(completion, order), raw_kossakowski
     )
   end
   @test micromotion(completion) == micromotion(expansion)
   @test validation_matrix_hermitian(kossakowski(completion))
-  @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+
+  completed_hamiltonian = hamiltonian(effective_generator(completion), frame)
+  @test liouvillian(completed_hamiltonian; channels=channels(completion)) ==
     effective_generator(completion)
   return nothing
+end
+
+@testset "public completion API is inferred for automatic and explicit frames" begin
+  fock = FockSpace(:cp_validation_inference)
+  a = Destroy(fock, :a)
+  frame = DissipativeFrame(a)
+  @variables ω::Real t::Real
+
+  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(collapse(a),))
+  gram_auto = @inferred positive_completion(expansion, Gram())
+  gram_explicit = @inferred positive_completion(expansion, Gram(), frame)
+  spectral_auto = @inferred positive_completion(expansion, Spectral())
+  spectral_explicit = @inferred positive_completion(expansion, Spectral(), frame)
+
+  @test dissipative_frame(gram_auto) == frame
+  @test dissipative_frame(gram_explicit) == frame
+  @test dissipative_frame(spectral_auto) == frame
+  @test dissipative_frame(spectral_explicit) == frame
+
+  @test @inferred(dissipative_frame(gram_auto)) == frame
+  @test @inferred(channels(gram_auto)) == channels(gram_auto)
+  @test @inferred(positivity_conditions(gram_auto)) == positivity_conditions(gram_auto)
+  @test @inferred(regularity_conditions(gram_auto)) == regularity_conditions(gram_auto)
+  @test @inferred(factorization(gram_auto)) isa GramFactorization
+  @test @inferred(kossakowski(gram_auto)) == kossakowski(gram_auto)
+  @test @inferred(kossakowski_component(gram_auto, 0)) == kossakowski_component(gram_auto, 0)
+  @test @inferred(hamiltonian(gram_auto)) == hamiltonian(gram_auto)
+  @test @inferred(hamiltonian_component(gram_auto, 0)) == hamiltonian_component(gram_auto, 0)
+
+  @test @inferred(dissipative_frame(spectral_auto)) == frame
+  @test @inferred(channels(spectral_auto)) == channels(spectral_auto)
+  @test @inferred(positivity_conditions(spectral_auto)) == positivity_conditions(spectral_auto)
+  @test @inferred(regularity_conditions(spectral_auto)) == regularity_conditions(spectral_auto)
+  @test @inferred(factorization(spectral_auto)) isa SpectralFactorization
+  @test @inferred(kossakowski(spectral_auto)) == kossakowski(spectral_auto)
+  @test @inferred(kossakowski_component(spectral_auto, 0)) ==
+    kossakowski_component(spectral_auto, 0)
+  @test @inferred(hamiltonian(spectral_auto)) == hamiltonian(spectral_auto)
+  @test @inferred(hamiltonian_component(spectral_auto, 0)) ==
+    hamiltonian_component(spectral_auto, 0)
 end
 
 @testset "driven qubit validates Cartesian Gram and adapted spectral frames" begin
@@ -144,30 +187,27 @@ end
     validation_spectral_matrix(factorization(spectral_adapted)),
     kossakowski(spectral_adapted),
   )
+end
 
-  @test @inferred(dissipative_frame(gram_cartesian)) == cartesian
-  gram_channels = @inferred channels(gram_cartesian)
-  gram_positivity = @inferred positivity_conditions(gram_cartesian)
-  gram_regularity = @inferred regularity_conditions(gram_cartesian)
-  gram_factorization = @inferred factorization(gram_cartesian)
-  gram_kossakowski = @inferred kossakowski(gram_cartesian)
-  @test gram_channels == channels(gram_cartesian)
-  @test gram_positivity == positivity_conditions(gram_cartesian)
-  @test gram_regularity == regularity_conditions(gram_cartesian)
-  @test gram_factorization isa GramFactorization
-  @test gram_kossakowski == kossakowski(gram_cartesian)
+@testset "full-rank non-diagonal leading block needs no eigendiagonalization" begin
+  fock = FockSpace(:cp_validation_full_rank)
+  a = Destroy(fock, :a)
+  frame = DissipativeFrame(a, a^2)
+  @variables ω::Real t::Real
 
-  @test @inferred(dissipative_frame(spectral_adapted)) == adapted
-  spectral_channels = @inferred channels(spectral_adapted)
-  spectral_positivity = @inferred positivity_conditions(spectral_adapted)
-  spectral_regularity = @inferred regularity_conditions(spectral_adapted)
-  spectral_factorization = @inferred factorization(spectral_adapted)
-  spectral_kossakowski = @inferred kossakowski(spectral_adapted)
-  @test spectral_channels == channels(spectral_adapted)
-  @test spectral_positivity == positivity_conditions(spectral_adapted)
-  @test spectral_regularity == regularity_conditions(spectral_adapted)
-  @test spectral_factorization isa SpectralFactorization
-  @test spectral_kossakowski == kossakowski(spectral_adapted)
+  generator = liouvillian(
+    0 * a; channels=(collapse(a + a^2), collapse(a + im * a^2))
+  )
+  expansion = floquet_expansion(generator, ω, t, VanVleck(), 1)
+  leading = kossakowski_component(expansion, frame, 0)
+  @test !iszero(SQA.simplify(leading[1, 2]))
+  @test !iszero(SQA.simplify(leading[2, 1]))
+
+  completion = @inferred positive_completion(expansion, Gram(), frame)
+  validate_retained_contract(completion, expansion, frame, 0)
+  @test validation_matrix_equal(
+    validation_gram_matrix(factorization(completion)), kossakowski(completion)
+  )
 end
 
 @testset "Gram and spectral completions may differ only beyond retained order" begin
@@ -193,24 +233,28 @@ end
   @test !validation_matrix_equal(kossakowski(gram), kossakowski(spectral))
 end
 
-@testset "bosonic quadrature-free modulated-loss closure begins beyond retained order" begin
+@testset "bosonic modulated loss closes its dark sector beyond retained order" begin
   fock = FockSpace(:cp_validation_modulated_loss)
   a = Destroy(fock, :a)
   frame = DissipativeFrame(a, a^2, a' * a^2)
-  @variables ω::Real t::Real K::Real
+  @variables ω::Real
 
-  H = K * cos(ω * t) * a'^2 * a^2
-  expansion = floquet_expansion(
-    H,
+  coherent_harmonic = hamiltonian_action(a'^2 * a^2)
+  dissipative_harmonic = dissipator(a)
+  static_generator = dissipator(a) + dissipator(a^2)
+  generator = PeriodicGenerator(
+    Dict(
+      0 => static_generator,
+      1 => (1 // 2) * coherent_harmonic - (im // 2) * dissipative_harmonic,
+      -1 => (1 // 2) * coherent_harmonic + (im // 2) * dissipative_harmonic,
+    ),
     ω,
-    t,
-    VanVleck(),
-    2;
-    channels=(jump(a, 2 + sin(ω * t)), collapse(a^2)),
   )
+  expansion = floquet_expansion(generator, VanVleck(), 2)
   first_order = kossakowski_component(expansion, frame, 1)
-  @test any(!iszero(SQA.simplify(first_order[index, 3])) for index in 1:2)
-  @test any(!iszero(SQA.simplify(first_order[3, index])) for index in 1:2)
+  @test validation_matrix_hermitian(first_order)
+  @test !iszero(SQA.simplify(first_order[1, 3]))
+  @test !iszero(SQA.simplify(first_order[3, 1]))
 
   completion = @inferred positive_completion(expansion, Gram(), frame)
   validate_retained_contract(completion, expansion, frame, 1)
@@ -238,8 +282,9 @@ end
     H, ω, t, VanVleck(), 1; channels=(jump(number_selective, γ),)
   )
 
-  for method in (Gram(), Spectral())
-    completion = @inferred positive_completion(expansion, method, frame)
+  gram = @inferred positive_completion(expansion, Gram(), frame)
+  spectral = @inferred positive_completion(expansion, Spectral(), frame)
+  for completion in (gram, spectral)
     validate_retained_contract(completion, expansion, frame, 0)
     @test validation_has_condition(positivity_conditions(completion), γ)
   end
@@ -359,7 +404,11 @@ end
   )
 
   @test validation_matrix_equal(kossakowski(native_completion), transformed_in_native)
-  @test effective_generator(native_completion) == effective_generator(transformed_completion)
+  native_hamiltonian = hamiltonian(effective_generator(native_completion), native)
+  transformed_hamiltonian = hamiltonian(
+    effective_generator(transformed_completion), transformed
+  )
+  @test iszero(SQA.simplify(native_hamiltonian - transformed_hamiltonian))
   validate_retained_contract(native_completion, expansion, native, 0)
   validate_retained_contract(transformed_completion, expansion, transformed, 0)
 end
