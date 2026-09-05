@@ -28,7 +28,7 @@ export time_average, derivative, antiderivative, support, harmonics
 export FloquetExpansion,
   floquet_expansion, effective_generator, effective_component, micromotion
 export Completion, Uncompleted, CompletionAlgorithm, Gram, Spectral, CompletionFactorization
-export GramFactorization
+export CompletionObstruction, FractionalJumpOnset, GramFactorization
 export positive_completion,
   dissipative_frame, channels, positivity_conditions, regularity_conditions, factorization
 export Liouvillian,
