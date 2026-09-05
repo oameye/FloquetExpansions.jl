@@ -64,17 +64,20 @@ end
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
   frame = DissipativeFrame(σz, σy)
-  expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx,
-    ω,
-    t,
-    VanVleck(),
-    2;
-    channels=(collapse(σz), collapse(2 * σy)),
+  coherent_rotation = hamiltonian_action(σx)
+  diagonal_difference = dissipator(σy) - dissipator(σz)
+  leading = dissipator(σz) + 4 * dissipator(σy)
+  generator = PeriodicGenerator(
+    Dict(0 => leading, 1 => coherent_rotation, -1 => diagonal_difference), ω
   )
+  expansion = floquet_expansion(generator, VanVleck(), 2)
+  mixing = kossakowski_component(expansion, frame, 1)
+
+  @test !iszero(SQA.simplify(mixing[1, 2]))
+  @test !iszero(SQA.simplify(mixing[2, 1]))
+
   completion = positive_completion(expansion, Spectral(), frame)
   spectral = factorization(completion)
-
   @test spectral.onsets == [0, 0]
   @test any(
     !iszero(SQA.simplify(spectral.vectors[column][row]))
@@ -93,15 +96,17 @@ end
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
   frame = DissipativeFrame(σz, σy)
-  expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx,
-    ω,
-    t,
-    VanVleck(),
-    2;
-    channels=(collapse(σz), collapse(σy)),
+  coherent_rotation = hamiltonian_action(σx)
+  diagonal_difference = dissipator(σy) - dissipator(σz)
+  leading = dissipator(σz) + dissipator(σy)
+  generator = PeriodicGenerator(
+    Dict(0 => leading, 1 => coherent_rotation, -1 => diagonal_difference), ω
   )
+  expansion = floquet_expansion(generator, VanVleck(), 2)
+  mixing = kossakowski_component(expansion, frame, 1)
 
+  @test !iszero(SQA.simplify(mixing[1, 2]))
+  @test !iszero(SQA.simplify(mixing[2, 1]))
   @test_throws ArgumentError positive_completion(expansion, Spectral(), frame)
 end
 
