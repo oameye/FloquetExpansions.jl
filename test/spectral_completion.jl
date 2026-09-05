@@ -80,8 +80,8 @@ end
   spectral = factorization(completion)
   @test spectral.onsets == [0, 0]
   @test any(
-    !iszero(SQA.simplify(spectral.vectors[column][row]))
-    for (column, row) in ((1, 2), (2, 1))
+    !iszero(SQA.simplify(spectral.vectors[column][row])) for
+    (column, row) in ((1, 2), (2, 1))
   )
   for n in 0:1
     @test spectral_matrix_equal(
