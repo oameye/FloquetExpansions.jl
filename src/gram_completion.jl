@@ -42,7 +42,7 @@ function exact_numeric_radical_replacement(node)
   Symbolics.operation(node) === sqrt || return nothing
   arguments = Symbolics.arguments(node)
   length(arguments) == 1 || return nothing
-  argument = only(arguments)
+  argument = Symbolics.unwrap_const(only(arguments))
   rational = if argument isa Integer
     argument // 1
   elseif argument isa Rational
