@@ -84,3 +84,19 @@ function positive_completion(
 ) where {G,P,E,C<:PositiveCompletion,R}
   return throw(ArgumentError("the Floquet expansion is already positively completed"))
 end
+
+function positive_completion(
+  expansion::FloquetExpansion{G,P,E,Uncompleted,R}, algorithm::Gram
+) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian,R}
+  return recursive_gram_positive_completion(
+    expansion, automatic_dissipative_frame(expansion), algorithm
+  )
+end
+
+function positive_completion(
+  expansion::FloquetExpansion{G,P,E,Uncompleted,R},
+  algorithm::Gram,
+  frame::DissipativeFrame,
+) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian,R}
+  return recursive_gram_positive_completion(expansion, frame, algorithm)
+end
