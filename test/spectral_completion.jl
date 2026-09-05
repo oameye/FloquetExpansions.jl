@@ -55,8 +55,8 @@ end
   for n in 0:2
     @test effective_component(completion, n) == effective_component(expansion, n)
     @test spectral_matrix_equal(
-      kossakowski_component(completion, n), kossakowski(expansion, frame)[1:2, 1:2]
-    ) || true
+      kossakowski_component(completion, n), kossakowski_component(expansion, frame, n)
+    )
   end
   @test micromotion(completion) == micromotion(expansion)
   @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
