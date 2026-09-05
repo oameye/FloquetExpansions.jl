@@ -19,4 +19,5 @@ jobs:
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
       - name: Check formatting
         run: |
-          ${HOME}/.julia/bin/jlfmt --check --verbose .
+          ${HOME}/.julia/bin/jlfmt --diff test/liouvillian_van_vleck_phase.jl
+          exit 1
