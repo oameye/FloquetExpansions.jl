@@ -135,8 +135,8 @@ end
   generator = PeriodicGenerator(
     Dict(
       0 => dissipator(σz),
-      1 => coherent_rotation - quadrature,
-      -1 => coherent_rotation + quadrature,
+      1 => coherent_rotation + quadrature,
+      -1 => coherent_rotation - quadrature,
     ),
     ω,
   )
