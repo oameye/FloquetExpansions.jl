@@ -105,6 +105,8 @@ CompletionAlgorithm
 Gram
 Spectral
 CompletionFactorization
+CompletionObstruction
+FractionalJumpOnset
 GramFactorization
 positive_completion
 dissipative_frame
