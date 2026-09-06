@@ -19,6 +19,12 @@ jobs:
     with:
       julia-version: '1.12'
       install-jetls: true
+      # Pinned to the release the lsp baseline was taken under. `release` is a
+      # moving branch: leaving it unpinned put CI on 2026-09-01 against a
+      # baseline from 2026-08-23, and the gate went red for a change nobody
+      # here made. Bumping this and refreshing the baseline is one deliberate
+      # commit, which is the point.
+      jetls-rev: '6893fcef26708d64360c048e039102c76ad032c0'
       # jet is deliberately left out here, not dropped. JET.yml already gates
       # it at absolute zero, which is stronger than a ratchet while it holds,
       # and JET costs minutes. It stays in [metrics].run so `make ratchet`
