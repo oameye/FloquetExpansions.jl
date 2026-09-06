@@ -49,50 +49,6 @@ function matrix_series_onset(series::MatrixSeries, N::Int)
   return -1
 end
 
-function throw_elimination_obstruction(elimination::HermitianElimination, grade::Int)
-  if elimination.status == HERMITIAN_NEGATIVE_PIVOT ||
-    elimination.status == HERMITIAN_NONPOSITIVE_PIVOT
-    throw(
-      ArgumentError(
-        "Gram completion encountered a retained negative Hermitian direction at grade $grade: $(elimination.obstruction)",
-      ),
-    )
-  elseif elimination.status == HERMITIAN_ZERO_DIAGONAL_COUPLING
-    throw(
-      ArgumentError(
-        "Gram completion encountered a zero-diagonal/nonzero-coupling PSD obstruction at grade $grade: $(elimination.obstruction)",
-      ),
-    )
-  end
-  return elimination
-end
-
-function classify_unresolved_dark_series!(
-  residual::MatrixSeries, N::Int, conditions::CompletionConditions
-)
-  onset = matrix_series_onset(residual, N)
-  onset < 0 && return nothing
-
-  leading = hermitian_eliminate_structured(residual[onset + 1], conditions)
-  throw_elimination_obstruction(leading, onset)
-  leading.active_rank == 0 && throw(
-    ArgumentError(
-      "Gram completion could not resolve the dark-sector leading form at grade $onset"
-    ),
-  )
-
-  isodd(onset) && throw(
-    ArgumentError(
-      "Gram completion requires a fractional/Puiseux collapse-amplitude onset at grade $onset; recursive dark-sector handling is required",
-    ),
-  )
-  return throw(
-    ArgumentError(
-      "Gram completion found a new even dark-sector onset at grade $onset; recursive dark-sector handling is implemented in the next completion stage",
-    ),
-  )
-end
-
 function vertical_series_stack(upper::MatrixSeries, lower::MatrixSeries, N::Int)
   validate_series_order(N)
   upper_rows, columns = validate_matrix_series(upper)
@@ -104,46 +60,6 @@ function vertical_series_stack(upper::MatrixSeries, lower::MatrixSeries, N::Int)
     result[grade + 1] = vcat(upper[grade + 1], lower[grade + 1])
   end
   return result
-end
-
-function gram_factor_series(series::MatrixSeries, N::Int, conditions::CompletionConditions)
-  q, columns = validate_matrix_series(series)
-  q == columns || throw(DimensionMismatch("Kossakowski series must be square"))
-  hermitian_series(series) ||
-    throw(ArgumentError("Gram completion requires a Hermitian retained Kossakowski series"))
-
-  elimination = hermitian_eliminate_structured(series[1], conditions)
-  throw_elimination_obstruction(elimination, 0)
-  active_rank = elimination.active_rank
-  dark_rank = q - active_rank
-
-  if active_rank == 0
-    matrix_series_onset(series, N) < 0 ||
-      classify_unresolved_dark_series!(series, N, conditions)
-    factor = [completion_matrix_zeros(q, 0) for _ in 0:N]
-    return factor, GramStage(0, 0, q)
-  end
-
-  reduced = apply_congruence(series, elimination.transform, N)
-  active = matrix_series_block(reduced, 1:active_rank, 1:active_rank)
-  ldl = graded_ldl(active, N, conditions)
-  active_factor = ldl_gram_factor(ldl, N, conditions)
-
-  reduced_factor = if dark_rank == 0
-    active_factor
-  else
-    dark_columns = (active_rank + 1):q
-    cross = matrix_series_block(reduced, 1:active_rank, dark_columns)
-    dark = matrix_series_block(reduced, dark_columns, dark_columns)
-    residual, dark_rows = gram_feshbach_dressing(active_factor, cross, dark, N, conditions)
-    classify_unresolved_dark_series!(residual, N, conditions)
-    vertical_series_stack(active_factor, dark_rows, N)
-  end
-
-  factor = planned_undo_congruence_factor(
-    reduced_factor, elimination.transform, N, conditions
-  )
-  return factor, GramStage(0, active_rank, dark_rank)
 end
 
 function physical_factor_amplitudes(factor::MatrixSeries, wd::Symbolics.Num, N::Int)
@@ -207,35 +123,6 @@ function completed_collapse_channels(frame::DissipativeFrame, factor::Kossakowsk
   return result
 end
 
-function gram_positive_completion(
-  expansion::FloquetExpansion, frame::DissipativeFrame, algorithm::Gram
-)
-  N = getfield(expansion, :order) - 1
-  raw_matrices = raw_kossakowski_series(expansion, frame)
-  series = completion_series(raw_matrices)
-  conditions = CompletionConditions()
-  seed_completion_conditions!(conditions, getfield(expansion, :provenance))
-
-  factor, stage = gram_factor_series(series, N, conditions)
-  amplitudes = physical_factor_amplitudes(factor, getfield(expansion, :generator).wd, N)
-  finite = finite_factor(amplitudes)
-  completed_matrix = multiply_coefficients(finite, adjoint_coefficients(finite))
-  simplify_matrix!(completed_matrix)
-  completed_channels = completed_collapse_channels(frame, finite)
-  factorization = GramFactorization(amplitudes, factor_onsets(amplitudes), [stage])
-
-  return finalize_positive_completion(
-    expansion,
-    algorithm,
-    frame,
-    raw_matrices,
-    completed_matrix,
-    completed_channels,
-    conditions,
-    factorization,
-  )
-end
-
 """
     dissipative_frame(expansion::FloquetExpansion)
 
@@ -257,7 +144,7 @@ reconstruct [`effective_generator`](@ref) exactly.
 function channels(
   expansion::FloquetExpansion{G,P,E,C,R}
 ) where {G,P,E,C<:PositiveCompletion,R}
-  return deepcopy(stored_completion(expansion).channels)
+  return copy(stored_completion(expansion).channels)
 end
 
 """
