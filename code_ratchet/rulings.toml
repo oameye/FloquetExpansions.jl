@@ -1,0 +1,69 @@
+# The hand-written half of the code-health gate.
+#
+# Nothing in this file is measured. Every entry is a human judgement, and the
+# baseline files beside it are rewritten wholesale by `refresh`. That split is
+# the point: no human paragraph shares a file that a refresh overwrites.
+#
+#   [scope]              which paths are measured at all
+#   [thresholds]         which definitions the ranking job files as work
+#   [[unmeasured_path]]  a tracked path the gate never measures
+#   [[exemption]]        coverage misses that may stand, with the exact count
+#   [[dismissal]]        a JET report class that is not a defect
+#   [jet]                what report_package analyses
+#
+# An exemption and a dismissal each state a reason. Citing one is bookkeeping.
+# Adding one is a claim that some code is correct.
+
+[scope]
+measure = ["src/"]
+
+# --- thresholds ------------------------------------------------------------
+#
+# Deliberately NOT the pass rule. The ratchet stops decay; driving improvement
+# is a separate, paced job. A file far above every threshold stays green while
+# its numbers hold steady, and shows up under `candidates` instead.
+#
+# These are CodeComplexity's own defaults except argcount, raised from 5 to 10:
+# at 5 this package reports mostly constructors taking a full parameter set,
+# which is the shape the domain has rather than a defect. Chosen once. Not a
+# number to re-derive, because a re-derived threshold never terminates.
+
+[thresholds]
+cyclomatic = 10
+cognitive = 15
+argcount = 10
+
+# --- unmeasured paths ------------------------------------------------------
+#
+# The scope above measures src/. Every other tracked .jl file must be named
+# here, and a tracked file that is neither turns the gate red. The assertion is
+# the point: a new top-level directory cannot fall through unmeasured and
+# silent.
+
+[[unmeasured_path]]
+path = "test/"
+reason = "Test code. Its complexity is not the package's."
+
+[[unmeasured_path]]
+path = "docs/"
+reason = "The docs build and its Literate driver, not library code."
+
+[[unmeasured_path]]
+path = "examples/"
+reason = "Literate sources for the documentation."
+
+[[unmeasured_path]]
+path = "benchmark/"
+reason = "Benchmark harness."
+
+# --- JET -------------------------------------------------------------------
+#
+# `load` pins the packages loaded before anything is measured, because the load
+# set moves the number: loading a dependency's extension triggers changes which
+# methods exist, so a baseline taken under a different set is not comparable.
+# It is recorded in the baseline's provenance and asserted on read.
+
+[jet]
+package = "FloquetExpansions"
+target_modules = ["FloquetExpansions"]
+load = []
