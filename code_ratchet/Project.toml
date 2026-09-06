@@ -1,0 +1,20 @@
+# The code-health environment. Separate from test/ on purpose: the complexity
+# and coverage gates load nothing under measurement and must stay cheap, and
+# only the JET gate needs the package itself.
+#
+# CodeRatchet is not registered, so [sources] names the repository directly.
+# The rev is a commit, not a branch: the gate's numbers depend on the tool that
+# measured them, so a tool that moves on its own would move the gate under us.
+# Bumping it is a deliberate change, reviewed like any other.
+
+[deps]
+CodeRatchet = "0e86a969-c127-44ad-8bee-7851ffae31d4"
+FloquetExpansions = "3d8c71b5-958b-4b86-b80e-339bb07db863"
+JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
+
+[sources]
+CodeRatchet = {url = "https://github.com/oameye/CodeRatchet.jl", rev = "1ab176c805870266f35ca922de52c86b7fbfffe5"}
+FloquetExpansions = {path = ".."}
+
+[compat]
+julia = "1.11"
