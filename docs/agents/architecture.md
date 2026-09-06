@@ -37,11 +37,16 @@ Positive completion is a separate opt-in stage after the finite Floquet expansio
 | `liouvillian.jl` | Collected `ρ ↦ AρB` terms, physical channel constructors, composition, Liouvillian lowering | `Liouvillian`, `terms`, `collapse`, `jump`, `compose`, `harmonics` |
 | `engine.jl` | Generic Van Vleck recursion, order scaling, `FloquetExpansion`, retained effective/micromotion accessors | `FloquetExpansion`, `floquet_expansion`, `effective_generator`, `effective_component`, `micromotion` |
 | `gksl_coordinates.jl` | Ordered dissipative frames and exact GKSL/Kossakowski coordinate extraction | `DissipativeFrame`, `hamiltonian`, `hamiltonian_component`, `kossakowski`, `kossakowski_component` |
-| `matrix_series.jl` | Truncated symbolic matrix-series algebra, Hermitian elimination, graded solves/factorization helpers | internal only |
-| `completion.jl` | Completion algorithms, completion state, physical completed channels, conditions, factorization diagnostics | `Gram`, `Spectral`, `positive_completion`, `channels`, `dissipative_frame`, `positivity_conditions`, `regularity_conditions`, `factorization` |
+| `matrix_series.jl` | Truncated symbolic scalar/matrix-series algebra and graded factor recurrences | internal only |
+| `completion_linear_algebra.jl` | Reusable symbolic solve plans, triangular series solves, structured Hermitian congruence elimination, Gram/Feshbach dressing | internal only |
+| `completion_conversion.jl` | Narrow conversion boundary between SQA coefficients and the completion scalar backend | internal only |
+| `completion_frame.jl` | Automatic dissipative-frame discovery and independent-direction filtering | internal only |
+| `gram_completion.jl`, `gram_recursion.jl` | Algebraic Gram completion and recursive active/dark onset filtration | `Gram`, `GramFactorization` |
+| `spectral_completion.jl` | Restricted perturbative spectral/HCM completion | `Spectral`, `SpectralFactorization` |
+| `completion.jl` | Common completion dispatch, result finalization, owned representation data and cached retained/coherent data | `positive_completion`, `channels`, `dissipative_frame`, `positivity_conditions`, `regularity_conditions`, `factorization` |
 | `quasienergy.jl` | Symbolic Sambe blocks and harmonic indexing | `QuasienergyOperator`, `harmonic_range` |
 
-The package delegates operator multiplication, adjoints, normal ordering, and coefficient algebra to SecondQuantizedAlgebra. Keep those concerns at that dependency's seam instead of recreating them in this package.
+The package delegates operator multiplication, adjoints, normal ordering, and coefficient algebra to SecondQuantizedAlgebra. Keep those concerns at that dependency's seam instead of recreating them in this package. Completion currently keeps its dedicated symbolic scalar backend behind `completion_conversion.jl`; changing that backend is a separate architectural change rather than a responsibility of the Gram or Spectral kernels.
 
 ## Representation rules
 
@@ -52,6 +57,10 @@ The package delegates operator multiplication, adjoints, normal ordering, and co
 - A raw finite-order effective generator is returned as the algebraic truncation and is not assumed to be GKSL or completely positive.
 - Positive completion is explicit, never implicit in `floquet_expansion`, and does not rewrite retained Floquet coefficients or micromotion.
 - Kossakowski coordinates are always relative to an ordered `DissipativeFrame`. Ordering is representation-significant even when two frames span the same subspace.
+- Automatic frame discovery is a symbolic convenience frontend whose output arity depends on runtime algebraic independence. The explicit-frame `positive_completion(expansion, algorithm, frame)` methods are the inference-oriented computational core.
+- A completed result owns its finalized `DissipativeFrame` and caches the physical retained Kossakowski coefficients and coherent Hamiltonian used to construct its completed generator. Public accessors return defensive copies where mutation could invalidate that owned representation.
+- Repeated symbolic solves must cache structural work when the leading matrix is unchanged. Gram dark-sector dressing and its Feshbach residual share the same triangular series solve rather than solving equivalent systems twice.
+- Hermitian elimination should exploit Hermitian/congruence structure directly rather than materializing dense elementary transforms.
 - `Gram()` is algebraic and must not require Hilbert-space/Liouville-space matrices or symbolic eigendecomposition.
 - `Spectral()` is a restricted perturbative spectral/HCM realization and does not define the general completion architecture.
 - `channels(cp)` is defined only for completed expansions and must reconstruct `effective_generator(cp)` together with `hamiltonian(cp)`.
