@@ -29,6 +29,16 @@ function driven_qubit()
   return H, ω, t
 end
 
+function gram_completion_workload()
+  space = FockSpace(:completion_benchmark)
+  a = Destroy(space, :a)
+  @variables ω::Real t::Real
+  frame = DissipativeFrame(a, a^2)
+  generator = liouvillian(0 * a; channels=(collapse(a + a^2), collapse(a + im * a^2)))
+  expansion = floquet_expansion(generator, ω, t, VanVleck(), 1)
+  return expansion, frame
+end
+
 function benchmark_fourier_expansion!(suite)
   kpo, kpo_ω, kpo_t = kerr_parametric_oscillator()
   qubit, qubit_ω, qubit_t = driven_qubit()
@@ -56,5 +66,16 @@ function benchmark_floquet_expansion!(suite)
       effective_generator(vv), micromotion(vv)
     end
   end
+  return nothing
+end
+
+function benchmark_positive_completion!(suite)
+  expansion, frame = gram_completion_workload()
+  suite["Positive Completion"]["Gram"]["fixed frame full rank"] = @benchmarkable positive_completion(
+    $expansion, Gram(), $frame
+  )
+  suite["Positive Completion"]["Gram"]["automatic frame full rank"] = @benchmarkable positive_completion(
+    $expansion, Gram()
+  )
   return nothing
 end

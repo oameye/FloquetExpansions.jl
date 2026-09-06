@@ -35,12 +35,28 @@ Return the finite effective Hamiltonian of a Hamiltonian Floquet expansion, or t
 Hamiltonian sector of a Liouvillian Floquet expansion. The latter is defined modulo an
 additive multiple of the identity.
 
+For a positively completed Liouvillian expansion, return the coherent sector cached when the
+completed finite generator is constructed. Positive completion changes only the higher-order
+dissipative continuation, so this is the retained coherent sector in the stored dissipative frame.
+
 See also [`hamiltonian_component`](@ref), [`effective_generator`](@ref).
 """
 function hamiltonian(
   expansion::FloquetExpansion{G,P,E}
 ) where {G,P<:PeriodicGenerator{SQA.QAdd},E<:SQA.QAdd}
   return effective_generator(expansion)::E
+end
+
+function hamiltonian(
+  expansion::FloquetExpansion{G,P,E,C,R}
+) where {
+  G,
+  P<:PeriodicGenerator{Liouvillian},
+  E<:Liouvillian,
+  C<:PositiveCompletion,
+  R<:FloquetProvenance,
+}
+  return stored_completion_hamiltonian(expansion)::SQA.QAdd
 end
 
 function hamiltonian(

@@ -20,6 +20,9 @@ include("liouvillian.jl")
 include("quasienergy.jl")
 include("engine.jl")
 include("gksl_coordinates.jl")
+include("completion_conversion.jl")
+include("completion_frame.jl")
+include("gram_completion.jl")
 include("completion.jl")
 include("gksl_floquet.jl")
 
@@ -28,7 +31,9 @@ export time_average, derivative, antiderivative, support, harmonics
 export FloquetExpansion,
   floquet_expansion, effective_generator, effective_component, micromotion
 export Completion, Uncompleted, CompletionAlgorithm, Gram, Spectral, CompletionFactorization
-export positive_completion
+export CompletionObstruction, FractionalJumpOnset, GramFactorization
+export positive_completion,
+  dissipative_frame, channels, positivity_conditions, regularity_conditions, factorization
 export Liouvillian,
   liouvillian, terms, hamiltonian_action, dissipator, compose, collapse, jump
 export DissipativeFrame,
