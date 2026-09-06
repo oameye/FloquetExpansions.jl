@@ -76,12 +76,7 @@ end
   parsed = floquet_expansion(time_domain, ω, t, VanVleck(), 2)
   explicit = floquet_expansion(
     PeriodicGenerator(
-      Dict(
-        0 => κ1 * D1 + κ2 * D2,
-        1 => u * D1 + im * v * D2,
-        -1 => u * D1 - im * v * D2,
-      ),
-      ω,
+      Dict(0 => κ1 * D1 + κ2 * D2, 1 => u * D1 + im * v * D2, -1 => u * D1 - im * v * D2), ω
     ),
     VanVleck(),
     2,
