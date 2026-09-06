@@ -235,7 +235,10 @@ end
 @testset "nonzero first-order Kossakowski component" begin
   coherent_harmonic = hamiltonian_action(a'^2 * a^2)
   dissipative_harmonic = dissipator(a)
-  generator = PeriodicGenerator(Dict(-1 => coherent_harmonic, 1 => dissipative_harmonic), ω)
+  quadrature = im * (1 // 2) * dissipative_harmonic
+  generator = PeriodicGenerator(
+    Dict(1 => coherent_harmonic - quadrature, -1 => coherent_harmonic + quadrature), ω
+  )
   expansion = floquet_expansion(generator, VanVleck(), 2)
   frame = DissipativeFrame(a, a' * a^2)
 
