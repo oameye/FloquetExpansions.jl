@@ -67,3 +67,35 @@ reason = "Benchmark harness."
 package = "FloquetExpansions"
 target_modules = ["FloquetExpansions"]
 load = []
+
+# --- style ------------------------------------------------------------------
+#
+# Three rules AGENTS.md states and no gate checked before this one. Each is a
+# preference rather than a defect, which is what makes them ratchet material:
+# a preference the codebase already breaks cannot be gated absolutely on the
+# day it is written down.
+
+[style]
+rules = ["union_nothing", "underscore_name", "implicit_kwarg"]
+
+# --- boxes ------------------------------------------------------------------
+
+[boxes]
+package = "FloquetExpansions"
+
+# --- lsp --------------------------------------------------------------------
+#
+# JETLS reports lowering where JET reports inference, so the two overlap almost
+# nowhere. Full analysis is deliberate: --skip-full-analysis leaves JETLS
+# without the module a file belongs to, and every import then reads as unused.
+
+[lsp]
+entry = ["src/FloquetExpansions.jl"]
+
+[[lsp_dismissal]]
+code = "lowering/unsorted-import-names"
+reason = """
+Export lists here are grouped by concept, so that a reader sees the generator
+names together and the completion names together. Alphabetical order would
+interleave them and lose the grouping, which is the only structure the list has.
+"""
