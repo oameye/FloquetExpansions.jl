@@ -29,3 +29,7 @@ test-run.log
 
 docs/dev/
 benchmark/benchmarks_output.json
+
+# CodeRatchet scratch: the refresh artifact and the triage plan are outputs.
+code_ratchet/_refresh/
+code_ratchet/_triage/

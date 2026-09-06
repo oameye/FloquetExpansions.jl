@@ -4,6 +4,7 @@
 
 [provenance]
 aggregation = "max_over_definitions"
+commit = "cb6d2f7"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg"]
