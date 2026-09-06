@@ -37,11 +37,11 @@ end
 
 function matrix_series_block(
   series::MatrixSeries, rows::UnitRange{Int}, columns::UnitRange{Int}
-)
+)::MatrixSeries
   return [Matrix{CompletionScalar}(matrix[rows, columns]) for matrix in series]
 end
 
-function matrix_series_onset(series::MatrixSeries, N::Int)
+function matrix_series_onset(series::MatrixSeries, N::Int)::Int
   validate_series_order(N)
   for grade in 0:min(N, length(series) - 1)
     structurally_zero(series[grade + 1]) || return grade
@@ -49,7 +49,9 @@ function matrix_series_onset(series::MatrixSeries, N::Int)
   return -1
 end
 
-function vertical_series_stack(upper::MatrixSeries, lower::MatrixSeries, N::Int)
+function vertical_series_stack(
+  upper::MatrixSeries, lower::MatrixSeries, N::Int
+)::MatrixSeries
   validate_series_order(N)
   upper_rows, columns = validate_matrix_series(upper)
   lower_rows, lower_columns = validate_matrix_series(lower)
@@ -62,22 +64,25 @@ function vertical_series_stack(upper::MatrixSeries, lower::MatrixSeries, N::Int)
   return result
 end
 
-function physical_factor_amplitudes(factor::MatrixSeries, wd::Symbolics.Num, N::Int)
+function physical_factor_amplitudes(
+  factor::MatrixSeries, wd::Symbolics.Num, N::Int
+)::Vector{KossakowskiMatrix}
   rows, columns = validate_matrix_series(factor)
   amplitudes = KossakowskiMatrix[]
   sizehint!(amplitudes, N + 1)
   for grade in 0:N
-    scale = completion_scalar(iszero(grade) ? 1 : wd^(-grade))
+    scale = completion_scalar(inverse_drive_power(wd, grade))
     matrix = completion_matrix_zeros(rows, columns)
     for index in eachindex(matrix)
-      matrix[index] = simplify_scalar(scale * factor[grade + 1][index])
+      product = (scale * factor[grade + 1][index])::CompletionScalar
+      matrix[index] = simplify_scalar(product)
     end
     push!(amplitudes, coefficient_matrix_from_completion(matrix))
   end
   return amplitudes
 end
 
-function factor_onsets(amplitudes::Vector{KossakowskiMatrix})
+function factor_onsets(amplitudes::Vector{KossakowskiMatrix})::Vector{Int}
   isempty(amplitudes) && return Int[]
   channels = size(first(amplitudes), 2)
   result = fill(-1, channels)
@@ -92,7 +97,7 @@ function factor_onsets(amplitudes::Vector{KossakowskiMatrix})
   return result
 end
 
-function finite_factor(amplitudes::Vector{KossakowskiMatrix})
+function finite_factor(amplitudes::Vector{KossakowskiMatrix})::KossakowskiMatrix
   isempty(amplitudes) && return coefficient_matrix(0, 0)
   rows, columns = size(first(amplitudes))
   result = coefficient_matrix(rows, columns)
@@ -100,13 +105,15 @@ function finite_factor(amplitudes::Vector{KossakowskiMatrix})
     size(amplitude) == (rows, columns) ||
       throw(DimensionMismatch("all Gram amplitudes must have the same dimensions"))
     for index in eachindex(result)
-      result[index] = simplify_coefficient(result[index] + amplitude[index])
+      result[index] = simplify_coefficient((result[index] + amplitude[index])::SQA.CNum)
     end
   end
   return result
 end
 
-function completed_collapse_channels(frame::DissipativeFrame, factor::KossakowskiMatrix)
+function completed_collapse_channels(
+  frame::DissipativeFrame, factor::KossakowskiMatrix
+)::Vector{CollapseChannel{SQA.QAdd}}
   size(factor, 1) == length(frame.operators) ||
     throw(DimensionMismatch("Gram factor does not match the dissipative frame"))
   result = CollapseChannel{SQA.QAdd}[]
@@ -115,10 +122,10 @@ function completed_collapse_channels(frame::DissipativeFrame, factor::Kossakowsk
     for row in axes(factor, 1)
       coefficient = factor[row, column]
       iszero(coefficient) && continue
-      operator = operator + coefficient * frame.operators[row]
+      operator = (operator + coefficient * frame.operators[row])::SQA.QAdd
     end
-    operator = SQA.simplify(operator)
-    iszero(operator) || push!(result, collapse(operator))
+    operator = SQA.simplify(operator)::SQA.QAdd
+    qadd_iszero(operator) || push!(result, collapse(operator))
   end
   return result
 end
