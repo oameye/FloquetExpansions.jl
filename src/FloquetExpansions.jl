@@ -15,6 +15,7 @@ export expim, exponential_form, trigonometric_form
 include("periodic_operator.jl")
 include("completion_types.jl")
 include("matrix_series.jl")
+include("completion_linear_algebra.jl")
 include("liouvillian.jl")
 include("quasienergy.jl")
 include("engine.jl")
