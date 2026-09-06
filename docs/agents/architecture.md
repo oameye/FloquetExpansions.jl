@@ -31,15 +31,23 @@ Positive completion is a separate opt-in stage after the finite Floquet expansio
 
 ## Module ownership
 
+Listed in `include` order, which is also the dependency order. Every file under `src/` has a row.
+
 | Module | Owns | Public seam |
 | --- | --- | --- |
+| `FloquetExpansions.jl` | Module wiring, `include` order, the `@reexport` of SecondQuantizedAlgebra, the export list | the exports themselves |
 | `periodic_operator.jl` | Fourier harmonics, drive frequency, harmonic calculus, gauges | `PeriodicGenerator`, `harmonics`, `time_average`, `derivative`, `antiderivative` |
+| `completion_types.jl` | The completion type lattice, the `PositiveCompletion` field set, provenance types, the completion exceptions | `Completion`, `Uncompleted`, `CompletionAlgorithm`, `Gram`, `Spectral`, `CompletionFactorization` |
 | `liouvillian.jl` | Collected `ρ ↦ AρB` terms, physical channel constructors, composition, Liouvillian lowering | `Liouvillian`, `terms`, `collapse`, `jump`, `compose`, `harmonics` |
-| `engine.jl` | Generic Van Vleck recursion, order scaling, `FloquetExpansion`, retained effective/micromotion accessors | `FloquetExpansion`, `floquet_expansion`, `effective_generator`, `effective_component`, `micromotion` |
-| `gksl_coordinates.jl` | Ordered dissipative frames and exact GKSL/Kossakowski coordinate extraction | `DissipativeFrame`, `hamiltonian`, `hamiltonian_component`, `kossakowski`, `kossakowski_component` |
-| `matrix_series.jl` | Truncated symbolic matrix-series algebra, Hermitian elimination, graded solves/factorization helpers | internal only |
-| `completion.jl` | Completion algorithms, completion state, physical completed channels, conditions, factorization diagnostics | `Gram`, `Spectral`, `positive_completion`, `channels`, `dissipative_frame`, `positivity_conditions`, `regularity_conditions`, `factorization` |
 | `quasienergy.jl` | Symbolic Sambe blocks and harmonic indexing | `QuasienergyOperator`, `harmonic_range` |
+| `engine.jl` | Generic Van Vleck recursion, order scaling, `FloquetExpansion`, retained effective/micromotion accessors, the `channels=` keyword | `FloquetExpansion`, `floquet_expansion`, `effective_generator`, `effective_component`, `micromotion` |
+| `gksl_coordinates.jl` | Ordered dissipative frames and exact GKSL/Kossakowski coordinate extraction | `DissipativeFrame`, `hamiltonian`, `hamiltonian_component`, `kossakowski`, `kossakowski_component` |
+| `completion.jl` | The `positive_completion` dispatch surface and the uncompleted-to-completed state transition | `positive_completion` |
+| `gksl_floquet.jl` | GKSL coordinate extraction specialised to a `FloquetExpansion` | `kossakowski`, `kossakowski_component`, `hamiltonian`, `hamiltonian_component` |
+
+**Some representation rules below describe API that does not exist yet on this branch.** `Gram` and `Spectral` are declared in `completion_types.jl` but their algorithms are not implemented here. `positivity_conditions`, `regularity_conditions` and `factorization` are fields of the completion struct, not accessor functions. `channels` is a keyword argument to `floquet_expansion`, not an accessor. There is no `dissipative_frame` function.
+
+So read a rule naming `channels(cp)`, `factorization(cp)`, or the behaviour of `Gram()` and `Spectral()` as the target the completion work is building toward, not as a description of this tree. The rules stay because they constrain that work. Their gate is review, and the code has not reached them yet.
 
 The package delegates operator multiplication, adjoints, normal ordering, and coefficient algebra to SecondQuantizedAlgebra. Keep those concerns at that dependency's seam instead of recreating them in this package.
 
