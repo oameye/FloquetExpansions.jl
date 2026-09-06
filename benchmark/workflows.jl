@@ -52,6 +52,19 @@ function recursive_gram_workload()
   return expansion, frame
 end
 
+function spectral_completion_workload()
+  pauli = PauliSpace(:spectral_completion_benchmark)
+  σx = Pauli(pauli, :sigma, 1)
+  σy = Pauli(pauli, :sigma, 2)
+  σz = Pauli(pauli, :sigma, 3)
+  @variables ω::Real t::Real Ω::Real
+  frame = DissipativeFrame(σz, σy)
+  expansion = floquet_expansion(
+    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+  )
+  return expansion, frame
+end
+
 function benchmark_fourier_expansion!(suite)
   kpo, kpo_ω, kpo_t = kerr_parametric_oscillator()
   qubit, qubit_ω, qubit_t = driven_qubit()
@@ -85,6 +98,7 @@ end
 function benchmark_positive_completion!(suite)
   expansion, frame = gram_completion_workload()
   recursive_expansion, recursive_frame = recursive_gram_workload()
+  spectral_expansion, spectral_frame = spectral_completion_workload()
   suite["Positive Completion"]["Gram"]["fixed frame full rank"] = @benchmarkable positive_completion(
     $expansion, Gram(), $frame
   )
@@ -93,6 +107,9 @@ function benchmark_positive_completion!(suite)
   )
   suite["Positive Completion"]["Gram"]["recursive dark onset"] = @benchmarkable positive_completion(
     $recursive_expansion, Gram(), $recursive_frame
+  )
+  suite["Positive Completion"]["Spectral"]["fixed frame driven qubit"] = @benchmarkable positive_completion(
+    $spectral_expansion, Spectral(), $spectral_frame
   )
   return nothing
 end
