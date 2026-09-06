@@ -2,7 +2,7 @@ JULIA:=julia
 
 # `test`, `docs` and `examples` are also directory names; without this Make reports
 # "'test' is up to date" and runs nothing.
-.PHONY: default setup format servedocs test jet docs bench ratchet ratchet-coverage ratchet-candidates ratchet-lsp ratchet-boxes ratchet-lsp-report ratchet-refresh all help
+.PHONY: default setup format servedocs test jet docs bench ratchet ratchet-coverage ratchet-candidates ratchet-lsp ratchet-boxes ratchet-undocumented ratchet-lsp-report ratchet-refresh all help
 
 default: help
 
@@ -43,6 +43,7 @@ ratchet:
 	${JULIA} --project=code_ratchet -e 'using Pkg; Pkg.instantiate()'
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' complexity check
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' style check
+	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' docs check
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' boxes check
 	${JULIA} --project=code_ratchet -e 'using JET, CodeRatchet; exit(CodeRatchet.main())' jet check
 
@@ -55,6 +56,9 @@ ratchet-lsp:
 # What to fix, rather than what regressed. Neither gates.
 ratchet-boxes:
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' boxes methods
+
+ratchet-undocumented:
+	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' docs undocumented
 
 ratchet-lsp-report:
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' lsp report
@@ -72,6 +76,7 @@ ratchet-candidates:
 ratchet-refresh:
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' complexity refresh
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' style refresh
+	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' docs refresh
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' boxes refresh
 	${JULIA} --project=code_ratchet -e 'using JET, CodeRatchet; exit(CodeRatchet.main())' jet refresh
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' lsp refresh
@@ -87,9 +92,10 @@ help:
 	@echo " - make docs: instantiate and build the documentation"
 	@echo " - make servedocs: serve the documentation locally"
 	@echo " - make bench: run the benchmarks"
-	@echo " - make ratchet: run the code-quality ratchet (complexity + style + boxes + JET)"
+	@echo " - make ratchet: run the code-quality ratchet (complexity + style + docs + boxes + JET)"
 	@echo " - make ratchet-lsp: run the JETLS ratchet (needs the jetls binary)"
 	@echo " - make ratchet-boxes: name every boxed closure capture"
+	@echo " - make ratchet-undocumented: name every public name owing a docstring"
 	@echo " - make ratchet-lsp-report: list every undismissed JETLS diagnostic"
 	@echo " - make ratchet-coverage: run the coverage ratchet (needs lcov.info)"
 	@echo " - make ratchet-candidates: rank definitions above threshold"
