@@ -2,7 +2,7 @@ JULIA:=julia
 
 # `test`, `docs` and `examples` are also directory names; without this Make reports
 # "'test' is up to date" and runs nothing.
-.PHONY: default setup format servedocs test jet docs bench ratchet ratchet-coverage ratchet-candidates ratchet-lsp ratchet-boxes ratchet-undocumented ratchet-lsp-report ratchet-refresh all help
+.PHONY: default setup format servedocs test jet docs bench ratchet ratchet-scorecard ratchet-candidates ratchet-coverage ratchet-boxes ratchet-undocumented ratchet-lsp-report ratchet-refresh all help
 
 default: help
 
@@ -33,27 +33,24 @@ bench:
 	${JULIA} --project=benchmark benchmark/runbenchmarks.jl
 
 # The code-quality ratchet. Each number only has to stop getting worse, so these
-# are green on a clean tree and go red when a file regresses. `candidates` ranks
-# work above the rulings.toml thresholds and never gates.
+# are green on a clean tree and go red when a file regresses.
 #
-# Ordered by cost. Complexity and style are pure syntax and take about a second;
-# boxes loads the package; JET analyses it and takes minutes. A cheap gate that
-# runs first fails fast on the common mistake.
+# Which gates run is [metrics].run in code_ratchet/rulings.toml, not a list
+# here: two places to write the set down is one place too many. `all` runs them
+# cheapest first, so the second-long gates fail before the minutes-long one.
 ratchet:
 	${JULIA} --project=code_ratchet -e 'using Pkg; Pkg.instantiate()'
-	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' complexity check
-	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' style check
-	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' docs check
-	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' boxes check
-	${JULIA} --project=code_ratchet -e 'using JET, CodeRatchet; exit(CodeRatchet.main())' jet check
+	${JULIA} --project=code_ratchet -e 'using JET, CodeRatchet; exit(CodeRatchet.main())' all check
 
-# JETLS reports lowering where JET reports inference, so the two overlap almost
-# nowhere. Separate because it needs the `jetls` binary rather than a Julia
-# dependency, and a checkout without it should still run everything else.
-ratchet-lsp:
-	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' lsp check
+# Where the recorded debt is, rather than what regressed. Reads the baselines,
+# so it is instant and gates nothing.
+ratchet-scorecard:
+	${JULIA} --project=code_ratchet -e 'using JET, CodeRatchet; exit(CodeRatchet.main())' all scorecard
 
-# What to fix, rather than what regressed. Neither gates.
+# What to fix, named rather than counted. None of these gate.
+ratchet-candidates:
+	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' complexity candidates
+
 ratchet-boxes:
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' boxes methods
 
@@ -64,22 +61,15 @@ ratchet-lsp-report:
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' lsp report
 
 # Coverage needs an lcov tracefile, which the test job produces. Point
-# COVERAGE_LCOV at one, or drop it beside this Makefile as lcov.info.
+# COVERAGE_LCOV at one, or drop it beside this Makefile as lcov.info. It is not
+# in [metrics].run for that reason.
 ratchet-coverage:
 	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' coverage check
 
-ratchet-candidates:
-	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' complexity candidates
-
-# Rewrites the baselines. Refuses a rise unless you pass --accept-rise through,
-# so recording a worse number stays a deliberate act.
+# Rewrites every baseline. Refuses a change unless --accept-change is passed
+# through, so recording a worse number stays a deliberate act.
 ratchet-refresh:
-	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' complexity refresh
-	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' style refresh
-	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' docs refresh
-	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' boxes refresh
-	${JULIA} --project=code_ratchet -e 'using JET, CodeRatchet; exit(CodeRatchet.main())' jet refresh
-	${JULIA} --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' lsp refresh
+	${JULIA} --project=code_ratchet -e 'using JET, CodeRatchet; exit(CodeRatchet.main())' all refresh
 
 all: setup format test docs
 
@@ -92,13 +82,13 @@ help:
 	@echo " - make docs: instantiate and build the documentation"
 	@echo " - make servedocs: serve the documentation locally"
 	@echo " - make bench: run the benchmarks"
-	@echo " - make ratchet: run the code-quality ratchet (complexity + style + docs + boxes + JET)"
-	@echo " - make ratchet-lsp: run the JETLS ratchet (needs the jetls binary)"
+	@echo " - make ratchet: run every configured gate, cheapest first"
+	@echo " - make ratchet-scorecard: show where the recorded debt is"
+	@echo " - make ratchet-candidates: rank definitions above threshold"
 	@echo " - make ratchet-boxes: name every boxed closure capture"
 	@echo " - make ratchet-undocumented: name every public name owing a docstring"
 	@echo " - make ratchet-lsp-report: list every undismissed JETLS diagnostic"
 	@echo " - make ratchet-coverage: run the coverage ratchet (needs lcov.info)"
-	@echo " - make ratchet-candidates: rank definitions above threshold"
-	@echo " - make ratchet-refresh: rewrite the ratchet baselines"
+	@echo " - make ratchet-refresh: rewrite every ratchet baseline"
 	@echo " - make all: run every commands in the above order"
 

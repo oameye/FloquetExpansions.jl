@@ -13,7 +13,7 @@ FloquetExpansions = "3d8c71b5-958b-4b86-b80e-339bb07db863"
 JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 
 [sources]
-CodeRatchet = {url = "https://github.com/oameye/CodeRatchet.jl", rev = "a97eb195942b6878b533d3baadcc8409c525de8f"}
+CodeRatchet = {url = "https://github.com/oameye/CodeRatchet.jl", rev = "91d69201a5c6728417eb17e1513d64bf9160399e"}
 FloquetExpansions = {path = ".."}
 
 [compat]

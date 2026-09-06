@@ -4,6 +4,7 @@
 # baseline files beside it are rewritten wholesale by `refresh`. That split is
 # the point: no human paragraph shares a file that a refresh overwrites.
 #
+#   [metrics]            every gate `all` runs
 #   [scope]              which paths are measured at all
 #   [thresholds]         which definitions the ranking job files as work
 #   [[unmeasured_path]]  a tracked path the gate never measures
@@ -13,6 +14,10 @@
 #
 # An exemption and a dismissal each state a reason. Citing one is bookkeeping.
 # Adding one is a claim that some code is correct.
+
+# Every gate `all` runs, in one place rather than spread across Makefile lines.
+[metrics]
+run = ["complexity", "style", "docs", "boxes", "lsp", "jet"]
 
 [scope]
 measure = ["src/"]

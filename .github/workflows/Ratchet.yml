@@ -1,0 +1,26 @@
+name: Ratchet
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # The gate itself lives in CodeRatchet.jl and is called, not copied. Which
+  # metrics run is [metrics].run in code_ratchet/rulings.toml, so this file
+  # never needs editing to add or drop one.
+  ratchet:
+    uses: oameye/CodeRatchet.jl/.github/workflows/ratchet.yml@main
+    with:
+      julia-version: '1.12'
+      install-jetls: true
+      # jet is deliberately left out here, not dropped. JET.yml already gates
+      # it at absolute zero, which is stronger than a ratchet while it holds,
+      # and JET costs minutes. It stays in [metrics].run so `make ratchet`
+      # covers everything locally.
+      metrics: 'complexity,style,docs,boxes,lsp'
