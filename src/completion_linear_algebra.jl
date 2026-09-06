@@ -26,12 +26,12 @@ function matrix_solve_plan(A::CompletionMatrix, conditions::CompletionConditions
 
     if pivot_row != k
       for column in 1:n
-        upper[k, column], upper[pivot_row, column] =
-          upper[pivot_row, column], upper[k, column]
+        upper[k, column], upper[pivot_row, column] = upper[pivot_row, column],
+        upper[k, column]
       end
       for column in 1:(k - 1)
-        lower[k, column], lower[pivot_row, column] =
-          lower[pivot_row, column], lower[k, column]
+        lower[k, column], lower[pivot_row, column] = lower[pivot_row, column],
+        lower[k, column]
       end
       permutation[k], permutation[pivot_row] = permutation[pivot_row], permutation[k]
     end
@@ -47,9 +47,7 @@ function matrix_solve_plan(A::CompletionMatrix, conditions::CompletionConditions
       lower[row, k] = factor
       upper[row, k] = completion_zero()
       for column in (k + 1):n
-        upper[row, column] = simplify_scalar(
-          upper[row, column] - factor * upper[k, column]
-        )
+        upper[row, column] = simplify_scalar(upper[row, column] - factor * upper[k, column])
       end
     end
   end
@@ -113,9 +111,7 @@ struct LowerTriangularSolvePlan
   inverse_diagonal::Vector{CompletionScalar}
 end
 
-function lower_triangular_solve_plan(
-  L::CompletionMatrix, conditions::CompletionConditions
-)
+function lower_triangular_solve_plan(L::CompletionMatrix, conditions::CompletionConditions)
   n, m = size(L)
   n == m || throw(DimensionMismatch("triangular solve matrix must be square"))
   for row in 1:n, column in (row + 1):n
@@ -208,8 +204,8 @@ function swap_hermitian_coordinates!(
   first_index == second_index && return nothing
   n = size(A, 1)
   for column in 1:n
-    A[first_index, column], A[second_index, column] =
-      A[second_index, column], A[first_index, column]
+    A[first_index, column], A[second_index, column] = A[second_index, column],
+    A[first_index, column]
   end
   for row in 1:n
     A[row, first_index], A[row, second_index] = A[row, second_index], A[row, first_index]
