@@ -72,11 +72,18 @@ function simplify_scalar(z::CompletionScalar)
 end
 
 structurally_zero(x::Real) = iszero(x)
-structurally_zero(x::Symbolics.Num) = issymzero(Symbolics.simplify(x))
+
+function completion_symbolic_zero(x::Symbolics.Num)::Bool
+  simplified = Symbolics.simplify(x)::Symbolics.Num
+  return isequal(simplified, completion_num(0))
+end
+
+structurally_zero(x::Symbolics.Num) = completion_symbolic_zero(x)
 
 function structurally_zero(z::CompletionScalar)
   simplified = simplify_scalar(z)
-  return issymzero(real(simplified)) && issymzero(imag(simplified))
+  return completion_symbolic_zero(real(simplified)) &&
+         completion_symbolic_zero(imag(simplified))
 end
 
 function structurally_zero(A::CompletionMatrix)
@@ -97,20 +104,25 @@ end
 
 function hermitian_real(z::CompletionScalar)
   simplified = simplify_scalar(z)
-  issymzero(imag(simplified)) || throw(
+  completion_symbolic_zero(imag(simplified)) || throw(
     ArgumentError("Hermitian scalar must have structurally zero imaginary part; got `$z`")
   )
   return complex(real(simplified), completion_num(0))
 end
 
-function known_numeric_value(z::CompletionScalar)
-  simplified = simplify_scalar(z)
-  real_value = Symbolics.value(real(simplified))
-  imag_value = Symbolics.value(imag(simplified))
-  if real_value isa Real && imag_value isa Real
-    return complex(real_value, imag_value)
-  end
-  return nothing
+symbolic_truth(value::Bool) = value
+
+function symbolic_truth(value::Symbolics.Num)::Bool
+  simplified = Symbolics.simplify(value)::Symbolics.Num
+  return Symbolics.value(simplified) === true
+end
+
+function symbolically_positive(value::Symbolics.Num)::Bool
+  return symbolic_truth(value > 0)
+end
+
+function symbolically_negative(value::Symbolics.Num)::Bool
+  return symbolic_truth(value < 0)
 end
 
 function condition_contains(conditions::Vector{CompletionScalar}, x::CompletionScalar)
@@ -132,22 +144,26 @@ function require_regularity!(conditions::CompletionConditions, x::CompletionScal
 end
 
 function structurally_nonzero(x::CompletionScalar, conditions::CompletionConditions)
-  value = known_numeric_value(x)
-  value !== nothing && return !iszero(value)
-  return condition_contains(conditions.regularity, x)
+  simplified = simplify_scalar(x)
+  structurally_zero(simplified) && return false
+  real_part = real(simplified)
+  imag_part = imag(simplified)
+  if symbolically_positive(real_part) ||
+    symbolically_negative(real_part) ||
+    symbolically_positive(imag_part) ||
+    symbolically_negative(imag_part)
+    return true
+  end
+  return condition_contains(conditions.regularity, simplified)
 end
 
 function structural_sign(x::CompletionScalar, conditions::CompletionConditions)
   real_x = hermitian_real(x)
   structurally_zero(real_x) && return SIGN_ZERO
 
-  value = known_numeric_value(real_x)
-  if value !== nothing
-    real_value = real(value)
-    real_value > 0 && return SIGN_POSITIVE
-    real_value < 0 && return SIGN_NEGATIVE
-    return SIGN_ZERO
-  end
+  real_value = real(real_x)
+  symbolically_positive(real_value) && return SIGN_POSITIVE
+  symbolically_negative(real_value) && return SIGN_NEGATIVE
 
   for p in conditions.positivity
     if structurally_equal(real_x, p)

@@ -229,9 +229,8 @@ function hermitian_congruence_eliminate_step!(
   # congruence. Update one triangle and restore the other by conjugation so no dense
   # elementary matrix multiplication is materialized.
   for column in (k + 1):n, row in column:n
-    value = simplify_scalar(
-      reduced[row, column] - reduced[row, k] * reduced[k, column] / pivot
-    )
+    correction = (reduced[row, k] * reduced[k, column] / pivot)::CompletionScalar
+    value = simplify_scalar((reduced[row, column] - correction)::CompletionScalar)
     if row == column
       reduced[row, column] = hermitian_real(value)
     else
