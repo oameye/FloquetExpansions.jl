@@ -256,8 +256,10 @@ function floquet_expansion(
   return floquet_expansion_channels(H, wd, t, gauge, order, channels)
 end
 
-function reattach(component::GeneratorComponent, wd::Symbolics.Num, n::Int)
-  return iszero(n) ? component : wd^(-n) * component
+function reattach(component::E, wd::Symbolics.Num, n::Int)::E where {E<:GeneratorComponent}
+  iszero(n) && return component
+  scale = inverse_drive_power(wd, n)
+  return (scale * component)::E
 end
 function reattach(generator::PeriodicGenerator{T}, n::Int) where {T<:GeneratorComponent}
   return iszero(n) ? generator : generator.wd^(-n) * generator
