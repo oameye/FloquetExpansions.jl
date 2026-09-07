@@ -10,6 +10,8 @@ pages = [
     "High-frequency expansion" => "theory/high_frequency_expansion.md",
   ],
   "Literature" => "literature.md",
-  "Examples" =>
-    ["Floquet mean-field comparison" => "examples/floquet_meanfield_comparison.md"],
+  "Examples" => [
+    "CP-completion examples" => "examples/cp_completion.md",
+    "Floquet mean-field comparison" => "examples/floquet_meanfield_comparison.md",
+  ],
 ]

@@ -130,3 +130,64 @@ the natural starting point for the van Vleck block diagonalization discussed in
 
 The thesis and much of the Floquet literature use ``e^{+im\omega t}`` instead. Comparing those
 formulas with the package requires ``m\mapsto-m``.
+
+## Open-system Floquet generators and complete positivity
+
+For a periodic Markovian master equation, the propagator over each finite time interval is a
+completely positive trace-preserving map. This does **not** imply that an arbitrary logarithm of the
+one-period channel is a time-independent GKLS generator. The exact Floquet logarithm depends on a
+logarithm branch and on the periodic similarity gauge, and the resulting effective Liouvillian need
+not lie inside the GKLS cone [Schnell2021](@cite).
+
+The same distinction appears perturbatively. A high-frequency expansion constructs a formal
+Floquet Liouvillian
+
+~~~math
+\mathcal L_{\mathrm{eff}}^{[N]}
+=\sum_{n=0}^{N}\omega_d^{-n}\mathcal L^{(n)},
+~~~
+
+whose retained coefficients are fixed by the microscopic periodic dynamics. Truncating this formal
+series can produce a Kossakowski form with weak negative directions even though the original
+time-dependent generator is Lindbladian at every time.
+
+[`positive_completion`](@ref) addresses this finite-order problem by supplying higher-order
+dissipative data that restore a positive Kossakowski form while preserving every retained
+coefficient:
+
+~~~math
+\mathcal L_{\mathrm{CP}}^{[N]}
+-\mathcal L_{\mathrm{eff}}^{[N]}
+=\mathcal O(\omega_d^{-N-1}).
+~~~
+
+This is a perturbative completion, not an assertion that
+``\mathcal L_{\mathrm{CP}}^{[N]}`` equals an exact Floquet GKLS logarithm. It also does not promote
+the asymptotic high-frequency expansion into a convergent series. What is controlled is the
+retained perturbative data: the completed and raw models agree through the claimed order.
+
+Because the correction starts beyond that order, the retained periodic micromotion does not need to
+be recomputed. The finite completed approximation can use the same retained kick/micromotion and a
+completed effective generator; a different kick would only enter as part of higher-order Floquet
+data.
+
+### Frames, rates, and physical invariants
+
+A Kossakowski matrix is a representation of the dissipative Hermitian form in a chosen operator
+frame. Changing the [`DissipativeFrame`](@ref) changes matrix entries and can redistribute the same
+physical dissipative form among different jump representatives. Likewise, a particular set of jump
+operators or branch rates is not unique: unitary channel rotations, nonunitary coordinate changes,
+and different positive factorizations give different representatives.
+
+The frame-independent content is the Hermitian form itself. Positivity and inertia are invariant
+under invertible congruence transformations, whereas individual rates and jump operators are
+gauge/representation dependent.
+
+This is also why different completion algorithms can be physically equivalent through retained
+order but differ as finite expressions. [`Gram`](@ref) fixes one algebraic jump-amplitude gauge;
+[`Spectral`](@ref) fixes a restricted perturbative decay-rate/HCM gauge. Their higher-order
+continuations need not coincide.
+
+See [Positive completion](@ref) for the user workflow and
+[High-frequency expansion](high_frequency_expansion.md) for the active/dark, Feshbach, and onset
+construction.
