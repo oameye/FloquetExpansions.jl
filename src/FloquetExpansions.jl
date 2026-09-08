@@ -32,7 +32,7 @@ include("gksl_floquet.jl")
 export PeriodicGenerator, Gauge, VanVleck, QuasienergyOperator, harmonic_range
 export time_average, derivative, antiderivative, support, harmonics
 export FloquetExpansion,
-  floquet_expansion, effective_generator, effective_component, micromotion
+  floquet_expansion, order, effective_generator, effective_component, micromotion
 export Gram, Spectral
 export positive_completion,
   dissipative_frame, channels, positivity_conditions, regularity_conditions, factorization
