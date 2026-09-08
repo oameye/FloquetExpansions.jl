@@ -6,78 +6,17 @@ on:
       - main
   pull_request:
 
-permissions:
-  contents: write
-
 jobs:
   format:
     name: Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
       - uses: julia-actions/setup-julia@v3
       - uses: julia-actions/cache@v3
       - name: Install JuliaFormatter
         run: |
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
-      - name: Apply focused review cleanup
+      - name: Check formatting
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path("src/matrix_series.jl")
-          text = path.read_text()
-
-          clusters = [
-              ("function matrix_solve(\n", "function unit_lower_triangular_solve("),
-              ("function adjoint_triangular_solve(\n", "function apply_congruence("),
-              ("function undo_congruence_factor(\n", "function hermitian_matrix("),
-              ("function swap_congruence_coordinates!(\n", "function scalar_series_entry("),
-          ]
-          for start, end in clusters:
-              assert text.count(start) == 1, start
-              assert text.count(end) == 1, end
-              i = text.index(start)
-              j = text.index(end, i)
-              text = text[:i] + text[j:]
-
-          for declaration in (
-              "function matrix_solve(",
-              "function lower_triangular_solve(",
-              "function adjoint_triangular_solve(",
-              "function series_solve(",
-              "function series_inverse(",
-              "function series_schur(",
-              "function undo_congruence_factor(",
-              "function swap_congruence_coordinates!(",
-              "function hermitian_eliminate(",
-          ):
-              assert declaration not in text, declaration
-          for declaration in (
-              "function choose_pivot_row(",
-              "function unit_lower_triangular_solve(",
-              "function zero_diagonal_obstruction(",
-              "function apply_congruence(",
-              "function graded_ldl(",
-          ):
-              assert declaration in text, declaration
-          path.write_text(text)
-
-          for filename in ("src/gram_recursion.jl", "src/spectral_completion.jl"):
-              p = Path(filename)
-              source = p.read_text()
-              old = "N = getfield(expansion, :order) - 1"
-              assert source.count(old) == 1, filename
-              p.write_text(source.replace(old, "N = order(expansion) - 1"))
-          PY
-          ${HOME}/.julia/bin/jlfmt --inplace src/matrix_series.jl src/gram_recursion.jl src/spectral_completion.jl
-          git diff --check
-          git diff -- src/matrix_series.jl src/gram_recursion.jl src/spectral_completion.jl
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add src/matrix_series.jl src/gram_recursion.jl src/spectral_completion.jl
-          git diff --cached --quiet && exit 0
-          git commit -m 'refactor: remove superseded completion helpers'
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          ${HOME}/.julia/bin/jlfmt --check --verbose .
