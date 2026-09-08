@@ -8,6 +8,7 @@ pages = [
   "Theory" => [
     "Floquet theory" => "theory/floquet_theory.md",
     "High-frequency expansion" => "theory/high_frequency_expansion.md",
+    "CP-preserving completion" => "theory/cp_completion.md",
   ],
   "Literature" => "literature.md",
   "Examples" => [

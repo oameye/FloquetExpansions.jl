@@ -37,8 +37,7 @@ near-identity transformation; in Floquet terminology ``e^{\mathcal{K}(t)}`` is m
 [Rahav2003, Venkatraman2022](@cite). The canonical Hamiltonian version is the Hori--Deprit
 Lie-transform method [horiTheory1966, Deprit1969](@cite).
 
-The package stores Hamiltonians and Liouvillians in their natural physical conventions. A
-Hamiltonian transformation is unitary, ``U_K=e^{-iK}``, whereas a Liouvillian transforms by an
+A Hamiltonian transformation is unitary, ``U_K=e^{-iK}``, whereas a Liouvillian transforms by an
 ordinary similarity map. The recursion topology is shared, but the BCH phase is therefore algebra
 dependent:
 
@@ -63,7 +62,8 @@ Expand
 The expansion is formal and asymptotic. It is useful when the off-resonant Fourier sectors are
 separated by frequency-scale gaps; near resonance, first move to a suitable rotating frame.
 Resonance-adapted Floquet perturbation and Floquet Schrieffer--Wolff constructions provide
-alternative treatments when this separation is not available [RodriguezVega2018, Wang2024Floquet](@cite).
+alternative treatments when this separation is not available
+[RodriguezVega2018, Wang2024Floquet](@cite).
 
 ## Averaging and the homological equation
 
@@ -101,9 +101,8 @@ of ``\partial_\tau`` on the zero-average subspace is
 \qquad m\ne0,
 ~~~
 
-so that ``\langle\mathcal{K}\rangle=0``. This is the operation implemented by
-[`antiderivative`](@ref) with [`VanVleck`](@ref), and is the zero-average convention used in the
-standard Floquet effective-frame constructions [Goldman2014, Eckardt2015](@cite).
+so that ``\langle\mathcal{K}\rangle=0``. This is the zero-average convention used in the standard
+Floquet effective-frame constructions [Goldman2014, Eckardt2015](@cite).
 
 ## Leading terms
 
@@ -115,8 +114,8 @@ The period average is common to both algebras,
 \mathcal{K}^{(1)}_m=\frac{i}{m}\mathcal{G}_m\quad(m\ne0),
 ~~~
 
-but the first commutator correction must be written in the physical convention of the input.
-For a Hamiltonian,
+but the first commutator correction must be written in the physical convention of the input. For a
+Hamiltonian,
 
 ~~~math
 H_{\mathrm{eff}}^{(1)}
@@ -131,20 +130,13 @@ whereas for a Liouvillian,
 ~~~
 
 The extra ``i`` is the Liouville-space consequence of the similarity-transform convention, or
-equivalently of the ``i\mathcal L_m`` blocks in the energy-like Sambe operator. This is the phase
-distinction implemented by the common recursion rather than by separate Hamiltonian and
-Liouvillian expansion engines.
+equivalently of the ``i\mathcal L_m`` blocks in the energy-like Sambe operator.
 
-The package uses `order = 1` for the average and `order = 2` for the average plus the first
-inverse-frequency correction. These commutator corrections are also related to the
-average-Hamiltonian expansion developed for quantum Liouville dynamics and extended to higher
-orders by Buishvili and collaborators [Buishvili1979, buishviliHigher1981](@cite).
-
-The van Vleck recursion is related to, but distinct in bookkeeping from, Floquet--Magnus
-expansions, which organize the logarithm of the propagator [Blanes2009, Casas2001](@cite), and
-Brillouin--Wigner high-frequency expansions, which use energy-dependent denominators
-[Mikami2016Brillouin](@cite). Agreement requires matching the effective-frame and branch
-conventions.
+These commutator corrections are related to the average-Hamiltonian expansion developed for
+quantum Liouville dynamics and extended to higher orders by Buishvili and collaborators
+[Buishvili1979, buishviliHigher1981](@cite). The van Vleck recursion is related to, but distinct in
+bookkeeping from, Floquet--Magnus expansions [Blanes2009, Casas2001](@cite) and
+Brillouin--Wigner high-frequency expansions [Mikami2016Brillouin](@cite).
 
 ## Sambe-space block diagonalization
 
@@ -186,162 +178,20 @@ H_{\mathrm{eff}}
 
 the same expression obtained from the time-domain homological equation. In this representation the
 oscillatory harmonics are off-diagonal Sambe blocks, and the effective generator is their
-block-diagonal normal form. This is the Floquet-space van Vleck construction of Eckardt and
-Anisimovas; it is also the periodic analogue of a Schrieffer--Wolff block diagonalization
-[Eckardt2015, Rahav2003, SchriefferWolff1966](@cite).
+block-diagonal normal form [Eckardt2015, Rahav2003, SchriefferWolff1966](@cite).
 
 For a Liouvillian, the Sambe blocks contain ``i\mathcal{L}_m`` instead of ``H_m``. Mapping the
 Hamiltonian-like block diagonalization back to ``\mathcal L`` produces the Liouvillian Lie-transform
 phase above. A finite-order effective Liouvillian is algebraically well defined but is not
 automatically in GKLS form [Ikeda2021, Schnell2021](@cite).
 
-## Positive continuation of a truncated Floquet Liouvillian
+## Complete positivity after truncation
 
-Choose a finite [`DissipativeFrame`](@ref) ``F=(F_1,\ldots,F_q)`` for the retained open-system
-generator. Its dissipative sector is represented by a Hermitian Kossakowski series
-
-~~~math
-d^{[N]}(\epsilon)=\sum_{n=0}^{N}\epsilon^n d^{(n)},
-\qquad \epsilon=\omega_d^{-1}.
-~~~
-
-The frame is a coordinate choice on a finite module of dissipative operator directions, not a set
-of decay eigenmodes. Under an invertible change of frame the Hermitian form transforms by
-congruence. Individual matrix entries, jump representatives, and rate assignments therefore depend
-on the frame, while positivity and inertia are congruence-invariant statements.
-
-A raw truncation can leave the positive cone at the first order not protected by the exact
-microscopic GKLS structure. Positive completion asks for a finite continuation
-``\widetilde d^{[N]}`` satisfying
-
-~~~math
-\widetilde d^{[N]}\succeq0,
-\qquad
-\Pi_N\widetilde d^{[N]}=d^{[N]}.
-~~~
-
-The completion changes only information beyond the retained perturbative order.
-
-### Graded Gram matching
-
-The algebraic construction seeks a graded amplitude matrix
-
-~~~math
-B^{[N]}(\epsilon)=\sum_p\epsilon^p B^{(p)}
-~~~
-
-with
-
-~~~math
-\Pi_N\!\left(B^{[N]}B^{[N]\dagger}\right)=d^{[N]}.
-~~~
-
-The finite positive continuation is the untruncated Gram product
-
-~~~math
-\widetilde d_{\rm Gram}^{[N]}=B^{[N]}B^{[N]\dagger}.
-~~~
-
-The leading Hermitian form determines an active quotient and a dark radical. In a congruence frame
-adapted to this split,
-
-~~~math
-d=
-\begin{pmatrix}
-A & X\\
-X^\dagger & C
-\end{pmatrix}.
-~~~
-
-The active block is factorized by graded ``LDL^\dagger`` elimination,
-
-~~~math
-A=L\Delta L^\dagger=GG^\dagger,
-\qquad
-G=L\sqrt{\Delta},
-~~~
-
-which fixes one convenient jump-amplitude gauge without diagonalizing the Kossakowski form. The
-active channels are then dressed into the dark sector by triangular/adjoint solves. The remaining
-dark-sector information is the Feshbach/Schur residual
-
-~~~math
-\Sigma=C-X^\dagger A^{-1}X,
-~~~
-
-implemented through solves rather than by materializing a symbolic inverse.
-
-If ``\Sigma`` first becomes nonzero at grade ``s``, its leading Hermitian sign is classified before
-its parity. A negative retained direction is a [`CompletionObstruction`](@ref). A nonnegative even
-onset can be represented by an integer-power Gram amplitude and the construction recurses with the
-remaining perturbative budget. A positive odd onset defines a perfectly regular rate but would
-require a half-integer-power collapse amplitude; [`Gram`](@ref) reports
-[`FractionalJumpOnset`](@ref) for that polynomial-amplitude gauge.
-
-### Parameter strata
-
-Symbolic pivots can change rank when parameters cross special values. The completion therefore
-separates physical positivity assumptions from algebraic regularity assumptions:
-
-~~~math
-p\ge0
-\quad\text{versus}\quad
-r\ne0.
-~~~
-
-The first belongs to [`positivity_conditions`](@ref); the second belongs to
-[`regularity_conditions`](@ref). If a regularity condition fails, one must move to the lower-rank
-stratum rather than continue the same symbolic elimination branch through a singular pivot.
-
-### Spectral/HCM gauge
-
-[`Spectral`](@ref) realizes the same retained Hermitian data in a restricted frame with diagonal
-leading Kossakowski form. Perturbative decay-rate branches are followed by Rayleigh--Schrödinger
-recursion and each retained rate is square-completed,
-
-~~~math
-\widetilde\lambda_a(\epsilon)
-=\epsilon^{n_a}\left(\nu_{a,0}+\nu_{a,1}\epsilon+\cdots\right)^2.
-~~~
-
-The finite form is reconstructed as
-
-~~~math
-\widetilde d_{\rm HCM}
-=\sum_a\widetilde\lambda_a\,\phi_a\phi_a^\dagger.
-~~~
-
-For even ``n_a`` the sign of ``\omega_d`` drops out of the leading completed rate. For odd
-``n_a`` the positive-rate interpretation uses the physical orientation ``\omega_d>0``. The
-symbolic implementation does not hide this convention: when an odd spectral onset is retained,
-``\omega_d`` is added to both [`positivity_conditions`](@ref) and
-[`regularity_conditions`](@ref), encoding ``\omega_d\ge0`` together with ``\omega_d\ne0``.
-
-This makes decay-rate branches explicit but requires a suitable spectral frame and rejects
-unresolved mixing inside a degenerate leading sector. It is therefore complementary to the general
-algebraic Gram construction, not a prerequisite for it.
-
-Principal-root and SVD factorizations are other possible gauges for the same positive Hermitian
-form after an appropriate coefficient field or numerical specialization is chosen. They do not
-alter the central perturbative statement: different positive factorizations or continuation rules
-may disagree beyond order ``N`` while reproducing the same retained Kossakowski coefficients.
-
-### Micromotion and perturbative order
-
-If the completion begins only at the first omitted order,
-
-~~~math
-\mathcal L_{\rm CP}^{[N]}-\mathcal L_{\rm eff}^{[N]}
-=\mathcal O(\omega_d^{-N-1}),
-~~~
-
-then the retained kick already gives the correct completed approximation through order ``N``. No
-retained micromotion coefficient needs to be recomputed. A higher-order change of kick is part of
-the previously undetermined higher-order Floquet data, not a consistency requirement of the
-finite-order CP completion.
-
-The user-facing workflow is described in [Positive completion](@ref), and the analytical driven
-qubit and bosonic dark-sector calculations are worked out in [CP-completion examples](@ref).
+The loss of GKLS form at finite order is a property of the truncated effective Liouvillian, not a
+failure of the Floquet construction. One can instead ask for a positive finite continuation that
+agrees with the retained Kossakowski series through the claimed order. The active/dark Gram
+construction, recursive onset filtration, parameter strata, and spectral/HCM realization are
+developed separately in [CP-preserving completion](@ref cp-preserving-completion-theory).
 
 The recursive Lie-series construction of Venkatraman et al. is designed for symbolic calculations
 of this common normal form. Classical harmonic balance uses a Fourier--Galerkin projection and
@@ -352,8 +202,5 @@ related formulations rather than the algorithm implemented here.
 
 Finally, formulas from different sources agree only after matching the Fourier sign, frequency or
 energy units, perturbative order, transformation convention, and integration constants. The
-package chooses the zero-average van Vleck gauge, which is the phase-independent effective-frame
-convention used in the Floquet formulations of Goldman and Dalibard and Eckardt
-[Goldman2014, Eckardt2015](@cite).
-
-See [`floquet_expansion`](@ref) for the computational interface.
+zero-average van Vleck gauge is the phase-independent effective-frame convention used in the
+Floquet formulations of Goldman and Dalibard and Eckardt [Goldman2014, Eckardt2015](@cite).
