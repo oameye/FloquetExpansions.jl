@@ -43,13 +43,13 @@ export DissipativeFrame,
 
 # Stable expert API that is intentionally qualified rather than exported.
 @public Completion,
-  Uncompleted,
-  CompletionAlgorithm,
-  CompletionFactorization,
-  GramStage,
-  GramFactorization,
-  SpectralFactorization,
-  CompletionObstruction,
-  FractionalJumpOnset
+Uncompleted,
+CompletionAlgorithm,
+CompletionFactorization,
+GramStage,
+GramFactorization,
+SpectralFactorization,
+CompletionObstruction,
+FractionalJumpOnset
 
 end # module FloquetExpansions

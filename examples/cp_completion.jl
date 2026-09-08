@@ -149,12 +149,7 @@ D1 = dissipator(a)
 D2 = dissipator(a^2)
 
 generator = PeriodicGenerator(
-  Dict(
-    0 => κ1 * D1 + κ2 * D2,
-    1 => u * D1 + im * v * D2,
-    -1 => u * D1 - im * v * D2,
-  ),
-  ωb,
+  Dict(0 => κ1 * D1 + κ2 * D2, 1 => u * D1 + im * v * D2, -1 => u * D1 - im * v * D2), ωb
 )
 
 vv_bosonic = floquet_expansion(generator, VanVleck(), 2)
@@ -203,9 +198,7 @@ frame_kerr = DissipativeFrame(J)
 
 @variables ωk::Real tk::Real K::Real γk::Real
 H_kerr = K * a_kerr'^2 * a_kerr^2
-vv_kerr = floquet_expansion(
-  H_kerr, ωk, tk, VanVleck(), 1; channels=(jump(J, γk),)
-)
+vv_kerr = floquet_expansion(H_kerr, ωk, tk, VanVleck(), 1; channels=(jump(J, γk),))
 cp_kerr = positive_completion(vv_kerr, Gram(), frame_kerr)
 
 positivity_conditions(cp_kerr)

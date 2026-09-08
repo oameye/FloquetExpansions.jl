@@ -211,7 +211,9 @@ function inverse_coefficients(matrix::KossakowskiMatrix)::KossakowskiMatrix
     pivot_inverse = inv(left[column, column])
     for trailing in 1:n
       left[column, trailing] = simplify_coefficient(left[column, trailing] * pivot_inverse)
-      right[column, trailing] = simplify_coefficient(right[column, trailing] * pivot_inverse)
+      right[column, trailing] = simplify_coefficient(
+        right[column, trailing] * pivot_inverse
+      )
     end
 
     for row in 1:n
