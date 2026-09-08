@@ -6,28 +6,17 @@ on:
       - main
   pull_request:
 
-permissions:
-  contents: write
-
 jobs:
   format:
     name: Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
       - uses: julia-actions/setup-julia@v3
       - uses: julia-actions/cache@v3
       - name: Install JuliaFormatter
         run: |
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
-      - name: Apply formatting
+      - name: Check formatting
         run: |
-          ${HOME}/.julia/bin/jlfmt --inplace .
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add examples/cp_completion.jl src/FloquetExpansions.jl src/engine.jl src/gksl_coordinates.jl test/runtests.jl
-          git diff --cached --quiet && exit 0
-          git commit -m 'style: apply JuliaFormatter'
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          ${HOME}/.julia/bin/jlfmt --check --verbose .
