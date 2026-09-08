@@ -57,6 +57,7 @@ Liouvillian together with its drive frequency and time variable. The expansion r
 
 ```@docs
 FloquetExpansion
+order
 ```
 
 ```@docs
@@ -77,7 +78,7 @@ inverse-frequency structure
 ```
 
 The distinction between the finite effective generator and its retained perturbative components
-becomes important after positive completion; see [Positive completion](@ref).
+becomes important after positive completion; see [Positive completion](@ref positive-completion-manual).
 
 ```@docs
 effective_generator
@@ -118,4 +119,4 @@ fixed drive.
 
 For periodically driven open systems, a direct finite-order high-frequency expansion need not
 retain a GKLS effective generator even when the microscopic generator is of Lindblad form
-[Schnell2021](@cite). See [Positive completion](@ref) for the CP-preserving continuation.
+[Schnell2021](@cite). See [Positive completion](@ref positive-completion-manual) for the CP-preserving continuation.
