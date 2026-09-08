@@ -65,7 +65,7 @@ function scalar_part(operator::SQA.QAdd)::SQA.CNum
   scalar = coefficient_zero()
   for (term, coefficient) in operator
     isempty(term.ops) || continue
-    scalar = simplify_coefficient((scalar + coefficient)::SQA.CNum)
+    scalar = simplify_coefficient(scalar + coefficient)
   end
   return scalar
 end
@@ -154,10 +154,10 @@ function independent_pivot_rows(coordinates::KossakowskiMatrix)
     for row in (pivot_row + 1):direction_count
       entry = simplify_coefficient(work[row, column])
       iszero(entry) && continue
-      factor = simplify_coefficient((entry * inv(pivot))::SQA.CNum)
+      factor = simplify_coefficient(entry * inv(pivot))
       for trailing in column:monomial_count
         work[row, trailing] = simplify_coefficient(
-          (work[row, trailing] - factor * work[pivot_row, trailing])::SQA.CNum
+          work[row, trailing] - factor * work[pivot_row, trailing]
         )
       end
     end
@@ -208,14 +208,10 @@ function inverse_coefficients(matrix::KossakowskiMatrix)::KossakowskiMatrix
       end
     end
 
-    pivot_inverse = inv(left[column, column])::SQA.CNum
+    pivot_inverse = inv(left[column, column])
     for trailing in 1:n
-      left[column, trailing] = simplify_coefficient(
-        (left[column, trailing] * pivot_inverse)::SQA.CNum
-      )
-      right[column, trailing] = simplify_coefficient(
-        (right[column, trailing] * pivot_inverse)::SQA.CNum
-      )
+      left[column, trailing] = simplify_coefficient(left[column, trailing] * pivot_inverse)
+      right[column, trailing] = simplify_coefficient(right[column, trailing] * pivot_inverse)
     end
 
     for row in 1:n
@@ -224,10 +220,10 @@ function inverse_coefficients(matrix::KossakowskiMatrix)::KossakowskiMatrix
       iszero(factor) && continue
       for trailing in 1:n
         left[row, trailing] = simplify_coefficient(
-          (left[row, trailing] - factor * left[column, trailing])::SQA.CNum
+          left[row, trailing] - factor * left[column, trailing]
         )
         right[row, trailing] = simplify_coefficient(
-          (right[row, trailing] - factor * right[column, trailing])::SQA.CNum
+          right[row, trailing] - factor * right[column, trailing]
         )
       end
     end
@@ -277,7 +273,7 @@ function canonical_liouvillian(L::Liouvillian)::Liouvillian
     for (left_term, left_coefficient) in left_canonical,
       (right_term, right_coefficient) in right_canonical
 
-      product = (coefficient * left_coefficient * right_coefficient)::SQA.CNum
+      product = coefficient * left_coefficient * right_coefficient
       combined = simplify_coefficient(product)
       iszero(combined) && continue
       add_term!(
@@ -297,8 +293,8 @@ function multiply_coefficients(
   for row in axes(result, 1), column in axes(result, 2)
     value = coefficient_zero()
     for index in axes(left, 2)
-      product = (left[row, index] * right[index, column])::SQA.CNum
-      value = (value + product)::SQA.CNum
+      product = left[row, index] * right[index, column]
+      value = value + product
     end
     result[row, column] = simplify_coefficient(value)
   end
@@ -308,7 +304,7 @@ end
 function adjoint_coefficients(matrix::KossakowskiMatrix)::KossakowskiMatrix
   result = coefficient_matrix(size(matrix, 2), size(matrix, 1))
   for row in axes(matrix, 1), column in axes(matrix, 2)
-    result[column, row] = conj(matrix[row, column])::SQA.CNum
+    result[column, row] = conj(matrix[row, column])
   end
   return result
 end
@@ -332,9 +328,9 @@ function sandwich_pivot_matrix(L::Liouvillian, frame::DissipativeFrame)::Kossako
       isempty(right_term.ops) && continue
       right_index = get(pivot_index, right_term, 0)
       iszero(right_index) && continue
-      contribution = (coefficient * conj(right_coefficient))::SQA.CNum
+      contribution = coefficient * conj(right_coefficient)
       result[left_index, right_index] = simplify_coefficient(
-        (result[left_index, right_index] + contribution)::SQA.CNum
+        result[left_index, right_index] + contribution
       )
     end
   end
@@ -373,9 +369,7 @@ end
 function matrix_is_hermitian(matrix::KossakowskiMatrix)::Bool
   size(matrix, 1) == size(matrix, 2) || return false
   for row in axes(matrix, 1), column in row:size(matrix, 2)
-    difference = simplify_coefficient(
-      (matrix[row, column] - conj(matrix[column, row]))::SQA.CNum
-    )
+    difference = simplify_coefficient(matrix[row, column] - conj(matrix[column, row]))
     iszero(difference) || return false
   end
   return true
