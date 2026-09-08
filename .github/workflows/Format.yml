@@ -17,6 +17,8 @@ jobs:
       - name: Install JuliaFormatter
         run: |
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
-      - name: Check formatting
+      - name: Show formatting diff
         run: |
-          ${HOME}/.julia/bin/jlfmt --check --verbose .
+          ${HOME}/.julia/bin/jlfmt --inplace .
+          git diff -- examples/cp_completion.jl src/FloquetExpansions.jl src/engine.jl src/gksl_coordinates.jl test/runtests.jl
+          git diff --exit-code
