@@ -43,26 +43,26 @@ jobs:
               j = text.index(end, i)
               text = text[:i] + text[j:]
 
-          for name in (
-              "matrix_solve(",
-              "lower_triangular_solve(",
-              "adjoint_triangular_solve(",
-              "series_solve(",
-              "series_inverse(",
-              "series_schur(",
-              "undo_congruence_factor(",
-              "swap_congruence_coordinates!(",
-              "hermitian_eliminate(",
+          for declaration in (
+              "function matrix_solve(",
+              "function lower_triangular_solve(",
+              "function adjoint_triangular_solve(",
+              "function series_solve(",
+              "function series_inverse(",
+              "function series_schur(",
+              "function undo_congruence_factor(",
+              "function swap_congruence_coordinates!(",
+              "function hermitian_eliminate(",
           ):
-              assert name not in text, name
-          for name in (
-              "choose_pivot_row(",
-              "unit_lower_triangular_solve(",
-              "zero_diagonal_obstruction(",
-              "apply_congruence(",
-              "graded_ldl(",
+              assert declaration not in text, declaration
+          for declaration in (
+              "function choose_pivot_row(",
+              "function unit_lower_triangular_solve(",
+              "function zero_diagonal_obstruction(",
+              "function apply_congruence(",
+              "function graded_ldl(",
           ):
-              assert name in text, name
+              assert declaration in text, declaration
           path.write_text(text)
 
           for filename in ("src/gram_recursion.jl", "src/spectral_completion.jl"):
