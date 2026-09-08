@@ -255,7 +255,7 @@ end
 function spectral_positive_completion(
   expansion::FloquetExpansion, frame::DissipativeFrame, algorithm::Spectral
 )
-  N = getfield(expansion, :order) - 1
+  N = order(expansion) - 1
   raw_matrices = raw_kossakowski_series(expansion, frame)
   series = completion_series(raw_matrices)
   conditions = CompletionConditions()

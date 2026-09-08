@@ -410,77 +410,6 @@ function choose_pivot_row(
   return fallback
 end
 
-function matrix_solve(
-  A::CompletionMatrix, B::CompletionMatrix, conditions::CompletionConditions
-)
-  n, m = size(A)
-  n == m || throw(DimensionMismatch("solve matrix must be square"))
-  size(B, 1) == n || throw(DimensionMismatch("right-hand side has incompatible row count"))
-
-  rhs_columns = size(B, 2)
-  work_A = copy(A)
-  work_B = copy(B)
-
-  for k in 1:n
-    pivot_row = choose_pivot_row(work_A, k, conditions)
-    pivot_row == 0 &&
-      throw(ArgumentError("matrix is singular on the current symbolic stratum"))
-
-    if pivot_row != k
-      work_A[k, :], work_A[pivot_row, :] = copy(work_A[pivot_row, :]), copy(work_A[k, :])
-      work_B[k, :], work_B[pivot_row, :] = copy(work_B[pivot_row, :]), copy(work_B[k, :])
-    end
-
-    pivot = simplify_scalar(work_A[k, k])
-    structurally_nonzero(pivot, conditions) || require_regularity!(conditions, pivot)
-
-    for i in (k + 1):n
-      structurally_zero(work_A[i, k]) && continue
-      factor = simplify_scalar(work_A[i, k] / pivot)
-      work_A[i, k] = completion_zero()
-      for j in (k + 1):n
-        work_A[i, j] = simplify_scalar(work_A[i, j] - factor * work_A[k, j])
-      end
-      for j in 1:rhs_columns
-        work_B[i, j] = simplify_scalar(work_B[i, j] - factor * work_B[k, j])
-      end
-    end
-  end
-
-  result = completion_matrix_zeros(n, rhs_columns)
-  for column in 1:rhs_columns
-    for i in n:-1:1
-      residual = work_B[i, column]
-      for j in (i + 1):n
-        residual -= work_A[i, j] * result[j, column]
-      end
-      pivot = simplify_scalar(work_A[i, i])
-      structurally_nonzero(pivot, conditions) || require_regularity!(conditions, pivot)
-      result[i, column] = simplify_scalar(residual / pivot)
-    end
-  end
-  return result
-end
-
-function lower_triangular_solve(
-  L::CompletionMatrix, B::CompletionMatrix, conditions::CompletionConditions
-)
-  n, m = size(L)
-  n == m || throw(DimensionMismatch("triangular solve matrix must be square"))
-  size(B, 1) == n || throw(DimensionMismatch("right-hand side has incompatible row count"))
-  result = completion_matrix_zeros(n, size(B, 2))
-  for column in axes(B, 2), i in 1:n
-    residual = B[i, column]
-    for j in 1:(i - 1)
-      residual -= L[i, j] * result[j, column]
-    end
-    pivot = simplify_scalar(L[i, i])
-    structurally_nonzero(pivot, conditions) || require_regularity!(conditions, pivot)
-    result[i, column] = simplify_scalar(residual / pivot)
-  end
-  return result
-end
-
 function unit_lower_triangular_solve(L::CompletionMatrix, B::CompletionMatrix)
   n, m = size(L)
   n == m || throw(DimensionMismatch("triangular solve matrix must be square"))
@@ -496,68 +425,6 @@ function unit_lower_triangular_solve(L::CompletionMatrix, B::CompletionMatrix)
   return result
 end
 
-function adjoint_triangular_solve(
-  L::CompletionMatrix, B::CompletionMatrix, conditions::CompletionConditions
-)
-  n, m = size(L)
-  n == m || throw(DimensionMismatch("triangular solve matrix must be square"))
-  size(B, 1) == n || throw(DimensionMismatch("right-hand side has incompatible row count"))
-  result = completion_matrix_zeros(n, size(B, 2))
-  for column in axes(B, 2), i in n:-1:1
-    residual = B[i, column]
-    for j in (i + 1):n
-      residual -= conj(L[j, i]) * result[j, column]
-    end
-    pivot = simplify_scalar(conj(L[i, i]))
-    structurally_nonzero(pivot, conditions) || require_regularity!(conditions, pivot)
-    result[i, column] = simplify_scalar(residual / pivot)
-  end
-  return result
-end
-
-function series_solve(
-  A::MatrixSeries, B::MatrixSeries, N::Int, conditions::CompletionConditions
-)
-  validate_series_order(N)
-  n, m = validate_matrix_series(A)
-  n == m || throw(DimensionMismatch("left matrix series must be square"))
-  b_rows, b_columns = validate_matrix_series(B)
-  b_rows == n ||
-    throw(DimensionMismatch("matrix-series right-hand side has incompatible rows"))
-
-  result = [completion_matrix_zeros(n, b_columns) for _ in 0:N]
-  A0 = A[1]
-  for order in 0:N
-    rhs = copy(matrix_coefficient(B, order, b_rows, b_columns))
-    for k in 1:order
-      k + 1 <= length(A) || continue
-      rhs -= A[k + 1] * result[order - k + 1]
-    end
-    result[order + 1] = matrix_solve(A0, rhs, conditions)
-  end
-  return result
-end
-
-function series_inverse(A::MatrixSeries, N::Int, conditions::CompletionConditions)
-  n, m = validate_matrix_series(A)
-  n == m || throw(DimensionMismatch("matrix series must be square"))
-  identity_series = [completion_matrix_zeros(n, n) for _ in 0:N]
-  identity_series[1] = completion_identity(n)
-  return series_solve(A, identity_series, N, conditions)
-end
-
-function series_schur(
-  A::MatrixSeries,
-  X::MatrixSeries,
-  C::MatrixSeries,
-  N::Int,
-  conditions::CompletionConditions,
-)
-  solved = series_solve(A, X, N, conditions)
-  correction = series_mul(series_adjoint(X), solved, N)
-  return series_sub(C, correction, N)
-end
-
 function apply_congruence(series::MatrixSeries, T::CompletionMatrix, N::Int)
   validate_series_order(N)
   n, m = validate_matrix_series(series)
@@ -569,22 +436,6 @@ function apply_congruence(series::MatrixSeries, T::CompletionMatrix, N::Int)
   for order in 0:N
     coefficient = matrix_coefficient(series, order, n, n)
     result[order + 1] = Matrix{CompletionScalar}(adjoint(T) * coefficient * T)
-  end
-  return result
-end
-
-function undo_congruence_factor(
-  factor::MatrixSeries, T::CompletionMatrix, N::Int, conditions::CompletionConditions
-)
-  validate_series_order(N)
-  rows, columns = validate_matrix_series(factor)
-  size(T, 1) == rows && size(T, 2) == rows ||
-    throw(DimensionMismatch("congruence transform has incompatible dimensions"))
-  adjoint_T = Matrix{CompletionScalar}(adjoint(T))
-  result = Vector{CompletionMatrix}(undef, N + 1)
-  for order in 0:N
-    coefficient = matrix_coefficient(factor, order, rows, columns)
-    result[order + 1] = matrix_solve(adjoint_T, coefficient, conditions)
   end
   return result
 end
@@ -618,102 +469,6 @@ function zero_diagonal_obstruction(A::CompletionMatrix, conditions::CompletionCo
     end
   end
   return (0, 0)
-end
-
-function swap_congruence_coordinates!(
-  A::CompletionMatrix, T::CompletionMatrix, i::Int, j::Int
-)
-  i == j && return nothing
-  A[i, :], A[j, :] = copy(A[j, :]), copy(A[i, :])
-  A[:, i], A[:, j] = copy(A[:, j]), copy(A[:, i])
-  T[:, i], T[:, j] = copy(T[:, j]), copy(T[:, i])
-  return nothing
-end
-
-function hermitian_eliminate(A::CompletionMatrix, conditions::CompletionConditions)
-  hermitian_matrix(A) ||
-    throw(ArgumentError("Hermitian elimination requires a Hermitian matrix"))
-  n = size(A, 1)
-  reduced = copy(A)
-  transform = completion_identity(n)
-
-  obstruction = zero_diagonal_obstruction(reduced, conditions)
-  if obstruction != (0, 0)
-    i, j = obstruction
-    return HermitianElimination(
-      transform,
-      reduced,
-      0,
-      HERMITIAN_ZERO_DIAGONAL_COUPLING,
-      simplify_scalar(reduced[i, j]),
-    )
-  end
-
-  active_rank = 0
-  for k in 1:n
-    pivot_index = 0
-    pivot_sign = SIGN_ZERO
-    for candidate in k:n
-      sign = structural_sign(reduced[candidate, candidate], conditions)
-      if sign == SIGN_NEGATIVE
-        return HermitianElimination(
-          transform,
-          reduced,
-          active_rank,
-          HERMITIAN_NEGATIVE_PIVOT,
-          hermitian_real(reduced[candidate, candidate]),
-        )
-      elseif sign == SIGN_NONPOSITIVE
-        return HermitianElimination(
-          transform,
-          reduced,
-          active_rank,
-          HERMITIAN_NONPOSITIVE_PIVOT,
-          hermitian_real(reduced[candidate, candidate]),
-        )
-      elseif sign != SIGN_ZERO
-        pivot_index = candidate
-        pivot_sign = sign
-        break
-      end
-    end
-
-    pivot_index == 0 && break
-    swap_congruence_coordinates!(reduced, transform, k, pivot_index)
-    pivot = hermitian_real(reduced[k, k])
-
-    if pivot_sign == SIGN_UNKNOWN
-      require_positivity!(conditions, pivot)
-      require_regularity!(conditions, pivot)
-    elseif pivot_sign == SIGN_NONNEGATIVE
-      require_regularity!(conditions, pivot)
-    end
-
-    E = completion_identity(n)
-    for j in (k + 1):n
-      structurally_zero(reduced[k, j]) && continue
-      E[k, j] = simplify_scalar(-reduced[k, j] / pivot)
-    end
-    reduced = Matrix{CompletionScalar}(adjoint(E) * reduced * E)
-    transform = transform * E
-    active_rank += 1
-
-    obstruction = zero_diagonal_obstruction(reduced, conditions)
-    if obstruction != (0, 0)
-      i, j = obstruction
-      return HermitianElimination(
-        transform,
-        reduced,
-        active_rank,
-        HERMITIAN_ZERO_DIAGONAL_COUPLING,
-        simplify_scalar(reduced[i, j]),
-      )
-    end
-  end
-
-  return HermitianElimination(
-    transform, reduced, active_rank, HERMITIAN_ELIMINATION_OK, completion_zero()
-  )
 end
 
 function scalar_series_entry(A::MatrixSeries, i::Int, j::Int, N::Int)
