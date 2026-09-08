@@ -151,9 +151,8 @@ whose retained coefficients are fixed by the microscopic periodic dynamics. Trun
 series can produce a Kossakowski form with weak negative directions even though the original
 time-dependent generator is Lindbladian at every time.
 
-[`positive_completion`](@ref) addresses this finite-order problem by supplying higher-order
-dissipative data that restore a positive Kossakowski form while preserving every retained
-coefficient:
+A CP-preserving perturbative continuation may supply higher-order dissipative data that restore a
+positive Kossakowski form while preserving every retained coefficient,
 
 ~~~math
 \mathcal L_{\mathrm{CP}}^{[N]}
@@ -174,8 +173,8 @@ data.
 ### Frames, rates, and physical invariants
 
 A Kossakowski matrix is a representation of the dissipative Hermitian form in a chosen operator
-frame. Changing the [`DissipativeFrame`](@ref) changes matrix entries and can redistribute the same
-physical dissipative form among different jump representatives. Likewise, a particular set of jump
+frame. Changing the operator frame changes matrix entries and can redistribute the same physical
+dissipative form among different jump representatives. Likewise, a particular set of jump
 operators or branch rates is not unique: unitary channel rotations, nonunitary coordinate changes,
 and different positive factorizations give different representatives.
 
@@ -183,11 +182,11 @@ The frame-independent content is the Hermitian form itself. Positivity and inert
 under invertible congruence transformations, whereas individual rates and jump operators are
 gauge/representation dependent.
 
-This is also why different completion algorithms can be physically equivalent through retained
-order but differ as finite expressions. [`Gram`](@ref) fixes one algebraic jump-amplitude gauge;
-[`Spectral`](@ref) fixes a restricted perturbative decay-rate/HCM gauge. Their higher-order
-continuations need not coincide.
+Different CP-preserving completion gauges can therefore agree through retained perturbative order
+while differing as finite expressions. An algebraic Gram gauge fixes a jump-amplitude
+factorization, whereas a perturbative spectral/HCM gauge follows decay-rate branches and
+square-completes their retained series [Haddadfarshi2015](@cite). Their higher-order continuations
+need not coincide.
 
-See [Positive completion](@ref) for the user workflow and
-[High-frequency expansion](high_frequency_expansion.md) for the active/dark, Feshbach, and onset
-construction.
+See [CP-preserving completion](@ref cp-preserving-completion-theory) for the active/dark, Feshbach,
+onset, and spectral/HCM constructions.
