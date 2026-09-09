@@ -1,8 +1,8 @@
 # # [CP-completion examples](@id cp-completion-examples)
 #
 # A finite-order Floquet-Lindblad expansion can leave the GKLS cone even when the microscopic
-# dynamics is completely positive [Ikeda2021, Schnell2021](@cite). These examples use the same
-# analytical models as the validation suite. The driven qubit also compares the algebraic Gram
+# dynamics is completely positive [Ikeda2021, Schnell2021](@cite). The examples below use
+# analytically tractable driven open systems. The driven qubit also compares the algebraic Gram
 # construction with the spectral/HCM continuation of Haddadfarshi, Cui, and Mintert
 # [Haddadfarshi2015](@cite).
 
@@ -104,12 +104,12 @@ spectral = positive_completion(vv, Spectral(), adapted)
 # Both are positive and reproduce the same retained coefficients through ``z^2``; their
 # difference begins only beyond the retained order.
 
-for n in 0:2
-  @assert effective_component(gram, n) == effective_component(vv, n)
-  @assert effective_component(spectral, n) == effective_component(vv, n)
-end
-@assert micromotion(gram) == micromotion(vv)
-@assert micromotion(spectral) == micromotion(vv)
+for n in 0:2 #hide
+  @assert effective_component(gram, n) == effective_component(vv, n) #hide
+  @assert effective_component(spectral, n) == effective_component(vv, n) #hide
+end #hide
+@assert micromotion(gram) == micromotion(vv) #hide
+@assert micromotion(spectral) == micromotion(vv) #hide
 
 # Method-specific data remains behind the common factorization accessor.
 
