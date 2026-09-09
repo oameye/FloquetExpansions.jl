@@ -39,17 +39,19 @@ struct Gram <: CompletionAlgorithm end
 """
     Spectral <: CompletionAlgorithm
 
-Select perturbative spectral/HCM positive completion.
+Select perturbative spectral Haddadfarshi--Cui--Mintert (HCM) positive completion.
 
 The construction follows perturbative decay-rate and branch-vector series in a dissipative frame
-where the leading Kossakowski form is diagonal. Each retained nonnegative rate series is completed
+where the leading Kossakowski form is diagonal. Each admissible retained rate branch is completed
 through a truncated square-root expansion, and the finite squared rates reconstruct a positive
 Kossakowski form while preserving all retained coefficients. This is the completely-positive
 high-frequency construction of Haddadfarshi, Cui, and Mintert [Haddadfarshi2015](@cite).
 
-`Spectral()` therefore requires a suitable leading spectral frame. Degenerate leading sectors must
-first be resolved by an adapted degenerate perturbative basis rather than by nondegenerate branch
-recursion.
+`Spectral()` therefore requires a suitable leading spectral frame. The two-argument
+`positive_completion(expansion, Spectral())` uses the automatically derived frame only when that
+frame already satisfies this condition; it does not diagonalize the leading Kossakowski form.
+Degenerate leading sectors must first be resolved by an adapted degenerate perturbative basis
+rather than by nondegenerate branch recursion.
 """
 struct Spectral <: CompletionAlgorithm end
 
