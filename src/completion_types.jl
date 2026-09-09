@@ -22,14 +22,34 @@ abstract type CompletionAlgorithm end
 """
     Gram <: CompletionAlgorithm
 
-Select Gram-factor positive completion.
+Select algebraic Gram/Feshbach positive completion.
+
+The construction determines a graded collapse-amplitude factor whose truncated Gram product
+matches every retained Kossakowski coefficient. The untruncated finite Gram product then supplies
+the positive continuation. Active dissipative directions are eliminated algebraically and the
+construction recurses on the residual dark sector, so no Kossakowski eigendecomposition is
+required.
+
+`Gram()` can be used with any independent [`DissipativeFrame`](@ref). Supplying the frame
+explicitly fixes the dissipative coordinates; otherwise [`positive_completion`](@ref) derives a
+frame from the available Floquet data.
 """
 struct Gram <: CompletionAlgorithm end
 
 """
     Spectral <: CompletionAlgorithm
 
-Select spectral/HCM positive completion.
+Select perturbative spectral/HCM positive completion.
+
+The construction follows perturbative decay-rate and branch-vector series in a dissipative frame
+where the leading Kossakowski form is diagonal. Each retained nonnegative rate series is completed
+through a truncated square-root expansion, and the finite squared rates reconstruct a positive
+Kossakowski form while preserving all retained coefficients. This is the completely-positive
+high-frequency construction of Haddadfarshi, Cui, and Mintert [Haddadfarshi2015](@cite).
+
+`Spectral()` therefore requires a suitable leading spectral frame. Degenerate leading sectors must
+first be resolved by an adapted degenerate perturbative basis rather than by nondegenerate branch
+recursion.
 """
 struct Spectral <: CompletionAlgorithm end
 
