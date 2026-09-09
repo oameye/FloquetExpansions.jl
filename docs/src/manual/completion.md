@@ -30,6 +30,55 @@ Thus the completion modifies only terms beyond the retained order. The perturbat
 components remain unchanged, while [`effective_generator`](@ref) returns the completed finite
 generator.
 
+## Gram completion
+
+[`Gram`](@ref) constructs a graded collapse-amplitude matrix
+
+```math
+B^{[N]}(\epsilon)=\sum_{p=0}^{N}\epsilon^p B^{(p)}
+```
+
+such that
+
+```math
+\Pi_N\!\left(B^{[N]}B^{[N]\dagger}\right)=d^{[N]}.
+```
+
+The finite completed Kossakowski matrix is the untruncated product
+
+```math
+\widetilde d^{[N]}=B^{[N]}B^{[N]\dagger}\succeq0.
+```
+
+The leading Hermitian form is split algebraically into active and dark sectors. The active block is
+factorized with a graded ``LDL^\dagger`` construction and scalar series square roots; coupling to an
+exactly dark sector is restored through linear solves and a Schur residual. No Kossakowski
+eigendecomposition or Hilbert-space diagonalization enters this path.
+
+When microscopic [`collapse`](@ref) or [`jump`](@ref) channels are available, automatic frame
+construction preserves their order and only appends additional generated directions needed by the
+retained Floquet components. An explicit [`DissipativeFrame`](@ref) fixes the representation.
+
+```julia
+cp = positive_completion(vv, Gram())
+# or
+cp = positive_completion(vv, Gram(), frame)
+
+kossakowski(cp)
+dissipative_frame(cp)
+channels(cp)
+factorization(cp)
+```
+
+[`factorization`](@ref) returns a [`GramFactorization`](@ref). Its `amplitudes` contain the physical,
+drive-frequency-reattached amplitude grades. `positivity_conditions` records scalar assumptions of
+the form ``p\ge0``; `regularity_conditions` separately records nonzero conditions needed to remain
+on the selected fixed-rank symbolic stratum.
+
+The first Gram stage handles a regular leading-rank sector and exactly dark residual directions.
+A new dissipative channel that opens only at a higher perturbative grade is classified before the
+recursive continuation step; that recursive onset filtration is a separate completion stage.
+
 ## Micromotion
 
 The retained kick operator does not need to be modified. If
@@ -56,5 +105,13 @@ CompletionAlgorithm
 Gram
 Spectral
 CompletionFactorization
+CompletionObstruction
+FractionalJumpOnset
+GramFactorization
 positive_completion
+dissipative_frame
+channels
+positivity_conditions
+regularity_conditions
+factorization
 ```
