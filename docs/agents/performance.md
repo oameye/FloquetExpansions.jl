@@ -15,8 +15,8 @@ Call the `julia-tffx` skill for the first two, `optimize-julia-code` and `profil
 ## Rules
 
 - **Keep every operation inferable.** Assert it with `@inferred` in the test for the behaviour. JET covers the package-wide case.
-- **Keep the core paths allocation-free**, and assert it with `@allocations`. The paths that matter are Fourier lowering, the recursive expansion, and Liouvillian term composition. Sinking a type parameter (`F` in `where {F}`) forces specialization, so a nested `do` block inlines with no closure allocation.
-- **Take keyword arguments at the API boundary and forward to a positional inner function.** Keyword arguments prevent specialization and can allocate, so a hot path takes positional arguments only.
+- **Keep the core paths allocation-free**, and assert it with `@allocations`. The paths that matter are Fourier lowering, the recursive expansion, Liouvillian term composition, and the explicit-frame completion kernels. Sinking a type parameter (`F` in `where {F}`) forces specialization, so a nested `do` block inlines with no closure allocation.
+- **Take keyword arguments at the API boundary and forward to a positional inner function.** Keyword wrappers can add dispatch/setup overhead and enlarge the inference surface on hot call chains, so the inference-oriented computational core takes positional arguments only.
 
 ## Measuring
 
