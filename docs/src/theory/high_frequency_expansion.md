@@ -3,7 +3,7 @@ CurrentModule = FloquetExpansions
 CollapsedDocStrings = true
 ~~~
 
-# High-frequency expansion
+# [High-frequency expansion](@id high-frequency-expansion-theory)
 
 When the drive frequency is large compared with the remaining dynamical scales, the nonzero
 Fourier harmonics can be removed order by order. The result is a time-independent effective
