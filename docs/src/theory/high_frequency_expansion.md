@@ -16,7 +16,7 @@ Bukov2015, Sanders2007, Murdock2003](@cite).
 
 ## Periodic Lie transformation
 
-Write the periodic generator in the package convention,
+Use the Fourier convention
 
 ~~~math
 \mathcal{G}(t)=\sum_m\mathcal{G}_m e^{-im\omega t}.
@@ -198,7 +198,7 @@ of this common normal form. Classical harmonic balance uses a Fourier--Galerkin 
 overlaps with averaging at a single periodic drive [Kosata2022HarmonicBalance](@cite); the later
 quantum-harmonic-balance and diagrammatic construction of Xu et al. gives another bookkeeping
 language for effective-Hamiltonian calculations [Venkatraman2022, Xiao2025](@cite). These are
-related formulations rather than the algorithm implemented here.
+alternative formulations of the same class of effective-dynamics problem.
 
 Finally, formulas from different sources agree only after matching the Fourier sign, frequency or
 energy units, perturbative order, transformation convention, and integration constants. The
