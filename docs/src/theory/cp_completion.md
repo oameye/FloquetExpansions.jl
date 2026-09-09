@@ -95,9 +95,8 @@ The active-to-dark coupling is controlled by the Feshbach/Schur complement
 \Sigma=C-X^\dagger A^{-1}X.
 ```
 
-In an exact symbolic implementation the inverse is not required explicitly: the same information
-is obtained from linear solves. Physically, ``\Sigma`` is the residual dissipative form after the
-leading active channels have been eliminated.
+Physically, ``\Sigma`` is the residual dissipative form after the leading active channels have been
+eliminated.
 
 ## Recursive dark-sector onsets
 
