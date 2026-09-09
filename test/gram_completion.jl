@@ -206,5 +206,7 @@ end
 
 @testset "retained negative direction is a completion obstruction" begin
   expansion = floquet_expansion(-dissipator(a), ω, t, VanVleck(), 1)
-  @test_throws ArgumentError positive_completion(expansion, Gram(), DissipativeFrame(a))
+  @test_throws CompletionObstruction positive_completion(
+    expansion, Gram(), DissipativeFrame(a)
+  )
 end
