@@ -46,7 +46,7 @@ CurrentModule = FloquetExpansions
 `FloquetExpansions.jl` computes high-frequency expansions for periodically driven quantum systems. Given a periodic generator ``\mathcal{G}(t)``—Hamiltonian or Liouvillian—it derives a static effective generator ``\mathcal{G}_\mathrm{eff}`` and the generator ``\mathcal{K}(t)`` of a periodic micromotion superoperator ``\mathcal{M}(t)=e^{\mathcal{K}(t)}`` such that
 
 ```math
-\mathcal{V}(t,0) = \mathcal{M}(t) e^{t\mathcal{L}_\mathrm{eff}} \mathcal{M}(0)^{-1}.
+\mathcal{V}(t,0) = \mathcal{M}(t) e^{t\mathcal{G}_\mathrm{eff}} \mathcal{M}(0)^{-1}.
 ```
 
 The package currently implements the van Vleck expansion, a high-frequency approximation that separates slow effective dynamics from fast micromotion [Eckardt2015](@cite).
