@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "9a3c2eb"
+commit = "16f5434"
 metric = "style"
 rules = ["implicit_kwarg", "underscore_name"]
 binding = ["underscore_name", "implicit_kwarg"]
@@ -13,6 +13,18 @@ underscore_name = 0
 implicit_kwarg = 0
 
 [files."src/completion.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/completion_conversion.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/completion_frame.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/completion_linear_algebra.jl"]
 underscore_name = 0
 implicit_kwarg = 0
 
@@ -32,7 +44,19 @@ implicit_kwarg = 0
 underscore_name = 0
 implicit_kwarg = 0
 
+[files."src/gram_completion.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/gram_recursion.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
 [files."src/liouvillian.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/matrix_series.jl"]
 underscore_name = 0
 implicit_kwarg = 0
 
@@ -41,5 +65,9 @@ underscore_name = 0
 implicit_kwarg = 0
 
 [files."src/quasienergy.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/spectral_completion.jl"]
 underscore_name = 0
 implicit_kwarg = 0
