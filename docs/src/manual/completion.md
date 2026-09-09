@@ -31,18 +31,17 @@ calculations are worked out in [CP-completion examples](@ref cp-completion-examp
 
 ## Choosing a completion algorithm
 
-[`Gram`](@ref) is the general algebraic construction. It works directly with a Hermitian
-Kossakowski form in an arbitrary independent dissipative frame and does not require a spectral
-basis. [`Spectral`](@ref) is the perturbative spectral/HCM realization and requires a frame in
-which the leading Kossakowski form is diagonal.
+Use [`Gram`](@ref) for the general algebraic construction and [`Spectral`](@ref) when a suitable
+leading spectral frame is available. Supplying a [`DissipativeFrame`](@ref) explicitly is useful
+when comparing algorithms in the same physical operator basis.
 
 ```julia
 cp_gram = positive_completion(vv, Gram(), frame)
 cp_spectral = positive_completion(vv, Spectral(), spectral_frame)
 ```
 
-Both methods reproduce the retained Kossakowski coefficients. Their finite positive continuations
-need not agree beyond the retained order.
+Both methods preserve the retained Kossakowski coefficients, but their finite positive
+continuations need not agree beyond the retained order.
 
 ```@docs
 Gram
