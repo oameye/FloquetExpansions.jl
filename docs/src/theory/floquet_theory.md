@@ -10,8 +10,7 @@ time-independent part that accumulates from cycle to cycle and a periodic part d
 motion within one cycle. This construction is exact; the high-frequency expansion in
 [High-frequency expansion](high_frequency_expansion.md) is an approximation applied afterwards.
 
-Unless stated otherwise, the equations below use frequency units, ``\hbar=1``, as in the package's
-quasienergy blocks.
+Unless stated otherwise, the equations below use frequency units, ``\hbar=1``.
 
 ## Floquet theorem
 
@@ -42,15 +41,13 @@ up to a similarity transformation. The periodic factor contains micromotion, whi
 factor describes the stroboscopic evolution. For an open system, ``\mathcal{G}_{\mathrm{F}}`` may
 be a general effective Liouvillian rather than a generator in GKLS form.
 
-The package uses the Fourier convention
+We use the Fourier convention
 
 ~~~math
 \mathcal{G}(t)=\sum_{m\in\mathbb{Z}}\mathcal{G}_m e^{-im\omega t}.
 ~~~
 
-[`PeriodicGenerator`](@ref) stores these harmonics together with the drive frequency. Its zeroth
-harmonic is the period average, and missing harmonics are zero. Use [`harmonics`](@ref) to convert a
-symbolic Hamiltonian or Liouvillian.
+The zeroth harmonic is the period average.
 
 ## Hamiltonian Floquet states
 
@@ -102,15 +99,15 @@ Q=H(t)-i\partial_t.
 
 The operator ``Q`` acts on the tensor product of the physical Hilbert space and the space of
 periodic functions, called Floquet or Sambe space. Expanding in Fourier sectors turns the periodic
-problem into an infinite block matrix. With the package convention, its Hamiltonian blocks are
+problem into an infinite block matrix. With the Fourier convention above, its Hamiltonian blocks
+are
 
 ~~~math
 Q_{mn}=H_{m-n}-m\omega_d\,\delta_{mn}.
 ~~~
 
 The diagonal blocks are replicas of the averaged Hamiltonian, shifted by integer multiples of the
-drive frequency; nonzero harmonics couple different replicas. [`QuasienergyOperator`](@ref)
-constructs a finite symbolic truncation of these blocks. This exact time-domain-to-Sambe-space
+drive frequency; nonzero harmonics couple different replicas. This exact time-domain-to-Sambe-space
 mapping is the formulation introduced by Shirley and placed on an extended-space footing by Sambe
 [Shirley1965, Sambe1973](@cite).
 
@@ -128,8 +125,8 @@ construction, with unitarity forcing the former to be real. The Floquet-space pe
 the natural starting point for the van Vleck block diagonalization discussed in
 [High-frequency expansion](high_frequency_expansion.md) [Eckardt2015](@cite).
 
-The thesis and much of the Floquet literature use ``e^{+im\omega t}`` instead. Comparing those
-formulas with the package requires ``m\mapsto-m``.
+Some Floquet literature instead uses ``e^{+im\omega t}``; translating between the two conventions
+requires ``m\mapsto-m``.
 
 ## Open-system Floquet generators and complete positivity
 
