@@ -1,12 +1,12 @@
 # Julia Style
 
-Authority for how source in `src/` is written: signatures, types, imports, comments, names. `STANDARDS.md` routes here and names the gate for each rule below.
+Authority for how source in `src/` is written: signatures, fields, imports, formatting, comments, and names. `STANDARDS.md` routes here and names the gate, if any, for each rule below.
 
-Scope: `src/**/*.jl`. Test code follows `development.md`.
+Scope: `src/`. Test code follows `development.md`.
 
 ## Function signatures
 
-- **Use the most restrictive signature type possible.** Tight type declarations let JET catch errors. Starting loose while prototyping is fine; committed code carries specific types.
+- **Constrain a parameter when the constraint expresses a semantic invariant or dispatch boundary.** Do not make a signature artificially concrete merely to silence inference tooling. The expansion engine is intentionally generic over the `PeriodicGenerator` component algebra, while completion kernels use stronger constraints where the representation requires them.
 - **Write keyword arguments after an explicit `;`**, at the call site as well as the definition:
 
   ```julia
@@ -15,27 +15,27 @@ Scope: `src/**/*.jl`. Test code follows `development.md`.
   ```
 
 - **Use keyword shorthand when forwarding same-named locals.** Write `f(args...; kwarg1, kwarg2)` rather than `f(args...; kwarg1 = kwarg1, kwarg2 = kwarg2)`.
-- **Leave a higher-order function's parameter untyped.** Julia's pass-through heuristic skips specialization for a `Function`-annotated argument that is not called directly, and the same heuristic applies to an untyped `f`. Reach for `f::F where {F}` only to force specialization, such as a nested closure. The difference is usually negligible, so keep the signature simple.
+- **Leave a higher-order function's parameter untyped by default.** Use `f::F where {F}` when specialization is deliberately required, such as a small callback on a compiler-sensitive inner loop.
 
 ## Type system
 
-**Give every struct field a concrete type.** Gated by `test/quality/CheckConcreteStructs.jl`.
+**Keep struct storage concrete.** Fields may be concrete types or type parameters that become concrete for each instance; do not store values behind `Any` or an abstract field type when the representation can encode the concrete type. Gated by `test/quality/CheckConcreteStructs.jl`.
 
 ## Imports
 
-**Import explicitly:** `using X: func1, func2`, or `import X`. Gated by `test/quality/ExplicitImports.jl`, which also rejects a stale explicit import, an import that bypasses the owning module, and a self-qualified access. `Base`, `Core` and `SecondQuantizedAlgebra` are skipped for the implicit-import check.
+**Import explicitly:** `using X: func1, func2`, or `import X`. Gated by `test/quality/ExplicitImports.jl`, which also rejects stale explicit imports, owner-incorrect imports or qualified accesses, and self-qualified accesses. `Base`, `Core`, and `SecondQuantizedAlgebra` are skipped only for the implicit-import check configured by that test.
 
 ## Formatting
 
-JuliaFormatter owns formatting, configured by `.JuliaFormatter.toml`: `blue` style, indent 2. Run `make format`. Gated by `.github/workflows/Format.yml`, which runs `jlfmt --check --verbose .` over the whole repository.
+JuliaFormatter owns formatting, configured by `.JuliaFormatter.toml`: `blue` style, indent 2. Run `make format`. `.github/workflows/Format.yml` runs `jlfmt --check --verbose .` over the repository.
 
-## Comments
+## Comments and docstrings
 
-- **Comment the non-obvious *why*, in a line or two.** The default is no comment, because the code states what it does. A comment restating the code is the one to delete.
-- **Docstring the public interface.** An internal helper's name and signature carry it; a docstring there is load with no reader.
+- **Comment the non-obvious why, not the visible what.** Keep comments compact and local to the invariant they explain.
+- **Docstring the public interface.** This includes exported names and the intentionally qualified expert API marked with `@public`. Ordinary internal helpers should normally be explained by their names, types, and the architecture/ADR that owns any non-obvious invariant rather than by duplicating design prose in local docstrings.
 
 ## Naming
 
-**Name private internals like anything else.** Julia's module system handles visibility, so a leading underscore (`_helper`, `_util.jl`) buys nothing here.
+**Name private internals like ordinary Julia names.** A leading underscore (`_helper`, `_util.jl`) is not the repository's convention for privacy; module visibility and the explicit export/`@public` surface define the API.
 
 Take a domain concept's name from `CONTEXT.md`. Where the concept is not there yet, add it in the same change.

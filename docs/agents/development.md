@@ -1,63 +1,67 @@
 # Development Workflow
 
-Use this guide for source, test, documentation, or dependency changes. Authority for the test layout, the testing patterns, and the gate loop. `STANDARDS.md` routes here.
+Use this guide for source, test, documentation, or dependency changes. It is the authority for the test layout, testing patterns, gate loop, and generated-documentation workflow. `STANDARDS.md` routes here.
 
 ## Before editing
 
-1. Read the root `AGENTS.md` and check `git status --short --branch`. Preserve work that predates the task.
+1. Read the root `AGENTS.md` and check the working tree before changing it. Preserve work that predates the task.
 2. Read `CONTEXT.md` and the ADRs relevant to the behavior or representation being changed.
-3. Identify the public API seam first. Tests describe the behavior a package user can observe, so improve that seam when the existing API cannot express the required assertion.
+3. Identify the public API seam first. Behavior tests should exercise what a package user can observe; improve that seam when the existing API cannot express the required assertion.
 
-The v0.0.1 policy permits breaking changes. Update every in-repository caller, test, docstring, example, and API page affected by a changed name, signature, or representation. Record a durable domain or design decision in `CONTEXT.md` or a new ADR when the change establishes project vocabulary or a module boundary.
+The v0.0.1 policy permits breaking changes. Update every in-repository caller, test, docstring, example, and API page affected by a changed name, signature, or representation. Record a durable domain or design decision in `CONTEXT.md` or an ADR when the change establishes project vocabulary or a module/representation boundary.
 
 ## Layout
 
-[`architecture.md`](architecture.md) is the authority for what each file under `src/` owns; read its Module ownership table rather than a second list here. Around it:
+[`architecture.md`](architecture.md) is the authority for what each file under `src/` owns. Around it:
 
-- `test/*.jl` holds behavior tests, `test/helpers/` shared fixtures, `test/quality/` the package-wide checks.
-- `docs/src/` holds user-facing documentation, `docs/adr/` design decisions, `docs/agents/` agent operating guidance.
+- `test/*.jl` holds behavior tests, `test/helpers/` shared fixtures, and `test/quality/` package-wide checks.
+- `docs/src/` holds user-facing documentation, `docs/adr/` design decisions, and `docs/agents/` repository guidance.
+- `examples/*.jl` is the source for the tracked Literate pages under `docs/src/examples/`.
 
 ## Test structure
 
-`test/runtests.jl` discovers every `test/**/*.jl` and runs it with ParallelTestRunner. Adding a file is all it takes to register a test; there is no list to update.
+`test/runtests.jl` discovers tests with ParallelTestRunner. In the normal unfiltered `Pkg.test()` path it deliberately removes `quality/JET`, because JET is a separate acceptance gate with its own environment and workflow. Adding an ordinary `test/**/*.jl` file is otherwise enough to register it; there is no central test list to update.
 
-Passing a positional argument selects tests by prefix, so `Pkg.test(; test_args=["quality"])` runs the quality checks alone.
+Passing positional test arguments filters the discovered suite. Keep JET invocation explicit through `make jet` rather than relying on the default test command.
+
+The qualified expert API is marked with `@public` in `src/FloquetExpansions.jl` rather than exported. `test/runtests.jl` explicitly imports those names into each isolated test worker. When that expert seam changes, update the module declaration and the test-worker import list together.
 
 ## Testing patterns
 
-- **Test through the public API.** Exercise the package as a user would, through exported or documented interfaces. Where behavior cannot be reached that way, improve the public seam rather than adding a test-only escape hatch. This one is held by review; no check enforces it.
-- Assert type-stability contracts with `@inferred`.
-- Assert hot-path allocation contracts with `@allocations`. See [`performance.md`](performance.md) for which paths those are.
-- For new behavior, add a public-API regression test, plus a doctest or API documentation update when the user-facing interface changes.
+- **Test behavior through the public API.** Exercise exported or intentionally qualified `@public` interfaces. Do not make private fields or helpers part of the contract merely to make a test convenient. This rule is held by review.
+- Use `@inferred` when a stable return-type contract is part of the behavior.
+- Keep compiler-sensitive core workloads under `JET.@test_opt` when optimizer cleanliness is an acceptance property. The current completion workloads in `test/quality/JET.jl` are required gates, not optional diagnostics.
+- For runtime-sensitive changes, measure the benchmark workload that exercises the path. Add an allocation assertion only when a small, stable operation is genuinely expected to have a fixed allocation contract; the repository does not currently impose a package-wide zero-allocation gate.
+- For new user-facing behavior, add a public-API regression test and update a doctest or manual/API documentation where that interface is documented.
 
 ## The gate loop
 
-Use the smallest check that answers the current question, then run the gates below before handoff. **`make test` and `make jet` are separate gates and neither covers the other.**
+Use the smallest check that answers the current question, then run the relevant acceptance gates before handoff. **`make test` and `make jet` are separate gates and neither covers the other.**
 
 | Command | Runs | CI |
 | --- | --- | --- |
-| `make format` | JuliaFormatter over the repository | `Format.yml` |
-| `make test` | every test except `quality/JET`, including Aqua, CheckConcreteStructs, ExplicitImports and the doctests | `Tests.yml` |
-| `make jet` | `test/quality/JET.jl` alone | `JET.yml` |
-| `make docs` | docstring checks and the documentation build | `Documentation.yml` |
+| `make format` | JuliaFormatter in-place over the repository | `Format.yml` checks formatting |
+| `make test` | the default ParallelTestRunner suite, including Aqua, CheckConcreteStructs, ExplicitImports and doctests, but excluding `quality/JET` | `Tests.yml` |
+| `make jet` | `test/quality/JET.jl`: package JET plus explicit optimizer-stability workloads | `JET.yml` |
+| `make docs` | the Documenter build with `checkdocs=:exports`; doctests are disabled here because the test suite owns them | `Documentation.yml` |
 | `make bench` | the benchmark suite | `Benchmarks.yaml` |
 
-`test/runtests.jl` deletes `quality/JET` whenever no positional argument is given, which is exactly the case `make test` produces. So a green `make test` says nothing about JET, and `make jet` is the only local command that does. `make all` is `setup format test docs`, so it does not run JET either despite the name.
+`make all` is `setup format test docs`; it does not run JET, benchmarks, or the CI-only spell check.
 
-Spelling is checked in CI only, by `SpellCheck.yml` over the whole tree, configured by `.typos.toml`.
+Spelling is checked on pull requests by `SpellCheck.yml`, configured by `.typos.toml`.
 
 ## Building the docs
 
-Run `make docs` from the repository root with Julia's normal depot and project environment. Preserve the existing `JULIA_DEPOT_PATH` and `JULIA_PROJECT` so Julia reuses established downloads and precompiled caches. A first run after a Julia, dependency, or source change may still precompile.
+Run `make docs` from the repository root with Julia's normal depot and project environment so existing downloads and precompile caches can be reused. A first run after a Julia, dependency, or source change may still precompile.
 
-Where the environment cannot write the normal depot, request writable access or hand the command back to the user. Keep the validation command as `make docs`. Use a temporary depot only on explicit request, because it discards cache reuse and can force a full recompilation.
+`docs/make.jl` sets `doctest=false` because doctests run in `test/quality/Documenter.jl`. It uses `checkdocs=:exports` for exported-doc inclusion.
 
 ## Generated files
 
-`docs/make_md_examples.jl` runs Literate over `examples/*.jl` and writes `docs/src/examples/*.md` on every docs build. **Those `.md` files are tracked in git but regenerated, so an edit to one is overwritten.** Edit the `examples/*.jl` source instead.
+`examples/*.jl` is the source of truth for `docs/src/examples/*.md`. Under documentation CI, `docs/make.jl` includes `docs/make_md_examples.jl`, which runs Literate before `makedocs`; a normal local `make docs` without the CI condition builds the tracked Markdown as it stands and does not regenerate it. Do not edit the generated Markdown as the source of a documentation change.
 
-`docs/build/`, `Manifest.toml`, `test-run.log` and `benchmark/benchmarks_output.json` are gitignored. Leave them untracked and out of handoff summaries.
+`docs/build/`, `docs/site/`, `Manifest.toml`, `test-run.log`, and `benchmark/benchmarks_output.json` are gitignored. Leave generated local artifacts out of commits and handoff summaries.
 
 ## Finishing
 
-Finish when the gates for the area you changed pass, and the diff accounts for the changed behavior, its tests, and its docs.
+Finish when the gates for the area you changed pass and the diff accounts for the changed behavior, its tests, and its docs. Run `make bench` as well when the change is performance-sensitive.

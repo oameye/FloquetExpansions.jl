@@ -1,25 +1,33 @@
 # Performance
 
-Authority for performance rules and for the vocabulary used when reporting numbers. `STANDARDS.md` routes here.
+Authority for inference, optimizer-stability, allocation, and runtime-performance rules, and for the vocabulary used when reporting numbers. `STANDARDS.md` routes here.
 
 ## The three axes
 
-Keep these separate. A number reported without saying which axis it measures is unreadable.
+Keep these separate. A number reported without saying which axis it measures is ambiguous.
 
-- **Precompilation time**: compiling package code into the on-disk cache. Paid once per version or dependency change, not per session. Where `precompile.jl`'s `@compile_workload` runs.
-- **TTFX**: cold-process latency to the *first* call, meaning `using` load time plus any JIT that precompilation did not cache. A bigger `@compile_workload` trades more precompilation time for less TTFX.
-- **Runtime**: steady-state cost of every call after the first, with no compilation. What `@btime` and `benchmark/` measure after warmup, and the target of the zero-allocation passes.
+- **Precompilation time**: time spent compiling package code into reusable cache artifacts after a package or dependency change. The repository currently has no dedicated precompile workload or precompilation gate.
+- **TTFX**: cold-process latency to the first relevant call: package loading plus JIT work not already cached. The repository currently has no TTFX gate.
+- **Runtime**: steady-state execution cost after compilation. `benchmark/` and `Benchmarks.yaml` are the repository's current automated performance-regression surface.
 
-Call the `julia-tffx` skill for the first two, `optimize-julia-code` and `profile-performance` for the third.
+Do not use a runtime benchmark as evidence about TTFX, or a successful precompile as evidence about steady-state runtime.
 
-## Rules
+## Inference and optimizer stability
 
-- **Keep every operation inferable.** Assert it with `@inferred` in the test for the behaviour. JET covers the package-wide case.
-- **Keep the core paths allocation-free**, and assert it with `@allocations`. The paths that matter are Fourier lowering, the recursive expansion, Liouvillian term composition, and the explicit-frame completion kernels. Sinking a type parameter (`F` in `where {F}`) forces specialization, so a nested `do` block inlines with no closure allocation.
-- **Take keyword arguments at the API boundary and forward to a positional inner function.** Keyword wrappers can add dispatch/setup overhead and enlarge the inference surface on hot call chains, so the inference-oriented computational core takes positional arguments only.
+- **Treat inference as an acceptance property on core paths.** Use `@inferred` for stable observable return types and package-wide JET for broader inference diagnostics.
+- **Keep the explicit-frame completion path compiler-clean.** `test/quality/JET.jl` contains required `JET.@test_opt` workloads for explicit-frame Gram completion, recursive Gram completion, Spectral completion, and completed-state accessors. Do not remove or weaken those workloads to hide an inference problem.
+- **Keep the explicit-frame computational core concrete.** Automatic dissipative-frame discovery is allowed to be a dynamic convenience frontend because the number of independent directions is discovered at runtime; once a `DissipativeFrame` is explicit, the downstream completion path should preserve concrete dispatch and storage.
+
+## Runtime and allocations
+
+- **Minimize avoidable allocations; do not claim whole symbolic algorithms are allocation-free.** Fourier lowering, recursive expansion, Liouvillian composition, symbolic matrix/series algebra, and positive completion naturally construct symbolic objects. Optimize repeated temporary structure and data movement, and measure the path that matters.
+- **Reuse structural work.** When repeated symbolic solves share the same leading matrix, build and reuse the solve plan. In Gram recursion, dark-sector dressing and the associated Feshbach residual should reuse equivalent solve structure rather than factor the same system twice.
+- **Preserve Hermitian structure in completion linear algebra.** Use Hermitian/congruence elimination directly and avoid materializing dense elementary transforms when structured elimination suffices.
+- **Keep API convenience separate from hot kernels.** Keyword arguments are valid at public boundaries. Do not mechanically ban them; use positional inner kernels where measurements or inference show that doing so keeps a compiler-sensitive call chain concrete and simple.
+- **Do not change the completion scalar backend as an incidental optimization.** The current dedicated completion scalar representation remains behind `completion_conversion.jl`; replacing it with a native `SQA.CNum`-based layer is a separate architectural change.
 
 ## Measuring
 
-`make bench` runs the suite. `.github/workflows/Benchmarks.yaml` tracks it and comments on a pull request, alerting above 130% and failing above 170% of the recorded baseline.
+`make bench` runs the benchmark suite. `.github/workflows/Benchmarks.yaml` records benchmark history, comments when a result exceeds 130% of baseline, and fails when a result exceeds 170%.
 
-Measure rather than reason about allocations or inference. A claim about either needs the number that produced it.
+A performance claim must identify the axis, workload, and measurement that supports it. Allocation claims need an allocation measurement; the repository currently has no package-wide committed `@allocations` gate, so do not imply one exists.
