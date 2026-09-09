@@ -31,20 +31,26 @@ Positive completion is a separate opt-in stage after the finite Floquet expansio
 
 ## Module ownership
 
+Listed in module/include order, which is also the dependency order. Every file under `src/` has a row.
+
 | Module | Owns | Public seam |
 | --- | --- | --- |
+| `FloquetExpansions.jl` | Module wiring, include order, reexports, the export list, and the qualified expert API | the module's exported and `@public` names |
 | `periodic_operator.jl` | Fourier harmonics, drive frequency, harmonic calculus, gauges | `PeriodicGenerator`, `harmonics`, `time_average`, `derivative`, `antiderivative` |
-| `liouvillian.jl` | Collected `ρ ↦ AρB` terms, physical channel constructors, composition, Liouvillian lowering | `Liouvillian`, `terms`, `collapse`, `jump`, `compose`, `harmonics` |
-| `engine.jl` | Generic Van Vleck recursion, order scaling, `FloquetExpansion`, retained effective/micromotion accessors | `FloquetExpansion`, `floquet_expansion`, `effective_generator`, `effective_component`, `micromotion` |
-| `gksl_coordinates.jl` | Ordered dissipative frames and exact GKSL/Kossakowski coordinate extraction | `DissipativeFrame`, `hamiltonian`, `hamiltonian_component`, `kossakowski`, `kossakowski_component` |
+| `completion_types.jl` | Completion state/algorithm types, factorization supertype, completion exceptions, microscopic provenance, completed-state storage | `Completion`, `Uncompleted`, `CompletionAlgorithm`, `Gram`, `Spectral`, `CompletionFactorization`, `CompletionObstruction`, `FractionalJumpOnset` |
 | `matrix_series.jl` | Truncated symbolic scalar/matrix-series algebra and graded factor recurrences | internal only |
 | `completion_linear_algebra.jl` | Reusable symbolic solve plans, triangular series solves, structured Hermitian congruence elimination, Gram/Feshbach dressing | internal only |
+| `liouvillian.jl` | Collected `ρ ↦ AρB` terms, physical channel constructors, composition, Liouvillian lowering | `Liouvillian`, `terms`, `collapse`, `jump`, `compose`, `harmonics` |
+| `quasienergy.jl` | Symbolic Sambe blocks and harmonic indexing | `QuasienergyOperator`, `harmonic_range` |
+| `engine.jl` | Generic Van Vleck recursion, order scaling, `FloquetExpansion`, retained effective/micromotion accessors and microscopic-channel retention | `FloquetExpansion`, `floquet_expansion`, `effective_generator`, `effective_component`, `micromotion` |
+| `gksl_coordinates.jl` | Ordered dissipative frames and exact GKSL/Kossakowski coordinate extraction | `DissipativeFrame`, `hamiltonian`, `hamiltonian_component`, `kossakowski`, `kossakowski_component` |
 | `completion_conversion.jl` | Narrow conversion boundary between SQA coefficients and the completion scalar backend | internal only |
 | `completion_frame.jl` | Automatic dissipative-frame discovery and independent-direction filtering | internal only |
-| `gram_completion.jl`, `gram_recursion.jl` | Algebraic Gram completion and recursive active/dark onset filtration | `Gram`, `GramFactorization` |
-| `spectral_completion.jl` | Restricted perturbative spectral/HCM completion | `Spectral`, `SpectralFactorization` |
+| `gram_completion.jl` | Algebraic Gram completion on one active stratum and its factorization data | `Gram`, `GramFactorization` |
+| `gram_recursion.jl` | Recursive active/dark onset filtration and stage assembly | `GramStage` |
+| `spectral_completion.jl` | Restricted perturbative spectral/HCM completion and factorization data | `Spectral`, `SpectralFactorization` |
 | `completion.jl` | Common completion dispatch, result finalization, owned representation data and cached retained/coherent data | `positive_completion`, `channels`, `dissipative_frame`, `positivity_conditions`, `regularity_conditions`, `factorization` |
-| `quasienergy.jl` | Symbolic Sambe blocks and harmonic indexing | `QuasienergyOperator`, `harmonic_range` |
+| `gksl_floquet.jl` | GKSL/Kossakowski and coherent-Hamiltonian accessors specialized to `FloquetExpansion` | `kossakowski`, `kossakowski_component`, `hamiltonian`, `hamiltonian_component` |
 
 The package delegates operator multiplication, adjoints, normal ordering, and coefficient algebra to SecondQuantizedAlgebra. Keep those concerns at that dependency's seam instead of recreating them in this package. Completion currently keeps its dedicated symbolic scalar backend behind `completion_conversion.jl`; changing that backend is a separate architectural change rather than a responsibility of the Gram or Spectral kernels.
 
