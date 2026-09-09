@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "dec1ba3"
+commit = "ff36c2e"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -16,25 +16,49 @@ public = 0
 undocumented = 0
 public = 1
 
+[files."src/completion_conversion.jl"]
+undocumented = 0
+public = 0
+
+[files."src/completion_frame.jl"]
+undocumented = 0
+public = 0
+
+[files."src/completion_linear_algebra.jl"]
+undocumented = 0
+public = 0
+
 [files."src/completion_types.jl"]
 undocumented = 0
-public = 6
+public = 8
 
 [files."src/engine.jl"]
 undocumented = 0
-public = 5
+public = 6
 
 [files."src/gksl_coordinates.jl"]
 undocumented = 0
-public = 3
+public = 2
 
 [files."src/gksl_floquet.jl"]
 undocumented = 0
 public = 4
 
+[files."src/gram_completion.jl"]
+undocumented = 0
+public = 9
+
+[files."src/gram_recursion.jl"]
+undocumented = 0
+public = 0
+
 [files."src/liouvillian.jl"]
 undocumented = 0
 public = 9
+
+[files."src/matrix_series.jl"]
+undocumented = 0
+public = 0
 
 [files."src/periodic_operator.jl"]
 undocumented = 0
@@ -43,3 +67,7 @@ public = 8
 [files."src/quasienergy.jl"]
 undocumented = 0
 public = 2
+
+[files."src/spectral_completion.jl"]
+undocumented = 0
+public = 1
