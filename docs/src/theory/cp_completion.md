@@ -6,10 +6,10 @@ CollapsedDocStrings = true
 # [CP-preserving completion](@id cp-preserving-completion-theory)
 
 For a periodically driven open system, a finite-order effective Liouvillian obtained from a
-high-frequency expansion need not remain inside the GKLS cone [Ikeda2021, Schnell2021](@cite).
-The completion problem is to preserve every retained perturbative coefficient while choosing the
-first unfixed higher-order dissipative terms so that the finite effective generator is completely
-positive.
+high-frequency expansion need not remain inside the Gorini--Kossakowski--Sudarshan--Lindblad
+(GKLS) cone [Ikeda2021, Schnell2021](@cite). The completion problem is to preserve every retained
+perturbative coefficient while choosing the first unfixed higher-order dissipative terms so that
+the finite effective generator is completely positive.
 
 Choose a finite dissipative operator frame ``F=(F_1,\ldots,F_q)``. The retained dissipative sector
 is a Hermitian Kossakowski series
@@ -67,8 +67,10 @@ truncation.
 
 ## Active and dark sectors
 
-The leading Hermitian form determines an active quotient and a dark radical. In a congruence frame
-adapted to this split,
+On a parameter stratum where the leading Hermitian form is nonnegative, its support defines the
+active sector and its kernel the dark radical. A negative leading direction is already incompatible
+with a positive continuation on that stratum. In a congruence frame adapted to the active/dark
+split,
 
 ```math
 d=
@@ -78,8 +80,8 @@ X^\dagger & C
 \end{pmatrix},
 ```
 
-where the leading part of ``A`` is nonsingular and the leading dark block vanishes. The active block
-admits a graded ``LDL^\dagger`` factorization,
+where the leading part of ``A`` is positive definite and the leading dark block vanishes. The active
+block admits a graded ``LDL^\dagger`` factorization,
 
 ```math
 A=L\Delta L^\dagger=GG^\dagger,
@@ -136,7 +138,7 @@ pivot formula through the rank change.
 
 A complementary construction follows perturbative decay-rate branches in a frame where the
 leading Kossakowski form is diagonal. This is the completely-positive perturbative construction of
-Haddadfarshi, Cui, and Mintert [Haddadfarshi2015](@cite).
+Haddadfarshi, Cui, and Mintert (HCM) [Haddadfarshi2015](@cite).
 
 For one retained branch with first nonzero rate order ``n_a``, write
 
