@@ -81,12 +81,14 @@ X^\dagger & C
 ```
 
 where the leading part of ``A`` is positive definite and the leading dark block vanishes. The active
-block admits a graded ``LDL^\dagger`` factorization,
+block admits a graded ``LDL^\dagger`` factorization through the retained order,
 
 ```math
-A=L\Delta L^\dagger=GG^\dagger,
+\Pi_N\!\left(L\Delta L^\dagger\right)=A,
 \qquad
-G=L\sqrt{\Delta}.
+G=L\sqrt{\Delta},
+\qquad
+\Pi_N\!\left(GG^\dagger\right)=A.
 ```
 
 This fixes one convenient jump-amplitude gauge without a Kossakowski eigendecomposition.
