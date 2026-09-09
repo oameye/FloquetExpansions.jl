@@ -28,7 +28,8 @@ The qualified expert API is marked with `@public` in `src/FloquetExpansions.jl` 
 
 ## Testing patterns
 
-- **Test behavior through the public API.** Exercise exported or intentionally qualified `@public` interfaces. Do not make private fields or helpers part of the contract merely to make a test convenient. This rule is held by review.
+- **Test user-visible behavior through the public API.** Behavior and regression tests for package features should exercise exported or intentionally qualified `@public` interfaces. Do not reach through private fields or helpers merely to make such a test convenient.
+- **Use internal tests for internal invariants.** Focused algebra or algorithm tests may qualify private helpers when directly validating a load-bearing invariant that is not usefully observable at the public seam, as in matrix-series or Gram-recursion tests. Such a test does not make that helper public API.
 - Use `@inferred` when a stable return-type contract is part of the behavior.
 - Keep compiler-sensitive core workloads under `JET.@test_opt` when optimizer cleanliness is an acceptance property. The current completion workloads in `test/quality/JET.jl` are required gates, not optional diagnostics.
 - For runtime-sensitive changes, measure the benchmark workload that exercises the path. Add an allocation assertion only when a small, stable operation is genuinely expected to have a fixed allocation contract; the repository does not currently impose a package-wide zero-allocation gate.

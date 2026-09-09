@@ -68,11 +68,12 @@ The package delegates operator multiplication, adjoints, normal ordering, and co
 - A raw finite-order effective generator is the algebraic truncation and is not assumed to be GKSL or completely positive.
 - Positive completion is explicit, never implicit in `floquet_expansion`, is defined only for Liouvillian expansions, and does not rewrite retained Floquet coefficients or micromotion.
 - Kossakowski coordinates are relative to an ordered `DissipativeFrame`. Ordering is representation-significant even when two frames span the same subspace.
+- Raw expansions require an explicit `DissipativeFrame` for GKSL/Kossakowski coordinate extraction. Completed expansions store the finalized frame, so no-frame completed accessors are unambiguous.
 - Automatic frame discovery is a symbolic convenience frontend whose output arity depends on runtime algebraic independence. The explicit-frame `positive_completion(expansion, algorithm, frame)` methods are the inference-oriented computational core.
 - Automatic frame discovery starts from microscopic dissipative directions when provenance is available and appends algebraically generated independent directions deterministically, with independence taken modulo the identity.
 - A completed result owns its finalized `DissipativeFrame` and caches the physical retained Kossakowski coefficients and coherent Hamiltonian used to construct its completed generator. Public accessors return defensive copies where mutation could invalidate that owned representation.
 - `Gram()` is algebraic and must not require Hilbert-space/Liouville-space matrices, characteristic polynomials, symbolic eigendecomposition, or symbolic matrix square roots.
-- `Spectral()` is a restricted perturbative spectral/HCM realization. It requires the leading Kossakowski form to be diagonal in its frame and does not define the general completion architecture.
+- `Spectral()` is a restricted perturbative spectral/HCM realization. The leading Kossakowski form must be diagonal in its frame, and retained corrections must already be diagonal within degenerate leading sectors. Automatic frame discovery does not diagonalize the leading Kossakowski form.
 - `channels(cp)` is defined only for completed expansions and satisfies `liouvillian(hamiltonian(cp); channels=channels(cp)) == effective_generator(cp)`.
 - Algorithm-specific intermediate data are exposed through `factorization(cp)`; the normal completed physical interface is common to all completion algorithms.
 - Expert API names marked `@public` are stable qualified interfaces, intentionally not widened into the ordinary export list.
