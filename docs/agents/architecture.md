@@ -46,9 +46,9 @@ Listed in module/include order, which is also the dependency order. Every file u
 | `gksl_coordinates.jl` | Ordered dissipative frames and exact GKSL/Kossakowski coordinate extraction | `DissipativeFrame`, `hamiltonian`, `hamiltonian_component`, `kossakowski`, `kossakowski_component` |
 | `completion_conversion.jl` | Narrow conversion boundary between SQA coefficients and the completion scalar backend | internal only |
 | `completion_frame.jl` | Automatic dissipative-frame discovery and independent-direction filtering | internal only |
-| `gram_completion.jl` | Algebraic Gram completion on one active stratum and its factorization data | `Gram`, `GramFactorization` |
-| `gram_recursion.jl` | Recursive active/dark onset filtration and stage assembly | `GramStage` |
-| `spectral_completion.jl` | Restricted perturbative spectral/HCM completion and factorization data | `Spectral`, `SpectralFactorization` |
+| `gram_completion.jl` | Gram completion data types and single-stratum factor operations | `GramStage`, `GramFactorization` |
+| `gram_recursion.jl` | Recursive active/dark onset filtration and the algebraic Gram completion implementation | internal only |
+| `spectral_completion.jl` | Restricted perturbative spectral/HCM completion and factorization data | `SpectralFactorization` |
 | `completion.jl` | Common completion dispatch, result finalization, owned representation data and cached retained/coherent data | `positive_completion`, `channels`, `dissipative_frame`, `positivity_conditions`, `regularity_conditions`, `factorization` |
 | `gksl_floquet.jl` | GKSL/Kossakowski and coherent-Hamiltonian accessors specialized to `FloquetExpansion` | `kossakowski`, `kossakowski_component`, `hamiltonian`, `hamiltonian_component` |
 
