@@ -3,12 +3,13 @@ CurrentModule = FloquetExpansions
 CollapsedDocStrings = true
 ~~~
 
-# Floquet theory
+# [Floquet theory](@id floquet-theory)
 
 Floquet theory is the temporal analogue of Bloch theory. It separates a periodic evolution into a
 time-independent part that accumulates from cycle to cycle and a periodic part describing the
-motion within one cycle. This construction is exact; the high-frequency expansion in
-[High-frequency expansion](high_frequency_expansion.md) is an approximation applied afterwards.
+motion within one cycle. This construction is exact; the
+[high-frequency expansion](@ref high-frequency-expansion-theory) is an approximation applied
+afterwards.
 
 Unless stated otherwise, the equations below use frequency units, ``\hbar=1``.
 
@@ -122,8 +123,8 @@ Its eigenvalues are generally complex: their real parts describe oscillation and
 parts describe decay or growth. They are still defined modulo ``\omega_d``. Thus ordinary
 quasienergies and dissipative quasienergies are two spectral versions of the same Floquet
 construction, with unitarity forcing the former to be real. The Floquet-space perspective is also
-the natural starting point for the van Vleck block diagonalization discussed in
-[High-frequency expansion](high_frequency_expansion.md) [Eckardt2015](@cite).
+the natural starting point for the van Vleck block diagonalization discussed in the
+[high-frequency expansion](@ref high-frequency-expansion-theory) [Eckardt2015](@cite).
 
 Some Floquet literature instead uses ``e^{+im\omega t}``; translating between the two conventions
 requires ``m\mapsto-m``.
@@ -145,7 +146,7 @@ Floquet Liouvillian
 ~~~
 
 whose retained coefficients are fixed by the microscopic periodic dynamics. Truncating this formal
-series can produce a Kossakowski form with weak negative directions even though the original
+series can produce a Kossakowski form with negative directions even though the original
 time-dependent generator is Lindbladian at every time.
 
 A CP-preserving perturbative continuation may supply higher-order dissipative data that restore a
