@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "9a3c2eb"
+commit = "ff36c2e"
 entry = ["src/FloquetExpansions.jl"]
 full_analysis = true
 metric = "lsp"
@@ -17,6 +17,18 @@ raw = 5
 reviewed = 0
 
 [files."src/completion.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/completion_conversion.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/completion_frame.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/completion_linear_algebra.jl"]
 raw = 0
 reviewed = 0
 
@@ -36,7 +48,19 @@ reviewed = 1
 raw = 0
 reviewed = 0
 
+[files."src/gram_completion.jl"]
+raw = 1
+reviewed = 1
+
+[files."src/gram_recursion.jl"]
+raw = 0
+reviewed = 0
+
 [files."src/liouvillian.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/matrix_series.jl"]
 raw = 0
 reviewed = 0
 
@@ -45,5 +69,9 @@ raw = 1
 reviewed = 1
 
 [files."src/quasienergy.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/spectral_completion.jl"]
 raw = 0
 reviewed = 0
