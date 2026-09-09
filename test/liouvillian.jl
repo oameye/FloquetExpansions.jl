@@ -69,6 +69,13 @@ end
   @test @inferred(liouvillian(H; channels=(jump(a, γ),))) isa Liouvillian
 end
 
+@testset "channel displays use their public constructors" begin
+  @test sprint(show, collapse(a)) == "collapse(a)"
+  @test sprint(show, jump(a, γ)) == "jump(a, γ)"
+  @test sprint(show, MIME"text/plain"(), collapse(a)) == "collapse(a)"
+  @test sprint(show, MIME"text/plain"(), jump(a, γ)) == "jump(a, γ)"
+end
+
 @testset "jump rates are real and nonnegative by physical assumption" begin
   zero_H = zero(SQA.QAdd)
 

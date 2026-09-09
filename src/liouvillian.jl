@@ -15,6 +15,24 @@ struct RateWeightedJump{O<:SQA.QField} <: LiouvillianChannel
   assumption::NonnegativeRateAssumption
 end
 
+function Base.show(io::IO, channel::CollapseChannel)
+  print(io, "collapse(")
+  show(io, channel.operator)
+  return print(io, ")")
+end
+
+Base.show(io::IO, ::MIME"text/plain", channel::CollapseChannel) = show(io, channel)
+
+function Base.show(io::IO, channel::RateWeightedJump)
+  print(io, "jump(")
+  show(io, channel.operator)
+  print(io, ", ")
+  show(io, channel.rate)
+  return print(io, ")")
+end
+
+Base.show(io::IO, ::MIME"text/plain", channel::RateWeightedJump) = show(io, channel)
+
 """
     Liouvillian
 
