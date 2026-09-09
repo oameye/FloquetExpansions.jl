@@ -7,7 +7,7 @@ CollapsedDocStrings = true
 
 A finite-order high-frequency expansion of a periodic Lindblad generator need not itself be a
 GKLS generator, even when the microscopic dynamics is Markovian and completely positive
-[Schnell2021](@cite). Positive completion supplies a finite completely-positive continuation
+[Schnell2021](@cite). Positive completion supplies a finite completely positive continuation
 without changing the retained Floquet coefficients or micromotion.
 
 The normal workflow is explicit:
@@ -73,8 +73,6 @@ The completed channels reconstruct the finite generator together with its cohere
 ```julia
 liouvillian(hamiltonian(cp); channels=channels(cp)) == effective_generator(cp)
 ```
-
-up to the package's exact symbolic simplification conventions.
 
 ```@docs
 channels
