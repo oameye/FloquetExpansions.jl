@@ -79,6 +79,17 @@ The first Gram stage handles a regular leading-rank sector and exactly dark resi
 A new dissipative channel that opens only at a higher perturbative grade is classified before the
 recursive continuation step; that recursive onset filtration is a separate completion stage.
 
+## Spectral completion
+
+[`Spectral`](@ref) works in a restricted dissipative frame in which the leading Kossakowski form is
+diagonal. It follows perturbative decay-rate branches and completes each retained branch rate by an
+HCM square construction. Mixing inside an unresolved degenerate leading sector is rejected rather
+than resolved by an implicit symbolic diagonalization.
+
+Odd branch-rate onsets remain valid rate-weighted jumps. [`SpectralFactorization`](@ref) records the
+branch rates, normalized perturbative vectors, onset orders, and whether a rate-folded collapse
+amplitude would require a Puiseux onset.
+
 ## Micromotion
 
 The retained kick operator does not need to be modified. If
@@ -108,6 +119,7 @@ CompletionFactorization
 CompletionObstruction
 FractionalJumpOnset
 GramFactorization
+SpectralFactorization
 positive_completion
 dissipative_frame
 channels
