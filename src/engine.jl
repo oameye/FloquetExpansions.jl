@@ -20,6 +20,14 @@ struct FloquetExpansion{G<:Gauge,P<:PeriodicGenerator,E,C<:Completion,R<:Floquet
   provenance::R
 end
 
+"""
+    order(expansion::FloquetExpansion) -> Int
+
+Return the number of retained inverse-frequency orders in `expansion`. `order = 1` contains only
+the period average, so the highest retained inverse-frequency power is `order(expansion) - 1`.
+"""
+order(expansion::FloquetExpansion) = getfield(expansion, :order)
+
 function Base.getproperty(expansion::FloquetExpansion, name::Symbol)
   if name === :provenance
     throw(ArgumentError("FloquetExpansion field :provenance is private"))

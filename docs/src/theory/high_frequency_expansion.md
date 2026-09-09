@@ -3,7 +3,7 @@ CurrentModule = FloquetExpansions
 CollapsedDocStrings = true
 ~~~
 
-# High-frequency expansion
+# [High-frequency expansion](@id high-frequency-expansion-theory)
 
 When the drive frequency is large compared with the remaining dynamical scales, the nonzero
 Fourier harmonics can be removed order by order. The result is a time-independent effective
@@ -16,13 +16,13 @@ Bukov2015, Sanders2007, Murdock2003](@cite).
 
 ## Periodic Lie transformation
 
-Write the periodic generator in the package convention,
+Use the Fourier convention
 
 ~~~math
-\mathcal{G}(t)=\sum_m\mathcal{G}_m e^{-im\omega t},
+\mathcal{G}(t)=\sum_m\mathcal{G}_m e^{-im\omega t}.
 ~~~
 
-and transform to a periodic frame with
+For a general linear map generator the periodic frame transformation is
 
 ~~~math
 \widetilde{\mathcal{G}}(t)
@@ -37,6 +37,19 @@ near-identity transformation; in Floquet terminology ``e^{\mathcal{K}(t)}`` is m
 [Rahav2003, Venkatraman2022](@cite). The canonical Hamiltonian version is the Hori--Deprit
 Lie-transform method [horiTheory1966, Deprit1969](@cite).
 
+A Hamiltonian transformation is unitary, ``U_K=e^{-iK}``, whereas a Liouvillian transforms by an
+ordinary similarity map. The recursion topology is shared, but the BCH phase is therefore algebra
+dependent:
+
+~~~math
+\eta_H=i,
+\qquad
+\eta_{\mathcal L}=-1.
+~~~
+
+This distinction is essential once commutator corrections appear. The ordinary Liouvillian
+commutator itself remains the map commutator; only the Lie-transform weights differ.
+
 Expand
 
 ~~~math
@@ -49,7 +62,8 @@ Expand
 The expansion is formal and asymptotic. It is useful when the off-resonant Fourier sectors are
 separated by frequency-scale gaps; near resonance, first move to a suitable rotating frame.
 Resonance-adapted Floquet perturbation and Floquet Schrieffer--Wolff constructions provide
-alternative treatments when this separation is not available [RodriguezVega2018, Wang2024Floquet](@cite).
+alternative treatments when this separation is not available
+[RodriguezVega2018, Wang2024Floquet](@cite).
 
 ## Averaging and the homological equation
 
@@ -87,13 +101,12 @@ of ``\partial_\tau`` on the zero-average subspace is
 \qquad m\ne0,
 ~~~
 
-so that ``\langle\mathcal{K}\rangle=0``. This is the operation implemented by
-[`antiderivative`](@ref) with [`VanVleck`](@ref), and is the zero-average convention used in the
-standard Floquet effective-frame constructions [Goldman2014, Eckardt2015](@cite).
+so that ``\langle\mathcal{K}\rangle=0``. This is the zero-average convention used in the standard
+Floquet effective-frame constructions [Goldman2014, Eckardt2015](@cite).
 
 ## Leading terms
 
-In the package convention, the first terms are
+The period average is common to both algebras,
 
 ~~~math
 \mathcal{G}_{\mathrm{eff}}^{(0)}=\mathcal{G}_0,
@@ -101,34 +114,29 @@ In the package convention, the first terms are
 \mathcal{K}^{(1)}_m=\frac{i}{m}\mathcal{G}_m\quad(m\ne0),
 ~~~
 
-and
+but the first commutator correction must be written in the physical convention of the input. For a
+Hamiltonian,
 
 ~~~math
-\mathcal{G}_{\mathrm{eff}}^{(1)}
-=\sum_{m>0}\frac{[\mathcal{G}_{-m},\mathcal{G}_m]}{m}.
+H_{\mathrm{eff}}^{(1)}
+=\sum_{m>0}\frac{[H_{-m},H_m]}{m},
 ~~~
 
-Thus the full effective generator begins as
+whereas for a Liouvillian,
 
 ~~~math
-\mathcal{G}_{\mathrm{eff}}
-=\mathcal{G}_0
-+\frac{1}{\omega}\sum_{m>0}
-\frac{[\mathcal{G}_{-m},\mathcal{G}_m]}{m}+\mathcal{O}(\omega^{-2}).
+\mathcal{L}_{\mathrm{eff}}^{(1)}
+=i\sum_{m>0}\frac{[\mathcal{L}_{-m},\mathcal{L}_m]}{m}.
 ~~~
 
-For a Hamiltonian, replace ``\mathcal{G}_m`` by ``H_m``. The commutator is then the familiar
-first virtual-process correction to the effective Hamiltonian. The package uses `order = 1` for
-the average and `order = 2` for the average plus this first inverse-frequency correction.
-These commutator corrections are also the average-Hamiltonian expansion developed for quantum
-Liouville dynamics and extended to higher orders by Buishvili and collaborators
-[Buishvili1979, buishviliHigher1981](@cite).
+The extra ``i`` is the Liouville-space consequence of the similarity-transform convention, or
+equivalently of the ``i\mathcal L_m`` blocks in the energy-like Sambe operator.
 
-The van Vleck recursion is related to, but distinct in bookkeeping from, Floquet--Magnus
-expansions, which organize the logarithm of the propagator [Blanes2009, Casas2001](@cite), and
-Brillouin--Wigner high-frequency expansions, which use energy-dependent denominators
-[Mikami2016Brillouin](@cite). Agreement requires matching the effective-frame and branch
-conventions.
+These commutator corrections are related to the average-Hamiltonian expansion developed for
+quantum Liouville dynamics and extended to higher orders by Buishvili and collaborators
+[Buishvili1979, buishviliHigher1981](@cite). The van Vleck recursion is related to, but distinct in
+bookkeeping from, Floquet--Magnus expansions [Blanes2009, Casas2001](@cite) and
+Brillouin--Wigner high-frequency expansions [Mikami2016Brillouin](@cite).
 
 ## Sambe-space block diagonalization
 
@@ -170,25 +178,29 @@ H_{\mathrm{eff}}
 
 the same expression obtained from the time-domain homological equation. In this representation the
 oscillatory harmonics are off-diagonal Sambe blocks, and the effective generator is their
-block-diagonal normal form. This is the Floquet-space van Vleck construction of Eckardt and
-Anisimovas; it is also the periodic analogue of a Schrieffer--Wolff block diagonalization
-[Eckardt2015, Rahav2003, SchriefferWolff1966](@cite).
+block-diagonal normal form [Eckardt2015, Rahav2003, SchriefferWolff1966](@cite).
 
-For a Liouvillian, the Sambe blocks contain ``i\mathcal{L}_m`` instead of ``H_m`` and the same
-recursion applies in the left/right operator algebra. A finite-order effective Liouvillian is
-algebraically well defined but is not automatically in GKLS form
-[Ikeda2021, Schnell2021](@cite).
+For a Liouvillian, the Sambe blocks contain ``i\mathcal{L}_m`` instead of ``H_m``. Mapping the
+Hamiltonian-like block diagonalization back to ``\mathcal L`` produces the Liouvillian Lie-transform
+phase above. A finite-order effective Liouvillian is algebraically well defined but is not
+automatically in GKLS form [Ikeda2021, Schnell2021](@cite).
+
+## Complete positivity after truncation
+
+The loss of GKLS form at finite order is a property of the truncated effective Liouvillian, not a
+failure of the Floquet construction. One can instead ask for a positive finite continuation that
+agrees with the retained Kossakowski series through the claimed order. The active/dark Gram
+construction, recursive onset filtration, parameter strata, and spectral/HCM realization are
+developed separately in [CP-preserving completion](@ref cp-preserving-completion-theory).
 
 The recursive Lie-series construction of Venkatraman et al. is designed for symbolic calculations
 of this common normal form. Classical harmonic balance uses a Fourier--Galerkin projection and
 overlaps with averaging at a single periodic drive [Kosata2022HarmonicBalance](@cite); the later
 quantum-harmonic-balance and diagrammatic construction of Xu et al. gives another bookkeeping
 language for effective-Hamiltonian calculations [Venkatraman2022, Xiao2025](@cite). These are
-related formulations rather than the algorithm implemented here.
+alternative formulations of the same class of effective-dynamics problem.
 
 Finally, formulas from different sources agree only after matching the Fourier sign, frequency or
-energy units, perturbative order, and integration constants. The package chooses the zero-average
-van Vleck gauge, which is the phase-independent effective-frame convention used in the Floquet
-formulations of Goldman and Dalibard and Eckardt [Goldman2014, Eckardt2015](@cite).
-
-See [`floquet_expansion`](@ref) for the computational interface.
+energy units, perturbative order, transformation convention, and integration constants. The
+zero-average van Vleck gauge is the phase-independent effective-frame convention used in the
+Floquet formulations of Goldman and Dalibard and Eckardt [Goldman2014, Eckardt2015](@cite).

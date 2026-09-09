@@ -21,6 +21,9 @@ features:
   - icon: 〰️
     title: High frequency expansion
     details: Compute a time-independent effective generator together with its periodic micromotion.
+  - icon: ✓
+    title: CP-preserving completion
+    details: Continue truncated Floquet-Lindblad generators to finite completely positive models without changing retained Floquet data.
   - icon: ∑
     title: Symbolic operator algebra
     details: Build drives from SecondQuantizedAlgebra.jl expressions and retain exact symbolic coefficients throughout the expansion.
@@ -43,7 +46,7 @@ CurrentModule = FloquetExpansions
 `FloquetExpansions.jl` computes high-frequency expansions for periodically driven quantum systems. Given a periodic generator ``\mathcal{G}(t)``—Hamiltonian or Liouvillian—it derives a static effective generator ``\mathcal{G}_\mathrm{eff}`` and the generator ``\mathcal{K}(t)`` of a periodic micromotion superoperator ``\mathcal{M}(t)=e^{\mathcal{K}(t)}`` such that
 
 ```math
-\mathcal{V}(t,0) = \mathcal{M}(t) e^{t\mathcal{L}_\mathrm{eff}} \mathcal{M}(0)^{-1}.
+\mathcal{V}(t,0) = \mathcal{M}(t) e^{t\mathcal{G}_\mathrm{eff}} \mathcal{M}(0)^{-1}.
 ```
 
 The package currently implements the van Vleck expansion, a high-frequency approximation that separates slow effective dynamics from fast micromotion [Eckardt2015](@cite).
@@ -80,4 +83,13 @@ See the [Manual](manual/system.md) for the conceptual interface and API document
 
 ### High-frequency expansion
 
-[`floquet_expansion`](@ref) accepts either a periodic generator or a symbolic time-dependent Hamiltonian. Its result exposes [`effective_generator`](@ref) and [`micromotion`](@ref) without materializing a Floquet-Sambe matrix.
+[`floquet_expansion`](@ref) accepts a periodic generator or a symbolic time-dependent Hamiltonian
+or Liouvillian. Its result exposes [`effective_generator`](@ref) and [`micromotion`](@ref) without
+materializing a Floquet-Sambe matrix.
+
+### CP-preserving open-system completion
+
+A finite-order Floquet-Lindblad expansion can leave the GKLS cone even when the microscopic
+dynamics is completely positive. [`positive_completion`](@ref) constructs a finite positive
+continuation while preserving the retained effective coefficients and micromotion. See
+[Positive completion](@ref positive-completion-manual) for the Gram and spectral/HCM workflows.

@@ -3,15 +3,15 @@ CurrentModule = FloquetExpansions
 CollapsedDocStrings = true
 ~~~
 
-# Floquet theory
+# [Floquet theory](@id floquet-theory)
 
 Floquet theory is the temporal analogue of Bloch theory. It separates a periodic evolution into a
 time-independent part that accumulates from cycle to cycle and a periodic part describing the
-motion within one cycle. This construction is exact; the high-frequency expansion in
-[High-frequency expansion](high_frequency_expansion.md) is an approximation applied afterwards.
+motion within one cycle. This construction is exact; the
+[high-frequency expansion](@ref high-frequency-expansion-theory) is an approximation applied
+afterwards.
 
-Unless stated otherwise, the equations below use frequency units, ``\hbar=1``, as in the package's
-quasienergy blocks.
+Unless stated otherwise, the equations below use frequency units, ``\hbar=1``.
 
 ## Floquet theorem
 
@@ -42,15 +42,13 @@ up to a similarity transformation. The periodic factor contains micromotion, whi
 factor describes the stroboscopic evolution. For an open system, ``\mathcal{G}_{\mathrm{F}}`` may
 be a general effective Liouvillian rather than a generator in GKLS form.
 
-The package uses the Fourier convention
+We use the Fourier convention
 
 ~~~math
 \mathcal{G}(t)=\sum_{m\in\mathbb{Z}}\mathcal{G}_m e^{-im\omega t}.
 ~~~
 
-[`PeriodicGenerator`](@ref) stores these harmonics together with the drive frequency. Its zeroth
-harmonic is the period average, and missing harmonics are zero. Use [`harmonics`](@ref) to convert a
-symbolic Hamiltonian or Liouvillian.
+The zeroth harmonic is the period average.
 
 ## Hamiltonian Floquet states
 
@@ -102,15 +100,15 @@ Q=H(t)-i\partial_t.
 
 The operator ``Q`` acts on the tensor product of the physical Hilbert space and the space of
 periodic functions, called Floquet or Sambe space. Expanding in Fourier sectors turns the periodic
-problem into an infinite block matrix. With the package convention, its Hamiltonian blocks are
+problem into an infinite block matrix. With the Fourier convention above, its Hamiltonian blocks
+are
 
 ~~~math
 Q_{mn}=H_{m-n}-m\omega_d\,\delta_{mn}.
 ~~~
 
 The diagonal blocks are replicas of the averaged Hamiltonian, shifted by integer multiples of the
-drive frequency; nonzero harmonics couple different replicas. [`QuasienergyOperator`](@ref)
-constructs a finite symbolic truncation of these blocks. This exact time-domain-to-Sambe-space
+drive frequency; nonzero harmonics couple different replicas. This exact time-domain-to-Sambe-space
 mapping is the formulation introduced by Shirley and placed on an extended-space footing by Sambe
 [Shirley1965, Sambe1973](@cite).
 
@@ -125,8 +123,68 @@ Its eigenvalues are generally complex: their real parts describe oscillation and
 parts describe decay or growth. They are still defined modulo ``\omega_d``. Thus ordinary
 quasienergies and dissipative quasienergies are two spectral versions of the same Floquet
 construction, with unitarity forcing the former to be real. The Floquet-space perspective is also
-the natural starting point for the van Vleck block diagonalization discussed in
-[High-frequency expansion](high_frequency_expansion.md) [Eckardt2015](@cite).
+the natural starting point for the van Vleck block diagonalization discussed in the
+[high-frequency expansion](@ref high-frequency-expansion-theory) [Eckardt2015](@cite).
 
-The thesis and much of the Floquet literature use ``e^{+im\omega t}`` instead. Comparing those
-formulas with the package requires ``m\mapsto-m``.
+Some Floquet literature instead uses ``e^{+im\omega t}``; translating between the two conventions
+requires ``m\mapsto-m``.
+
+## Open-system Floquet generators and complete positivity
+
+For a periodic Markovian master equation, the propagator over each finite time interval is a
+completely positive trace-preserving map. This does **not** imply that an arbitrary logarithm of the
+one-period channel is a time-independent GKLS generator. The exact Floquet logarithm depends on a
+logarithm branch and on the periodic similarity gauge, and the resulting effective Liouvillian need
+not lie inside the GKLS cone [Schnell2021](@cite).
+
+The same distinction appears perturbatively. A high-frequency expansion constructs a formal
+Floquet Liouvillian
+
+~~~math
+\mathcal L_{\mathrm{eff}}^{[N]}
+=\sum_{n=0}^{N}\omega_d^{-n}\mathcal L^{(n)},
+~~~
+
+whose retained coefficients are fixed by the microscopic periodic dynamics. Truncating this formal
+series can produce a Kossakowski form with negative directions even though the original
+time-dependent generator is Lindbladian at every time.
+
+A CP-preserving perturbative continuation may supply higher-order dissipative data that restore a
+positive Kossakowski form while preserving every retained coefficient,
+
+~~~math
+\mathcal L_{\mathrm{CP}}^{[N]}
+-\mathcal L_{\mathrm{eff}}^{[N]}
+=\mathcal O(\omega_d^{-N-1}).
+~~~
+
+This is a perturbative completion, not an assertion that
+``\mathcal L_{\mathrm{CP}}^{[N]}`` equals an exact Floquet GKLS logarithm. It also does not promote
+the asymptotic high-frequency expansion into a convergent series. What is controlled is the
+retained perturbative data: the completed and raw models agree through the claimed order.
+
+Because the correction starts beyond that order, the retained periodic micromotion does not need to
+be recomputed. The finite completed approximation can use the same retained kick/micromotion and a
+completed effective generator; a different kick would only enter as part of higher-order Floquet
+data.
+
+### Frames, rates, and physical invariants
+
+A Kossakowski matrix is a representation of the dissipative Hermitian form in a chosen operator
+frame. Changing the operator frame changes matrix entries and can redistribute the same physical
+dissipative form among different jump representatives. Likewise, a particular set of jump
+operators or branch rates is not unique: unitary channel rotations, nonunitary coordinate changes,
+and different positive factorizations give different representatives.
+
+The frame-independent content is the Hermitian form itself. Positivity and inertia are invariant
+under invertible congruence transformations, whereas individual rates and jump operators are
+gauge/representation dependent.
+
+Different CP-preserving completion gauges can therefore agree through retained perturbative order
+while differing as finite expressions. An algebraic Gram gauge fixes a jump-amplitude
+factorization, whereas a perturbative spectral/HCM gauge follows decay-rate branches and
+square-completes their retained series [Haddadfarshi2015](@cite). Their higher-order continuations
+need not coincide.
+
+See [CP-preserving completion](@ref cp-preserving-completion-theory) for the active/dark, Feshbach,
+onset, and spectral/HCM constructions.

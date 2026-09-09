@@ -2,6 +2,7 @@ module FloquetExpansions
 
 using Reexport: @reexport
 using LinearAlgebra: LinearAlgebra
+using SciMLPublic: @public
 using Symbolics: Symbolics
 
 using SecondQuantizedAlgebra: SecondQuantizedAlgebra
@@ -31,14 +32,24 @@ include("gksl_floquet.jl")
 export PeriodicGenerator, Gauge, VanVleck, QuasienergyOperator, harmonic_range
 export time_average, derivative, antiderivative, support, harmonics
 export FloquetExpansion,
-  floquet_expansion, effective_generator, effective_component, micromotion
-export Completion, Uncompleted, CompletionAlgorithm, Gram, Spectral, CompletionFactorization
-export GramFactorization, SpectralFactorization, CompletionObstruction, FractionalJumpOnset
+  floquet_expansion, order, effective_generator, effective_component, micromotion
+export Gram, Spectral
 export positive_completion,
   dissipative_frame, channels, positivity_conditions, regularity_conditions, factorization
 export Liouvillian,
   liouvillian, terms, hamiltonian_action, dissipator, compose, collapse, jump
 export DissipativeFrame,
   hamiltonian, hamiltonian_component, kossakowski, kossakowski_component
+
+# Stable expert API that is intentionally qualified rather than exported.
+@public Completion,
+Uncompleted,
+CompletionAlgorithm,
+CompletionFactorization,
+GramStage,
+GramFactorization,
+SpectralFactorization,
+CompletionObstruction,
+FractionalJumpOnset
 
 end # module FloquetExpansions

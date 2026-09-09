@@ -19,7 +19,7 @@ end
 Return the order-`n` Kossakowski contribution of a Liouvillian Floquet expansion in the
 ordered dissipative `frame`, including the corresponding inverse-drive-frequency scaling.
 
-See also [`kossakowski`](@ref), [`effective_component`](@ref).
+See also [`DissipativeFrame`](@ref), [`kossakowski`](@ref), [`effective_component`](@ref).
 """
 function kossakowski_component(
   expansion::FloquetExpansion{G,P,E}, frame::DissipativeFrame, n::Int
@@ -35,9 +35,9 @@ Return the finite effective Hamiltonian of a Hamiltonian Floquet expansion, or t
 Hamiltonian sector of a Liouvillian Floquet expansion. The latter is defined modulo an
 additive multiple of the identity.
 
-For a positively completed Liouvillian expansion, return the coherent sector cached when the
-completed finite generator is constructed. Positive completion changes only the higher-order
-dissipative continuation, so this is the retained coherent sector in the stored dissipative frame.
+For a positively completed Liouvillian expansion, this coherent sector is unchanged from the
+retained Floquet expansion; positive completion modifies only dissipative information beyond the
+retained order.
 
 See also [`hamiltonian_component`](@ref), [`effective_generator`](@ref).
 """

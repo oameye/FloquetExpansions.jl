@@ -106,11 +106,10 @@ micromotion. [`effective_generator`](@ref) returns the completed finite generato
 [`effective_component`](@ref) and [`micromotion`](@ref) continue to return the retained
 high-frequency data.
 
-The two-argument form lets the completion algorithm determine a dissipative frame from the
-available Floquet data and, when present, microscopic channel information. Pass a
-[`DissipativeFrame`](@ref) explicitly to fix the representation. Automatic frame discovery is a
-symbolic convenience frontend with runtime-dependent arity; the explicit-frame form is the
-inference-oriented computational core.
+The two-argument form derives a dissipative frame from the available Floquet data and, when
+present, microscopic channel information. Pass a [`DissipativeFrame`](@ref) explicitly to fix the
+operator representation, for example when comparing completion methods in the same physical basis.
+Algorithm-specific frame requirements still apply; see [`Gram`](@ref) and [`Spectral`](@ref).
 
 Positive completion is defined only for Liouvillian expansions. Calling it on an already
 completed expansion is an error. Use [`Gram`](@ref) or [`Spectral`](@ref) to select the algorithm.

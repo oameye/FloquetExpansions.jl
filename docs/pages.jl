@@ -8,8 +8,11 @@ pages = [
   "Theory" => [
     "Floquet theory" => "theory/floquet_theory.md",
     "High-frequency expansion" => "theory/high_frequency_expansion.md",
+    "CP-preserving completion" => "theory/cp_completion.md",
   ],
   "Literature" => "literature.md",
-  "Examples" =>
-    ["Floquet mean-field comparison" => "examples/floquet_meanfield_comparison.md"],
+  "Examples" => [
+    "CP-completion examples" => "examples/cp_completion.md",
+    "Floquet mean-field comparison" => "examples/floquet_meanfield_comparison.md",
+  ],
 ]

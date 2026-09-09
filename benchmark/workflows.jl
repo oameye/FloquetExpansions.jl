@@ -99,16 +99,20 @@ function benchmark_positive_completion!(suite)
   expansion, frame = gram_completion_workload()
   recursive_expansion, recursive_frame = recursive_gram_workload()
   spectral_expansion, spectral_frame = spectral_completion_workload()
-  suite["Positive Completion"]["Gram"]["fixed frame full rank"] = @benchmarkable positive_completion(
+
+  suite["Positive Completion"]["Full-rank bosonic"]["fixed frame"]["Gram"] = @benchmarkable positive_completion(
     $expansion, Gram(), $frame
   )
-  suite["Positive Completion"]["Gram"]["automatic frame full rank"] = @benchmarkable positive_completion(
+  suite["Positive Completion"]["Full-rank bosonic"]["automatic frame"]["Gram"] = @benchmarkable positive_completion(
     $expansion, Gram()
   )
-  suite["Positive Completion"]["Gram"]["recursive dark onset"] = @benchmarkable positive_completion(
+  suite["Positive Completion"]["Recursive dark onset"]["fixed frame"]["Gram"] = @benchmarkable positive_completion(
     $recursive_expansion, Gram(), $recursive_frame
   )
-  suite["Positive Completion"]["Spectral"]["fixed frame driven qubit"] = @benchmarkable positive_completion(
+  suite["Positive Completion"]["Driven qubit"]["fixed frame"]["Gram"] = @benchmarkable positive_completion(
+    $spectral_expansion, Gram(), $spectral_frame
+  )
+  suite["Positive Completion"]["Driven qubit"]["fixed frame"]["Spectral"] = @benchmarkable positive_completion(
     $spectral_expansion, Spectral(), $spectral_frame
   )
   return nothing
