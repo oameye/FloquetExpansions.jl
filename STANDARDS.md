@@ -33,24 +33,28 @@ Where two files disagree, the higher entry wins. Report the disagreement rather 
 | An import or qualified dependency access | [`docs/agents/style.md`](docs/agents/style.md) | `test/quality/ExplicitImports.jl` via `make test` |
 | Formatting | `.JuliaFormatter.toml` | `.github/workflows/Format.yml` |
 | A function signature's type constraints | [`docs/agents/style.md`](docs/agents/style.md) | none, unenforced |
-| Keyword syntax or forwarding form | [`docs/agents/style.md`](docs/agents/style.md) | none, unenforced |
+| A call site's explicit keyword `;` | [`docs/agents/style.md`](docs/agents/style.md) | CodeRatchet `style` / `implicit_kwarg` (`make ratchet`, `Ratchet.yml`) |
+| A definition's keyword syntax or same-name keyword forwarding | [`docs/agents/style.md`](docs/agents/style.md) | none, unenforced |
 | A comment, or a docstring on an internal | [`docs/agents/style.md`](docs/agents/style.md) | none, unenforced |
-| A name for a private internal | [`docs/agents/style.md`](docs/agents/style.md) | none, unenforced |
+| A name for a private internal | [`docs/agents/style.md`](docs/agents/style.md) | CodeRatchet `style` / `underscore_name` (`make ratchet`, `Ratchet.yml`) |
 | A name for a domain concept | [`CONTEXT.md`](CONTEXT.md) | none, unenforced |
 | An `export` line | `src/FloquetExpansions.jl` | `test/quality/Aqua.jl` for undefined exports only |
-| A qualified expert `@public` name | `src/FloquetExpansions.jl` | none, unenforced |
+| A qualified expert `@public` name | `src/FloquetExpansions.jl` | none for API classification itself |
+| A docstring on an exported or qualified expert name | [`docs/agents/development.md`](docs/agents/development.md) | CodeRatchet `docs` (`make ratchet`, `Ratchet.yml`) |
+| Inclusion of exported docstrings in the manual | `docs/make.jl` (`checkdocs=:exports`) | `make docs`, `.github/workflows/Documentation.yml` |
 | Type inference on a package or core path | [`docs/agents/performance.md`](docs/agents/performance.md) | `make jet`, `.github/workflows/JET.yml`, plus targeted `@inferred` / `JET.@test_opt` tests where the contract is load-bearing |
-| Optimizer stability of the explicit completion core | [`docs/agents/performance.md`](docs/agents/performance.md) | `test/quality/JET.jl` contains required `JET.@test_opt` workloads |
+| Optimizer stability of the explicit completion core | [`docs/agents/performance.md`](docs/agents/performance.md) | required `JET.@test_opt` workloads in `test/quality/JET.jl` |
+| A boxed closure capture in `src/` | [`docs/agents/performance.md`](docs/agents/performance.md) | CodeRatchet `boxes` (`make ratchet`, `Ratchet.yml`) |
+| JETLS lowering diagnostics in `src/` | [`docs/agents/performance.md`](docs/agents/performance.md) | CodeRatchet `lsp` (`make ratchet`, `Ratchet.yml`) |
 | Runtime performance regression | [`docs/agents/performance.md`](docs/agents/performance.md) | `.github/workflows/Benchmarks.yaml`: alert above 130%, fail above 170% of baseline |
 | Allocation behaviour | [`docs/agents/performance.md`](docs/agents/performance.md) | none repository-wide; measure explicitly and add a targeted test only where a stable allocation contract exists |
 | How a performance number is reported | [`docs/agents/performance.md`](docs/agents/performance.md) | none, unenforced |
+| Source complexity non-regression | `code_ratchet/rulings.toml` | CodeRatchet `complexity` (`make ratchet`, `Ratchet.yml`) |
 | Adding or changing a test file | [`docs/agents/development.md`](docs/agents/development.md) | `test/runtests.jl` auto-discovers tests; the default suite deliberately excludes `quality/JET` |
-| Reaching past the public API in a behavior test | [`docs/agents/development.md`](docs/agents/development.md) | none, unenforced |
-| A docstring on an exported or qualified expert name | [`docs/agents/development.md`](docs/agents/development.md) | none, unenforced |
+| Reaching past the public API in a user-visible behavior test | [`docs/agents/development.md`](docs/agents/development.md) | none, unenforced; focused internal-invariant tests are explicitly allowed |
 | A `jldoctest` block | [`docs/agents/development.md`](docs/agents/development.md) | `test/quality/Documenter.jl` via `make test` |
-| Inclusion of exported docstrings in the manual | `docs/make.jl` (`checkdocs=:exports`) | `make docs`, `.github/workflows/Documentation.yml` |
 | A module boundary or symbolic representation | [`docs/agents/architecture.md`](docs/agents/architecture.md), and the ADR it cites | none, unenforced unless a behavior test covers the consequence |
-| Positive-completion result and representation semantics | [`docs/adr/0009-cp-preserving-floquet-completion.md`](docs/adr/0009-cp-preserving-floquet-completion.md) | `make test`, especially the completion-state/storage/validation tests |
+| Positive-completion result and representation semantics | [`docs/adr/0009-cp-preserving-floquet-completion.md`](docs/adr/0009-cp-preserving-floquet-completion.md) | `make test`, especially completion-state/storage/validation tests |
 | The dissipative quasienergy convention | [`docs/adr/0008-dissipative-quasienergy-operator.md`](docs/adr/0008-dissipative-quasienergy-operator.md) | `make test` |
 | A dependency or a `[compat]` bound | `Project.toml` | `test/quality/Aqua.jl` via `make test` |
 | A file under `docs/src/examples/` | [`docs/agents/development.md`](docs/agents/development.md) § Generated files | none; documentation CI regenerates it from `examples/*.jl` |
@@ -70,7 +74,8 @@ Where two files disagree, the higher entry wins. Report the disagreement rather 
 | `docs/agents/development.md` | repository workflow, test layout and patterns, gate loop, generated documentation | repository changes; especially `test/` and `docs/` |
 | `docs/agents/architecture.md` | data flow, source-file ownership, public seams, representation rules | `src/` |
 | `docs/agents/style.md` | signatures, fields, imports, formatting, comments, names | `src/` |
-| `docs/agents/performance.md` | inference, optimizer stability, allocations, hot-path shape, performance terminology | `src/`, `benchmark/` |
+| `docs/agents/performance.md` | inference, optimizer stability, lowering hygiene, allocations, hot-path shape, performance terminology | `src/`, `benchmark/` |
+| `code_ratchet/rulings.toml` | ratchet metrics, measured scope, thresholds, unmeasured paths, exemptions and dismissals | measured `src/` plus explicitly classified unmeasured Julia-code paths |
 | `docs/agents/domain.md` | how project vocabulary and ADRs are consumed | the repository |
 | `docs/agents/issue-tracker.md` | issue and spec conventions | GitHub Issues |
 | `docs/agents/triage-labels.md` | the label set | GitHub Issues |
@@ -91,12 +96,15 @@ Every gate below is described by what the current repository actually executes.
 | `.github/workflows/JET.yml` | `test/quality/JET.jl` | CI when its path filter matches |
 | `.github/workflows/Format.yml` | JuliaFormatter with repository configuration over the tree | `make format`, then `jlfmt --check --verbose .` for a non-mutating check |
 | `.github/workflows/Benchmarks.yaml` | runtime benchmark non-regression against stored benchmark history | `make bench` |
+| `.github/workflows/Ratchet.yml` | configured per-file non-regression for complexity, style, public docs, boxed captures, and JETLS diagnostics | `make ratchet`; CI deliberately omits the duplicate JET metric |
 | `.github/workflows/SpellCheck.yml` | spelling, configured by `.typos.toml` | CI only |
 | `.github/workflows/Documentation.yml` | documentation build and exported-doc inclusion; CI also regenerates Literate examples before `makedocs` | `make docs` for the local build |
 
 **`make test` does not run JET.** `test/runtests.jl` removes `quality/JET` from the unfiltered suite used by `Pkg.test()`, and therefore by `make test`. A green `make test` says nothing about the dedicated optimizer/inference acceptance workloads. Run `make jet` separately. In CI they are separate workflows, `Tests.yml` and `JET.yml`.
 
-`make all` is `setup format test docs`; despite its name it does not include JET, benchmarks, or the CI-only spell check.
+`make ratchet` runs the complete configured local CodeRatchet set, including its JET metric. Ratchet CI omits that duplicate metric because the existing absolute-zero `JET.yml` gate is stronger while it remains green.
+
+`make all` is `setup format test docs`; despite its name it does not include JET, the ratchet, benchmarks, or the CI-only spell check.
 
 Several CI workflows are path-filtered. If a relevant workflow is skipped because the pull request did not touch its configured paths, that skip is not evidence that another local gate ran in its place.
 
@@ -119,6 +127,7 @@ Audit the map both ways: current repository behavior must be routed by the map w
 1. `make format` has been applied and the formatter check is clean.
 2. `make test` passes for source, test, or dependency changes.
 3. `make jet` passes when `src/`, inference-sensitive dependencies, or compiler-sensitive tests changed.
-4. `make docs` passes when docstrings or `docs/` changed.
-5. `make bench` is run for performance-sensitive source changes.
-6. The diff accounts for the changed behaviour, its tests, and its documentation.
+4. `make ratchet` passes when `src/` changed and the configured local tooling is available.
+5. `make docs` passes when docstrings or `docs/` changed.
+6. `make bench` is run for performance-sensitive source changes.
+7. The diff accounts for the changed behaviour, its tests, and its documentation.
