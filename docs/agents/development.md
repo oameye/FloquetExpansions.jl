@@ -17,6 +17,7 @@ The v0.0.1 policy permits breaking changes. Update every in-repository caller, t
 - `test/*.jl` holds behavior tests, `test/helpers/` shared fixtures, and `test/quality/` package-wide checks.
 - `docs/src/` holds user-facing documentation, `docs/adr/` design decisions, and `docs/agents/` repository guidance.
 - `examples/*.jl` is the source for the tracked Literate pages under `docs/src/examples/`.
+- `code_ratchet/` holds the CodeRatchet environment, hand-written rulings, and generated baseline files. Its configured measured scope is `src/`; other tracked Julia-code areas are explicitly classified as unmeasured in `rulings.toml`.
 
 ## Test structure
 
@@ -44,10 +45,13 @@ Use the smallest check that answers the current question, then run the relevant 
 | `make format` | JuliaFormatter in-place over the repository | `Format.yml` checks formatting |
 | `make test` | the default ParallelTestRunner suite, including Aqua, CheckConcreteStructs, ExplicitImports and doctests, but excluding `quality/JET` | `Tests.yml` |
 | `make jet` | `test/quality/JET.jl`: package JET plus explicit optimizer-stability workloads | `JET.yml` |
+| `make ratchet` | configured CodeRatchet metrics; bootstraps the pinned JETLS app and locally includes the JET metric | `Ratchet.yml`, with duplicate JET omitted there because `JET.yml` is stronger |
 | `make docs` | the Documenter build with `checkdocs=:exports`; doctests are disabled here because the test suite owns them | `Documentation.yml` |
 | `make bench` | the benchmark suite | `Benchmarks.yaml` |
 
-`make all` is `setup format test docs`; it does not run JET, benchmarks, or the CI-only spell check.
+The `code_ratchet` tooling environment requires Julia 1.12 independently of the package's supported Julia versions. `make ratchet`, `make ratchet-refresh`, and `make ratchet-lsp-report` install the same pinned JETLS revision used by CI and put Julia's Pkg Apps directory on `PATH` for the measurement. If the default `julia` executable is older, select a Julia 1.12 executable through the `JULIA` make variable.
+
+`make all` is `setup format test docs`; it does not run JET, the ratchet, benchmarks, or the CI-only spell check.
 
 Spelling is checked on pull requests by `SpellCheck.yml`, configured by `.typos.toml`.
 
@@ -61,8 +65,8 @@ Run `make docs` from the repository root with Julia's normal depot and project e
 
 `examples/*.jl` is the source of truth for `docs/src/examples/*.md`. Under documentation CI, `docs/make.jl` includes `docs/make_md_examples.jl`, which runs Literate before `makedocs`; a normal local `make docs` without the CI condition builds the tracked Markdown as it stands and does not regenerate it. Do not edit the generated Markdown as the source of a documentation change.
 
-`docs/build/`, `docs/site/`, `Manifest.toml`, `test-run.log`, and `benchmark/benchmarks_output.json` are gitignored. Leave generated local artifacts out of commits and handoff summaries.
+`docs/build/`, `docs/site/`, `Manifest.toml`, `test-run.log`, and `benchmark/benchmarks_output.json` are gitignored. CodeRatchet refresh/triage output under `code_ratchet/_refresh/` and `code_ratchet/_triage/` is also generated and ignored. Leave generated local artifacts out of commits and handoff summaries.
 
 ## Finishing
 
-Finish when the gates for the area you changed pass and the diff accounts for the changed behavior, its tests, and its docs. Run `make bench` as well when the change is performance-sensitive.
+Finish when the gates for the area you changed pass and the diff accounts for the changed behavior, its tests, and its docs. Run `make ratchet` for `src/` changes and `make bench` when the change is performance-sensitive.
