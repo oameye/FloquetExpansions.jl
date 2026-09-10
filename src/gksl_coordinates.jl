@@ -133,9 +133,10 @@ function transposed_coordinate_matrix(coordinates::KossakowskiMatrix)
 end
 
 function coefficient_pivot_row!(
-  work::KossakowskiMatrix, first_row::Int, last_row::Int, column::Int
+  work::KossakowskiMatrix, pivot::CartesianIndex{2}
 )::Int
-  for row in first_row:last_row
+  first_row, column = Tuple(pivot)
+  for row in first_row:size(work, 1)
     value = simplify_coefficient(work[row, column])
     work[row, column] = value
     iszero(value) || return row
@@ -143,11 +144,10 @@ function coefficient_pivot_row!(
   return 0
 end
 
-function swap_coefficient_rows!(
-  matrix::KossakowskiMatrix, first_row::Int, second_row::Int, columns::UnitRange{Int}
-)
+function swap_coefficient_rows!(matrix::KossakowskiMatrix, rows::NTuple{2,Int})
+  first_row, second_row = rows
   first_row == second_row && return matrix
-  for column in columns
+  for column in axes(matrix, 2)
     matrix[first_row, column], matrix[second_row, column] = matrix[second_row, column],
     matrix[first_row, column]
   end
@@ -155,12 +155,10 @@ function swap_coefficient_rows!(
 end
 
 function eliminate_coordinate_column!(
-  work::KossakowskiMatrix,
-  pivot_row::Int,
-  column::Int,
-  direction_count::Int,
-  monomial_count::Int,
+  work::KossakowskiMatrix, pivot_index::CartesianIndex{2}
 )
+  pivot_row, column = Tuple(pivot_index)
+  direction_count, monomial_count = size(work)
   pivot = work[pivot_row, column]
   for row in (pivot_row + 1):direction_count
     entry = simplify_coefficient(work[row, column])
@@ -184,10 +182,11 @@ function coordinate_pivot_rows(coordinates::KossakowskiMatrix)::Vector{Int}
   pivots = Int[]
   pivot_row = 1
   for column in 1:monomial_count
-    candidate = coefficient_pivot_row!(work, pivot_row, direction_count, column)
+    pivot_index = CartesianIndex(pivot_row, column)
+    candidate = coefficient_pivot_row!(work, pivot_index)
     iszero(candidate) && continue
-    swap_coefficient_rows!(work, pivot_row, candidate, 1:monomial_count)
-    eliminate_coordinate_column!(work, pivot_row, column, direction_count, monomial_count)
+    swap_coefficient_rows!(work, (pivot_row, candidate))
+    eliminate_coordinate_column!(work, pivot_index)
     push!(pivots, column)
     pivot_row += 1
     pivot_row > direction_count && break
@@ -214,25 +213,30 @@ function coefficient_identity(n::Int)::KossakowskiMatrix
   return result
 end
 
-function normalize_inverse_pivot_row!(
-  left::KossakowskiMatrix, right::KossakowskiMatrix, column::Int, n::Int
-)
+struct CoefficientInverseWorkspace
+  left::KossakowskiMatrix
+  right::KossakowskiMatrix
+end
+
+function normalize_inverse_pivot_row!(workspace::CoefficientInverseWorkspace, column::Int)
+  left = workspace.left
+  right = workspace.right
   pivot_inverse = inv(left[column, column])
-  for trailing in 1:n
+  for trailing in axes(left, 2)
     left[column, trailing] = simplify_coefficient(left[column, trailing] * pivot_inverse)
     right[column, trailing] = simplify_coefficient(right[column, trailing] * pivot_inverse)
   end
   return nothing
 end
 
-function eliminate_inverse_column!(
-  left::KossakowskiMatrix, right::KossakowskiMatrix, column::Int, n::Int
-)
-  for row in 1:n
+function eliminate_inverse_column!(workspace::CoefficientInverseWorkspace, column::Int)
+  left = workspace.left
+  right = workspace.right
+  for row in axes(left, 1)
     row == column && continue
     factor = simplify_coefficient(left[row, column])
     iszero(factor) && continue
-    for trailing in 1:n
+    for trailing in axes(left, 2)
       left[row, trailing] = simplify_coefficient(
         left[row, trailing] - factor * left[column, trailing]
       )
@@ -250,16 +254,17 @@ function inverse_coefficients(matrix::KossakowskiMatrix)::KossakowskiMatrix
   n = rows
   left = copy(matrix)
   right = coefficient_identity(n)
+  workspace = CoefficientInverseWorkspace(left, right)
 
   for column in 1:n
-    candidate = coefficient_pivot_row!(left, column, n, column)
+    candidate = coefficient_pivot_row!(left, CartesianIndex(column, column))
     iszero(candidate) && throw(
       GKSLCoordinateError("dissipative-frame coordinate pivot is structurally singular")
     )
-    swap_coefficient_rows!(left, column, candidate, 1:n)
-    swap_coefficient_rows!(right, column, candidate, 1:n)
-    normalize_inverse_pivot_row!(left, right, column, n)
-    eliminate_inverse_column!(left, right, column, n)
+    swap_coefficient_rows!(left, (column, candidate))
+    swap_coefficient_rows!(right, (column, candidate))
+    normalize_inverse_pivot_row!(workspace, column)
+    eliminate_inverse_column!(workspace, column)
   end
   return right
 end

@@ -17,10 +17,9 @@ function swap_matrix_solve_rows!(
   permutation::Vector{Int},
   k::Int,
   pivot_row::Int,
-  n::Int,
 )
   k == pivot_row && return nothing
-  for column in 1:n
+  for column in axes(upper, 2)
     upper[k, column], upper[pivot_row, column] = upper[pivot_row, column], upper[k, column]
   end
   for column in 1:(k - 1)
@@ -58,7 +57,7 @@ function matrix_solve_plan(A::CompletionMatrix, conditions::CompletionConditions
     pivot_row = choose_pivot_row(upper, k, conditions)
     pivot_row == 0 &&
       throw(ArgumentError("matrix is singular on the current symbolic stratum"))
-    swap_matrix_solve_rows!(lower, upper, permutation, k, pivot_row, n)
+    swap_matrix_solve_rows!(lower, upper, permutation, k, pivot_row)
 
     pivot = simplify_scalar(upper[k, k])
     structurally_nonzero(pivot, conditions) || require_regularity!(conditions, pivot)

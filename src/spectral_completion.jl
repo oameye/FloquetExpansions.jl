@@ -123,25 +123,20 @@ function solve_spectral_branch_components!(
   residual::Vector{CompletionScalar},
   gaps::Vector{CompletionScalar},
   branch::Int,
-  order::Int,
   conditions::CompletionConditions,
-)
+)::Bool
   for index in eachindex(vector)
     index == branch && continue
     value = simplify_scalar(residual[index])
     gap = gaps[index]
     if structurally_zero(gap)
-      structurally_zero(value) || throw(
-        ArgumentError(
-          "Spectral completion encountered unresolved mixing inside a degenerate leading sector at order $order",
-        ),
-      )
+      structurally_zero(value) || return false
       continue
     end
     structurally_nonzero(gap, conditions) || require_regularity!(conditions, gap)
     vector[index] = simplify_scalar(value / gap)
   end
-  return vector
+  return true
 end
 
 function spectral_normalization(
@@ -172,8 +167,13 @@ function spectral_branch_series(
     forcing = spectral_order_forcing(series, vectors, order, q)
     rates[order + 1] = spectral_rate_coefficient(forcing, rates, vectors, branch, order)
     residual = spectral_order_residual(forcing, rates, vectors, order)
-    solve_spectral_branch_components!(
-      vectors[order + 1], residual, gaps, branch, order, conditions
+    resolved = solve_spectral_branch_components!(
+      vectors[order + 1], residual, gaps, branch, conditions
+    )
+    resolved || throw(
+      ArgumentError(
+        "Spectral completion encountered unresolved mixing inside a degenerate leading sector at order $order",
+      ),
     )
     vectors[order + 1][branch] = spectral_normalization(vectors, order)
   end
