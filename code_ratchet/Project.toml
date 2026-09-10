@@ -7,8 +7,9 @@
 # measured them, so a tool that moves on its own would move the gate under us.
 # Bumping it is a deliberate change, reviewed like any other.
 #
-# This tooling environment intentionally requires Julia 1.12 independently of
-# the package's supported Julia versions, matching CodeRatchet and Ratchet CI.
+# This tooling environment intentionally supports Julia 1.12 as its minimum,
+# independently of the package's supported Julia versions. Ratchet CI and the
+# stored reference baselines are deliberately measured on fixed Julia 1.13.
 
 [deps]
 CodeRatchet = "0e86a969-c127-44ad-8bee-7851ffae31d4"
