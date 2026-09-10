@@ -1,0 +1,14 @@
+name: Check deeper cleanup ratchet
+
+on:
+  push:
+    branches: ['tmp/ratchet-deeper-check-113']
+
+jobs:
+  ratchet:
+    uses: oameye/CodeRatchet.jl/.github/workflows/ratchet.yml@90cc9753755fcbc1f898939347995cec1ca2f4eb
+    with:
+      julia-version: '1.13'
+      install-jetls: true
+      jetls-rev: '6893fcef26708d64360c048e039102c76ad032c0'
+      metrics: 'complexity,style,docs,boxes,lsp'
