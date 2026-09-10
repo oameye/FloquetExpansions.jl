@@ -99,6 +99,22 @@ end
   return iszero(grade) ? Symbolics.Num(1) : (wd^(-grade))::Symbolics.Num
 end
 
+function retained_gksl_data(
+  expansion::FloquetExpansion, frame::DissipativeFrame
+)::RetainedGKSLData
+  components = getfield(expansion, :effective_components)
+  drive_frequency = getfield(expansion, :generator).wd
+  coherent = zero(SQA.QAdd)
+  matrices = KossakowskiMatrix[]
+  sizehint!(matrices, length(components))
+  for index in eachindex(components)
+    hamiltonian, matrix = extract_gksl(components[index], frame)
+    coherent = (coherent + reattach(hamiltonian, drive_frequency, index - 1))::SQA.QAdd
+    push!(matrices, matrix)
+  end
+  return RetainedGKSLData(SQA.simplify(coherent)::SQA.QAdd, matrices)
+end
+
 function physical_kossakowski_series(
   matrices::Vector{KossakowskiMatrix}, wd::Symbolics.Num
 )::Vector{KossakowskiMatrix}
