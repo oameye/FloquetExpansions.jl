@@ -52,6 +52,7 @@ end
 @inline qadd_isone(value::SQA.QAdd)::Bool = isone(value)::Bool
 @inline qadd_iszero(value::SQA.QAdd)::Bool = iszero(value)::Bool
 @inline liouvillian_iszero(value::Liouvillian)::Bool = iszero(value)::Bool
+@inline qadd_term_pairs(value::SQA.QAdd) = pairs(getfield(value, :arguments))
 
 function canonical_qadd(operator::SQA.QField)::SQA.QAdd
   result = SQA.simplify(SQA.expand_completeness(qadd(operator)))::SQA.QAdd
@@ -299,18 +300,24 @@ DissipativeFrame(operators::SQA.QField...) = build_dissipative_frame(operators)
 
 function canonical_liouvillian(L::Liouvillian)::Liouvillian
   result = zero(L)
-  for (left, right, coefficient) in terms(L)
-    left_canonical = canonical_qadd(left)
-    right_canonical = canonical_qadd(right)
-    for (left_term, left_coefficient) in left_canonical,
-      (right_term, right_coefficient) in right_canonical
-
-      product = coefficient * left_coefficient * right_coefficient
-      combined = simplify_coefficient(product)
-      iszero(combined) && continue
-      add_term!(
-        result, monomial_operator(left_term), monomial_operator(right_term), combined
-      )
+  for entry in term_pairs(L)
+    action = first(entry)
+    coefficient = last(entry)
+    left_canonical = canonical_qadd(first(action))
+    right_canonical = canonical_qadd(last(action))
+    for left_entry in qadd_term_pairs(left_canonical)
+      left_term = first(left_entry)
+      left_coefficient = last(left_entry)
+      for right_entry in qadd_term_pairs(right_canonical)
+        right_term = first(right_entry)
+        right_coefficient = last(right_entry)
+        product = coefficient * left_coefficient * right_coefficient
+        combined = simplify_coefficient(product)
+        iszero(combined) && continue
+        add_term!(
+          result, monomial_operator(left_term), monomial_operator(right_term), combined
+        )
+      end
     end
   end
   return result
@@ -349,14 +356,21 @@ function sandwich_pivot_matrix(L::Liouvillian, frame::DissipativeFrame)::Kossako
     term => index for (index, term) in enumerate(pivot_terms)
   )
 
-  for (left, right, coefficient) in terms(canonical_liouvillian(L))
+  canonical = canonical_liouvillian(L)
+  for entry in term_pairs(canonical)
+    action = first(entry)
+    coefficient = last(entry)
+    left = first(action)
+    right = last(action)
     (qadd_isone(left) || qadd_isone(right)) && continue
-    left_term = first(first(left))
+    left_term = first(first(qadd_term_pairs(left)))
     left_index = get(pivot_index, left_term, 0)
     iszero(left_index) && continue
 
     right_adjoint = canonical_qadd(adjoint(right))
-    for (right_term, right_coefficient) in right_adjoint
+    for right_entry in qadd_term_pairs(right_adjoint)
+      right_term = first(right_entry)
+      right_coefficient = last(right_entry)
       isempty(right_term.ops) && continue
       right_index = get(pivot_index, right_term, 0)
       iszero(right_index) && continue
