@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788941877770,
+  "lastUpdate": 1789065168006,
   "repoUrl": "https://github.com/oameye/FloquetExpansions.jl",
   "entries": {
     "Benchmark Results": [
@@ -534,6 +534,108 @@ window.BENCHMARK_DATA = {
             "value": 19056068,
             "unit": "ns",
             "extra": "gctime=0\nmemory=5956440\nallocs=149981\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "orjan.ameye@hotmail.com",
+            "name": "Orjan Ameye",
+            "username": "oameye"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a0ce2447f736943095e7a8e7bac277c309beab49",
+          "message": "ci: add CodeRatchet quality gate (#83)",
+          "timestamp": "2026-09-10T20:24:38+02:00",
+          "tree_id": "c4b2724e72615c707e7e26d838f3cb936e0f5af5",
+          "url": "https://github.com/oameye/FloquetExpansions.jl/commit/a0ce2447f736943095e7a8e7bac277c309beab49"
+        },
+        "date": 1789065166853,
+        "tool": "julia",
+        "benches": [
+          {
+            "name": "Floquet Expansion/Driven qubit/order 1",
+            "value": 422707.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=191920\nallocs=3868\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Driven qubit/order 2",
+            "value": 532451,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=329632\nallocs=5702\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Driven qubit/order 3",
+            "value": 721121,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=597392\nallocs=9220\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 1",
+            "value": 869212,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=376384\nallocs=7996\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 2",
+            "value": 1241265,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=782352\nallocs=13732\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 3",
+            "value": 2964006,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2467312\nallocs=38372\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Fourier Expansion/Driven qubit/symbolic input",
+            "value": 403139,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=152928\nallocs=3530\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Fourier Expansion/Kerr parametric oscillator/symbolic input",
+            "value": 845026,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=319504\nallocs=7506\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Driven qubit/fixed frame/Gram",
+            "value": 8761878,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2953056\nallocs=74712\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Driven qubit/fixed frame/Spectral",
+            "value": 5455797,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2057528\nallocs=48238\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Full-rank bosonic/automatic frame/Gram",
+            "value": 2765822,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1127944\nallocs=18879\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Full-rank bosonic/fixed frame/Gram",
+            "value": 2668257.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=939536\nallocs=17591\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Recursive dark onset/fixed frame/Gram",
+            "value": 14334957,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=4740096\nallocs=124559\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
           }
         ]
       }
