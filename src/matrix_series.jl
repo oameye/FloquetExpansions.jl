@@ -126,7 +126,10 @@ function symbolically_negative(value::Symbolics.Num)::Bool
 end
 
 function condition_contains(conditions::Vector{CompletionScalar}, x::CompletionScalar)
-  return any(p -> structurally_equal(p, x), conditions)
+  for condition in conditions
+    structurally_equal(condition, x) && return true
+  end
+  return false
 end
 
 function require_positivity!(conditions::CompletionConditions, x::CompletionScalar)
@@ -185,8 +188,10 @@ function validate_matrix_series(series::MatrixSeries)
   isempty(series) &&
     throw(ArgumentError("matrix series must contain at least one coefficient"))
   dims = size(first(series))
-  all(size(A) == dims for A in series) ||
-    throw(DimensionMismatch("all matrix-series coefficients must have the same dimensions"))
+  for matrix in series
+    size(matrix) == dims ||
+      throw(DimensionMismatch("all matrix-series coefficients must have the same dimensions"))
+  end
   return dims
 end
 
@@ -264,7 +269,7 @@ function series_mul(a::MatrixSeries, b::MatrixSeries, N::Int)
   m, k_a = validate_matrix_series(a)
   k_b, p = validate_matrix_series(b)
   k_a == k_b || throw(DimensionMismatch("matrix-series inner dimensions must match"))
-  result = [completion_matrix_zeros(m, p) for _ in 0:N]
+  result = Vector{CompletionMatrix}(undef, N + 1)
   for n in 0:N
     coefficient = completion_matrix_zeros(m, p)
     for k in 0:n
@@ -531,10 +536,10 @@ function graded_ldl_numerator(
   A::MatrixSeries,
   lower::MatrixSeries,
   diagonal::Vector{ScalarSeries},
-  i::Int,
-  j::Int,
+  position::CartesianIndex{2},
   N::Int,
 )::ScalarSeries
+  i, j = Tuple(position)
   numerator = scalar_series_entry(A, i, j, N)
   for k in 1:(j - 1)
     lower_ik = scalar_series_entry(lower, i, k, N)
@@ -569,7 +574,7 @@ function graded_ldl(A::MatrixSeries, N::Int, conditions::CompletionConditions)
 
     inverse_delta = scalar_series_inverse(delta, N, conditions)
     for i in (j + 1):rows
-      numerator = graded_ldl_numerator(A, lower, diagonal, i, j, N)
+      numerator = graded_ldl_numerator(A, lower, diagonal, CartesianIndex(i, j), N)
       set_scalar_series_entry!(lower, i, j, series_mul(numerator, inverse_delta, N), N)
     end
   end
