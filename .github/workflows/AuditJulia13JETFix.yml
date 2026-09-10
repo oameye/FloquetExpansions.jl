@@ -1,0 +1,154 @@
+name: Audit Julia 1.13 JET hardening
+
+on:
+  push:
+    branches: ['tmp/julia13-jet-fix']
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: tmp/julia13-jet-fix
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - name: Apply compiler-hardening patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('src/completion_conversion.jl')
+          text = p.read_text()
+          old = '''  argument = Symbolics.unwrap_const(only(arguments))
+            rational = if argument isa Integer
+              Rational{Int}(Int(argument), 1)
+            elseif argument isa Rational
+              Rational{Int}(Int(numerator(argument)), Int(denominator(argument)))
+            else
+              return nothing
+            end
+          '''
+          # source uses two-space indentation; dedent only the continuation introduced by YAML
+          old = old.replace('\n    ', '\n')
+          new = '''  argument = Symbolics.unwrap_const(only(arguments))
+          rational = if argument isa Int
+            Rational{Int}(argument, 1)
+          elseif argument isa Rational{Int}
+            argument
+          else
+            return nothing
+          end
+          '''
+          assert text.count(old) == 1, 'exact radical block changed'
+          text = text.replace(old, new)
+          old = '''  for (index, matrix) in enumerate(matrices)
+            grade = index - 1
+          '''.replace('\n    ', '\n')
+          new = '''  for index in eachindex(matrices)
+            matrix = matrices[index]
+            grade = index - 1
+          '''
+          assert text.count(old) == 1, 'physical-series enumerate block changed'
+          p.write_text(text.replace(old, new))
+
+          p = Path('src/gksl_coordinates.jl')
+          text = p.read_text()
+          anchor = '@inline liouvillian_iszero(value::Liouvillian)::Bool = iszero(value)::Bool\n'
+          replacement = anchor + '@inline qadd_term_pairs(value::SQA.QAdd) = pairs(getfield(value, :arguments))\n'
+          assert text.count(anchor) == 1, 'qadd helper anchor changed'
+          text = text.replace(anchor, replacement)
+          old = '''function canonical_liouvillian(L::Liouvillian)::Liouvillian
+            result = zero(L)
+            for (left, right, coefficient) in terms(L)
+              left_canonical = canonical_qadd(left)
+              right_canonical = canonical_qadd(right)
+              for (left_term, left_coefficient) in left_canonical,
+                (right_term, right_coefficient) in right_canonical
+
+                product = coefficient * left_coefficient * right_coefficient
+                combined = simplify_coefficient(product)
+                iszero(combined) && continue
+                add_term!(
+                  result, monomial_operator(left_term), monomial_operator(right_term), combined
+                )
+              end
+            end
+            return result
+          end
+          '''.replace('\n    ', '\n')
+          new = '''function canonical_liouvillian(L::Liouvillian)::Liouvillian
+            result = zero(L)
+            for entry in term_pairs(L)
+              action = first(entry)
+              coefficient = last(entry)
+              left_canonical = canonical_qadd(first(action))
+              right_canonical = canonical_qadd(last(action))
+              for left_entry in qadd_term_pairs(left_canonical)
+                left_term = first(left_entry)
+                left_coefficient = last(left_entry)
+                for right_entry in qadd_term_pairs(right_canonical)
+                  right_term = first(right_entry)
+                  right_coefficient = last(right_entry)
+                  product = coefficient * left_coefficient * right_coefficient
+                  combined = simplify_coefficient(product)
+                  iszero(combined) && continue
+                  add_term!(
+                    result, monomial_operator(left_term), monomial_operator(right_term), combined
+                  )
+                end
+              end
+            end
+            return result
+          end
+          '''
+          assert text.count(old) == 1, 'canonical_liouvillian block changed'
+          text = text.replace(old, new)
+          old = '''  for (left, right, coefficient) in terms(canonical_liouvillian(L))
+            (qadd_isone(left) || qadd_isone(right)) && continue
+            left_term = first(first(left))
+          '''.replace('\n    ', '\n')
+          new = '''  canonical = canonical_liouvillian(L)
+          for entry in term_pairs(canonical)
+            action = first(entry)
+            coefficient = last(entry)
+            left = first(action)
+            right = last(action)
+            (qadd_isone(left) || qadd_isone(right)) && continue
+            left_term = first(first(qadd_term_pairs(left)))
+          '''
+          assert text.count(old) == 1, 'sandwich outer loop changed'
+          text = text.replace(old, new)
+          old = '''    right_adjoint = canonical_qadd(adjoint(right))
+            for (right_term, right_coefficient) in right_adjoint
+              isempty(right_term.ops) && continue
+          '''.replace('\n    ', '\n')
+          new = '''    right_adjoint = canonical_qadd(adjoint(right))
+            for right_entry in qadd_term_pairs(right_adjoint)
+              right_term = first(right_entry)
+              right_coefficient = last(right_entry)
+              isempty(right_term.ops) && continue
+          '''
+          assert text.count(old) == 1, 'sandwich right loop changed'
+          p.write_text(text.replace(old, new))
+          PY
+      - name: Install and apply formatter
+        run: |
+          julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.add("JuliaFormatter")'
+          julia -e 'using JuliaFormatter; format_file("src/completion_conversion.jl"); format_file("src/gksl_coordinates.jl")'
+      - name: Set up JET environment
+        run: julia --project=test -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Run required JET optimizer suite
+        run: julia --project=test test/quality/JET.jl
+      - name: Commit successful source patch
+        run: |
+          rm .github/workflows/AuditJulia13JETFix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/completion_conversion.jl src/gksl_coordinates.jl .github/workflows/AuditJulia13JETFix.yml
+          git diff --cached --quiet || git commit -m 'refactor: harden CP kernels for Julia 1.13 inference'
+          git push
