@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "ff36c2e"
+commit = "b17b335"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -43,26 +43,26 @@ cog_sum = 26
 arg_sum = 0
 
 [files."src/completion_frame.jl"]
-cyc = 14
-cog = 22
+cyc = 8
+cog = 8
 arg = 2
-cyc_over = 1
-cog_over = 1
+cyc_over = 0
+cog_over = 0
 arg_over = 0
-cyc_sum = 45
-cog_sum = 48
+cyc_sum = 32
+cog_sum = 26
 arg_sum = 15
 
 [files."src/completion_linear_algebra.jl"]
-cyc = 13
-cog = 20
+cyc = 7
+cog = 9
 arg = 5
-cyc_over = 2
-cog_over = 2
+cyc_over = 0
+cog_over = 0
 arg_over = 0
-cyc_sum = 69
-cog_sum = 78
-arg_sum = 35
+cyc_sum = 77
+cog_sum = 68
+arg_sum = 60
 
 [files."src/completion_types.jl"]
 cyc = 1
@@ -76,26 +76,26 @@ cog_sum = 0
 arg_sum = 4
 
 [files."src/engine.jl"]
-cyc = 9
-cog = 17
+cyc = 8
+cog = 12
 arg = 6
 cyc_over = 0
-cog_over = 1
+cog_over = 0
 arg_over = 0
-cyc_sum = 51
-cog_sum = 34
-arg_sum = 67
+cyc_sum = 53
+cog_sum = 33
+arg_sum = 73
 
 [files."src/gksl_coordinates.jl"]
-cyc = 14
-cog = 23
+cyc = 9
+cog = 9
 arg = 2
-cyc_over = 2
-cog_over = 2
+cyc_over = 0
+cog_over = 0
 arg_over = 0
-cyc_sum = 115
-cog_sum = 106
-arg_sum = 19
+cyc_sum = 123
+cog_sum = 90
+arg_sum = 29
 
 [files."src/gksl_floquet.jl"]
 cyc = 1
@@ -142,15 +142,15 @@ cog_sum = 47
 arg_sum = 59
 
 [files."src/matrix_series.jl"]
-cyc = 13
-cog = 17
+cyc = 9
+cog = 15
 arg = 5
-cyc_over = 1
-cog_over = 1
+cyc_over = 0
+cog_over = 0
 arg_over = 0
-cyc_sum = 174
-cog_sum = 136
-arg_sum = 113
+cyc_sum = 178
+cog_sum = 133
+arg_sum = 115
 
 [files."src/periodic_operator.jl"]
 cyc = 5
@@ -175,12 +175,12 @@ cog_sum = 7
 arg_sum = 20
 
 [files."src/spectral_completion.jl"]
-cyc = 13
-cog = 21
+cyc = 7
+cog = 6
 arg = 5
-cyc_over = 1
-cog_over = 1
+cyc_over = 0
+cog_over = 0
 arg_over = 0
-cyc_sum = 63
-cog_sum = 60
+cyc_sum = 68
+cog_sum = 52
 arg_sum = 36

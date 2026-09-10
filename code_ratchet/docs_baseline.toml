@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "ff36c2e"
+commit = "b17b335"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]

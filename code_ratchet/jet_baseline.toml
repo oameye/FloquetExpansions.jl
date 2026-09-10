@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "deepest_repository_frame"
-commit = "7bca3fd"
+commit = "b17b335"
 load_set = []
 metric = "jet"
 package = "FloquetExpansions"
