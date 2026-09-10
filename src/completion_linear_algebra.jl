@@ -106,7 +106,7 @@ function planned_series_solve(
     rhs = copy(matrix_coefficient(B, order, b_rows, b_columns))
     for k in 1:order
       k + 1 <= length(A) || continue
-      rhs -= A[k + 1] * result[order - k + 1]
+      subtract_matrix_product!(rhs, A[k + 1], result[order - k + 1])
     end
     result[order + 1] = apply_solve_plan(plan, rhs)
   end
@@ -165,7 +165,7 @@ function lower_triangular_series_solve(
     rhs = copy(matrix_coefficient(B, order, b_rows, b_columns))
     for k in 1:order
       k + 1 <= length(L) || continue
-      rhs -= L[k + 1] * result[order - k + 1]
+      subtract_matrix_product!(rhs, L[k + 1], result[order - k + 1])
     end
     result[order + 1] = apply_solve_plan(plan, rhs)
   end
