@@ -1,0 +1,107 @@
+name: Apply coherent GKSL reuse candidate
+
+on:
+  push:
+    branches: ['tmp/deeper-coherent-reuse-impl']
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: tmp/deeper-coherent-reuse-impl
+      - name: Apply retained GKSL data reuse
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('src/completion_frame.jl')
+          s = p.read_text()
+          old = '''function raw_kossakowski_series(expansion::FloquetExpansion, frame::DissipativeFrame)
+  components = getfield(expansion, :effective_components)
+  result = KossakowskiMatrix[]
+  sizehint!(result, length(components))
+  for component in components
+    push!(result, kossakowski(component, frame))
+  end
+  return result
+end
+'''
+          new = '''struct RetainedGKSLData
+  hamiltonians::Vector{SQA.QAdd}
+  kossakowski::Vector{KossakowskiMatrix}
+end
+
+function retained_gksl_data(expansion::FloquetExpansion, frame::DissipativeFrame)
+  components = getfield(expansion, :effective_components)
+  hamiltonians = SQA.QAdd[]
+  matrices = KossakowskiMatrix[]
+  sizehint!(hamiltonians, length(components))
+  sizehint!(matrices, length(components))
+  for component in components
+    hamiltonian, matrix = extract_gksl(component, frame)
+    push!(hamiltonians, hamiltonian)
+    push!(matrices, matrix)
+  end
+  return RetainedGKSLData(hamiltonians, matrices)
+end
+
+function physical_retained_hamiltonian(
+  hamiltonians::Vector{SQA.QAdd}, wd::Symbolics.Num
+)::SQA.QAdd
+  coherent = zero(SQA.QAdd)
+  for index in eachindex(hamiltonians)
+    grade = index - 1
+    coherent = (coherent + reattach(hamiltonians[index], wd, grade))::SQA.QAdd
+  end
+  return SQA.simplify(coherent)::SQA.QAdd
+end
+'''
+          assert old in s
+          p.write_text(s.replace(old, new))
+
+          p = Path('src/gram_recursion.jl')
+          s = p.read_text()
+          s = s.replace(
+              '  raw_matrices = raw_kossakowski_series(expansion, frame)\n  series = completion_series(raw_matrices)\n',
+              '  retained = retained_gksl_data(expansion, frame)\n  series = completion_series(retained.kossakowski)\n',
+          )
+          s = s.replace('    raw_matrices,\n', '    retained,\n')
+          assert 'raw_kossakowski_series' not in s
+          p.write_text(s)
+
+          p = Path('src/spectral_completion.jl')
+          s = p.read_text()
+          s = s.replace(
+              '  raw_matrices = raw_kossakowski_series(expansion, frame)\n  series = completion_series(raw_matrices)\n',
+              '  retained = retained_gksl_data(expansion, frame)\n  series = completion_series(retained.kossakowski)\n',
+          )
+          s = s.replace('    raw_matrices,\n', '    retained,\n')
+          assert 'raw_kossakowski_series' not in s
+          p.write_text(s)
+
+          p = Path('src/completion.jl')
+          s = p.read_text()
+          s = s.replace(
+              '  raw_matrices::Vector{KossakowskiMatrix},\n',
+              '  retained::RetainedGKSLData,\n',
+          )
+          s = s.replace(
+              '  retained_kossakowski = physical_kossakowski_series(raw_matrices, drive_frequency)\n  raw_generator = effective_generator(expansion)\n  coherent = hamiltonian(raw_generator, frame)\n',
+              '  retained_kossakowski = physical_kossakowski_series(\n    retained.kossakowski, drive_frequency\n  )\n  coherent = physical_retained_hamiltonian(retained.hamiltonians, drive_frequency)\n',
+          )
+          assert 'raw_matrices' not in s
+          p.write_text(s)
+          PY
+      - name: Commit source-only candidate
+        run: |
+          rm .github/workflows/ApplyCoherentReuse.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/completion_frame.jl src/gram_recursion.jl src/spectral_completion.jl src/completion.jl .github/workflows/ApplyCoherentReuse.yml
+          git diff --cached --quiet || git commit -m 'refactor: reuse retained GKSL decomposition'
+          git push
