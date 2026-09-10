@@ -1,0 +1,82 @@
+name: Prove coherent component reuse identity
+
+on:
+  push:
+    branches: ['tmp/deeper-coherent-reuse-proof']
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@v3
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Set up test environment
+        run: julia --project=test -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Check coherent linearity in completion frames
+        run: |
+          julia --project=test <<'JL'
+          using Test
+          using FloquetExpansions
+          using SecondQuantizedAlgebra
+          using Symbolics: @variables
+          const FE = FloquetExpansions
+          const SQA = SecondQuantizedAlgebra
+
+          function coherent_from_components(expansion, frame)
+            wd = getfield(expansion, :generator).wd
+            coherent = zero(SQA.QAdd)
+            for n in 0:(order(expansion) - 1)
+              component = getfield(expansion, :effective_components)[n + 1]
+              h, _ = FE.extract_gksl(component, frame)
+              coherent = coherent + FE.reattach(h, wd, n)
+            end
+            return SQA.simplify(coherent)::SQA.QAdd
+          end
+
+          function same_hamiltonian_gauge(left, right)
+            residual = FE.canonical_liouvillian(FE.hamiltonian_action(left - right))
+            return iszero(residual)
+          end
+
+          @testset "coherent reuse identity" begin
+            h = FockSpace(:reuse_boson)
+            a = Destroy(h, :a)
+            @variables ω::Real t::Real
+            frame = DissipativeFrame(a, a^2)
+            expansion = floquet_expansion(
+              0 * a, ω, t, VanVleck(), 2;
+              channels=(collapse(a + a^2), collapse(a + im * a^2)),
+            )
+            per_order = coherent_from_components(expansion, frame)
+            direct = hamiltonian(effective_generator(expansion), frame)
+            @test same_hamiltonian_gauge(per_order, direct)
+            @test per_order == direct
+
+            pauli = PauliSpace(:reuse_qubit)
+            sx = Pauli(pauli, :sigma, 1)
+            sy = Pauli(pauli, :sigma, 2)
+            sz = Pauli(pauli, :sigma, 3)
+            @variables Ω::Real
+            recursive_frame = DissipativeFrame(sx, sy, sz)
+            recursive = floquet_expansion(
+              Ω * cos(ω * t) * sx, ω, t, VanVleck(), 3; channels=(collapse(sz),)
+            )
+            per_order = coherent_from_components(recursive, recursive_frame)
+            direct = hamiltonian(effective_generator(recursive), recursive_frame)
+            @test same_hamiltonian_gauge(per_order, direct)
+            @test per_order == direct
+
+            spectral_frame = DissipativeFrame(sz, sy)
+            spectral = floquet_expansion(
+              Ω * cos(ω * t) * sx, ω, t, VanVleck(), 3; channels=(collapse(sz),)
+            )
+            per_order = coherent_from_components(spectral, spectral_frame)
+            direct = hamiltonian(effective_generator(spectral), spectral_frame)
+            @test same_hamiltonian_gauge(per_order, direct)
+            @test per_order == direct
+          end
+          JL
