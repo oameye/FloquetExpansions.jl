@@ -1,0 +1,84 @@
+name: Paired fused retained GKSL benchmark
+
+on:
+  push:
+    branches: ['tmp/paired-fused-retained-benchmark']
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13.0'
+      - uses: julia-actions/cache@v3
+      - name: Prepare exact source trees
+        run: |
+          git fetch origin eaa09935b8d1461271ec21e945065d19a8639b92 fb6a6b7f716dd7a2cd9a0b42b8ccdaef9c568505
+          git worktree add --detach /tmp/base eaa09935b8d1461271ec21e945065d19a8639b92
+          git worktree add --detach /tmp/candidate fb6a6b7f716dd7a2cd9a0b42b8ccdaef9c568505
+          julia --project=/tmp/base/benchmark -e 'using Pkg; Pkg.develop(PackageSpec(path="/tmp/base")); Pkg.instantiate()'
+          julia --project=/tmp/candidate/benchmark -e 'using Pkg; Pkg.develop(PackageSpec(path="/tmp/candidate")); Pkg.instantiate()'
+      - name: Run ABBA benchmark sequence
+        run: |
+          run_bench() {
+            label="$1"
+            tree="$2"
+            (cd "$tree/benchmark" && julia --project --threads=1 --gcthreads=1 -e 'include("runbenchmarks.jl")')
+            cp "$tree/benchmark/benchmarks_output.json" "/tmp/${label}.json"
+          }
+          run_bench base1 /tmp/base
+          run_bench candidate1 /tmp/candidate
+          run_bench candidate2 /tmp/candidate
+          run_bench base2 /tmp/base
+      - name: Compare paired results
+        run: |
+          python - <<'PY'
+          import json
+          import statistics
+
+          labels = ('base1', 'base2', 'candidate1', 'candidate2')
+
+          def flatten(node, prefix=()):
+              kind, payload = node
+              if kind == 'TrialEstimate':
+                  yield '/'.join(prefix), payload
+                  return
+              for name, child in payload['data'].items():
+                  yield from flatten(child, prefix + (name,))
+
+          data = {}
+          for label in labels:
+              with open(f'/tmp/{label}.json') as f:
+                  document = json.load(f)
+              root = document[1][0]
+              data[label] = dict(flatten(root))
+
+          names = sorted(data['base1'])
+          assert all(set(data[label]) == set(names) for label in labels)
+          print('benchmark | base ns | candidate ns | ratio | base allocs | candidate allocs | alloc ratio | memory ratio')
+          print('--- | ---: | ---: | ---: | ---: | ---: | ---: | ---:')
+          for name in names:
+              base_time = statistics.median([data['base1'][name]['time'], data['base2'][name]['time']])
+              cand_time = statistics.median([data['candidate1'][name]['time'], data['candidate2'][name]['time']])
+              base_allocs = statistics.median([data['base1'][name]['allocs'], data['base2'][name]['allocs']])
+              cand_allocs = statistics.median([data['candidate1'][name]['allocs'], data['candidate2'][name]['allocs']])
+              base_memory = statistics.median([data['base1'][name]['memory'], data['base2'][name]['memory']])
+              cand_memory = statistics.median([data['candidate1'][name]['memory'], data['candidate2'][name]['memory']])
+              print(f'{name} | {base_time:.1f} | {cand_time:.1f} | {cand_time/base_time:.3f} | {base_allocs:.0f} | {cand_allocs:.0f} | {cand_allocs/base_allocs:.3f} | {cand_memory/base_memory:.3f}')
+
+          controls = [name for name in names if not name.startswith('Positive Completion/')]
+          control_ratios = []
+          for name in controls:
+              base_time = statistics.median([data['base1'][name]['time'], data['base2'][name]['time']])
+              cand_time = statistics.median([data['candidate1'][name]['time'], data['candidate2'][name]['time']])
+              control_ratios.append(cand_time/base_time)
+          print(f'control median timing ratio: {statistics.median(control_ratios):.3f}')
+          PY
