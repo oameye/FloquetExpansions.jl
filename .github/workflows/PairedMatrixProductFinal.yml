@@ -1,0 +1,79 @@
+name: Paired matrix accumulator final benchmark
+
+on:
+  push:
+    branches: ['tmp/paired-matrix-product-final']
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13.0'
+      - uses: julia-actions/cache@v3
+      - name: Prepare exact source trees
+        run: |
+          git fetch origin 3a777a893d275965848298cc63f18737f7a83007 9ce3bd06ad6e8daaea1b1b3c75d4ccfadce0af45
+          git worktree add --detach /tmp/base 3a777a893d275965848298cc63f18737f7a83007
+          git worktree add --detach /tmp/candidate 9ce3bd06ad6e8daaea1b1b3c75d4ccfadce0af45
+          julia --project=/tmp/base/benchmark -e 'using Pkg; Pkg.develop(PackageSpec(path="/tmp/base")); Pkg.instantiate()'
+          julia --project=/tmp/candidate/benchmark -e 'using Pkg; Pkg.develop(PackageSpec(path="/tmp/candidate")); Pkg.instantiate()'
+      - name: Run ABBA benchmark sequence
+        run: |
+          run_bench() {
+            label="$1"
+            tree="$2"
+            (cd "$tree/benchmark" && julia --project --threads=1 --gcthreads=1 -e 'include("runbenchmarks.jl")')
+            cp "$tree/benchmark/benchmarks_output.json" "/tmp/${label}.json"
+          }
+          run_bench base1 /tmp/base
+          run_bench candidate1 /tmp/candidate
+          run_bench candidate2 /tmp/candidate
+          run_bench base2 /tmp/base
+      - name: Compare paired results
+        run: |
+          python - <<'PY'
+          import json
+          import statistics
+
+          labels = ('base1', 'base2', 'candidate1', 'candidate2')
+          def flatten(node, prefix=()):
+              kind, payload = node
+              if kind == 'TrialEstimate':
+                  yield '/'.join(prefix), payload
+                  return
+              for name, child in payload['data'].items():
+                  yield from flatten(child, prefix + (name,))
+          data = {}
+          for label in labels:
+              with open(f'/tmp/{label}.json') as f:
+                  document = json.load(f)
+              data[label] = dict(flatten(document[1][0]))
+          names = sorted(data['base1'])
+          assert all(set(data[label]) == set(names) for label in labels)
+          print('benchmark | base ns | candidate ns | ratio | base allocs | candidate allocs | alloc ratio | memory ratio')
+          print('--- | ---: | ---: | ---: | ---: | ---: | ---: | ---:')
+          for name in names:
+              bt = statistics.median([data['base1'][name]['time'], data['base2'][name]['time']])
+              ct = statistics.median([data['candidate1'][name]['time'], data['candidate2'][name]['time']])
+              ba = statistics.median([data['base1'][name]['allocs'], data['base2'][name]['allocs']])
+              ca = statistics.median([data['candidate1'][name]['allocs'], data['candidate2'][name]['allocs']])
+              bm = statistics.median([data['base1'][name]['memory'], data['base2'][name]['memory']])
+              cm = statistics.median([data['candidate1'][name]['memory'], data['candidate2'][name]['memory']])
+              print(f'{name} | {bt:.1f} | {ct:.1f} | {ct/bt:.3f} | {ba:.0f} | {ca:.0f} | {ca/ba:.3f} | {cm/bm:.3f}')
+          controls = [name for name in names if not name.startswith('Positive Completion/')]
+          ratios = []
+          for name in controls:
+              bt = statistics.median([data['base1'][name]['time'], data['base2'][name]['time']])
+              ct = statistics.median([data['candidate1'][name]['time'], data['candidate2'][name]['time']])
+              ratios.append(ct/bt)
+          print(f'control median timing ratio: {statistics.median(ratios):.3f}')
+          PY
