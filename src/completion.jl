@@ -41,7 +41,7 @@ function finalize_positive_completion(
   retained_kossakowski = physical_kossakowski_series(
     retained.kossakowski, drive_frequency
   )
-  coherent = physical_retained_hamiltonian(retained.hamiltonians, drive_frequency)
+  coherent = retained.coherent
   generator = liouvillian(coherent; channels=completed_channels)
 
   # The completed result owns its representation data. In particular, mutating a frame that
