@@ -1,0 +1,28 @@
+name: Format deeper cleanup candidate
+
+on:
+  push:
+    branches: ['tmp/deeper-formatted']
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: tmp/deeper-formatted
+      - uses: julia-actions/setup-julia@v3
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Format and commit
+        run: |
+          "$HOME/.julia/bin/jlfmt" src/gksl_coordinates.jl src/matrix_series.jl
+          rm .github/workflows/FormatDeeper.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/gksl_coordinates.jl src/matrix_series.jl .github/workflows/FormatDeeper.yml
+          git diff --cached --quiet || git commit -m 'style: format deeper code-health cleanup'
+          git push
