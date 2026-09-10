@@ -85,7 +85,7 @@ function projected_operator(operator::SQA.QField)::SQA.QAdd
 end
 
 project_frame_operator(operator::SQA.QField)::SQA.QAdd = projected_operator(operator)
-function project_frame_operator(operator)
+function project_frame_operator(::Any)
   return throw(
     ArgumentError("every dissipative-frame direction must be an SQA operator expression")
   )
@@ -122,51 +122,81 @@ function simplify_matrix!(matrix::KossakowskiMatrix)::KossakowskiMatrix
   return matrix
 end
 
-function independent_pivot_rows(coordinates::KossakowskiMatrix)
+function transposed_coordinate_matrix(coordinates::KossakowskiMatrix)
   monomial_count, direction_count = size(coordinates)
   work = coefficient_matrix(direction_count, monomial_count)
   for row in 1:direction_count, column in 1:monomial_count
     work[row, column] = coordinates[column, row]
   end
+  return work
+end
 
+function coefficient_pivot_row!(
+  work::KossakowskiMatrix, first_row::Int, last_row::Int, column::Int
+)::Int
+  for row in first_row:last_row
+    value = simplify_coefficient(work[row, column])
+    work[row, column] = value
+    iszero(value) || return row
+  end
+  return 0
+end
+
+function swap_coefficient_rows!(
+  matrix::KossakowskiMatrix, first_row::Int, second_row::Int, columns::UnitRange{Int}
+)
+  first_row == second_row && return matrix
+  for column in columns
+    matrix[first_row, column], matrix[second_row, column] = matrix[second_row, column],
+    matrix[first_row, column]
+  end
+  return matrix
+end
+
+function eliminate_coordinate_column!(
+  work::KossakowskiMatrix,
+  pivot_row::Int,
+  column::Int,
+  direction_count::Int,
+  monomial_count::Int,
+)
+  pivot = work[pivot_row, column]
+  for row in (pivot_row + 1):direction_count
+    entry = simplify_coefficient(work[row, column])
+    iszero(entry) && continue
+    factor = simplify_coefficient(entry * inv(pivot))
+    for trailing in column:monomial_count
+      work[row, trailing] = simplify_coefficient(
+        work[row, trailing] - factor * work[pivot_row, trailing]
+      )
+    end
+  end
+  return work
+end
+
+function coordinate_pivot_rows(coordinates::KossakowskiMatrix)::Vector{Int}
+  monomial_count, direction_count = size(coordinates)
+  direction_count == 0 && return Int[]
+  monomial_count < direction_count && return Int[]
+
+  work = transposed_coordinate_matrix(coordinates)
   pivots = Int[]
   pivot_row = 1
   for column in 1:monomial_count
-    candidate = 0
-    for row in pivot_row:direction_count
-      value = simplify_coefficient(work[row, column])
-      work[row, column] = value
-      if !iszero(value)
-        candidate = row
-        break
-      end
-    end
+    candidate = coefficient_pivot_row!(work, pivot_row, direction_count, column)
     iszero(candidate) && continue
-
-    if candidate != pivot_row
-      for trailing in 1:monomial_count
-        work[pivot_row, trailing], work[candidate, trailing] = work[candidate, trailing],
-        work[pivot_row, trailing]
-      end
-    end
-
-    pivot = work[pivot_row, column]
-    for row in (pivot_row + 1):direction_count
-      entry = simplify_coefficient(work[row, column])
-      iszero(entry) && continue
-      factor = simplify_coefficient(entry * inv(pivot))
-      for trailing in column:monomial_count
-        work[row, trailing] = simplify_coefficient(
-          work[row, trailing] - factor * work[pivot_row, trailing]
-        )
-      end
-    end
-
+    swap_coefficient_rows!(work, pivot_row, candidate, 1:monomial_count)
+    eliminate_coordinate_column!(work, pivot_row, column, direction_count, monomial_count)
     push!(pivots, column)
     pivot_row += 1
     pivot_row > direction_count && break
   end
+  return pivots
+end
 
+function independent_pivot_rows(coordinates::KossakowskiMatrix)
+  _, direction_count = size(coordinates)
+  pivots = coordinate_pivot_rows(coordinates)
   length(pivots) == direction_count || throw(
     ArgumentError(
       "dissipative-frame directions are linearly dependent modulo the identity"
@@ -175,60 +205,60 @@ function independent_pivot_rows(coordinates::KossakowskiMatrix)
   return pivots
 end
 
+function coefficient_identity(n::Int)::KossakowskiMatrix
+  result = coefficient_matrix(n, n)
+  for index in 1:n
+    result[index, index] = coefficient_one()
+  end
+  return result
+end
+
+function normalize_inverse_pivot_row!(
+  left::KossakowskiMatrix, right::KossakowskiMatrix, column::Int, n::Int
+)
+  pivot_inverse = inv(left[column, column])
+  for trailing in 1:n
+    left[column, trailing] = simplify_coefficient(left[column, trailing] * pivot_inverse)
+    right[column, trailing] = simplify_coefficient(right[column, trailing] * pivot_inverse)
+  end
+  return nothing
+end
+
+function eliminate_inverse_column!(
+  left::KossakowskiMatrix, right::KossakowskiMatrix, column::Int, n::Int
+)
+  for row in 1:n
+    row == column && continue
+    factor = simplify_coefficient(left[row, column])
+    iszero(factor) && continue
+    for trailing in 1:n
+      left[row, trailing] = simplify_coefficient(
+        left[row, trailing] - factor * left[column, trailing]
+      )
+      right[row, trailing] = simplify_coefficient(
+        right[row, trailing] - factor * right[column, trailing]
+      )
+    end
+  end
+  return nothing
+end
+
 function inverse_coefficients(matrix::KossakowskiMatrix)::KossakowskiMatrix
   rows, columns = size(matrix)
   rows == columns || throw(DimensionMismatch("coefficient matrix must be square"))
   n = rows
   left = copy(matrix)
-  right = coefficient_matrix(n, n)
-  for index in 1:n
-    right[index, index] = coefficient_one()
-  end
+  right = coefficient_identity(n)
 
   for column in 1:n
-    candidate = 0
-    for row in column:n
-      value = simplify_coefficient(left[row, column])
-      left[row, column] = value
-      if !iszero(value)
-        candidate = row
-        break
-      end
-    end
+    candidate = coefficient_pivot_row!(left, column, n, column)
     iszero(candidate) && throw(
       GKSLCoordinateError("dissipative-frame coordinate pivot is structurally singular")
     )
-
-    if candidate != column
-      for trailing in 1:n
-        left[column, trailing], left[candidate, trailing] = left[candidate, trailing],
-        left[column, trailing]
-        right[column, trailing], right[candidate, trailing] = right[candidate, trailing],
-        right[column, trailing]
-      end
-    end
-
-    pivot_inverse = inv(left[column, column])
-    for trailing in 1:n
-      left[column, trailing] = simplify_coefficient(left[column, trailing] * pivot_inverse)
-      right[column, trailing] = simplify_coefficient(
-        right[column, trailing] * pivot_inverse
-      )
-    end
-
-    for row in 1:n
-      row == column && continue
-      factor = simplify_coefficient(left[row, column])
-      iszero(factor) && continue
-      for trailing in 1:n
-        left[row, trailing] = simplify_coefficient(
-          left[row, trailing] - factor * left[column, trailing]
-        )
-        right[row, trailing] = simplify_coefficient(
-          right[row, trailing] - factor * right[column, trailing]
-        )
-      end
-    end
+    swap_coefficient_rows!(left, column, candidate, 1:n)
+    swap_coefficient_rows!(right, column, candidate, 1:n)
+    normalize_inverse_pivot_row!(left, right, column, n)
+    eliminate_inverse_column!(left, right, column, n)
   end
   return right
 end

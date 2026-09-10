@@ -21,51 +21,8 @@ function frame_direction_coordinates(operators::Vector{SQA.QAdd})
 end
 
 function coordinate_columns_independent(coordinates::KossakowskiMatrix)
-  monomial_count, direction_count = size(coordinates)
-  direction_count == 0 && return true
-  monomial_count < direction_count && return false
-
-  work = coefficient_matrix(direction_count, monomial_count)
-  for row in 1:direction_count, column in 1:monomial_count
-    work[row, column] = coordinates[column, row]
-  end
-
-  pivot_row = 1
-  for column in 1:monomial_count
-    candidate = 0
-    for row in pivot_row:direction_count
-      value = simplify_coefficient(work[row, column])
-      work[row, column] = value
-      if !iszero(value)
-        candidate = row
-        break
-      end
-    end
-    iszero(candidate) && continue
-
-    if candidate != pivot_row
-      for trailing in column:monomial_count
-        work[pivot_row, trailing], work[candidate, trailing] = work[candidate, trailing],
-        work[pivot_row, trailing]
-      end
-    end
-
-    pivot = work[pivot_row, column]
-    for row in (pivot_row + 1):direction_count
-      entry = simplify_coefficient(work[row, column])
-      iszero(entry) && continue
-      factor = simplify_coefficient(entry / pivot)
-      for trailing in column:monomial_count
-        work[row, trailing] = simplify_coefficient(
-          work[row, trailing] - factor * work[pivot_row, trailing]
-        )
-      end
-    end
-
-    pivot_row += 1
-    pivot_row > direction_count && return true
-  end
-  return false
+  _, direction_count = size(coordinates)
+  return length(coordinate_pivot_rows(coordinates)) == direction_count
 end
 
 function append_frame_candidate!(operators::Vector{SQA.QAdd}, operator::SQA.QField)
