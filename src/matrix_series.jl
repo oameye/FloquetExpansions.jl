@@ -264,6 +264,45 @@ function series_sub(a::MatrixSeries, b::MatrixSeries, N::Int)
   return result
 end
 
+function matrix_product_dimensions(
+  target::CompletionMatrix, left::CompletionMatrix, right::CompletionMatrix
+)
+  rows, inner = size(left)
+  right_inner, columns = size(right)
+  inner == right_inner || throw(DimensionMismatch("matrix product inner dimensions must match"))
+  size(target) == (rows, columns) ||
+    throw(DimensionMismatch("matrix product target has incompatible dimensions"))
+  return rows, inner, columns
+end
+
+function add_matrix_product!(
+  target::CompletionMatrix, left::CompletionMatrix, right::CompletionMatrix
+)
+  rows, inner, columns = matrix_product_dimensions(target, left, right)
+  for column in 1:columns, row in 1:rows
+    product = completion_zero()
+    for index in 1:inner
+      product += left[row, index] * right[index, column]
+    end
+    target[row, column] += product
+  end
+  return target
+end
+
+function subtract_matrix_product!(
+  target::CompletionMatrix, left::CompletionMatrix, right::CompletionMatrix
+)
+  rows, inner, columns = matrix_product_dimensions(target, left, right)
+  for column in 1:columns, row in 1:rows
+    product = completion_zero()
+    for index in 1:inner
+      product += left[row, index] * right[index, column]
+    end
+    target[row, column] -= product
+  end
+  return target
+end
+
 function series_mul(a::MatrixSeries, b::MatrixSeries, N::Int)
   validate_series_order(N)
   m, k_a = validate_matrix_series(a)
@@ -274,7 +313,7 @@ function series_mul(a::MatrixSeries, b::MatrixSeries, N::Int)
     coefficient = completion_matrix_zeros(m, p)
     for k in 0:n
       if k + 1 <= length(a) && n - k + 1 <= length(b)
-        coefficient += a[k + 1] * b[n - k + 1]
+        add_matrix_product!(coefficient, a[k + 1], b[n - k + 1])
       end
     end
     result[n + 1] = coefficient
