@@ -18,300 +18,220 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
+
+          def sub_once(text, pattern, replacement):
+              updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+              assert count == 1, pattern
+              return updated
 
           path = Path('src/completion_linear_algebra.jl')
           text = path.read_text()
-          old = '''function swap_matrix_solve_rows!(
-            lower::CompletionMatrix,
-            upper::CompletionMatrix,
-            permutation::Vector{Int},
-            k::Int,
-            pivot_row::Int,
-            n::Int,
+          text = sub_once(
+              text,
+              r'''function swap_matrix_solve_rows!\(\n  lower::CompletionMatrix,\n  upper::CompletionMatrix,\n  permutation::Vector\{Int\},\n  k::Int,\n  pivot_row::Int,\n  n::Int,\n\)\n  k == pivot_row && return nothing\n  for column in 1:n''',
+              '''function swap_matrix_solve_rows!(
+  lower::CompletionMatrix,
+  upper::CompletionMatrix,
+  permutation::Vector{Int},
+  k::Int,
+  pivot_row::Int,
+)
+  k == pivot_row && return nothing
+  for column in axes(upper, 2)''',
           )
-            k == pivot_row && return nothing
-            for column in 1:n
-          '''
-          new = '''function swap_matrix_solve_rows!(
-            lower::CompletionMatrix,
-            upper::CompletionMatrix,
-            permutation::Vector{Int},
-            k::Int,
-            pivot_row::Int,
+          text = text.replace(
+              'swap_matrix_solve_rows!(lower, upper, permutation, k, pivot_row, n)',
+              'swap_matrix_solve_rows!(lower, upper, permutation, k, pivot_row)',
+              1,
           )
-            k == pivot_row && return nothing
-            for column in axes(upper, 2)
-          '''
-          assert old in text
-          text = text.replace(old, new, 1)
-          old = '    swap_matrix_solve_rows!(lower, upper, permutation, k, pivot_row, n)\n'
-          new = '    swap_matrix_solve_rows!(lower, upper, permutation, k, pivot_row)\n'
-          assert old in text
-          path.write_text(text.replace(old, new, 1))
+          path.write_text(text)
 
           path = Path('src/spectral_completion.jl')
           text = path.read_text()
-          old = '''function solve_spectral_branch_components!(
-            vector::Vector{CompletionScalar},
-            residual::Vector{CompletionScalar},
-            gaps::Vector{CompletionScalar},
-            branch::Int,
-            order::Int,
-            conditions::CompletionConditions,
+          text = sub_once(
+              text,
+              r'''function solve_spectral_branch_components!\(.*?\n  return vector\nend\n\nfunction spectral_normalization''',
+              '''function solve_spectral_branch_components!(
+  vector::Vector{CompletionScalar},
+  residual::Vector{CompletionScalar},
+  gaps::Vector{CompletionScalar},
+  branch::Int,
+  conditions::CompletionConditions,
+)::Bool
+  for index in eachindex(vector)
+    index == branch && continue
+    value = simplify_scalar(residual[index])
+    gap = gaps[index]
+    if structurally_zero(gap)
+      structurally_zero(value) || return false
+      continue
+    end
+    structurally_nonzero(gap, conditions) || require_regularity!(conditions, gap)
+    vector[index] = simplify_scalar(value / gap)
+  end
+  return true
+end
+
+function spectral_normalization''',
           )
-            for index in eachindex(vector)
-              index == branch && continue
-              value = simplify_scalar(residual[index])
-              gap = gaps[index]
-              if structurally_zero(gap)
-                structurally_zero(value) || throw(
-                  ArgumentError(
-                    "Spectral completion encountered unresolved mixing inside a degenerate leading sector at order $order",
-                  ),
-                )
-                continue
-              end
-              structurally_nonzero(gap, conditions) || require_regularity!(conditions, gap)
-              vector[index] = simplify_scalar(value / gap)
-            end
-            return vector
-          end
-          '''
-          new = '''function solve_spectral_branch_components!(
-            vector::Vector{CompletionScalar},
-            residual::Vector{CompletionScalar},
-            gaps::Vector{CompletionScalar},
-            branch::Int,
-            conditions::CompletionConditions,
-          )::Bool
-            for index in eachindex(vector)
-              index == branch && continue
-              value = simplify_scalar(residual[index])
-              gap = gaps[index]
-              if structurally_zero(gap)
-                structurally_zero(value) || return false
-                continue
-              end
-              structurally_nonzero(gap, conditions) || require_regularity!(conditions, gap)
-              vector[index] = simplify_scalar(value / gap)
-            end
-            return true
-          end
-          '''
-          assert old in text
-          text = text.replace(old, new, 1)
-          old = '''    solve_spectral_branch_components!(
-              vectors[order + 1], residual, gaps, branch, order, conditions
-            )
-          '''
-          new = '''    resolved = solve_spectral_branch_components!(
-              vectors[order + 1], residual, gaps, branch, conditions
-            )
-            resolved || throw(
-              ArgumentError(
-                "Spectral completion encountered unresolved mixing inside a degenerate leading sector at order $order",
-              ),
-            )
-          '''
-          assert old in text
-          path.write_text(text.replace(old, new, 1))
+          text = sub_once(
+              text,
+              r'''    solve_spectral_branch_components!\(\n\s+vectors\[order \+ 1\], residual, gaps, branch, order, conditions\n\s+\)''',
+              '''    resolved = solve_spectral_branch_components!(
+      vectors[order + 1], residual, gaps, branch, conditions
+    )
+    resolved || throw(
+      ArgumentError(
+        "Spectral completion encountered unresolved mixing inside a degenerate leading sector at order $order",
+      ),
+    )''',
+          )
+          path.write_text(text)
 
           path = Path('src/gksl_coordinates.jl')
           text = path.read_text()
-          old = '''function coefficient_pivot_row!(
-            work::KossakowskiMatrix, first_row::Int, last_row::Int, column::Int
-          )::Int
-            for row in first_row:last_row
-              value = simplify_coefficient(work[row, column])
-              work[row, column] = value
-              iszero(value) || return row
-            end
-            return 0
-          end
+          text = sub_once(
+              text,
+              r'''function coefficient_pivot_row!\(.*?\nend\n\nfunction swap_coefficient_rows!''',
+              '''function coefficient_pivot_row!(
+  work::KossakowskiMatrix, pivot::CartesianIndex{2}
+)::Int
+  first_row, column = Tuple(pivot)
+  for row in first_row:size(work, 1)
+    value = simplify_coefficient(work[row, column])
+    work[row, column] = value
+    iszero(value) || return row
+  end
+  return 0
+end
 
-          function swap_coefficient_rows!(
-            matrix::KossakowskiMatrix, first_row::Int, second_row::Int, columns::UnitRange{Int}
+function swap_coefficient_rows!''',
           )
-            first_row == second_row && return matrix
-            for column in columns
-              matrix[first_row, column], matrix[second_row, column] = matrix[second_row, column],
-              matrix[first_row, column]
-            end
-            return matrix
-          end
+          text = sub_once(
+              text,
+              r'''function swap_coefficient_rows!\(.*?\nend\n\nfunction eliminate_coordinate_column!''',
+              '''function swap_coefficient_rows!(matrix::KossakowskiMatrix, rows::NTuple{2,Int})
+  first_row, second_row = rows
+  first_row == second_row && return matrix
+  for column in axes(matrix, 2)
+    matrix[first_row, column], matrix[second_row, column] = matrix[second_row, column],
+    matrix[first_row, column]
+  end
+  return matrix
+end
 
-          function eliminate_coordinate_column!(
-            work::KossakowskiMatrix,
-            pivot_row::Int,
-            column::Int,
-            direction_count::Int,
-            monomial_count::Int,
+function eliminate_coordinate_column!''',
           )
-            pivot = work[pivot_row, column]
-            for row in (pivot_row + 1):direction_count
-              entry = simplify_coefficient(work[row, column])
-              iszero(entry) && continue
-              factor = simplify_coefficient(entry * inv(pivot))
-              for trailing in column:monomial_count
-                work[row, trailing] = simplify_coefficient(
-                  work[row, trailing] - factor * work[pivot_row, trailing]
-                )
-              end
-            end
-            return work
-          end
-          '''
-          new = '''function coefficient_pivot_row!(
-            work::KossakowskiMatrix, pivot::CartesianIndex{2}
-          )::Int
-            first_row, column = Tuple(pivot)
-            for row in first_row:size(work, 1)
-              value = simplify_coefficient(work[row, column])
-              work[row, column] = value
-              iszero(value) || return row
-            end
-            return 0
-          end
+          text = sub_once(
+              text,
+              r'''function eliminate_coordinate_column!\(.*?\nend\n\nfunction coordinate_pivot_rows''',
+              '''function eliminate_coordinate_column!(
+  work::KossakowskiMatrix, pivot_index::CartesianIndex{2}
+)
+  pivot_row, column = Tuple(pivot_index)
+  direction_count, monomial_count = size(work)
+  pivot = work[pivot_row, column]
+  for row in (pivot_row + 1):direction_count
+    entry = simplify_coefficient(work[row, column])
+    iszero(entry) && continue
+    factor = simplify_coefficient(entry * inv(pivot))
+    for trailing in column:monomial_count
+      work[row, trailing] = simplify_coefficient(
+        work[row, trailing] - factor * work[pivot_row, trailing]
+      )
+    end
+  end
+  return work
+end
 
-          function swap_coefficient_rows!(matrix::KossakowskiMatrix, rows::NTuple{2,Int})
-            first_row, second_row = rows
-            first_row == second_row && return matrix
-            for column in axes(matrix, 2)
-              matrix[first_row, column], matrix[second_row, column] = matrix[second_row, column],
-              matrix[first_row, column]
-            end
-            return matrix
-          end
-
-          function eliminate_coordinate_column!(
-            work::KossakowskiMatrix, pivot_index::CartesianIndex{2}
+function coordinate_pivot_rows''',
           )
-            pivot_row, column = Tuple(pivot_index)
-            direction_count, monomial_count = size(work)
-            pivot = work[pivot_row, column]
-            for row in (pivot_row + 1):direction_count
-              entry = simplify_coefficient(work[row, column])
-              iszero(entry) && continue
-              factor = simplify_coefficient(entry * inv(pivot))
-              for trailing in column:monomial_count
-                work[row, trailing] = simplify_coefficient(
-                  work[row, trailing] - factor * work[pivot_row, trailing]
-                )
-              end
-            end
-            return work
-          end
-          '''
-          assert old in text
-          text = text.replace(old, new, 1)
-          old = '''    candidate = coefficient_pivot_row!(work, pivot_row, direction_count, column)
-              iszero(candidate) && continue
-              swap_coefficient_rows!(work, pivot_row, candidate, 1:monomial_count)
-              eliminate_coordinate_column!(work, pivot_row, column, direction_count, monomial_count)
-          '''
-          new = '''    pivot_index = CartesianIndex(pivot_row, column)
-              candidate = coefficient_pivot_row!(work, pivot_index)
-              iszero(candidate) && continue
-              swap_coefficient_rows!(work, (pivot_row, candidate))
-              eliminate_coordinate_column!(work, pivot_index)
-          '''
-          assert old in text
-          text = text.replace(old, new, 1)
-          old = '''function normalize_inverse_pivot_row!(
-            left::KossakowskiMatrix, right::KossakowskiMatrix, column::Int, n::Int
+          text = sub_once(
+              text,
+              r'''    candidate = coefficient_pivot_row!\(work, pivot_row, direction_count, column\)\n    iszero\(candidate\) && continue\n    swap_coefficient_rows!\(work, pivot_row, candidate, 1:monomial_count\)\n    eliminate_coordinate_column!\(work, pivot_row, column, direction_count, monomial_count\)''',
+              '''    pivot_index = CartesianIndex(pivot_row, column)
+    candidate = coefficient_pivot_row!(work, pivot_index)
+    iszero(candidate) && continue
+    swap_coefficient_rows!(work, (pivot_row, candidate))
+    eliminate_coordinate_column!(work, pivot_index)''',
           )
-            pivot_inverse = inv(left[column, column])
-            for trailing in 1:n
-              left[column, trailing] = simplify_coefficient(left[column, trailing] * pivot_inverse)
-              right[column, trailing] = simplify_coefficient(right[column, trailing] * pivot_inverse)
-            end
-            return nothing
-          end
+          text = sub_once(
+              text,
+              r'''function normalize_inverse_pivot_row!\(.*?\nend\n\nfunction eliminate_inverse_column!''',
+              '''struct CoefficientInverseWorkspace
+  left::KossakowskiMatrix
+  right::KossakowskiMatrix
+end
 
-          function eliminate_inverse_column!(
-            left::KossakowskiMatrix, right::KossakowskiMatrix, column::Int, n::Int
+function normalize_inverse_pivot_row!(workspace::CoefficientInverseWorkspace, column::Int)
+  left = workspace.left
+  right = workspace.right
+  pivot_inverse = inv(left[column, column])
+  for trailing in axes(left, 2)
+    left[column, trailing] = simplify_coefficient(left[column, trailing] * pivot_inverse)
+    right[column, trailing] = simplify_coefficient(right[column, trailing] * pivot_inverse)
+  end
+  return nothing
+end
+
+function eliminate_inverse_column!''',
           )
-            for row in 1:n
-              row == column && continue
-              factor = simplify_coefficient(left[row, column])
-              iszero(factor) && continue
-              for trailing in 1:n
-                left[row, trailing] = simplify_coefficient(
-                  left[row, trailing] - factor * left[column, trailing]
-                )
-                right[row, trailing] = simplify_coefficient(
-                  right[row, trailing] - factor * right[column, trailing]
-                )
-              end
-            end
-            return nothing
-          end
-          '''
-          new = '''function normalize_inverse_pivot_row!(
-            matrices::Tuple{KossakowskiMatrix,KossakowskiMatrix}, column::Int
+          text = sub_once(
+              text,
+              r'''function eliminate_inverse_column!\(.*?\nend\n\nfunction inverse_coefficients''',
+              '''function eliminate_inverse_column!(workspace::CoefficientInverseWorkspace, column::Int)
+  left = workspace.left
+  right = workspace.right
+  for row in axes(left, 1)
+    row == column && continue
+    factor = simplify_coefficient(left[row, column])
+    iszero(factor) && continue
+    for trailing in axes(left, 2)
+      left[row, trailing] = simplify_coefficient(
+        left[row, trailing] - factor * left[column, trailing]
+      )
+      right[row, trailing] = simplify_coefficient(
+        right[row, trailing] - factor * right[column, trailing]
+      )
+    end
+  end
+  return nothing
+end
+
+function inverse_coefficients''',
           )
-            left, right = matrices
-            pivot_inverse = inv(left[column, column])
-            for trailing in axes(left, 2)
-              left[column, trailing] = simplify_coefficient(left[column, trailing] * pivot_inverse)
-              right[column, trailing] = simplify_coefficient(right[column, trailing] * pivot_inverse)
-            end
-            return nothing
-          end
-
-          function eliminate_inverse_column!(
-            matrices::Tuple{KossakowskiMatrix,KossakowskiMatrix}, column::Int
+          text = text.replace(
+              '  right = coefficient_identity(n)\n\n  for column in 1:n',
+              '  right = coefficient_identity(n)\n  workspace = CoefficientInverseWorkspace(left, right)\n\n  for column in 1:n',
+              1,
           )
-            left, right = matrices
-            for row in axes(left, 1)
-              row == column && continue
-              factor = simplify_coefficient(left[row, column])
-              iszero(factor) && continue
-              for trailing in axes(left, 2)
-                left[row, trailing] = simplify_coefficient(
-                  left[row, trailing] - factor * left[column, trailing]
-                )
-                right[row, trailing] = simplify_coefficient(
-                  right[row, trailing] - factor * right[column, trailing]
-                )
-              end
-            end
-            return nothing
-          end
-          '''
-          assert old in text
-          text = text.replace(old, new, 1)
-          old = '''  left = copy(matrix)
-            right = coefficient_identity(n)
-
-            for column in 1:n
-              candidate = coefficient_pivot_row!(left, column, n, column)
-              iszero(candidate) && throw(
-                GKSLCoordinateError("dissipative-frame coordinate pivot is structurally singular")
-              )
-              swap_coefficient_rows!(left, column, candidate, 1:n)
-              swap_coefficient_rows!(right, column, candidate, 1:n)
-              normalize_inverse_pivot_row!(left, right, column, n)
-              eliminate_inverse_column!(left, right, column, n)
-            end
-          '''
-          new = '''  left = copy(matrix)
-            right = coefficient_identity(n)
-            workspace = (left, right)
-
-            for column in 1:n
-              candidate = coefficient_pivot_row!(left, CartesianIndex(column, column))
-              iszero(candidate) && throw(
-                GKSLCoordinateError("dissipative-frame coordinate pivot is structurally singular")
-              )
-              swap_coefficient_rows!(left, (column, candidate))
-              swap_coefficient_rows!(right, (column, candidate))
-              normalize_inverse_pivot_row!(workspace, column)
-              eliminate_inverse_column!(workspace, column)
-            end
-          '''
-          assert old in text
-          path.write_text(text.replace(old, new, 1))
+          text = text.replace(
+              'candidate = coefficient_pivot_row!(left, column, n, column)',
+              'candidate = coefficient_pivot_row!(left, CartesianIndex(column, column))',
+              1,
+          )
+          text = text.replace(
+              'swap_coefficient_rows!(left, column, candidate, 1:n)',
+              'swap_coefficient_rows!(left, (column, candidate))',
+              1,
+          )
+          text = text.replace(
+              'swap_coefficient_rows!(right, column, candidate, 1:n)',
+              'swap_coefficient_rows!(right, (column, candidate))',
+              1,
+          )
+          text = text.replace(
+              'normalize_inverse_pivot_row!(left, right, column, n)',
+              'normalize_inverse_pivot_row!(workspace, column)',
+              1,
+          )
+          text = text.replace(
+              'eliminate_inverse_column!(left, right, column, n)',
+              'eliminate_inverse_column!(workspace, column)',
+              1,
+          )
+          path.write_text(text)
           PY
       - name: Remove one-shot workflow and commit
         run: |
