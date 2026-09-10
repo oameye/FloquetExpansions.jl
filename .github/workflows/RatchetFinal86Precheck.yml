@@ -1,0 +1,27 @@
+name: Ratchet final 86 source precheck
+
+on:
+  push:
+    branches: ['tmp/ratchet-final-86-source']
+
+permissions:
+  contents: read
+
+jobs:
+  ratchet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13.0'
+      - uses: julia-actions/cache@v3
+      - name: Instantiate CodeRatchet
+        run: julia --project=code_ratchet -e 'using Pkg; Pkg.instantiate()'
+      - name: Install pinned JETLS
+        run: julia -e 'using Pkg; Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
+      - name: Complexity candidates
+        run: julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' complexity candidates
+      - name: LSP report
+        run: PATH="${HOME}/.julia/bin:${PATH}" julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' lsp report
