@@ -80,6 +80,75 @@ function completion_dot(left::Vector{CompletionScalar}, right::Vector{Completion
   return simplify_scalar(result)
 end
 
+function spectral_order_forcing(
+  series::MatrixSeries, vectors::Vector{Vector{CompletionScalar}}, order::Int, q::Int
+)::Vector{CompletionScalar}
+  forcing = completion_vector_zeros(q)
+  for k in 1:order
+    k + 1 <= length(series) || continue
+    completion_matvec_add!(forcing, series[k + 1], vectors[order - k + 1])
+  end
+  return simplify_completion_vector!(forcing)
+end
+
+function spectral_rate_coefficient(
+  forcing::Vector{CompletionScalar},
+  rates::ScalarSeries,
+  vectors::Vector{Vector{CompletionScalar}},
+  branch::Int,
+  order::Int,
+)::CompletionScalar
+  rate = forcing[branch]
+  for k in 1:(order - 1)
+    rate -= rates[k + 1] * vectors[order - k + 1][branch]
+  end
+  return hermitian_real(simplify_scalar(rate))
+end
+
+function spectral_order_residual(
+  forcing::Vector{CompletionScalar},
+  rates::ScalarSeries,
+  vectors::Vector{Vector{CompletionScalar}},
+  order::Int,
+)::Vector{CompletionScalar}
+  residual = copy(forcing)
+  for k in 1:order, index in eachindex(residual)
+    residual[index] -= rates[k + 1] * vectors[order - k + 1][index]
+  end
+  return residual
+end
+
+function solve_spectral_branch_components!(
+  vector::Vector{CompletionScalar},
+  residual::Vector{CompletionScalar},
+  gaps::Vector{CompletionScalar},
+  branch::Int,
+  conditions::CompletionConditions,
+)::Bool
+  for index in eachindex(vector)
+    index == branch && continue
+    value = simplify_scalar(residual[index])
+    gap = gaps[index]
+    if structurally_zero(gap)
+      structurally_zero(value) || return false
+      continue
+    end
+    structurally_nonzero(gap, conditions) || require_regularity!(conditions, gap)
+    vector[index] = simplify_scalar(value / gap)
+  end
+  return true
+end
+
+function spectral_normalization(
+  vectors::Vector{Vector{CompletionScalar}}, order::Int
+)::CompletionScalar
+  normalization = completion_zero()
+  for k in 1:(order - 1)
+    normalization += completion_dot(vectors[k + 1], vectors[order - k + 1])
+  end
+  return simplify_scalar(-hermitian_real(normalization) / completion_scalar(2))
+end
+
 function spectral_branch_series(
   series::MatrixSeries,
   leading_rates::Vector{CompletionScalar},
@@ -95,51 +164,19 @@ function spectral_branch_series(
   gaps = [simplify_scalar(leading_rates[branch] - leading_rates[index]) for index in 1:q]
 
   for order in 1:N
-    forcing = completion_vector_zeros(q)
-    for k in 1:order
-      k + 1 <= length(series) || continue
-      completion_matvec_add!(forcing, series[k + 1], vectors[order - k + 1])
-    end
-    simplify_completion_vector!(forcing)
-
-    rate = forcing[branch]
-    for k in 1:(order - 1)
-      rate -= rates[k + 1] * vectors[order - k + 1][branch]
-    end
-    rates[order + 1] = hermitian_real(simplify_scalar(rate))
-
-    residual = copy(forcing)
-    for k in 1:order
-      for index in 1:q
-        residual[index] -= rates[k + 1] * vectors[order - k + 1][index]
-      end
-    end
-
-    for index in 1:q
-      index == branch && continue
-      value = simplify_scalar(residual[index])
-      gap = gaps[index]
-      if structurally_zero(gap)
-        structurally_zero(value) || throw(
-          ArgumentError(
-            "Spectral completion encountered unresolved mixing inside a degenerate leading sector at order $order",
-          ),
-        )
-        continue
-      end
-      structurally_nonzero(gap, conditions) || require_regularity!(conditions, gap)
-      vectors[order + 1][index] = simplify_scalar(value / gap)
-    end
-
-    normalization = completion_zero()
-    for k in 1:(order - 1)
-      normalization += completion_dot(vectors[k + 1], vectors[order - k + 1])
-    end
-    vectors[order + 1][branch] = simplify_scalar(
-      -hermitian_real(normalization) / completion_scalar(2)
+    forcing = spectral_order_forcing(series, vectors, order, q)
+    rates[order + 1] = spectral_rate_coefficient(forcing, rates, vectors, branch, order)
+    residual = spectral_order_residual(forcing, rates, vectors, order)
+    resolved = solve_spectral_branch_components!(
+      vectors[order + 1], residual, gaps, branch, conditions
     )
+    resolved || throw(
+      ArgumentError(
+        "Spectral completion encountered unresolved mixing inside a degenerate leading sector at order $order",
+      ),
+    )
+    vectors[order + 1][branch] = spectral_normalization(vectors, order)
   end
-
   return rates, vectors
 end
 
@@ -256,8 +293,8 @@ function spectral_positive_completion(
   expansion::FloquetExpansion, frame::DissipativeFrame, algorithm::Spectral
 )
   N = order(expansion) - 1
-  raw_matrices = raw_kossakowski_series(expansion, frame)
-  series = completion_series(raw_matrices)
+  retained = retained_gksl_data(expansion, frame)
+  series = completion_series(retained.kossakowski)
   conditions = CompletionConditions()
   seed_completion_conditions!(conditions, getfield(expansion, :provenance))
   leading_rates = spectral_leading_diagonal(series)
@@ -288,7 +325,7 @@ function spectral_positive_completion(
     expansion,
     algorithm,
     frame,
-    raw_matrices,
+    retained,
     completed_matrix,
     completed_channels,
     conditions,

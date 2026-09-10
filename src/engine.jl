@@ -81,10 +81,33 @@ end
 
 Base.show(io::IO, expansion::FloquetExpansion) = show(io, MIME"text/plain"(), expansion)
 
-function dressed_node(K::Vector{P}, previous, n::Int, j::Int, generator::P) where {P}
+function dressed_generator_node(
+  K::Vector{P}, dressed_generator::Vector{P}, n::Int, j::Int, generator::P
+) where {P}
   result = zero(generator)
   for k in 1:(n - j + 1)
-    result = result + SQA.commutator(K[k], previous(k, j))
+    previous = dressed_generator[triindex(n - k, j - 1)]
+    result = result + SQA.commutator(K[k], previous)
+  end
+  return result
+end
+
+function dressed_kick_derivative_node(
+  K::Vector{P},
+  Kdot::Vector{P},
+  dressed_kick_derivative::Vector{P},
+  n::Int,
+  j::Int,
+  generator::P,
+) where {P}
+  result = zero(generator)
+  for k in 1:(n - j + 1)
+    previous = if j == 1
+      Kdot[n - k + 1]
+    else
+      dressed_kick_derivative[triindex(n - k, j - 1)]
+    end
+    result = result + SQA.commutator(K[k], previous)
   end
   return result
 end
@@ -132,19 +155,14 @@ function floquet_expansion_impl(
     dressed_generator[triindex(n, 0)] = n == 0 ? generator : zero(generator)
 
     for j in 1:n
-      dressed_generator[triindex(n, j)] = dressed_node(
-        K, (k, _) -> dressed_generator[triindex(n - k, j - 1)], n, j, generator
+      dressed_generator[triindex(n, j)] = dressed_generator_node(
+        K, dressed_generator, n, j, generator
       )
     end
 
     for j in 1:n
-      dressed_kick_derivative[triindex(n, j)] = dressed_node(
-        K,
-        (k, j_) ->
-          j_ == 1 ? Kdot[n - k + 1] : dressed_kick_derivative[triindex(n - k, j_ - 1)],
-        n,
-        j,
-        generator,
+      dressed_kick_derivative[triindex(n, j)] = dressed_kick_derivative_node(
+        K, Kdot, dressed_kick_derivative, n, j, generator
       )
     end
 

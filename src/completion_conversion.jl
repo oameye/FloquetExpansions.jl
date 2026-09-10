@@ -21,10 +21,10 @@ function exact_numeric_radical_replacement(node)::Union{Nothing,Symbolics.Num}
   arguments = Symbolics.arguments(node)
   length(arguments) == 1 || return nothing
   argument = Symbolics.unwrap_const(only(arguments))
-  rational = if argument isa Integer
-    Rational{Int}(Int(argument), 1)
-  elseif argument isa Rational
-    Rational{Int}(Int(numerator(argument)), Int(denominator(argument)))
+  rational = if argument isa Int
+    Rational{Int}(argument, 1)
+  elseif argument isa Rational{Int}
+    argument
   else
     return nothing
   end
@@ -99,12 +99,29 @@ end
   return iszero(grade) ? Symbolics.Num(1) : (wd^(-grade))::Symbolics.Num
 end
 
+function retained_gksl_data(
+  expansion::FloquetExpansion, frame::DissipativeFrame
+)::RetainedGKSLData
+  components = getfield(expansion, :effective_components)
+  drive_frequency = getfield(expansion, :generator).wd
+  coherent = zero(SQA.QAdd)
+  matrices = KossakowskiMatrix[]
+  sizehint!(matrices, length(components))
+  for index in eachindex(components)
+    hamiltonian, matrix = extract_gksl(components[index], frame)
+    coherent = (coherent + reattach(hamiltonian, drive_frequency, index - 1))::SQA.QAdd
+    push!(matrices, matrix)
+  end
+  return RetainedGKSLData(SQA.simplify(coherent)::SQA.QAdd, matrices)
+end
+
 function physical_kossakowski_series(
   matrices::Vector{KossakowskiMatrix}, wd::Symbolics.Num
 )::Vector{KossakowskiMatrix}
   result = KossakowskiMatrix[]
   sizehint!(result, length(matrices))
-  for (index, matrix) in enumerate(matrices)
+  for index in eachindex(matrices)
+    matrix = matrices[index]
     grade = index - 1
     scale = if iszero(grade)
       coefficient_one()

@@ -52,6 +52,7 @@ end
 @inline qadd_isone(value::SQA.QAdd)::Bool = isone(value)::Bool
 @inline qadd_iszero(value::SQA.QAdd)::Bool = iszero(value)::Bool
 @inline liouvillian_iszero(value::Liouvillian)::Bool = iszero(value)::Bool
+@inline qadd_term_pairs(value::SQA.QAdd) = pairs(getfield(value, :arguments))
 
 function canonical_qadd(operator::SQA.QField)::SQA.QAdd
   result = SQA.simplify(SQA.expand_completeness(qadd(operator)))::SQA.QAdd
@@ -85,7 +86,7 @@ function projected_operator(operator::SQA.QField)::SQA.QAdd
 end
 
 project_frame_operator(operator::SQA.QField)::SQA.QAdd = projected_operator(operator)
-function project_frame_operator(operator)
+function project_frame_operator(::Any)
   return throw(
     ArgumentError("every dissipative-frame direction must be an SQA operator expression")
   )
@@ -122,51 +123,78 @@ function simplify_matrix!(matrix::KossakowskiMatrix)::KossakowskiMatrix
   return matrix
 end
 
-function independent_pivot_rows(coordinates::KossakowskiMatrix)
+function transposed_coordinate_matrix(coordinates::KossakowskiMatrix)
   monomial_count, direction_count = size(coordinates)
   work = coefficient_matrix(direction_count, monomial_count)
   for row in 1:direction_count, column in 1:monomial_count
     work[row, column] = coordinates[column, row]
   end
+  return work
+end
 
+function coefficient_pivot_row!(work::KossakowskiMatrix, pivot::CartesianIndex{2})::Int
+  first_row, column = Tuple(pivot)
+  for row in first_row:size(work, 1)
+    value = simplify_coefficient(work[row, column])
+    work[row, column] = value
+    iszero(value) || return row
+  end
+  return 0
+end
+
+function swap_coefficient_rows!(matrix::KossakowskiMatrix, rows::NTuple{2,Int})
+  first_row, second_row = rows
+  first_row == second_row && return matrix
+  for column in axes(matrix, 2)
+    matrix[first_row, column], matrix[second_row, column] = matrix[second_row, column],
+    matrix[first_row, column]
+  end
+  return matrix
+end
+
+function eliminate_coordinate_column!(
+  work::KossakowskiMatrix, pivot_index::CartesianIndex{2}
+)
+  pivot_row, column = Tuple(pivot_index)
+  direction_count, monomial_count = size(work)
+  pivot = work[pivot_row, column]
+  for row in (pivot_row + 1):direction_count
+    entry = simplify_coefficient(work[row, column])
+    iszero(entry) && continue
+    factor = simplify_coefficient(entry * inv(pivot))
+    for trailing in column:monomial_count
+      work[row, trailing] = simplify_coefficient(
+        work[row, trailing] - factor * work[pivot_row, trailing]
+      )
+    end
+  end
+  return work
+end
+
+function coordinate_pivot_rows(coordinates::KossakowskiMatrix)::Vector{Int}
+  monomial_count, direction_count = size(coordinates)
+  direction_count == 0 && return Int[]
+  monomial_count < direction_count && return Int[]
+
+  work = transposed_coordinate_matrix(coordinates)
   pivots = Int[]
   pivot_row = 1
   for column in 1:monomial_count
-    candidate = 0
-    for row in pivot_row:direction_count
-      value = simplify_coefficient(work[row, column])
-      work[row, column] = value
-      if !iszero(value)
-        candidate = row
-        break
-      end
-    end
+    pivot_index = CartesianIndex(pivot_row, column)
+    candidate = coefficient_pivot_row!(work, pivot_index)
     iszero(candidate) && continue
-
-    if candidate != pivot_row
-      for trailing in 1:monomial_count
-        work[pivot_row, trailing], work[candidate, trailing] = work[candidate, trailing],
-        work[pivot_row, trailing]
-      end
-    end
-
-    pivot = work[pivot_row, column]
-    for row in (pivot_row + 1):direction_count
-      entry = simplify_coefficient(work[row, column])
-      iszero(entry) && continue
-      factor = simplify_coefficient(entry * inv(pivot))
-      for trailing in column:monomial_count
-        work[row, trailing] = simplify_coefficient(
-          work[row, trailing] - factor * work[pivot_row, trailing]
-        )
-      end
-    end
-
+    swap_coefficient_rows!(work, (pivot_row, candidate))
+    eliminate_coordinate_column!(work, pivot_index)
     push!(pivots, column)
     pivot_row += 1
     pivot_row > direction_count && break
   end
+  return pivots
+end
 
+function independent_pivot_rows(coordinates::KossakowskiMatrix)
+  _, direction_count = size(coordinates)
+  pivots = coordinate_pivot_rows(coordinates)
   length(pivots) == direction_count || throw(
     ArgumentError(
       "dissipative-frame directions are linearly dependent modulo the identity"
@@ -175,83 +203,98 @@ function independent_pivot_rows(coordinates::KossakowskiMatrix)
   return pivots
 end
 
+function coefficient_identity(n::Int)::KossakowskiMatrix
+  result = coefficient_matrix(n, n)
+  for index in 1:n
+    result[index, index] = coefficient_one()
+  end
+  return result
+end
+
+struct CoefficientInverseWorkspace
+  left::KossakowskiMatrix
+  right::KossakowskiMatrix
+end
+
+function normalize_inverse_pivot_row!(workspace::CoefficientInverseWorkspace, column::Int)
+  left = workspace.left
+  right = workspace.right
+  pivot_inverse = inv(left[column, column])
+  for trailing in axes(left, 2)
+    left[column, trailing] = simplify_coefficient(left[column, trailing] * pivot_inverse)
+    right[column, trailing] = simplify_coefficient(right[column, trailing] * pivot_inverse)
+  end
+  return nothing
+end
+
+function eliminate_inverse_column!(workspace::CoefficientInverseWorkspace, column::Int)
+  left = workspace.left
+  right = workspace.right
+  for row in axes(left, 1)
+    row == column && continue
+    factor = simplify_coefficient(left[row, column])
+    iszero(factor) && continue
+    for trailing in axes(left, 2)
+      left[row, trailing] = simplify_coefficient(
+        left[row, trailing] - factor * left[column, trailing]
+      )
+      right[row, trailing] = simplify_coefficient(
+        right[row, trailing] - factor * right[column, trailing]
+      )
+    end
+  end
+  return nothing
+end
+
 function inverse_coefficients(matrix::KossakowskiMatrix)::KossakowskiMatrix
   rows, columns = size(matrix)
   rows == columns || throw(DimensionMismatch("coefficient matrix must be square"))
   n = rows
   left = copy(matrix)
-  right = coefficient_matrix(n, n)
-  for index in 1:n
-    right[index, index] = coefficient_one()
-  end
+  right = coefficient_identity(n)
+  workspace = CoefficientInverseWorkspace(left, right)
 
   for column in 1:n
-    candidate = 0
-    for row in column:n
-      value = simplify_coefficient(left[row, column])
-      left[row, column] = value
-      if !iszero(value)
-        candidate = row
-        break
-      end
-    end
+    candidate = coefficient_pivot_row!(left, CartesianIndex(column, column))
     iszero(candidate) && throw(
       GKSLCoordinateError("dissipative-frame coordinate pivot is structurally singular")
     )
-
-    if candidate != column
-      for trailing in 1:n
-        left[column, trailing], left[candidate, trailing] = left[candidate, trailing],
-        left[column, trailing]
-        right[column, trailing], right[candidate, trailing] = right[candidate, trailing],
-        right[column, trailing]
-      end
-    end
-
-    pivot_inverse = inv(left[column, column])
-    for trailing in 1:n
-      left[column, trailing] = simplify_coefficient(left[column, trailing] * pivot_inverse)
-      right[column, trailing] = simplify_coefficient(
-        right[column, trailing] * pivot_inverse
-      )
-    end
-
-    for row in 1:n
-      row == column && continue
-      factor = simplify_coefficient(left[row, column])
-      iszero(factor) && continue
-      for trailing in 1:n
-        left[row, trailing] = simplify_coefficient(
-          left[row, trailing] - factor * left[column, trailing]
-        )
-        right[row, trailing] = simplify_coefficient(
-          right[row, trailing] - factor * right[column, trailing]
-        )
-      end
-    end
+    swap_coefficient_rows!(left, (column, candidate))
+    swap_coefficient_rows!(right, (column, candidate))
+    normalize_inverse_pivot_row!(workspace, column)
+    eliminate_inverse_column!(workspace, column)
   end
   return right
 end
 
-function build_dissipative_frame(operators)
-  isempty(operators) &&
-    throw(ArgumentError("DissipativeFrame requires at least one direction"))
-  projected = frame_operator_tuple(operators)
-
+function frame_coordinate_data(operators)
   monomials = SQA.QTerm[]
-  for operator in projected
+  for operator in operators
     for (term, _) in sorted_term_pairs(operator)
       isempty(term.ops) && continue
       term in monomials || push!(monomials, term)
     end
   end
 
-  coordinates = coefficient_matrix(length(monomials), length(projected))
+  coordinates = coefficient_matrix(length(monomials), length(operators))
   row_index = Dict{SQA.QTerm,Int}(term => row for (row, term) in enumerate(monomials))
-  for (column, operator) in enumerate(projected), (term, coefficient) in operator
+  for (column, operator) in enumerate(operators), (term, coefficient) in operator
     isempty(term.ops) && continue
     coordinates[row_index[term], column] = coefficient
   end
+  return monomials, coordinates
+end
+
+function frame_direction_coordinates(operators::Vector{SQA.QAdd})
+  _, coordinates = frame_coordinate_data(operators)
+  return coordinates
+end
+
+function build_dissipative_frame(operators)
+  isempty(operators) &&
+    throw(ArgumentError("DissipativeFrame requires at least one direction"))
+  projected = frame_operator_tuple(operators)
+  monomials, coordinates = frame_coordinate_data(projected)
 
   pivots = independent_pivot_rows(coordinates)
   pivot_matrix = coefficient_matrix(length(pivots), length(projected))
@@ -269,18 +312,24 @@ DissipativeFrame(operators::SQA.QField...) = build_dissipative_frame(operators)
 
 function canonical_liouvillian(L::Liouvillian)::Liouvillian
   result = zero(L)
-  for (left, right, coefficient) in terms(L)
-    left_canonical = canonical_qadd(left)
-    right_canonical = canonical_qadd(right)
-    for (left_term, left_coefficient) in left_canonical,
-      (right_term, right_coefficient) in right_canonical
-
-      product = coefficient * left_coefficient * right_coefficient
-      combined = simplify_coefficient(product)
-      iszero(combined) && continue
-      add_term!(
-        result, monomial_operator(left_term), monomial_operator(right_term), combined
-      )
+  for entry in term_pairs(L)
+    action = first(entry)
+    coefficient = last(entry)
+    left_canonical = canonical_qadd(first(action))
+    right_canonical = canonical_qadd(last(action))
+    for left_entry in qadd_term_pairs(left_canonical)
+      left_term = first(left_entry)
+      left_coefficient = last(left_entry)
+      for right_entry in qadd_term_pairs(right_canonical)
+        right_term = first(right_entry)
+        right_coefficient = last(right_entry)
+        product = coefficient * left_coefficient * right_coefficient
+        combined = simplify_coefficient(product)
+        iszero(combined) && continue
+        add_term!(
+          result, monomial_operator(left_term), monomial_operator(right_term), combined
+        )
+      end
     end
   end
   return result
@@ -311,7 +360,9 @@ function adjoint_coefficients(matrix::KossakowskiMatrix)::KossakowskiMatrix
   return result
 end
 
-function sandwich_pivot_matrix(L::Liouvillian, frame::DissipativeFrame)::KossakowskiMatrix
+function sandwich_pivot_matrix_canonical(
+  canonical::Liouvillian, frame::DissipativeFrame
+)::KossakowskiMatrix
   q = length(frame.operators)
   result = coefficient_matrix(q, q)
   pivot_terms = frame.monomials[frame.pivot_rows]
@@ -319,14 +370,20 @@ function sandwich_pivot_matrix(L::Liouvillian, frame::DissipativeFrame)::Kossako
     term => index for (index, term) in enumerate(pivot_terms)
   )
 
-  for (left, right, coefficient) in terms(canonical_liouvillian(L))
+  for entry in term_pairs(canonical)
+    action = first(entry)
+    coefficient = last(entry)
+    left = first(action)
+    right = last(action)
     (qadd_isone(left) || qadd_isone(right)) && continue
-    left_term = first(first(left))
+    left_term = first(first(qadd_term_pairs(left)))
     left_index = get(pivot_index, left_term, 0)
     iszero(left_index) && continue
 
     right_adjoint = canonical_qadd(adjoint(right))
-    for (right_term, right_coefficient) in right_adjoint
+    for right_entry in qadd_term_pairs(right_adjoint)
+      right_term = first(right_entry)
+      right_coefficient = last(right_entry)
       isempty(right_term.ops) && continue
       right_index = get(pivot_index, right_term, 0)
       iszero(right_index) && continue
@@ -337,6 +394,10 @@ function sandwich_pivot_matrix(L::Liouvillian, frame::DissipativeFrame)::Kossako
     end
   end
   return result
+end
+
+function sandwich_pivot_matrix(L::Liouvillian, frame::DissipativeFrame)::KossakowskiMatrix
+  return sandwich_pivot_matrix_canonical(canonical_liouvillian(L), frame)
 end
 
 function cross_dissipator(left::SQA.QAdd, right::SQA.QAdd)::Liouvillian
@@ -377,15 +438,50 @@ function matrix_is_hermitian(matrix::KossakowskiMatrix)::Bool
   return true
 end
 
-function has_two_sided_terms(L::Liouvillian)::Bool
-  for (left, right, _) in terms(canonical_liouvillian(L))
+function canonical_has_two_sided_terms(canonical::Liouvillian)::Bool
+  for entry in term_pairs(canonical)
+    action = first(entry)
+    left = first(action)
+    right = last(action)
     (!qadd_isone(left) && !qadd_isone(right)) && return true
   end
   return false
 end
 
-function residual_hamiltonian(residual::Liouvillian)::SQA.QAdd
-  canonical = canonical_liouvillian(residual)
+function has_two_sided_terms(L::Liouvillian)::Bool
+  return canonical_has_two_sided_terms(canonical_liouvillian(L))
+end
+
+function canonical_dissipative_support_terms(canonical::Liouvillian)::Vector{SQA.QTerm}
+  terms_found = SQA.QTerm[]
+  for entry in term_pairs(canonical)
+    action = first(entry)
+    left = first(action)
+    right = last(action)
+    (qadd_isone(left) || qadd_isone(right)) && continue
+    left_term = first(first(qadd_term_pairs(left)))
+    left_term in terms_found || push!(terms_found, left_term)
+    right_adjoint = canonical_qadd(adjoint(right))
+    for right_entry in qadd_term_pairs(right_adjoint)
+      right_term = first(right_entry)
+      isempty(right_term.ops) && continue
+      right_term in terms_found || push!(terms_found, right_term)
+    end
+  end
+  sort!(terms_found; by=SQA.term_order_key)
+  return terms_found
+end
+
+function canonical_dissipative_support_directions(canonical::Liouvillian)::Vector{SQA.QAdd}
+  terms_found = canonical_dissipative_support_terms(canonical)
+  return [monomial_operator(term) for term in terms_found]
+end
+
+function dissipative_support_directions(L::Liouvillian)::Vector{SQA.QAdd}
+  return canonical_dissipative_support_directions(canonical_liouvillian(L))
+end
+
+function residual_hamiltonian_canonical(canonical::Liouvillian)::SQA.QAdd
   H = zero(SQA.QAdd)
   for (left, right, coefficient) in terms(canonical)
     if !qadd_isone(left) && qadd_isone(right)
@@ -405,10 +501,14 @@ function residual_hamiltonian(residual::Liouvillian)::SQA.QAdd
   return H
 end
 
-function extract_gksl(
-  L::Liouvillian, frame::DissipativeFrame
+function residual_hamiltonian(residual::Liouvillian)::SQA.QAdd
+  return residual_hamiltonian_canonical(canonical_liouvillian(residual))
+end
+
+function extract_gksl_canonical(
+  canonical::Liouvillian, frame::DissipativeFrame
 )::Tuple{SQA.QAdd,KossakowskiMatrix}
-  sandwich = sandwich_pivot_matrix(L, frame)
+  sandwich = sandwich_pivot_matrix_canonical(canonical, frame)
   left = multiply_coefficients(frame.pivot_inverse, sandwich)
   matrix = multiply_coefficients(left, adjoint_coefficients(frame.pivot_inverse))
   simplify_matrix!(matrix)
@@ -419,28 +519,27 @@ function extract_gksl(
   )
 
   dissipative = dissipative_liouvillian(frame, matrix)
-  residual = canonical_liouvillian((L - dissipative)::Liouvillian)
-  has_two_sided_terms(residual) && throw(
+  residual = canonical_liouvillian((canonical - dissipative)::Liouvillian)
+  canonical_has_two_sided_terms(residual) && throw(
     ArgumentError("Liouvillian contains dissipative directions outside the supplied frame"),
   )
-  H = residual_hamiltonian(residual)
+  H = residual_hamiltonian_canonical(residual)
   return H, matrix
 end
 
+function extract_gksl(
+  L::Liouvillian, frame::DissipativeFrame
+)::Tuple{SQA.QAdd,KossakowskiMatrix}
+  return extract_gksl_canonical(canonical_liouvillian(L), frame)
+end
+
+function support_frame_canonical(canonical::Liouvillian)
+  directions = canonical_dissipative_support_directions(canonical)
+  return DissipativeFrame(Tuple(directions))
+end
+
 function support_frame(L::Liouvillian)
-  canonical = canonical_liouvillian(L)
-  terms_found = SQA.QTerm[]
-  for (left, right, _) in terms(canonical)
-    (qadd_isone(left) || qadd_isone(right)) && continue
-    left_term = first(first(left))
-    left_term in terms_found || push!(terms_found, left_term)
-    for (right_term, _) in canonical_qadd(adjoint(right))
-      isempty(right_term.ops) && continue
-      right_term in terms_found || push!(terms_found, right_term)
-    end
-  end
-  sort!(terms_found; by=SQA.term_order_key)
-  return DissipativeFrame(Tuple(monomial_operator(term) for term in terms_found))
+  return support_frame_canonical(canonical_liouvillian(L))
 end
 
 """
@@ -474,7 +573,9 @@ end
 
 function hamiltonian(L::Liouvillian)::SQA.QAdd
   canonical = canonical_liouvillian(L)
-  has_two_sided_terms(canonical) || return residual_hamiltonian(canonical)
-  frame = support_frame(canonical)
-  return hamiltonian(canonical, frame)
+  canonical_has_two_sided_terms(canonical) ||
+    return residual_hamiltonian_canonical(canonical)
+  frame = support_frame_canonical(canonical)
+  H, _ = extract_gksl_canonical(canonical, frame)
+  return H
 end

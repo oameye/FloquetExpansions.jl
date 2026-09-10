@@ -145,8 +145,8 @@ function gram_positive_completion(
   expansion::FloquetExpansion, frame::DissipativeFrame, algorithm::Gram
 )
   N = order(expansion) - 1
-  raw_matrices = raw_kossakowski_series(expansion, frame)
-  series = completion_series(raw_matrices)
+  retained = retained_gksl_data(expansion, frame)
+  series = completion_series(retained.kossakowski)
   conditions = CompletionConditions()
   seed_completion_conditions!(conditions, getfield(expansion, :provenance))
 
@@ -162,7 +162,7 @@ function gram_positive_completion(
     expansion,
     algorithm,
     frame,
-    raw_matrices,
+    retained,
     completed_matrix,
     completed_channels,
     conditions,
