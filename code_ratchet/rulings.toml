@@ -1,0 +1,40 @@
+[metrics]
+run = ["complexity", "style", "docs", "boxes", "lsp", "jet"]
+
+[scope]
+measure = ["src/"]
+
+[thresholds]
+cyclomatic = 10
+cognitive = 15
+argcount = 10
+
+[[unmeasured_path]]
+path = "test/"
+reason = "Test code."
+
+[[unmeasured_path]]
+path = "docs/"
+reason = "Documentation code."
+
+[[unmeasured_path]]
+path = "examples/"
+reason = "Documentation examples."
+
+[[unmeasured_path]]
+path = "benchmark/"
+reason = "Benchmark harness."
+
+[jet]
+package = "FloquetExpansions"
+target_modules = ["FloquetExpansions"]
+load = []
+
+[style]
+rules = ["underscore_name", "implicit_kwarg"]
+
+[boxes]
+package = "FloquetExpansions"
+
+[lsp]
+entry = ["src/FloquetExpansions.jl"]
