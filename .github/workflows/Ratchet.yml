@@ -15,11 +15,11 @@ jobs:
   # metrics run is [metrics].run in code_ratchet/rulings.toml, so this file
   # never needs editing to add or drop one.
   ratchet:
-    # Pin the reusable workflow for the same reason the package dependency is
-    # pinned below: a quality gate must not change underneath an unchanged tree.
+    # Pin both the reusable workflow and the Julia reference runtime: stored
+    # baselines are only comparable when the measurement environment is stable.
     uses: oameye/CodeRatchet.jl/.github/workflows/ratchet.yml@90cc9753755fcbc1f898939347995cec1ca2f4eb
     with:
-      julia-version: '1.12'
+      julia-version: '1.13'
       install-jetls: true
       # Pinned to the release the lsp baseline was taken under. `release` is a
       # moving branch: leaving it unpinned put CI on 2026-09-01 against a
