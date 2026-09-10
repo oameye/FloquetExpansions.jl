@@ -5,6 +5,7 @@ on:
     branches: ['tmp/ratchet-final-refresh-113']
 
 permissions:
+  actions: write
   contents: write
 
 jobs:
@@ -32,7 +33,7 @@ jobs:
           export PATH="$HOME/.julia/bin:$PATH"
           julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' complexity candidates
           julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' lsp report
-          julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' all scorecard
+          julia --project=code_ratchet -e 'using JET, CodeRatchet; exit(CodeRatchet.main())' all scorecard
       - name: Commit generated baselines and remove one-shot workflow
         run: |
           rm .github/workflows/RefreshRatchetFinal113.yml
