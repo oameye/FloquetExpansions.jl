@@ -21,81 +21,81 @@ jobs:
 
           p = Path('src/completion_frame.jl')
           s = p.read_text()
-          old = '''function raw_kossakowski_series(expansion::FloquetExpansion, frame::DissipativeFrame)
-  components = getfield(expansion, :effective_components)
-  result = KossakowskiMatrix[]
-  sizehint!(result, length(components))
-  for component in components
-    push!(result, kossakowski(component, frame))
-  end
-  return result
-end
-'''
-          new = '''struct RetainedGKSLData
-  hamiltonians::Vector{SQA.QAdd}
-  kossakowski::Vector{KossakowskiMatrix}
-end
-
-function retained_gksl_data(expansion::FloquetExpansion, frame::DissipativeFrame)
-  components = getfield(expansion, :effective_components)
-  hamiltonians = SQA.QAdd[]
-  matrices = KossakowskiMatrix[]
-  sizehint!(hamiltonians, length(components))
-  sizehint!(matrices, length(components))
-  for component in components
-    hamiltonian, matrix = extract_gksl(component, frame)
-    push!(hamiltonians, hamiltonian)
-    push!(matrices, matrix)
-  end
-  return RetainedGKSLData(hamiltonians, matrices)
-end
-
-function physical_retained_hamiltonian(
-  hamiltonians::Vector{SQA.QAdd}, wd::Symbolics.Num
-)::SQA.QAdd
-  coherent = zero(SQA.QAdd)
-  for index in eachindex(hamiltonians)
-    grade = index - 1
-    coherent = (coherent + reattach(hamiltonians[index], wd, grade))::SQA.QAdd
-  end
-  return SQA.simplify(coherent)::SQA.QAdd
-end
-'''
+          old = (
+              "function raw_kossakowski_series(expansion::FloquetExpansion, frame::DissipativeFrame)\n"
+              "  components = getfield(expansion, :effective_components)\n"
+              "  result = KossakowskiMatrix[]\n"
+              "  sizehint!(result, length(components))\n"
+              "  for component in components\n"
+              "    push!(result, kossakowski(component, frame))\n"
+              "  end\n"
+              "  return result\n"
+              "end\n"
+          )
+          new = (
+              "struct RetainedGKSLData\n"
+              "  hamiltonians::Vector{SQA.QAdd}\n"
+              "  kossakowski::Vector{KossakowskiMatrix}\n"
+              "end\n\n"
+              "function retained_gksl_data(expansion::FloquetExpansion, frame::DissipativeFrame)\n"
+              "  components = getfield(expansion, :effective_components)\n"
+              "  hamiltonians = SQA.QAdd[]\n"
+              "  matrices = KossakowskiMatrix[]\n"
+              "  sizehint!(hamiltonians, length(components))\n"
+              "  sizehint!(matrices, length(components))\n"
+              "  for component in components\n"
+              "    hamiltonian, matrix = extract_gksl(component, frame)\n"
+              "    push!(hamiltonians, hamiltonian)\n"
+              "    push!(matrices, matrix)\n"
+              "  end\n"
+              "  return RetainedGKSLData(hamiltonians, matrices)\n"
+              "end\n\n"
+              "function physical_retained_hamiltonian(\n"
+              "  hamiltonians::Vector{SQA.QAdd}, wd::Symbolics.Num\n"
+              ")::SQA.QAdd\n"
+              "  coherent = zero(SQA.QAdd)\n"
+              "  for index in eachindex(hamiltonians)\n"
+              "    grade = index - 1\n"
+              "    coherent = (coherent + reattach(hamiltonians[index], wd, grade))::SQA.QAdd\n"
+              "  end\n"
+              "  return SQA.simplify(coherent)::SQA.QAdd\n"
+              "end\n"
+          )
           assert old in s
           p.write_text(s.replace(old, new))
 
           p = Path('src/gram_recursion.jl')
           s = p.read_text()
-          s = s.replace(
-              '  raw_matrices = raw_kossakowski_series(expansion, frame)\n  series = completion_series(raw_matrices)\n',
-              '  retained = retained_gksl_data(expansion, frame)\n  series = completion_series(retained.kossakowski)\n',
-          )
-          s = s.replace('    raw_matrices,\n', '    retained,\n')
-          assert 'raw_kossakowski_series' not in s
+          old = "  raw_matrices = raw_kossakowski_series(expansion, frame)\n  series = completion_series(raw_matrices)\n"
+          new = "  retained = retained_gksl_data(expansion, frame)\n  series = completion_series(retained.kossakowski)\n"
+          assert old in s
+          s = s.replace(old, new).replace('    raw_matrices,\n', '    retained,\n')
           p.write_text(s)
 
           p = Path('src/spectral_completion.jl')
           s = p.read_text()
-          s = s.replace(
-              '  raw_matrices = raw_kossakowski_series(expansion, frame)\n  series = completion_series(raw_matrices)\n',
-              '  retained = retained_gksl_data(expansion, frame)\n  series = completion_series(retained.kossakowski)\n',
-          )
-          s = s.replace('    raw_matrices,\n', '    retained,\n')
-          assert 'raw_kossakowski_series' not in s
+          assert old in s
+          s = s.replace(old, new).replace('    raw_matrices,\n', '    retained,\n')
           p.write_text(s)
 
           p = Path('src/completion.jl')
           s = p.read_text()
-          s = s.replace(
-              '  raw_matrices::Vector{KossakowskiMatrix},\n',
-              '  retained::RetainedGKSLData,\n',
+          old_arg = '  raw_matrices::Vector{KossakowskiMatrix},\n'
+          assert old_arg in s
+          s = s.replace(old_arg, '  retained::RetainedGKSLData,\n')
+          old_body = (
+              '  retained_kossakowski = physical_kossakowski_series(raw_matrices, drive_frequency)\n'
+              '  raw_generator = effective_generator(expansion)\n'
+              '  coherent = hamiltonian(raw_generator, frame)\n'
           )
-          s = s.replace(
-              '  retained_kossakowski = physical_kossakowski_series(raw_matrices, drive_frequency)\n  raw_generator = effective_generator(expansion)\n  coherent = hamiltonian(raw_generator, frame)\n',
-              '  retained_kossakowski = physical_kossakowski_series(\n    retained.kossakowski, drive_frequency\n  )\n  coherent = physical_retained_hamiltonian(retained.hamiltonians, drive_frequency)\n',
+          new_body = (
+              '  retained_kossakowski = physical_kossakowski_series(\n'
+              '    retained.kossakowski, drive_frequency\n'
+              '  )\n'
+              '  coherent = physical_retained_hamiltonian(retained.hamiltonians, drive_frequency)\n'
           )
-          assert 'raw_matrices' not in s
-          p.write_text(s)
+          assert old_body in s
+          p.write_text(s.replace(old_body, new_body))
           PY
       - name: Commit source-only candidate
         run: |
