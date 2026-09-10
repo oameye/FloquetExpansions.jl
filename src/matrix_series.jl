@@ -189,8 +189,9 @@ function validate_matrix_series(series::MatrixSeries)
     throw(ArgumentError("matrix series must contain at least one coefficient"))
   dims = size(first(series))
   for matrix in series
-    size(matrix) == dims ||
-      throw(DimensionMismatch("all matrix-series coefficients must have the same dimensions"))
+    size(matrix) == dims || throw(
+      DimensionMismatch("all matrix-series coefficients must have the same dimensions")
+    )
   end
   return dims
 end

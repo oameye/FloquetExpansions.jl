@@ -132,9 +132,7 @@ function transposed_coordinate_matrix(coordinates::KossakowskiMatrix)
   return work
 end
 
-function coefficient_pivot_row!(
-  work::KossakowskiMatrix, pivot::CartesianIndex{2}
-)::Int
+function coefficient_pivot_row!(work::KossakowskiMatrix, pivot::CartesianIndex{2})::Int
   first_row, column = Tuple(pivot)
   for row in first_row:size(work, 1)
     value = simplify_coefficient(work[row, column])
@@ -575,7 +573,8 @@ end
 
 function hamiltonian(L::Liouvillian)::SQA.QAdd
   canonical = canonical_liouvillian(L)
-  canonical_has_two_sided_terms(canonical) || return residual_hamiltonian_canonical(canonical)
+  canonical_has_two_sided_terms(canonical) ||
+    return residual_hamiltonian_canonical(canonical)
   frame = support_frame_canonical(canonical)
   H, _ = extract_gksl_canonical(canonical, frame)
   return H

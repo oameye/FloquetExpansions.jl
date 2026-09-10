@@ -38,9 +38,7 @@ function finalize_positive_completion(
   )
 
   drive_frequency = getfield(expansion, :generator).wd
-  retained_kossakowski = physical_kossakowski_series(
-    retained.kossakowski, drive_frequency
-  )
+  retained_kossakowski = physical_kossakowski_series(retained.kossakowski, drive_frequency)
   coherent = retained.coherent
   generator = liouvillian(coherent; channels=completed_channels)
 
