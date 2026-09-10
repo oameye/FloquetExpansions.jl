@@ -131,6 +131,14 @@ struct MicroscopicProvenance <: FloquetProvenance
   order::Vector{DissipativeSeedRef}
 end
 
+# Exact retained GKSL data in one fixed dissipative frame. The coherent part is already
+# reattached to physical inverse-drive powers; the dissipative coefficients remain order-resolved
+# until completion finalization converts them to their physical series representation.
+struct RetainedGKSLData
+  coherent::SQA.QAdd
+  kossakowski::Vector{Matrix{SQA.CNum}}
+end
+
 struct PositiveCompletion{
   A<:CompletionAlgorithm,F,RK,K,C,P,R,X<:CompletionFactorization,H,E
 } <: Completion
