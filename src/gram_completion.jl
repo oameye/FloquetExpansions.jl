@@ -11,6 +11,21 @@ struct GramStage
   dark_rank::Int
 end
 
+function Base.show(io::IO, stage::GramStage)
+  return print(
+    io,
+    "GramStage(grade=",
+    stage.grade,
+    ", active_rank=",
+    stage.active_rank,
+    ", dark_rank=",
+    stage.dark_rank,
+    ")",
+  )
+end
+
+Base.show(io::IO, ::MIME"text/plain", stage::GramStage) = show(io, stage)
+
 """
     GramFactorization <: CompletionFactorization
 
@@ -25,6 +40,35 @@ struct GramFactorization <: CompletionFactorization
   amplitudes::Vector{KossakowskiMatrix}
   onsets::Vector{Int}
   stages::Vector{GramStage}
+end
+
+function Base.show(io::IO, factorization::GramFactorization)
+  return print(
+    io,
+    "GramFactorization(",
+    length(factorization.onsets),
+    " collapse channel",
+    length(factorization.onsets) == 1 ? "" : "s",
+    ", onsets=",
+    factorization.onsets,
+    ", stages=",
+    length(factorization.stages),
+    ")",
+  )
+end
+
+function Base.show(io::IO, ::MIME"text/plain", factorization::GramFactorization)
+  count = length(factorization.onsets)
+  label = count == 1 ? "collapse channel" : "collapse channels"
+  print(io, "GramFactorization with ", count, " ", label)
+  print(io, "\n  onsets: ")
+  show(io, factorization.onsets)
+  print(io, "\n  stages: ", length(factorization.stages))
+  for stage in factorization.stages
+    print(io, "\n    ")
+    show(io, stage)
+  end
+  return nothing
 end
 
 function Base.copy(factorization::GramFactorization)

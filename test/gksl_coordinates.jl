@@ -25,6 +25,14 @@ a = Destroy(fock, :a)
   @test_throws ArgumentError DissipativeFrame(Any[a, 1])
 end
 
+@testset "DissipativeFrame has a semantic display" begin
+  frame = DissipativeFrame(a + 3 * one(a), a^2)
+
+  @test sprint(show, frame) == "DissipativeFrame(a, a * a)"
+  @test sprint(show, MIME"text/plain"(), frame) ==
+    "DissipativeFrame with 2 ordered directions:\n  1: a\n  2: a * a"
+end
+
 @testset "exact complex Kossakowski extraction" begin
   H = Δ * a' * a
   frame = DissipativeFrame(a, a^2)

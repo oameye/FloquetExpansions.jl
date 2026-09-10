@@ -14,6 +14,41 @@ struct SpectralFactorization <: CompletionFactorization
   puiseux::Vector{Bool}
 end
 
+function show_bool_vector(io::IO, values::Vector{Bool})
+  print(io, '[')
+  for (index, value) in enumerate(values)
+    index == 1 || print(io, ", ")
+    print(io, value)
+  end
+  return print(io, ']')
+end
+
+function Base.show(io::IO, factorization::SpectralFactorization)
+  return print(
+    io,
+    "SpectralFactorization(",
+    length(factorization.onsets),
+    " branch",
+    length(factorization.onsets) == 1 ? "" : "es",
+    ", onsets=",
+    factorization.onsets,
+    ", puiseux=",
+    sprint(show_bool_vector, factorization.puiseux),
+    ")",
+  )
+end
+
+function Base.show(io::IO, ::MIME"text/plain", factorization::SpectralFactorization)
+  count = length(factorization.onsets)
+  label = count == 1 ? "branch" : "branches"
+  print(io, "SpectralFactorization with ", count, " ", label)
+  print(io, "\n  onsets: ")
+  show(io, factorization.onsets)
+  print(io, "\n  puiseux: ")
+  show_bool_vector(io, factorization.puiseux)
+  return nothing
+end
+
 function Base.copy(factorization::SpectralFactorization)
   return SpectralFactorization(
     copy(factorization.rates),

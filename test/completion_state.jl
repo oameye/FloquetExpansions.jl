@@ -6,6 +6,24 @@ h = FockSpace(:completion_state)
 a = Destroy(h, :a)
 @variables ω::Real t::Real γ::Real
 
+@testset "completion diagnostics have semantic displays" begin
+  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(jump(a, γ),))
+  frame = DissipativeFrame(a)
+  gram = factorization(positive_completion(expansion, Gram(), frame))
+  spectral = factorization(positive_completion(expansion, Spectral(), frame))
+
+  @test sprint(show, gram) == "GramFactorization(1 collapse channel, onsets=[0], stages=1)"
+  @test sprint(show, MIME"text/plain"(), gram) ==
+    "GramFactorization with 1 collapse channel\n" *
+        "  onsets: [0]\n" *
+        "  stages: 1\n" *
+        "    GramStage(grade=0, active_rank=1, dark_rank=0)"
+  @test sprint(show, spectral) ==
+    "SpectralFactorization(1 branch, onsets=[0], puiseux=[false])"
+  @test sprint(show, MIME"text/plain"(), spectral) ==
+    "SpectralFactorization with 1 branch\n  onsets: [0]\n  puiseux: [false]"
+end
+
 @testset "raw Floquet expansions carry uncompleted state" begin
   H = a' * a + cos(ω * t) * (a + a')
   vv = @inferred floquet_expansion(H, ω, t, VanVleck(), 2)

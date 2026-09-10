@@ -44,6 +44,26 @@ function Base.hash(frame::DissipativeFrame, h::UInt)
   return hash(:DissipativeFrame, hash(frame.operators, h))
 end
 
+function Base.show(io::IO, frame::DissipativeFrame)
+  print(io, "DissipativeFrame(")
+  for (index, operator) in enumerate(frame.operators)
+    index == 1 || print(io, ", ")
+    show(io, operator)
+  end
+  return print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", frame::DissipativeFrame)
+  count = length(frame.operators)
+  label = count == 1 ? "direction" : "directions"
+  print(io, "DissipativeFrame with ", count, " ordered ", label, ":")
+  for (index, operator) in enumerate(frame.operators)
+    print(io, "\n  ", index, ": ")
+    show(io, operator)
+  end
+  return nothing
+end
+
 @inline coefficient_zero()::SQA.CNum = convert(SQA.CNum, 0)
 @inline coefficient_one()::SQA.CNum = convert(SQA.CNum, 1)
 @inline function simplify_coefficient(value::SQA.CNum)::SQA.CNum
