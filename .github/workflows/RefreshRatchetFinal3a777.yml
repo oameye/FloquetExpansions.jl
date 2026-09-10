@@ -1,0 +1,36 @@
+name: Refresh final CodeRatchet baselines
+
+on:
+  push:
+    branches: ['tmp/final-ratchet-3a777']
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: tmp/final-ratchet-3a777
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@v3
+      - name: Refresh all configured baselines
+        run: make ratchet-refresh
+      - name: Verify zero avoidable debt
+        run: |
+          julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' complexity candidates
+          PATH="${HOME}/.julia/bin:${PATH}" julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' lsp report
+          PATH="${HOME}/.julia/bin:${PATH}" julia --project=code_ratchet -e 'using JET, CodeRatchet; exit(CodeRatchet.main())' all scorecard
+      - name: Commit generated baselines and remove scaffold
+        run: |
+          rm .github/workflows/RefreshRatchetFinal3a777.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add code_ratchet/boxes_baseline.toml code_ratchet/complexity_baseline.toml code_ratchet/docs_baseline.toml code_ratchet/jet_baseline.toml code_ratchet/lsp_baseline.toml code_ratchet/style_baseline.toml .github/workflows/RefreshRatchetFinal3a777.yml
+          git diff --cached --quiet || git commit -m 'chore: refresh CodeRatchet baselines on Julia 1.13'
+          git push
