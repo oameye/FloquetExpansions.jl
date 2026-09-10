@@ -11,17 +11,38 @@ jobs:
       - uses: actions/checkout@v7
       - name: Audit canonicalization and dynamic seams
         run: |
-          echo '=== canonicalization helpers ==='
-          for symbol in canonical_liouvillian sandwich_pivot_matrix sandwich_pivot_matrix_canonical has_two_sided_terms canonical_has_two_sided_terms residual_hamiltonian residual_hamiltonian_canonical support_frame support_frame_canonical dissipative_support_directions canonical_dissipative_support_directions canonical_dissipative_support_terms frame_direction_coordinates frame_coordinate_data extract_gksl extract_gksl_canonical; do
-            echo "--- $symbol ---"
-            rg -n "\\b${symbol}\\b" src test || true
-          done
-          echo '=== remaining broad/dynamic seams ==='
-          rg -n '::Any|::Function|AbstractVector|AbstractDict|\bmap\(|\bfilter\(|\bany\(|\ball\(' src || true
-          echo '=== return-annotated long-form signatures ==='
           python - <<'PY'
           from pathlib import Path
           import re
+
+          files = sorted(list(Path('src').glob('*.jl')) + list(Path('test').rglob('*.jl')))
+          symbols = [
+              'canonical_liouvillian', 'sandwich_pivot_matrix',
+              'sandwich_pivot_matrix_canonical', 'has_two_sided_terms',
+              'canonical_has_two_sided_terms', 'residual_hamiltonian',
+              'residual_hamiltonian_canonical', 'support_frame',
+              'support_frame_canonical', 'dissipative_support_directions',
+              'canonical_dissipative_support_directions',
+              'canonical_dissipative_support_terms', 'frame_direction_coordinates',
+              'frame_coordinate_data', 'extract_gksl', 'extract_gksl_canonical',
+          ]
+          print('=== canonicalization helpers ===')
+          for symbol in symbols:
+              print(f'--- {symbol} ---')
+              pattern = re.compile(rf'\b{re.escape(symbol)}\b')
+              for path in files:
+                  for lineno, line in enumerate(path.read_text().splitlines(), 1):
+                      if pattern.search(line):
+                          print(f'{path}:{lineno}:{line.strip()}')
+
+          print('=== remaining broad/dynamic seams ===')
+          seam = re.compile(r'::Any|::Function|AbstractVector|AbstractDict|\bmap\(|\bfilter\(|\bany\(|\ball\(')
+          for path in sorted(Path('src').glob('*.jl')):
+              for lineno, line in enumerate(path.read_text().splitlines(), 1):
+                  if seam.search(line):
+                      print(f'{path}:{lineno}:{line.strip()}')
+
+          print('=== return-annotated long-form signatures ===')
           for path in sorted(Path('src').glob('*.jl')):
               lines = path.read_text().splitlines()
               i = 0
@@ -29,10 +50,10 @@ jobs:
                   if re.match(r'^\s*function\s+', lines[i]):
                       start = i
                       sig = lines[i].strip()
-                      while i + 1 < len(lines) and ')' not in sig.split('function',1)[1]:
+                      while i + 1 < len(lines) and ')' not in sig.split('function', 1)[1]:
                           i += 1
                           sig += ' ' + lines[i].strip()
                       if re.search(r'\)\s*(where\s*\{[^}]*\}\s*)?::', sig) or re.search(r'\)::', sig):
-                          print(f'{path}:{start+1}: {sig}')
+                          print(f'{path}:{start + 1}: {sig}')
                   i += 1
           PY
