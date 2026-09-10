@@ -270,7 +270,8 @@ function matrix_product_dimensions(
 )
   rows, inner = size(left)
   right_inner, columns = size(right)
-  inner == right_inner || throw(DimensionMismatch("matrix product inner dimensions must match"))
+  inner == right_inner ||
+    throw(DimensionMismatch("matrix product inner dimensions must match"))
   size(target) == (rows, columns) ||
     throw(DimensionMismatch("matrix product target has incompatible dimensions"))
   return rows, inner, columns
