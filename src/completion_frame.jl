@@ -55,12 +55,32 @@ function automatic_dissipative_frame(expansion::FloquetExpansion)
   return DissipativeFrame(Tuple(operators))
 end
 
-function raw_kossakowski_series(expansion::FloquetExpansion, frame::DissipativeFrame)
+struct RetainedGKSLData
+  hamiltonians::Vector{SQA.QAdd}
+  kossakowski::Vector{KossakowskiMatrix}
+end
+
+function retained_gksl_data(expansion::FloquetExpansion, frame::DissipativeFrame)
   components = getfield(expansion, :effective_components)
-  result = KossakowskiMatrix[]
-  sizehint!(result, length(components))
+  hamiltonians = SQA.QAdd[]
+  matrices = KossakowskiMatrix[]
+  sizehint!(hamiltonians, length(components))
+  sizehint!(matrices, length(components))
   for component in components
-    push!(result, kossakowski(component, frame))
+    hamiltonian, matrix = extract_gksl(component, frame)
+    push!(hamiltonians, hamiltonian)
+    push!(matrices, matrix)
   end
-  return result
+  return RetainedGKSLData(hamiltonians, matrices)
+end
+
+function physical_retained_hamiltonian(
+  hamiltonians::Vector{SQA.QAdd}, wd::Symbolics.Num
+)::SQA.QAdd
+  coherent = zero(SQA.QAdd)
+  for index in eachindex(hamiltonians)
+    grade = index - 1
+    coherent = (coherent + reattach(hamiltonians[index], wd, grade))::SQA.QAdd
+  end
+  return SQA.simplify(coherent)::SQA.QAdd
 end

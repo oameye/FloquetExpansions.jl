@@ -293,8 +293,8 @@ function spectral_positive_completion(
   expansion::FloquetExpansion, frame::DissipativeFrame, algorithm::Spectral
 )
   N = order(expansion) - 1
-  raw_matrices = raw_kossakowski_series(expansion, frame)
-  series = completion_series(raw_matrices)
+  retained = retained_gksl_data(expansion, frame)
+  series = completion_series(retained.kossakowski)
   conditions = CompletionConditions()
   seed_completion_conditions!(conditions, getfield(expansion, :provenance))
   leading_rates = spectral_leading_diagonal(series)
@@ -325,7 +325,7 @@ function spectral_positive_completion(
     expansion,
     algorithm,
     frame,
-    raw_matrices,
+    retained,
     completed_matrix,
     completed_channels,
     conditions,

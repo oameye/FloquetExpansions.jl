@@ -25,7 +25,7 @@ function finalize_positive_completion(
   expansion::FloquetExpansion,
   algorithm::CompletionAlgorithm,
   frame::DissipativeFrame,
-  raw_matrices::Vector{KossakowskiMatrix},
+  retained::RetainedGKSLData,
   completed_matrix::KossakowskiMatrix,
   completed_channels,
   conditions::CompletionConditions,
@@ -38,9 +38,10 @@ function finalize_positive_completion(
   )
 
   drive_frequency = getfield(expansion, :generator).wd
-  retained_kossakowski = physical_kossakowski_series(raw_matrices, drive_frequency)
-  raw_generator = effective_generator(expansion)
-  coherent = hamiltonian(raw_generator, frame)
+  retained_kossakowski = physical_kossakowski_series(
+    retained.kossakowski, drive_frequency
+  )
+  coherent = physical_retained_hamiltonian(retained.hamiltonians, drive_frequency)
   generator = liouvillian(coherent; channels=completed_channels)
 
   # The completed result owns its representation data. In particular, mutating a frame that
