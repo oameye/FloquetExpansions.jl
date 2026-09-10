@@ -4,6 +4,7 @@ on:
     branches:
       - 'main'
     paths:
+      - '.github/workflows/Benchmarks.yaml'
       - '.github/workflows/Tests.yml'
       - 'src/**'
       - 'ext/**'
@@ -16,6 +17,7 @@ on:
     branches:
       - 'main'
     paths:
+      - '.github/workflows/Benchmarks.yaml'
       - '.github/workflows/Tests.yml'
       - 'src/**'
       - 'ext/**'
@@ -53,6 +55,12 @@ jobs:
             Pkg.develop(PackageSpec(path=joinpath(pwd(), "..")));
             Pkg.instantiate();
             include("runbenchmarks.jl")'
+
+      # Pkg.develop writes the local package into benchmark/Project.toml. Restore
+      # the tracked project before github-action-benchmark switches to gh-pages.
+      - name: Restore benchmark project
+        if: ${{ always() }}
+        run: git restore --worktree benchmark/Project.toml
 
       # this will update benchmark/data.js in gh-pages branch
       - name: Parse & Upload Benchmark Results
