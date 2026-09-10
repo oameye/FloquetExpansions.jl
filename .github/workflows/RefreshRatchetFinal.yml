@@ -1,0 +1,43 @@
+name: Refresh final ratchet baselines
+
+on:
+  push:
+    branches: ['tmp/ratchet-final-refresh']
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: tmp/ratchet-final-refresh
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.12'
+      - name: Install pinned JETLS
+        run: >-
+          julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
+      - name: Instantiate ratchet environment
+        run: julia --project=code_ratchet -e 'using Pkg; Pkg.instantiate()'
+      - name: Refresh all configured baselines
+        env:
+          PATH: ${{ env.HOME }}/.julia/bin:${{ env.PATH }}
+        run: julia --project=code_ratchet -e 'using JET, CodeRatchet; exit(CodeRatchet.main())' all refresh
+      - name: Verify candidates and LSP report
+        env:
+          PATH: ${{ env.HOME }}/.julia/bin:${{ env.PATH }}
+        run: |
+          julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' complexity candidates
+          julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' lsp report
+          julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' all scorecard
+      - name: Commit generated baselines and remove one-shot workflow
+        run: |
+          rm .github/workflows/RefreshRatchetFinal.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add code_ratchet/*_baseline.toml .github/workflows/RefreshRatchetFinal.yml
+          git diff --cached --quiet || git commit -m 'ci: refresh final CodeRatchet baselines'
+          git push
