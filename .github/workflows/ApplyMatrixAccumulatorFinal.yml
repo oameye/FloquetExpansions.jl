@@ -1,0 +1,27 @@
+name: Apply matrix accumulator final experiment
+
+on:
+  push:
+    branches: ['tmp/matrix-product-final-86']
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: tmp/matrix-product-final-86
+      - name: Apply source transformation
+        run: python .github/scripts/apply_matrix_accumulator.py
+      - name: Commit source-only candidate
+        run: |
+          rm .github/scripts/apply_matrix_accumulator.py
+          rm .github/workflows/ApplyMatrixAccumulatorFinal.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/matrix_series.jl src/completion_linear_algebra.jl .github/scripts/apply_matrix_accumulator.py .github/workflows/ApplyMatrixAccumulatorFinal.yml
+          git diff --cached --quiet || git commit -m 'perf: accumulate symbolic matrix products in place'
+          git push
