@@ -1,0 +1,11 @@
+[deps]
+CodeRatchet = "0e86a969-c127-44ad-8bee-7851ffae31d4"
+FloquetExpansions = "3d8c71b5-958b-4b86-b80e-339bb07db863"
+JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
+
+[sources]
+CodeRatchet = {url = "https://github.com/oameye/CodeRatchet.jl", rev = "90cc9753755fcbc1f898939347995cec1ca2f4eb"}
+FloquetExpansions = {path = ".."}
+
+[compat]
+julia = "1.12"
