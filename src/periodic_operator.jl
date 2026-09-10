@@ -238,8 +238,8 @@ Base.isempty(G::PeriodicGenerator) = isempty(G.components)
 
 function Base.:(==)(L::PeriodicGenerator, R::PeriodicGenerator)
   return isequal(L.wd, R.wd) &&
-         L.components == R.components &&
-         L.zero_component == R.zero_component
+         (L.components == R.components) === true &&
+         (L.zero_component == R.zero_component) === true
 end
 
 function Base.isequal(L::PeriodicGenerator, R::PeriodicGenerator)

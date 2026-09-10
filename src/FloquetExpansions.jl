@@ -29,27 +29,31 @@ include("spectral_completion.jl")
 include("completion.jl")
 include("gksl_floquet.jl")
 
-export PeriodicGenerator, Gauge, VanVleck, QuasienergyOperator, harmonic_range
-export time_average, derivative, antiderivative, support, harmonics
+export Gauge, PeriodicGenerator, QuasienergyOperator, VanVleck, harmonic_range
+export antiderivative, derivative, harmonics, support, time_average
 export FloquetExpansion,
-  floquet_expansion, order, effective_generator, effective_component, micromotion
+  effective_component, effective_generator, floquet_expansion, micromotion, order
 export Gram, Spectral
-export positive_completion,
-  dissipative_frame, channels, positivity_conditions, regularity_conditions, factorization
+export channels,
+  dissipative_frame,
+  factorization,
+  positive_completion,
+  positivity_conditions,
+  regularity_conditions
 export Liouvillian,
-  liouvillian, terms, hamiltonian_action, dissipator, compose, collapse, jump
+  collapse, compose, dissipator, hamiltonian_action, jump, liouvillian, terms
 export DissipativeFrame,
   hamiltonian, hamiltonian_component, kossakowski, kossakowski_component
 
 # Stable expert API that is intentionally qualified rather than exported.
 @public Completion,
-Uncompleted,
 CompletionAlgorithm,
 CompletionFactorization,
-GramStage,
-GramFactorization,
-SpectralFactorization,
 CompletionObstruction,
-FractionalJumpOnset
+FractionalJumpOnset,
+GramFactorization,
+GramStage,
+SpectralFactorization,
+Uncompleted
 
 end # module FloquetExpansions

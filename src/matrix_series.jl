@@ -126,7 +126,10 @@ function symbolically_negative(value::Symbolics.Num)::Bool
 end
 
 function condition_contains(conditions::Vector{CompletionScalar}, x::CompletionScalar)
-  return any(p -> structurally_equal(p, x), conditions)
+  for condition in conditions
+    structurally_equal(condition, x) && return true
+  end
+  return false
 end
 
 function require_positivity!(conditions::CompletionConditions, x::CompletionScalar)
@@ -185,8 +188,11 @@ function validate_matrix_series(series::MatrixSeries)
   isempty(series) &&
     throw(ArgumentError("matrix series must contain at least one coefficient"))
   dims = size(first(series))
-  all(size(A) == dims for A in series) ||
-    throw(DimensionMismatch("all matrix-series coefficients must have the same dimensions"))
+  for matrix in series
+    size(matrix) == dims || throw(
+      DimensionMismatch("all matrix-series coefficients must have the same dimensions")
+    )
+  end
   return dims
 end
 
@@ -264,7 +270,7 @@ function series_mul(a::MatrixSeries, b::MatrixSeries, N::Int)
   m, k_a = validate_matrix_series(a)
   k_b, p = validate_matrix_series(b)
   k_a == k_b || throw(DimensionMismatch("matrix-series inner dimensions must match"))
-  result = [completion_matrix_zeros(m, p) for _ in 0:N]
+  result = Vector{CompletionMatrix}(undef, N + 1)
   for n in 0:N
     coefficient = completion_matrix_zeros(m, p)
     for k in 0:n
@@ -496,6 +502,58 @@ function scaled_scalar_product(a::ScalarSeries, b::ScalarSeries, c::ScalarSeries
   return series_mul(series_mul(a, b, N), c, N)
 end
 
+function graded_ldl_diagonal(
+  A::MatrixSeries, lower::MatrixSeries, diagonal::Vector{ScalarSeries}, j::Int, N::Int
+)::ScalarSeries
+  delta = scalar_series_entry(A, j, j, N)
+  for k in 1:(j - 1)
+    lower_jk = scalar_series_entry(lower, j, k, N)
+    delta = series_sub(
+      delta, scaled_scalar_product(lower_jk, diagonal[k], series_adjoint(lower_jk), N), N
+    )
+  end
+  for index in eachindex(delta)
+    delta[index] = hermitian_real(delta[index])
+  end
+  return delta
+end
+
+function require_positive_ldl_pivot!(delta::ScalarSeries, conditions::CompletionConditions)
+  sign = structural_sign(delta[1], conditions)
+  if sign == SIGN_NEGATIVE || sign == SIGN_NONPOSITIVE
+    throw(ArgumentError("graded LDL factorization encountered a negative Hermitian pivot"))
+  elseif sign == SIGN_ZERO
+    throw(ArgumentError("graded LDL factorization encountered a dark leading pivot"))
+  elseif sign == SIGN_UNKNOWN
+    require_positivity!(conditions, delta[1])
+    require_regularity!(conditions, delta[1])
+  elseif sign == SIGN_NONNEGATIVE
+    require_regularity!(conditions, delta[1])
+  end
+  return conditions
+end
+
+function graded_ldl_numerator(
+  A::MatrixSeries,
+  lower::MatrixSeries,
+  diagonal::Vector{ScalarSeries},
+  position::CartesianIndex{2},
+  N::Int,
+)::ScalarSeries
+  i, j = Tuple(position)
+  numerator = scalar_series_entry(A, i, j, N)
+  for k in 1:(j - 1)
+    lower_ik = scalar_series_entry(lower, i, k, N)
+    lower_jk = scalar_series_entry(lower, j, k, N)
+    numerator = series_sub(
+      numerator,
+      scaled_scalar_product(lower_ik, diagonal[k], series_adjoint(lower_jk), N),
+      N,
+    )
+  end
+  return numerator
+end
+
 function graded_ldl(A::MatrixSeries, N::Int, conditions::CompletionConditions)
   validate_series_order(N)
   rows, columns = validate_matrix_series(A)
@@ -511,44 +569,16 @@ function graded_ldl(A::MatrixSeries, N::Int, conditions::CompletionConditions)
   diagonal = Vector{ScalarSeries}(undef, rows)
 
   for j in 1:rows
-    delta = scalar_series_entry(A, j, j, N)
-    for k in 1:(j - 1)
-      Ljk = scalar_series_entry(lower, j, k, N)
-      delta = series_sub(
-        delta, scaled_scalar_product(Ljk, diagonal[k], series_adjoint(Ljk), N), N
-      )
-    end
-    delta = [hermitian_real(x) for x in delta]
-
-    sign = structural_sign(delta[1], conditions)
-    if sign == SIGN_NEGATIVE || sign == SIGN_NONPOSITIVE
-      throw(
-        ArgumentError("graded LDL factorization encountered a negative Hermitian pivot")
-      )
-    elseif sign == SIGN_ZERO
-      throw(ArgumentError("graded LDL factorization encountered a dark leading pivot"))
-    elseif sign == SIGN_UNKNOWN
-      require_positivity!(conditions, delta[1])
-      require_regularity!(conditions, delta[1])
-    elseif sign == SIGN_NONNEGATIVE
-      require_regularity!(conditions, delta[1])
-    end
+    delta = graded_ldl_diagonal(A, lower, diagonal, j, N)
+    require_positive_ldl_pivot!(delta, conditions)
     diagonal[j] = delta
 
     inverse_delta = scalar_series_inverse(delta, N, conditions)
     for i in (j + 1):rows
-      numerator = scalar_series_entry(A, i, j, N)
-      for k in 1:(j - 1)
-        lower_ik = scalar_series_entry(lower, i, k, N)
-        Ljk = scalar_series_entry(lower, j, k, N)
-        numerator = series_sub(
-          numerator, scaled_scalar_product(lower_ik, diagonal[k], series_adjoint(Ljk), N), N
-        )
-      end
+      numerator = graded_ldl_numerator(A, lower, diagonal, CartesianIndex(i, j), N)
       set_scalar_series_entry!(lower, i, j, series_mul(numerator, inverse_delta, N), N)
     end
   end
-
   return HermitianSeriesLDL(lower, diagonal)
 end
 
