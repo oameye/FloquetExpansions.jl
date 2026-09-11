@@ -44,7 +44,6 @@ space = PauliSpace(:bloch_feshbach)
 σx = Pauli(space, :σ, 1)
 σy = Pauli(space, :σ, 2)
 σz = Pauli(space, :σ, 3)
-σminus = (1 // 2) * (σx - im * σy)
 @variables w::Real
 
 H = PeriodicGenerator(
@@ -114,11 +113,11 @@ end
 
 L = PeriodicGenerator(
   Dict(
-    0 => hamiltonian_action(σz) + dissipator(σminus),
-    1 => hamiltonian_action(σx + σy),
-    -1 => dissipator(σx + σy),
-    2 => hamiltonian_action(σx + σz),
-    -2 => dissipator(σx + σz),
+    0 => hamiltonian_action(σz) + dissipator(σx),
+    1 => hamiltonian_action(σx),
+    -1 => dissipator(σy),
+    2 => hamiltonian_action(σy),
+    -2 => dissipator(σz),
   ),
   w,
 )
