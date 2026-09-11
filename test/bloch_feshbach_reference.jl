@@ -40,17 +40,20 @@ function liouvillian_wave_lhs(
   return SQA.simplify(product_term - derivative(result.wave[n + 1]))
 end
 
-h = FockSpace(:cavity)
-a = Destroy(h, :a)
+space = PauliSpace(:bloch_feshbach)
+σx = Pauli(space, :σ, 1)
+σy = Pauli(space, :σ, 2)
+σz = Pauli(space, :σ, 3)
+σminus = (1 // 2) * (σx - im * σy)
 @variables w::Real
 
 H = PeriodicGenerator(
   Dict(
-    0 => 1 * (a' * a),
-    1 => 1 * a + 2 * a',
-    -1 => 1 * a' + 2 * a,
-    2 => 1 * (a * a),
-    -2 => 1 * (a' * a'),
+    0 => 1 * σz,
+    1 => σx + im * σy,
+    -1 => σx - im * σy,
+    2 => 2 * σx + σz,
+    -2 => 2 * σx + σz,
   ),
   w,
 )
@@ -111,11 +114,11 @@ end
 
 L = PeriodicGenerator(
   Dict(
-    0 => hamiltonian_action(a' * a) + dissipator(a),
-    1 => hamiltonian_action(a + a'),
-    -1 => dissipator(a + a'),
-    2 => hamiltonian_action(a * a + a' * a'),
-    -2 => dissipator(a' * a),
+    0 => hamiltonian_action(σz) + dissipator(σminus),
+    1 => hamiltonian_action(σx + σy),
+    -1 => dissipator(σx + σy),
+    2 => hamiltonian_action(σx + σz),
+    -2 => dissipator(σx + σz),
   ),
   w,
 )
