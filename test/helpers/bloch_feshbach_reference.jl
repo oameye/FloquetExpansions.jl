@@ -19,7 +19,8 @@ end
 function reference_periodic_product(
   L::PeriodicGenerator{T}, R::PeriodicGenerator{T}, product, counts::BlochReferenceCounts
 ) where {T}
-  isequal(L.wd, R.wd) || throw(ArgumentError("periodic generators use different frequencies"))
+  isequal(L.wd, R.wd) ||
+    throw(ArgumentError("periodic generators use different frequencies"))
 
   out = Dict{Int,T}()
   for left_harmonic in keys(L), right_harmonic in keys(R)
@@ -99,9 +100,10 @@ function reference_wave_equation_rhs(
   rhs = reference_static_generator(result.effective[n + 1], template)
   counts = BlochReferenceCounts()
   for j in 1:n
-    rhs = rhs + reference_right_static_product(
-      result.wave[j], result.effective[n - j + 1], product, counts
-    )
+    rhs =
+      rhs + reference_right_static_product(
+        result.wave[j], result.effective[n - j + 1], product, counts
+      )
   end
   return SQA.simplify(rhs)
 end
