@@ -17,6 +17,9 @@ jobs:
       - name: Install JuliaFormatter
         run: |
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
-      - name: Check formatting
+      - name: Show exact research formatting diff
         run: |
-          ${HOME}/.julia/bin/jlfmt --check --verbose .
+          ${HOME}/.julia/bin/jlfmt --inplace --verbose test/bloch_feshbach_reference.jl
+          ${HOME}/.julia/bin/jlfmt --inplace --verbose test/helpers/bloch_feshbach_reference.jl
+          git diff -- test/bloch_feshbach_reference.jl test/helpers/bloch_feshbach_reference.jl
+          git diff --exit-code -- test/bloch_feshbach_reference.jl test/helpers/bloch_feshbach_reference.jl
