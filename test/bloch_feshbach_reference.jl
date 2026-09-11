@@ -48,11 +48,7 @@ space = PauliSpace(:bloch_feshbach)
 
 H = PeriodicGenerator(
   Dict(
-    0 => 1 * σz,
-    1 => σx + im * σy,
-    -1 => σx - im * σy,
-    2 => 2 * σx + σz,
-    -2 => 2 * σx + σz,
+    0 => 1 * σz, 1 => σx + im * σy, -1 => σx - im * σy, 2 => 2 * σx + σz, -2 => 2 * σx + σz
   ),
   w,
 )
