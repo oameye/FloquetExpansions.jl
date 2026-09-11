@@ -1,3 +1,7 @@
+using FloquetExpansions
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
+const SQA = SecondQuantizedAlgebra
+
 mutable struct BlochReferenceCounts
   full_products::Int
   static_products::Int
@@ -91,7 +95,7 @@ end
 
 function reference_wave_equation_rhs(
   result::BlochReferenceResult{P,T}, template::P, n::Int, product
-) where {P<:PeriodicGenerator{T},T}
+) where {T,P<:PeriodicGenerator{T}}
   rhs = reference_static_generator(result.effective[n + 1], template)
   counts = BlochReferenceCounts()
   for j in 1:n
@@ -104,5 +108,5 @@ end
 
 function expected_bloch_series_products(order::Int)
   order >= 1 || throw(ArgumentError("order must be >= 1"))
-  return ((order - 1) * (order + 2)) ÷ 2
+  return (order - 1) * (order + 2) ÷ 2
 end
