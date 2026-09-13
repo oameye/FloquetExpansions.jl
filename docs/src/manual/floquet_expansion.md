@@ -1,6 +1,5 @@
 ```@meta
 CurrentModule = FloquetExpansions
-CollapsedDocStrings = true
 ```
 
 # Floquet expansion
@@ -94,13 +93,9 @@ Liouvillian expansion, the same accessors return its coherent Hamiltonian sector
 additive multiple of the identity.
 
 A raw Liouvillian Floquet expansion does not carry a preferred dissipative representation.
-Kossakowski coordinates therefore require an explicit [`DissipativeFrame`](@ref):
-
-```julia
-frame = DissipativeFrame(a, a^2)
-d = kossakowski(vv, frame)
-d1 = kossakowski_component(vv, frame, 1)
-```
+Kossakowski coordinates therefore require an explicit [`DissipativeFrame`](@ref). The
+[`kossakowski_component`](@ref) docstring gives the complete raw-expansion workflow, including the
+finite Kossakowski form and an individual retained component.
 
 The operator-frame construction and Liouvillian-level Kossakowski representation are described in
 [System](@ref).
@@ -109,14 +104,3 @@ The operator-frame construction and Liouvillian-level Kossakowski representation
 hamiltonian_component
 kossakowski_component
 ```
-
-## Order and interpretation
-
-The package uses `order = 1` for the period average. Increasing `order` retains additional
-inverse-frequency contributions, but the expansion is asymptotic rather than convergent. Beyond
-a problem-dependent optimal order, retaining more terms can make the approximation worse for a
-fixed drive.
-
-For periodically driven open systems, a direct finite-order high-frequency expansion need not
-retain a GKLS effective generator even when the microscopic generator is of Lindblad form
-[Schnell2021](@cite). See [Positive completion](@ref positive-completion-manual) for the CP-preserving continuation.

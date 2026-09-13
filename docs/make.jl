@@ -23,13 +23,9 @@ links = InterLinks(
   "SecondQuantizedAlgebra" => "https://qojulia.github.io/SecondQuantizedAlgebra.jl/stable/objects.inv",
 )
 
-# The README.md file is used index (home) page of the documentation.
-if CI
-  include("make_md_examples.jl")
-else
-  nothing
-end
-# ^ when using LiveServer, this will generate a loop
+include("make_md_examples.jl")
+# `servedocs` skips `docs/src/examples` and watches `examples/` instead, so the
+# markdown regenerated here does not retrigger a build.
 
 DocMeta.setdocmeta!(
   FloquetExpansions,

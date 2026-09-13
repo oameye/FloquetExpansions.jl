@@ -19,6 +19,38 @@ end
 Return the order-`n` Kossakowski contribution of a Liouvillian Floquet expansion in the
 ordered dissipative `frame`, including the corresponding inverse-drive-frequency scaling.
 
+# Examples
+
+Construct a frame before extracting the finite form and one retained component:
+
+```jldoctest
+julia> qubit = PauliSpace(:kossakowski_doc);
+
+julia> σx = Pauli(qubit, :σ, 1); σy = Pauli(qubit, :σ, 2); σz = Pauli(qubit, :σ, 3);
+
+julia> σminus = (1 // 2) * (σx - im * σy);
+
+julia> @variables ω::Real t::Real E::Real γ::Real;
+
+julia> H = (1 // 2) * σz + E * cos(ω * t) * σx;
+
+julia> raw = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(jump(σminus, γ),));
+
+julia> frame = DissipativeFrame(σx, σy, σz);
+
+julia> d = kossakowski_component(raw, frame, 1)
+3×3 Matrix{SecondQuantizedAlgebra.Coeff}:
+ 0  0  0
+ 0  0  0
+ 0  0  0
+
+julia> d = kossakowski_component(raw, frame, 2)
+3×3 Matrix{SecondQuantizedAlgebra.Coeff}:
+ 0                            …  0
+ ((1//4)*(E^2)*im*γ) / (ω^2)     0
+ 0                               ((1//2)*(E^2)*γ) / (ω^2)
+```
+
 See also [`DissipativeFrame`](@ref), [`kossakowski`](@ref), [`effective_component`](@ref).
 """
 function kossakowski_component(

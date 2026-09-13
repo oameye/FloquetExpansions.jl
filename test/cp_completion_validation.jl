@@ -309,7 +309,9 @@ end
   )
   expansion = floquet_expansion(generator, VanVleck(), 2)
 
-  @test_throws FractionalJumpOnset positive_completion(expansion, Gram(), frame)
+  @test_throws FloquetExpansions.FractionalJumpOnset positive_completion(
+    expansion, Gram(), frame
+  )
   spectral = positive_completion(expansion, Spectral(), frame)
   spectral_data = factorization(spectral)
   odd_branch = findfirst(==(1), spectral_data.onsets)
@@ -318,7 +320,7 @@ end
   validate_retained_contract(spectral, expansion, frame, 1)
 end
 
-@testset "retained negative directions use the public obstruction type" begin
+@testset "retained negative directions raise the obstruction type" begin
   fock = FockSpace(:cp_validation_negative)
   a = Destroy(fock, :a)
   frame = DissipativeFrame(a)
@@ -332,7 +334,7 @@ end
     catch caught
       caught
     end
-    @test error isa CompletionObstruction
+    @test error isa FloquetExpansions.CompletionObstruction
     @test error.rate_order == 0
   end
 end
@@ -351,7 +353,7 @@ end
   catch caught
     caught
   end
-  @test error isa CompletionObstruction
+  @test error isa FloquetExpansions.CompletionObstruction
   @test error.rate_order == 0
   @test error.reason == :zero_diagonal_coupling
 end

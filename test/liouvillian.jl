@@ -69,11 +69,117 @@ end
   @test @inferred(liouvillian(H; channels=(jump(a, γ),))) isa Liouvillian
 end
 
-@testset "channel displays use their public constructors" begin
-  @test sprint(show, collapse(a)) == "collapse(a)"
-  @test sprint(show, jump(a, γ)) == "jump(a, γ)"
-  @test sprint(show, MIME"text/plain"(), collapse(a)) == "collapse(a)"
-  @test sprint(show, MIME"text/plain"(), jump(a, γ)) == "jump(a, γ)"
+@testset "channel displays preserve repr and render physical terms" begin
+  collapse_channel = collapse(a)
+  jump_channel = jump(a, γ)
+  one_collapse = [collapse_channel]
+  two_collapses = [collapse_channel, collapse_channel]
+  two_jumps = [jump_channel, jump_channel]
+  mixed_channels = Union{typeof(collapse_channel),typeof(jump_channel)}[
+    collapse_channel, jump_channel
+  ]
+  no_collapses = one_collapse[1:0]
+  five_collapses = fill(collapse_channel, 5)
+
+  operator_text = sprint(show, a)
+  rate_text = sprint(show, γ)
+  collapse_repr = "collapse($operator_text)"
+  jump_repr = "jump($operator_text, $rate_text)"
+  collapse_text = "𝒟[$operator_text]"
+  jump_text = "($rate_text)𝒟[$operator_text]"
+
+  @test sprint(show, collapse_channel) == collapse_repr
+  @test sprint(show, jump_channel) == jump_repr
+  @test sprint(show, MIME"text/plain"(), collapse_channel) == collapse_text
+  @test sprint(show, MIME"text/plain"(), jump_channel) == jump_text
+  @test sprint(show, MIME"text/plain"(), one_collapse) ==
+    "1 collapse channel:\n  1: $collapse_text"
+  @test sprint(show, MIME"text/plain"(), two_collapses) ==
+    "2 collapse channels:\n  1: $collapse_text\n  2: $collapse_text"
+  @test sprint(show, MIME"text/plain"(), two_jumps) ==
+    "2 rate-weighted jump channels:\n  1: $jump_text\n  2: $jump_text"
+  @test sprint(show, MIME"text/plain"(), mixed_channels) ==
+    "2 channels:\n  1: $collapse_text\n  2: $jump_text"
+  @test sprint(show, MIME"text/plain"(), no_collapses) == "0 collapse channels"
+  full_five_collapses =
+    "5 collapse channels:" * join("\n  $index: $collapse_text" for index in 1:5)
+  @test sprint(show, MIME"text/plain"(), five_collapses) == full_five_collapses
+
+  function limited_channel_display(mime, value; rows::Int=24)
+    buffer = IOBuffer()
+    io = IOContext(buffer, :limit => true, :displaysize => (rows, 80))
+    show(io, mime, value)
+    return String(take!(buffer))
+  end
+
+  limited_five_collapses = join(
+    [
+      "5 collapse channels:",
+      "  1: $collapse_text",
+      "  2: $collapse_text",
+      "  ⋮ 1 channel omitted",
+      "  4: $collapse_text",
+      "  5: $collapse_text",
+    ],
+    "\n",
+  )
+  @test limited_channel_display(MIME"text/plain"(), five_collapses) ==
+    limited_five_collapses
+  @test limited_channel_display(MIME"text/plain"(), five_collapses; rows=4) ==
+    "5 collapse channels:\n  1: $collapse_text\n  ⋮ 4 channels omitted"
+
+  operator_latex = FloquetExpansions.latex_fragment(a)
+  rate_latex = FloquetExpansions.latex_fragment(γ)
+  collapse_latex = raw"\mathcal{D}\!\left[" * operator_latex * raw"\right]"
+  jump_latex =
+    raw"\left(" *
+    rate_latex *
+    raw"\right)\mathcal{D}\!\left[" *
+    operator_latex *
+    raw"\right]"
+
+  @test showable(MIME"text/latex"(), collapse_channel)
+  @test showable(MIME"text/latex"(), jump_channel)
+  @test showable(MIME"text/latex"(), two_collapses)
+  @test sprint(show, MIME"text/latex"(), collapse_channel) ==
+    raw"\[" * collapse_latex * raw"\]"
+  @test sprint(show, MIME"text/latex"(), jump_channel) == raw"\[" * jump_latex * raw"\]"
+  @test sprint(show, MIME"text/latex"(), two_collapses) ==
+    raw"\[\begin{aligned}\mathcal{L}_{\mathrm{diss}} &= " *
+        collapse_latex *
+        raw"\\&+ " *
+        collapse_latex *
+        raw"\end{aligned}\]"
+  @test sprint(show, MIME"text/latex"(), two_jumps) ==
+    raw"\[\begin{aligned}\mathcal{L}_{\mathrm{diss}} &= " *
+        jump_latex *
+        raw"\\&+ " *
+        jump_latex *
+        raw"\end{aligned}\]"
+  @test limited_channel_display(MIME"text/latex"(), five_collapses) ==
+    raw"\[\begin{aligned}\mathcal{L}_{\mathrm{diss}} &= " *
+        collapse_latex *
+        raw"\\&+ " *
+        collapse_latex *
+        raw"\\&\quad\vdots\quad\text{(1 channel omitted)}\\&+ " *
+        collapse_latex *
+        raw"\\&+ " *
+        collapse_latex *
+        raw"\end{aligned}\]"
+  @test sprint(show, MIME"text/latex"(), no_collapses) ==
+    raw"\[\mathcal{L}_{\mathrm{diss}} = 0\]"
+
+  # Nested operator and rate LaTeX must be embedded as delimiterless fragments. A renderer strips
+  # only the outermost delimiter pair, so an interior `$` or `equation` environment fails to parse.
+  for rendered in (
+    sprint(show, MIME"text/latex"(), collapse_channel),
+    sprint(show, MIME"text/latex"(), jump_channel),
+    sprint(show, MIME"text/latex"(), two_jumps),
+    limited_channel_display(MIME"text/latex"(), five_collapses),
+  )
+    @test !occursin('$', rendered)
+    @test !occursin("begin{equation}", rendered)
+  end
 end
 
 @testset "jump rates are real and nonnegative by physical assumption" begin

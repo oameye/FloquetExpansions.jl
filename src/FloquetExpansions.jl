@@ -1,6 +1,7 @@
 module FloquetExpansions
 
 using Reexport: @reexport
+using Latexify: Latexify
 using LinearAlgebra: LinearAlgebra
 using SciMLPublic: @public
 using Symbolics: Symbolics
@@ -49,8 +50,6 @@ export DissipativeFrame,
 @public Completion,
 CompletionAlgorithm,
 CompletionFactorization,
-CompletionObstruction,
-FractionalJumpOnset,
 GramFactorization,
 GramStage,
 SpectralFactorization,
