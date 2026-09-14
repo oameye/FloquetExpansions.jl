@@ -8,7 +8,6 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SciMLPublic = "431bcebd-1456-4ced-9d72-93c2757fff0b"
 SecondQuantizedAlgebra = "f7aa4685-e143-4cb6-a7f3-073579757907"
-SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [sources]
@@ -19,9 +18,5 @@ LinearAlgebra = "1"
 Reexport = "1.2"
 SciMLPublic = "1"
 SecondQuantizedAlgebra = "0.11, 0.12"
-# 4.46.5 regressed `poly_to_gcd_form`: a complex coefficient with a vanishing imaginary part is
-# classified as rational, rationalized, and passed to `numerator`, which has no method for
-# `Complex{Rational}` before Julia 1.13. Lift this bound once that is fixed upstream.
-SymbolicUtils = "4 - 4.46.4"
 Symbolics = "6, 7"
 julia = "1.10"

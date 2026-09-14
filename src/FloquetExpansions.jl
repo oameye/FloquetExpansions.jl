@@ -3,7 +3,6 @@ module FloquetExpansions
 using Reexport: @reexport
 using LinearAlgebra: LinearAlgebra
 using SciMLPublic: @public
-using SymbolicUtils: SymbolicUtils
 using Symbolics: Symbolics
 
 using SecondQuantizedAlgebra: SecondQuantizedAlgebra
