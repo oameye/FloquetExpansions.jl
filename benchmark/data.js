@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789065218870,
+  "lastUpdate": 1789374334260,
   "repoUrl": "https://github.com/oameye/FloquetExpansions.jl",
   "entries": {
     "Benchmark Results": [
@@ -738,6 +738,108 @@ window.BENCHMARK_DATA = {
             "value": 15888405.5,
             "unit": "ns",
             "extra": "gctime=0\nmemory=4740096\nallocs=124559\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "orjan.ameye@hotmail.com",
+            "name": "Orjan Ameye",
+            "username": "oameye"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a5cd0170a54367bff0994980368e1aca2de7a258",
+          "message": "docs: rework the completion docs and add rich Liouvillian displays (#116)\n\n* better docs\n\n* add Standars.md back\n\n* fix: remove machine-local paths from the test and docs environments\n\n`test/Project.toml` pinned FloquetExpansions to an absolute path under a developer home\ndirectory, so every CI test job failed at instantiation with \"expected package\nFloquetExpansions to exist at path ...\". The entry is redundant in any case: Pkg.test\ndevelops the package under test on its own.\n\n`docs/Project.toml` pointed SecondQuantizedAlgebra at a local clone, so the docs build\nfailed with \"Path /home/... does not exist\". It now uses the same GitHub URL as the root\nproject.\n\nPkg writes both entries when it resolves inside a local checkout. Neither belongs in a\ncommitted environment.\n\nAlso corrects a misspelling that the typos gate rejected.\n\n* chore: record the argument count of the rich display methods\n\nAdding `show(io, ::MIME\"text/plain\", x)` to the GKSL-coordinate and Gram-completion files\nraised their maximum argument count from two to three, which the complexity ratchet held.\nThe count cannot be lowered, because the three-argument form is Base's signature for a\nrich display method.\n\nThe baseline is measured rather than authored, so it is refreshed wholesale. No capped\nmetric moved: every `arg_over`, `cyc_over` and `cog_over` stays at zero, and only the\nper-file sums and those two maxima changed.\n\n* fix: build channel LaTeX fragments through the display path\n\n`latex_fragment` called `Latexify.latexify(x; env=:raw)`. Passing an environment routes\nthrough `_latexraw`, which has no method for the symbolic type backing a `Coeff` on the\nversions that resolve for Julia 1.10, so every channel LaTeX display threw\n\"cannot latexify objects of type ...\". Julia 1.13 resolved versions where it happened to\nwork, which is why local runs stayed green.\n\nRender through `show(::MIME\"text/latex\")`, the path both SecondQuantizedAlgebra and\nSymbolics support, and strip the outermost delimiter pair from the result. The stripped\noutput is identical on 1.10 and 1.13, and Latexify is no longer a dependency.\n\n* fix: bound SymbolicUtils below the 4.46.5 coefficient regression\n\nSymbolicUtils 4.46.5 changed `poly_to_gcd_form` so that a polynomial coefficient set mixing\nan exact `Rational` with a complex whose imaginary part vanishes takes the rational branch:\n`isinteger(4.0 + 0.0im)` is true, so `all_rat` stays set even though `any_complex` is also\nset. That branch calls `rationalize`, which returns `Complex{Rational{Int64}}`, and then\n`numerator` on it.\n\n`Base.numerator(::Complex{<:Rational})` exists only from Julia 1.13, so the regression\nsurfaces as a MethodError on 1.10 and 1.11 and is merely hidden on 1.13. Spectral completion\nproduces exactly that coefficient mix, since the retained rates are exact rationals while the\nbranch square roots are floats.\n\nBisected: 4.46.4 passes, 4.46.5 fails. SymbolicUtils becomes a direct dependency because Pkg\nignores a compat entry for a package that is not one. Lift the bound once this is fixed\nupstream.\n\n* fix: bound SymbolicUtils in the test environment, not the package\n\nReworks the previous commit. A package-level bound is unsatisfiable: the documentation\nenvironment pins QuantumCumulants to master, which requires SymbolicUtils 4.46.5 or newer,\nso capping the package at 4.46.4 leaves the docs build with no resolvable version.\n\nThe bound therefore lives in the test environment, which is where the failing gate runs, and\nSymbolicUtils is no longer a direct dependency of the package. The docs build resolves freely\nand is unaffected in practice, because it runs on Julia 1.13 where the regression is masked\nby the Base method added there.\n\nThe underlying defect is upstream and still wants reporting: `poly_to_gcd_form` treats a\ncoefficient set mixing an exact Rational with a complex whose imaginary part vanishes as\nrational, because `isinteger(4.0 + 0.0im)` is true.",
+          "timestamp": "2026-09-14T10:18:19+02:00",
+          "tree_id": "723c100e8fee536236ab91fba72e6fc9da231949",
+          "url": "https://github.com/oameye/FloquetExpansions.jl/commit/a5cd0170a54367bff0994980368e1aca2de7a258"
+        },
+        "date": 1789374333078,
+        "tool": "julia",
+        "benches": [
+          {
+            "name": "Floquet Expansion/Driven qubit/order 1",
+            "value": 513118,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=190000\nallocs=3828\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Driven qubit/order 2",
+            "value": 613882.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=327616\nallocs=5660\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Driven qubit/order 3",
+            "value": 786342,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=595280\nallocs=9176\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 1",
+            "value": 995134,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=372256\nallocs=7910\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 2",
+            "value": 1350455,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=780432\nallocs=13684\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 3",
+            "value": 3037985,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2479120\nallocs=38562\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Fourier Expansion/Driven qubit/symbolic input",
+            "value": 491082,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=151008\nallocs=3490\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Fourier Expansion/Kerr parametric oscillator/symbolic input",
+            "value": 970407.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=315376\nallocs=7420\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Driven qubit/fixed frame/Gram",
+            "value": 9678620,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2943248\nallocs=74497\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Driven qubit/fixed frame/Spectral",
+            "value": 5974822,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2048584\nallocs=48037\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Full-rank bosonic/automatic frame/Gram",
+            "value": 3050393,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1124728\nallocs=18812\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Full-rank bosonic/fixed frame/Gram",
+            "value": 2964514.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=936320\nallocs=17524\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Recursive dark onset/fixed frame/Gram",
+            "value": 15530251,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=4729056\nallocs=124317\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
           }
         ]
       }
