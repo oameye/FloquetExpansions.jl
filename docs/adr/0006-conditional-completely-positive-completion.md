@@ -7,3 +7,11 @@ Finite-order Floquet Liouvillian expansions are returned algebraically by defaul
 The first supported completion algorithms are an algebraic Gram/Feshbach construction and a restricted perturbative spectral/HCM construction. Completion does not modify the retained micromotion or Hamiltonian coefficients through the controlled order, and it does not claim that the finite completed model is the exact Floquet GKSL logarithm.
 
 This ADR supersedes the earlier decision that positivity completion was only a future possibility; the feature remains explicit rather than automatic.
+
+## Gate
+
+`make test` runs the testsets that hold this decision:
+
+- `test/completion_state.jl`: "raw Floquet expansions carry uncompleted state"
+- `test/gram_completion.jl`: "symbolic positivity and regularity conditions remain distinct"
+- `test/cp_completion_validation.jl`: "spectral symbolic rank strata separate positivity and regularity"

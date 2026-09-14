@@ -8,3 +8,10 @@ their imaginary parts describe decay or growth.
 
 The type stores symbolic blocks only. Numerical vectorization and eigenspectrum computation are
 separate adapters and are not part of this module.
+
+## Gate
+
+`make test` runs the testsets that hold this decision:
+
+- `test/quasienergy.jl`: "indexing is by harmonic, and the diagonal carries -m*wd"
+- `test/quasienergy.jl`: "dissipative quasienergy blocks use the Liouvillian convention"

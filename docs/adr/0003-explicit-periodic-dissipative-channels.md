@@ -7,3 +7,13 @@
 For time-dependent inputs, `harmonics` decomposes a `Liouvillian`'s operator factors and scalar coefficients into `PeriodicGenerator{Liouvillian}`. The `channels` keyword on `floquet_expansion` performs this conversion automatically, supporting periodic dependence in the Hamiltonian, collapse operator, jump operator, rate, or any combination.
 
 The high-level `floquet_expansion(H, ωd, t, gauge, order; channels=...)` path may retain internal microscopic dissipative provenance for later positive-completion work. Generic `Liouvillian` and `PeriodicGenerator` values remain algebraic and do not carry channel provenance through arbitrary addition, composition, or commutators.
+
+## Gate
+
+`make test` runs the testsets that hold this decision:
+
+- `test/liouvillian.jl`: "Liouvillian channel constructors"
+- `test/liouvillian.jl`: "jump rates are real and nonnegative by physical assumption"
+- `test/liouvillian.jl`: "collapse amplitudes and jump rates remain distinct representations"
+- `test/liouvillian.jl`: "periodic channel forms lower through the public Liouvillian seam"
+- `test/liouvillian.jl`: "operator and rate harmonics convolve in periodic channels"
