@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "9e6d4f4"
+commit = "2103437"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -89,13 +89,13 @@ arg_sum = 73
 [files."src/gksl_coordinates.jl"]
 cyc = 8
 cog = 9
-arg = 2
+arg = 3
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 133
-cog_sum = 89
-arg_sum = 32
+cyc_sum = 139
+cog_sum = 94
+arg_sum = 37
 
 [files."src/gksl_floquet.jl"]
 cyc = 1
@@ -111,13 +111,13 @@ arg_sum = 12
 [files."src/gram_completion.jl"]
 cyc = 6
 cog = 6
-arg = 2
+arg = 3
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 35
-cog_sum = 24
-arg_sum = 9
+cyc_sum = 42
+cog_sum = 29
+arg_sum = 19
 
 [files."src/gram_recursion.jl"]
 cyc = 8
@@ -137,9 +137,9 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 74
-cog_sum = 47
-arg_sum = 59
+cyc_sum = 108
+cog_sum = 68
+arg_sum = 96
 
 [files."src/matrix_series.jl"]
 cyc = 9
@@ -181,6 +181,6 @@ arg = 5
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 68
-cog_sum = 52
-arg_sum = 36
+cyc_sum = 75
+cog_sum = 58
+arg_sum = 43
