@@ -15,7 +15,6 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [sources]
-FloquetExpansions = {path = "/home/oameye/Projects/FloquetExpansions.jl"}
 SecondQuantizedAlgebra = {rev = "main", url = "https://github.com/qojulia/SecondQuantizedAlgebra.jl"}
 
 [compat]

@@ -79,7 +79,7 @@ channels(spectral)
 
 # ## Gram completion: preserve the supplied frame
 #
-# Spectral completion can by annyoing as it requires a diagonalization of the leading Kossakowski matrix. Calling `Spectral()` with the Cartesian frame would fail because its
+# Spectral completion can be annoying as it requires a diagonalization of the leading Kossakowski matrix. Calling `Spectral()` with the Cartesian frame would fail because its
 # leading Kossakowski matrix is not diagonal.
 
 # Instead, one can use a different approach by using a `Gram()` factorization. It constructs a graded factor ``B`` such that

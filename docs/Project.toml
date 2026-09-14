@@ -17,7 +17,7 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 [sources]
 FloquetExpansions = {path = ".."}
 QuantumCumulants = {rev = "master", url = "https://github.com/qojulia/QuantumCumulants.jl"}
-SecondQuantizedAlgebra = {rev = "main", url = "/home/oameye/Projects/SecondQuantizedAlgebra.jl"}
+SecondQuantizedAlgebra = {rev = "main", url = "https://github.com/qojulia/SecondQuantizedAlgebra.jl"}
 
 [compat]
 DocumenterCitations = "1"
