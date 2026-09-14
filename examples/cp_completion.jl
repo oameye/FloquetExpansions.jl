@@ -4,8 +4,7 @@
 # completely-positive cone. Here we show how to construct a positive completion that preserves the retained Floquet order.
 #
 # The examples follow the driven-qubit and rank-deficient Gram constructions described in
-# [Ikeda2021, Schnell2021](@cite). They also compare the algebraic Gram completion with the
-# spectral/HCM completion of Haddadfarshi, Cui, and Mintert [Haddadfarshi2015](@cite).
+# [Ikeda2021, Schnell2021](@cite).
 
 using FloquetExpansions
 
