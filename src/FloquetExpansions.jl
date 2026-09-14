@@ -1,7 +1,6 @@
 module FloquetExpansions
 
 using Reexport: @reexport
-using Latexify: Latexify
 using LinearAlgebra: LinearAlgebra
 using SciMLPublic: @public
 using Symbolics: Symbolics

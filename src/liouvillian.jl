@@ -53,7 +53,21 @@ function Base.show(io::IO, ::MIME"text/plain", channel::RateWeightedJump)
   return show_channel_term(io, channel)
 end
 
-latex_fragment(x) = Latexify.latexify(x; env=:raw)
+# LaTeX body with no surrounding math delimiters. The `text/latex` methods of
+# SecondQuantizedAlgebra and Symbolics both emit self-delimited math, and a renderer strips only
+# the outermost delimiter pair, so embedding their output inside a larger expression leaves an
+# interior delimiter that fails to parse. Strip through the display path rather than calling
+# Latexify with an environment: that entry point has no method for some symbolic types.
+function latex_fragment(x)
+  body = strip(sprint(show, MIME"text/latex"(), x))
+  for (opening, closing) in
+      (("\$\$", "\$\$"), ("\$", "\$"), (raw"\begin{equation}", raw"\end{equation}"))
+    if startswith(body, opening) && endswith(body, closing)
+      body = strip(chopsuffix(chopprefix(body, opening), closing))
+    end
+  end
+  return body
+end
 
 function show_channel_latex(io::IO, channel::CollapseChannel)
   print(io, raw"\mathcal{D}\!\left[")
