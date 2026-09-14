@@ -15,7 +15,7 @@ format: ## Format all Julia files with JuliaFormatter
 	jlfmt --threads=6 -- --inplace -v ./
 
 servedocs:
-	${JULIA} --project=docs -e 'using LiveServer; LiveServer.servedocs(skip_files=[joinpath("docs", "src", "changelog.md")])'
+	${JULIA} --project=docs -e 'using LiveServer; LiveServer.servedocs(skip_dirs=[joinpath("docs", "src", "examples")], include_dirs=["examples"], skip_files=[joinpath("docs", "src", "changelog.md")])'
 
 test:
 	${JULIA} --project -e 'using Pkg; Pkg.resolve(); Pkg.test()'

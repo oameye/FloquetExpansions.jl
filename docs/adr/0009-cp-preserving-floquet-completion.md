@@ -100,3 +100,15 @@ If completion is performed after retaining `N+1` Floquet coefficients, the finit
 Positive completion is nonunique beyond the retained order. Different frame orderings, congruence/pivot choices, Gram gauges, or spectral normalizations may produce different higher-order terms while preserving the same controlled perturbative data and complete positivity.
 
 This construction does not imply convergence of the high-frequency expansion, uniqueness of the completion, or existence of an exact Floquet GKSL logarithm.
+
+## Gate
+
+`make test` runs the testsets that hold this decision:
+
+- `test/completion_state.jl`: "raw Floquet expansions carry uncompleted state"
+- `test/completion_state.jl`: "positive-completion algorithms establish the public dispatch boundary"
+- `test/completion_storage.jl`: "completed representation owns frame and cached retained data"
+- `test/gksl_coordinates.jl`: "DissipativeFrame is ordered and independent modulo identity"
+- `test/gram_completion.jl`: "automatic frame preserves microscopic channel order"
+- `test/cp_completion_validation.jl`: "public completion API is inferred for fixed frames"
+- `test/cp_completion_validation.jl`: "driven qubit validates Cartesian Gram and adapted spectral frames"

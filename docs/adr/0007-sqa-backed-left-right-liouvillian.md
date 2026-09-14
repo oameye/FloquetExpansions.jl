@@ -7,3 +7,12 @@ Term insertion is owned by the Liouvillian module, and Fourier lowering for Liou
 The public `terms(L)` iterator exposes the semantic `(left, right, coefficient)` triples without making callers depend on the sparse storage layout. Numerical vectorization remains a separate consumer of this interface rather than part of the symbolic Liouvillian core.
 
 `compose(A, B)` means that `B` acts first and `A` acts second. For elementary actions it maps `(Aₗ, Aᵣ) ∘ (Bₗ, Bᵣ)` to `(AₗBₗ, BᵣAᵣ)`.
+
+## Gate
+
+`make test` runs the testsets that hold this decision:
+
+- `test/liouvillian.jl`: "Liouvillian terms expose semantic triples"
+- `test/liouvillian.jl`: "Liouvillian arithmetic collects equal terms"
+- `test/liouvillian.jl`: "Liouvillian composition is map composition"
+- `test/liouvillian.jl`: "zero operator factors produce zero maps"

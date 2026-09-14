@@ -12,7 +12,7 @@ pages = [
   ],
   "Literature" => "literature.md",
   "Examples" => [
-    "CP-completion examples" => "examples/cp_completion.md",
+    "CP-completion" => "examples/cp_completion.md",
     "Floquet mean-field comparison" => "examples/floquet_meanfield_comparison.md",
   ],
 ]

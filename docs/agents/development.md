@@ -16,7 +16,7 @@ The v0.0.1 policy permits breaking changes. Update every in-repository caller, t
 
 - `test/*.jl` holds behavior tests, `test/helpers/` shared fixtures, and `test/quality/` package-wide checks.
 - `docs/src/` holds user-facing documentation, `docs/adr/` design decisions, and `docs/agents/` repository guidance.
-- `examples/*.jl` is the source for the tracked Literate pages under `docs/src/examples/`.
+- `examples/*.jl` is the source for the generated Literate pages under `docs/src/examples/`.
 
 ## Test structure
 
@@ -59,9 +59,9 @@ Run `make docs` from the repository root with Julia's normal depot and project e
 
 ## Generated files
 
-`examples/*.jl` is the source of truth for `docs/src/examples/*.md`. Under documentation CI, `docs/make.jl` includes `docs/make_md_examples.jl`, which runs Literate before `makedocs`; a normal local `make docs` without the CI condition builds the tracked Markdown as it stands and does not regenerate it. Do not edit the generated Markdown as the source of a documentation change.
+`examples/*.jl` is the source of truth for `docs/src/examples/*.md`. `docs/make.jl` includes `docs/make_md_examples.jl`, which runs Literate before `makedocs`, locally as well as under CI, so the Markdown is rebuilt on every documentation build and is not tracked. Do not edit the generated Markdown as the source of a documentation change.
 
-`docs/build/`, `docs/site/`, `Manifest.toml`, `test-run.log`, and `benchmark/benchmarks_output.json` are gitignored. Leave generated local artifacts out of commits and handoff summaries.
+`docs/build/`, `docs/site/`, `docs/src/examples/`, `Manifest.toml`, `test-run.log`, and `benchmark/benchmarks_output.json` are gitignored. Leave generated local artifacts out of commits and handoff summaries.
 
 ## Finishing
 

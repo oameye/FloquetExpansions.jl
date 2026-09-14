@@ -15,13 +15,14 @@ struct RateWeightedJump{O<:SQA.QField} <: LiouvillianChannel
   assumption::NonnegativeRateAssumption
 end
 
+# Rich displays retain two leading and two trailing terms when their IO context is limited.
+const MAX_DISPLAYED_CHANNELS = 4
+
 function Base.show(io::IO, channel::CollapseChannel)
   print(io, "collapse(")
   show(io, channel.operator)
   return print(io, ")")
 end
-
-Base.show(io::IO, ::MIME"text/plain", channel::CollapseChannel) = show(io, channel)
 
 function Base.show(io::IO, channel::RateWeightedJump)
   print(io, "jump(")
@@ -31,7 +32,138 @@ function Base.show(io::IO, channel::RateWeightedJump)
   return print(io, ")")
 end
 
-Base.show(io::IO, ::MIME"text/plain", channel::RateWeightedJump) = show(io, channel)
+function show_channel_term(io::IO, channel::CollapseChannel)
+  print(io, "𝒟[")
+  show(IOContext(io, :compact => true), channel.operator)
+  return print(io, "]")
+end
+
+function show_channel_term(io::IO, channel::RateWeightedJump)
+  print(io, "(")
+  show(IOContext(io, :compact => true), channel.rate)
+  print(io, ")𝒟[")
+  show(IOContext(io, :compact => true), channel.operator)
+  return print(io, "]")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", channel::CollapseChannel)
+  return show_channel_term(io, channel)
+end
+function Base.show(io::IO, ::MIME"text/plain", channel::RateWeightedJump)
+  return show_channel_term(io, channel)
+end
+
+# LaTeX body with no surrounding math delimiters. The `text/latex` methods of
+# SecondQuantizedAlgebra and Symbolics both emit self-delimited math, and a renderer strips only
+# the outermost delimiter pair, so embedding their output inside a larger expression leaves an
+# interior delimiter that fails to parse. Strip through the display path rather than calling
+# Latexify with an environment: that entry point has no method for some symbolic types.
+function latex_fragment(x)
+  body = strip(sprint(show, MIME"text/latex"(), x))
+  for (opening, closing) in
+      (("\$\$", "\$\$"), ("\$", "\$"), (raw"\begin{equation}", raw"\end{equation}"))
+    if startswith(body, opening) && endswith(body, closing)
+      body = strip(chopsuffix(chopprefix(body, opening), closing))
+    end
+  end
+  return body
+end
+
+function show_channel_latex(io::IO, channel::CollapseChannel)
+  print(io, raw"\mathcal{D}\!\left[")
+  print(io, latex_fragment(channel.operator))
+  return print(io, raw"\right]")
+end
+
+function show_channel_latex(io::IO, channel::RateWeightedJump)
+  print(io, raw"\left(")
+  print(io, latex_fragment(channel.rate))
+  print(io, raw"\right)\mathcal{D}\!\left[")
+  print(io, latex_fragment(channel.operator))
+  return print(io, raw"\right]")
+end
+
+function Base.show(io::IO, ::MIME"text/latex", channel::LiouvillianChannel)
+  print(io, raw"\[")
+  show_channel_latex(io, channel)
+  return print(io, raw"\]")
+end
+
+channel_collection_label(::Type{<:CollapseChannel}) = "collapse channel"
+channel_collection_label(::Type{<:RateWeightedJump}) = "rate-weighted jump channel"
+channel_collection_label(::Type{<:LiouvillianChannel}) = "channel"
+
+function displayed_channel_indices(io::IO, count::Int)
+  count == 0 && return Int[]
+  get(io, :limit, false) || return collect(1:count)
+
+  rows, _ = displaysize(io)
+  maximum_items = min(MAX_DISPLAYED_CHANNELS, max(1, rows - 3))
+  count <= maximum_items && return collect(1:count)
+
+  leading = cld(maximum_items, 2)
+  trailing = maximum_items - leading
+  indices = collect(1:leading)
+  trailing > 0 && append!(indices, (count - trailing + 1):count)
+  return indices
+end
+
+function show_omitted_channels(io::IO, count::Int)
+  print(io, "\n  ⋮ ", count, count == 1 ? " channel omitted" : " channels omitted")
+  return nothing
+end
+
+function Base.show(
+  io::IO, ::MIME"text/plain", channels::Vector{T}
+) where {T<:LiouvillianChannel}
+  count = length(channels)
+  label = channel_collection_label(T)
+  print(io, count, " ", label, count == 1 ? "" : "s")
+  isempty(channels) && return nothing
+  print(io, ":")
+
+  previous = 0
+  for index in displayed_channel_indices(io, count)
+    omitted = index - previous - 1
+    omitted > 0 && show_omitted_channels(io, omitted)
+    print(io, "\n  ", index, ": ")
+    show_channel_term(io, channels[index])
+    previous = index
+  end
+  trailing = count - previous
+  trailing > 0 && show_omitted_channels(io, trailing)
+  return nothing
+end
+
+function show_omitted_channels_latex(io::IO, count::Int)
+  print(
+    io,
+    raw"\\&\quad\vdots\quad\text{(",
+    count,
+    count == 1 ? " channel omitted" : " channels omitted",
+    raw")}",
+  )
+  return nothing
+end
+
+function Base.show(io::IO, ::MIME"text/latex", channels::Vector{<:LiouvillianChannel})
+  isempty(channels) && return print(io, raw"\[\mathcal{L}_{\mathrm{diss}} = 0\]")
+
+  print(io, raw"\[\begin{aligned}")
+  previous = 0
+  first_term = true
+  for index in displayed_channel_indices(io, length(channels))
+    omitted = index - previous - 1
+    omitted > 0 && show_omitted_channels_latex(io, omitted)
+    first_term ? print(io, raw"\mathcal{L}_{\mathrm{diss}} &= ") : print(io, raw"\\&+ ")
+    show_channel_latex(io, channels[index])
+    first_term = false
+    previous = index
+  end
+  trailing = length(channels) - previous
+  trailing > 0 && show_omitted_channels_latex(io, trailing)
+  return print(io, raw"\end{aligned}\]")
+end
 
 """
     Liouvillian

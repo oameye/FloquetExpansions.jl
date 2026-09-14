@@ -1,6 +1,5 @@
 ```@meta
 CurrentModule = FloquetExpansions
-CollapsedDocStrings = true
 ```
 
 # System

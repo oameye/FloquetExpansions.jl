@@ -22,6 +22,15 @@ Single-context repository:
 
 When naming a domain concept in an issue, proposal, or test, use the term defined in `CONTEXT.md`. If the concept is not yet defined, note it for `/domain-modeling`.
 
+## Every ADR names its own gate
+
+An ADR ends with a `## Gate` section listing the testsets that hold its decision, by file and
+testset name, or stating that no gate holds it. The gate belongs with the decision: a decision
+whose text lives in one file and whose check is named in another is one rule in two places, and
+the two drift. `STANDARDS.md` therefore routes no ADR.
+
+Adding an ADR means adding that section. Changing which tests hold a decision means updating it.
+
 ## Flag ADR conflicts
 
 If output contradicts an existing ADR, surface it explicitly rather than silently overriding it.

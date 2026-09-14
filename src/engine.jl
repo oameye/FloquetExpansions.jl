@@ -305,8 +305,10 @@ end
 
 Return the effective generator represented by `expansion`. Before positive completion this is
 
-``\\mathcal{G}_\\mathrm{eff}^{[N]} = \\sum_{n<N}
-\\omega_d^{-n}\\mathcal{G}_\\mathrm{eff}^{(n)}``.
+```math
+\\mathcal{G}_\\mathrm{eff}^{[N]} = \\sum_{n<N}
+\\omega_d^{-n}\\mathcal{G}_\\mathrm{eff}^{(n)},
+```
 
 After positive completion it is the completed generator. Use [`effective_component`](@ref) to
 inspect the retained perturbative contributions.
