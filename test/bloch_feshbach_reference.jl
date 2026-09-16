@@ -211,11 +211,11 @@ end
 
 M = PeriodicGenerator(
   Dict(
-    0 => ComplexF64[0.4 1.0+0.2im; -0.3+0.1im -0.7],
-    1 => ComplexF64[0.2+0.1im -0.6; 0.5im 0.8-0.2im],
-    -1 => ComplexF64[-0.1+0.4im 0.3; 0.7-0.2im 0.5im],
-    2 => ComplexF64[0.6 -0.2im; 0.9+0.1im -0.4],
-    -2 => ComplexF64[-0.5im 0.8; -0.1+0.3im 0.2],
+    0 => ComplexF64[0.4 1.0 + 0.2im; -0.3 + 0.1im -0.7],
+    1 => ComplexF64[0.2 + 0.1im -0.6; 0.5im 0.8 - 0.2im],
+    -1 => ComplexF64[-0.1 + 0.4im 0.3; 0.7 - 0.2im 0.5im],
+    2 => ComplexF64[0.6 -0.2im; 0.9 + 0.1im -0.4],
+    -2 => ComplexF64[-0.5im 0.8; -0.1 + 0.3im 0.2],
   ),
   w,
 )
