@@ -18,6 +18,11 @@ function liouvillian_vanishes_vv(G::PeriodicGenerator{Liouvillian})
   return all(liouvillian_vanishes_vv(G[harmonic]) for harmonic in keys(G))
 end
 
+function matrix_generator_norm_vv(G::PeriodicGenerator{Matrix{ComplexF64}})
+  isempty(keys(G)) && return 0.0
+  return maximum(norm(G[harmonic]) for harmonic in keys(G))
+end
+
 space = NLevelSpace(:bloch_van_vleck, 3)
 σ11 = Transition(space, :σ, 1, 1)
 σ22 = Transition(space, :σ, 2, 2)
@@ -108,14 +113,59 @@ M_vv = PeriodicGenerator(
   w_vv,
 )
 
-@testset "Van Vleck conversion exposes cubic direct-log bookkeeping" begin
+@testset "Dense noncommuting Van Vleck conversion through order six" begin
   order = 6
-  bloch = bloch_reference(
+  tolerance = 5.0e-9
+
+  bloch_hamiltonian = bloch_reference(
     M_vv, order; product=matrix_product_vv, inverse_weight=harmonic -> 1.0 / harmonic
   )
-  converted = bloch_van_vleck_reference(bloch, M_vv; product=matrix_product_vv)
+  converted_hamiltonian = bloch_van_vleck_reference(
+    bloch_hamiltonian, M_vv; product=matrix_product_vv
+  )
+  hori_hamiltonian = hori_deprit_reference(
+    M_vv, order; product=matrix_product_vv, phase=im
+  )
 
-  @test converted.counts.log_products == expected_mercator_products(order - 1)
-  @test converted.counts.log_products == 20
-  @test all(norm(time_average(Gn)) <= 1.0e-12 for Gn in converted.log_embedding)
+  @test converted_hamiltonian.counts.log_products == expected_mercator_products(order - 1)
+  @test converted_hamiltonian.counts.log_products == 20
+  @test all(norm(time_average(Gn)) <= 1.0e-12 for Gn in converted_hamiltonian.log_embedding)
+
+  for n in 1:order
+    @test norm(converted_hamiltonian.effective[n] - hori_hamiltonian.effective[n]) <= tolerance
+  end
+  for n in 1:(order - 1)
+    kick_residual = im * converted_hamiltonian.log_embedding[n] - hori_hamiltonian.kick[n]
+    @test matrix_generator_norm_vv(kick_residual) <= tolerance
+  end
+
+  bloch_map = bloch_reference(
+    M_vv, order; product=matrix_product_vv, inverse_weight=harmonic -> im / harmonic
+  )
+  converted_map = bloch_van_vleck_reference(bloch_map, M_vv; product=matrix_product_vv)
+  hori_map = hori_deprit_reference(M_vv, order; product=matrix_product_vv, phase=-1)
+
+  @test all(norm(time_average(Gn)) <= 1.0e-12 for Gn in converted_map.log_embedding)
+  for n in 1:order
+    @test norm(converted_map.effective[n] - hori_map.effective[n]) <= tolerance
+  end
+  for n in 1:(order - 1)
+    @test matrix_generator_norm_vv(converted_map.log_embedding[n] - hori_map.kick[n]) <= tolerance
+  end
+
+  lower = bloch_van_vleck_reference(
+    bloch_reference(
+      M_vv, 4; product=matrix_product_vv, inverse_weight=harmonic -> 1.0 / harmonic
+    ),
+    M_vv;
+    product=matrix_product_vv,
+  )
+  for n in eachindex(lower.effective)
+    @test norm(lower.effective[n] - converted_hamiltonian.effective[n]) <= tolerance
+  end
+  for n in eachindex(lower.log_embedding)
+    @test matrix_generator_norm_vv(
+      lower.log_embedding[n] - converted_hamiltonian.log_embedding[n]
+    ) <= tolerance
+  end
 end
