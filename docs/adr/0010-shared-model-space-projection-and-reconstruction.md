@@ -54,6 +54,46 @@ Q-solve = physical omitted-harmonic response solve
 
 The same projection vocabulary may be reused, but the physical model-space choice, complement solve, small parameter, and complexity need not be the same. In particular, the `O(N²)` perturbative-order count established for the nonresonant Floquet recurrence must not be transferred automatically to QHB.
 
+## Floquet convention anchor
+
+The shared projection machinery does not replace the package conventions already defined by the production Floquet engine. For ordinary periodic HFE, all alternative derivations and backends use
+
+```math
+G(t)=\sum_m G_m e^{-im\omega t},
+\qquad
+\tau=\omega t,
+\qquad
+(\partial_\tau X)_m=-imX_m.
+```
+
+The Floquet model-space projector is the period average,
+
+```math
+PX=\langle X\rangle=X_0,
+\qquad
+Q=1-P.
+```
+
+Package `order=N` retains perturbative coefficients `0:N-1`; coefficient index and retained-order semantics must not be silently redefined by another backend.
+
+For the intermediate-normalized Bloch recurrence, the Hamiltonian convention is
+
+```math
+\left(H-i\lambda^{-1}\partial_\tau\right)\Omega_B=\Omega_B B,
+\qquad
+(X_{n+1})_m=\frac{(R_n)_m}{m},
+```
+
+while the generic Liouvillian/map convention is
+
+```math
+\left(L-\lambda^{-1}\partial_\tau\right)\Omega_B=\Omega_B B,
+\qquad
+(X_{n+1})_m=\frac{i}{m}(R_n)_m.
+```
+
+Hamiltonian/operator data use the package associative product; Liouvillian data use map composition. These phase conventions are part of the representation contract. They do not imply that a generic Liouvillian projection or canonical similarity is GKSL-preserving.
+
 ## Internal data flow
 
 The intended internal flow is
@@ -71,6 +111,8 @@ output-specific reconstruction
 Physical-process provenance, harmonic/grade kinematics, `P/Q` state, and output-reconstruction metadata are distinct axes. Where physical provenance is available, lowering to projection data must not erase the identity of a microscopic channel, physical parent process, adjoint partner, or generated descendant.
 
 This is an internal architectural contract, not a requirement to expose public `PhysicalProcess`, `ProjectionProblem`, or `ProjectionSolution` types. Public abstractions are introduced only when a validated implementation requires them.
+
+Projection changes both the retained generator and the reconstruction of physical observables/readout. Use **observable dressing** for the latter generic operation. Reserve **micromotion** or **kick** for Floquet representatives that actually use those objects; QHB readout is physical reconstruction, not Floquet micromotion.
 
 ## Canonical Van Vleck reconstruction
 
