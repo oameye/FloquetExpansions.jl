@@ -86,6 +86,10 @@ _Avoid_: calling every complement solve a resolvent when no resolvent is actuall
 **Reconstruction**:
 The generic operation that converts model-space/projection data into a physical or package output representation. `Micromotion`/`kick` is reserved for Floquet representatives that actually use that structure; QHB readout is physical reconstruction, not Floquet micromotion.
 
+**Observable dressing**:
+The projection-induced reconstruction of physical observables or readout from retained model-space data. It is the generic term for this operation across Floquet HFE and higher-order QHB.
+_Avoid_: calling generic observable dressing `micromotion` when the construction is not a Floquet representative.
+
 **Canonical normalization**:
 The Okubo/des-Cloizeaux/model-space normalization that converts an intermediate Bloch/Feshbach representation toward the canonical Van Vleck representative.
 
