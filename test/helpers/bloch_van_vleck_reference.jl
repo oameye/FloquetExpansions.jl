@@ -20,6 +20,11 @@ struct BlochVanVleckReferenceResult{P,T}
   counts::BlochVanVleckReferenceCounts
 end
 
+struct HoriDepritReferenceResult{P,T}
+  kick::Vector{P}
+  effective::Vector{T}
+end
+
 function counted_periodic_product(
   left::P, right::P, product, counts::BlochVanVleckReferenceCounts
 ) where {P<:PeriodicGenerator}
@@ -142,6 +147,89 @@ function bloch_van_vleck_reference(
   return BlochVanVleckReferenceResult(
     static_factor, inverse_static_factor, log_embedding, effective, counts
   )
+end
+
+reference_triindex(n::Int, j::Int) = (n * (n + 1)) ÷ 2 + j + 1
+
+function reference_periodic_commutator(left::P, right::P, product) where {P<:PeriodicGenerator}
+  counts = BlochReferenceCounts()
+  forward = reference_periodic_product(left, right, product, counts)
+  reverse = reference_periodic_product(right, left, product, counts)
+  return forward - reverse
+end
+
+function reference_derivative(generator::PeriodicGenerator{T}) where {T}
+  out = Dict{Int,T}()
+  for harmonic in keys(generator)
+    out[harmonic] = (-im * harmonic) * generator[harmonic]
+  end
+  return PeriodicGenerator(out, generator.wd, generator.zero_component)
+end
+
+function reference_zero_average_antiderivative(generator::PeriodicGenerator{T}) where {T}
+  out = Dict{Int,T}()
+  for harmonic in keys(generator)
+    iszero(harmonic) && continue
+    out[harmonic] = (im / harmonic) * generator[harmonic]
+  end
+  return PeriodicGenerator(out, generator.wd, generator.zero_component)
+end
+
+function hori_deprit_reference(
+  generator::P, order::Int; product, phase
+) where {T,P<:PeriodicGenerator{T}}
+  order >= 1 || throw(ArgumentError("order must be >= 1"))
+
+  nodes = (order * (order + 1)) ÷ 2
+  dressed_generator = [zero(generator) for _ in 1:nodes]
+  dressed_kick_derivative = [zero(generator) for _ in 1:nodes]
+  kick = P[]
+  kick_derivative = P[]
+  effective = T[]
+
+  for n in 0:(order - 1)
+    dressed_generator[reference_triindex(n, 0)] = n == 0 ? generator : zero(generator)
+
+    for j in 1:n
+      node = zero(generator)
+      for k in 1:(n - j + 1)
+        previous = dressed_generator[reference_triindex(n - k, j - 1)]
+        node += reference_periodic_commutator(kick[k], previous, product)
+      end
+      dressed_generator[reference_triindex(n, j)] = node
+    end
+
+    for j in 1:n
+      node = zero(generator)
+      for k in 1:(n - j + 1)
+        previous = if j == 1
+          kick_derivative[n - k + 1]
+        else
+          dressed_kick_derivative[reference_triindex(n - k, j - 1)]
+        end
+        node += reference_periodic_commutator(kick[k], previous, product)
+      end
+      dressed_kick_derivative[reference_triindex(n, j)] = node
+    end
+
+    residual = zero(generator)
+    for j in 0:n
+      residual += (phase^j / factorial(j)) * dressed_generator[reference_triindex(n, j)]
+    end
+    for j in 1:n
+      residual -=
+        (phase^j / factorial(j + 1)) * dressed_kick_derivative[reference_triindex(n, j)]
+    end
+
+    push!(effective, time_average(residual))
+    if n < order - 1
+      next_kick = reference_zero_average_antiderivative(residual)
+      push!(kick, next_kick)
+      push!(kick_derivative, reference_derivative(next_kick))
+    end
+  end
+
+  return HoriDepritReferenceResult(kick, effective)
 end
 
 function expected_mercator_products(order::Int)
