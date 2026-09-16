@@ -59,6 +59,57 @@ _Avoid_: calling dissipative micromotion a unitary kick operator.
 A generally complex eigenvalue of the energy-like Floquet-Liouville operator for a periodically driven open system; its real part describes oscillation while its imaginary part describes decay or growth, and it is defined modulo the drive frequency.
 _Avoid_: assuming dissipative quasienergies are real or that every Liouvillian is completely positive.
 
+## Model-space projection and reconstruction
+
+**Model space**:
+The retained sector selected by a projector ``P`` in a projection/invariant-subspace construction. Its physical meaning depends on the method: for ordinary Floquet HFE it is the retained/slow Floquet block; for higher-order QHB it is the explicitly retained carrier space.
+_Avoid_: assuming every model space has the same small parameter, complement solve, or complexity.
+
+**Complement**:
+The eliminated or response sector ``Q = 1 - P`` associated with a chosen model space.
+
+**Model-space embedding / Bloch wave operator**:
+The intermediate-normalized map ``Ω = P + Y`` satisfying ``𝔾Ω = ΩB`` and ``PΩP = P``. It embeds retained model-space data into the dressed full representation.
+_Avoid_: using `Van Vleck`, `Brillouin-Wigner`, or `Feshbach` as interchangeable names for ``Ω``.
+
+**Invariant graph**:
+The complement dressing ``Y = QΩP`` of the model-space embedding.
+
+**Intermediate-normalized model-space generator**:
+The retained generator ``B`` appearing in ``𝔾Ω = ΩB`` before output-specific canonical normalization or physical reconstruction.
+_Avoid_: calling ``B`` the package `VanVleck()` generator without the required normalization/gauge conversion.
+
+**Complement solve**:
+The method-specific operation that determines the ``Q``-space response. It may be a fast-harmonic inverse, a reduced resolvent, a Sylvester solve, or an omitted-harmonic response solve.
+_Avoid_: calling every complement solve a resolvent when no resolvent is actually formed.
+
+**Reconstruction**:
+The generic operation that converts model-space/projection data into a physical or package output representation. `Micromotion`/`kick` is reserved for Floquet representatives that actually use that structure; QHB readout is physical reconstruction, not Floquet micromotion.
+
+**Observable dressing**:
+The projection-induced reconstruction of physical observables or readout from retained model-space data. It is the generic term for this operation across Floquet HFE and higher-order QHB.
+_Avoid_: calling generic observable dressing `micromotion` when the construction is not a Floquet representative.
+
+**Canonical normalization**:
+The Okubo/des-Cloizeaux/model-space normalization that converts an intermediate Bloch/Feshbach representation toward the canonical Van Vleck representative.
+
+**Static frame/similarity correction**:
+A static model-space transformation used to relate normalized representatives or impose the final package representative. For a generic Liouvillian it is a similarity, not generally a unitary or completely-positive map.
+
+**Van Vleck gauge**:
+The final zero-average micromotion condition of the package Van Vleck representative.
+_Avoid_: using `gauge` as a synonym for every model-space normalization or reconstruction step.
+
+**CP-preserving high-frequency expansion**:
+A native high-frequency construction that transports physical jump/amplitude data and forms a finite positive Gram/Kraus object, rather than completing an already-truncated Liouvillian Van Vleck generator.
+_Avoid_: treating CP preservation as a `Gauge` or as implicit positive completion.
+
+**CP amplitude reconstruction**:
+The output reconstruction that forms the finite positive object from retained physical amplitudes or equivalent Kraus/Gram factors. The final positive square is not re-truncated merely to recover a polynomial Kossakowski series.
+
+**Physical-process provenance**:
+Internal identity and origin data associated with a physical process before output-specific lowering, such as its operator/map payload, coefficient, harmonic/grade, adjoint partner, microscopic channel/bath identity where present, and parent/descendant relation when generated. Provenance is distinct from harmonic kinematics, ``P/Q`` state, and reconstruction metadata.
+
 ## GKSL coordinates and positive completion
 
 **Dissipative frame**:
