@@ -176,8 +176,7 @@ L = PeriodicGenerator(
     expected_X2 = zero(L[0])
     for inner_harmonic in nonzero_harmonics
       coefficient = 1 // (harmonic * inner_harmonic)
-      expected_X2 -=
-        coefficient * compose(L[harmonic - inner_harmonic], L[inner_harmonic])
+      expected_X2 -= coefficient * compose(L[harmonic - inner_harmonic], L[inner_harmonic])
     end
     expected_X2 += (1 // harmonic^2) * compose(L[harmonic], L[0])
     @test liouvillian_vanishes(result.wave[2][harmonic] - expected_X2)
@@ -187,12 +186,11 @@ L = PeriodicGenerator(
   for harmonic in nonzero_harmonics
     for inner_harmonic in nonzero_harmonics
       coefficient = 1 // (harmonic * inner_harmonic)
-      expected_B2 -= coefficient * compose(
-        L[-harmonic], compose(L[harmonic - inner_harmonic], L[inner_harmonic])
-      )
+      expected_B2 -=
+        coefficient *
+        compose(L[-harmonic], compose(L[harmonic - inner_harmonic], L[inner_harmonic]))
     end
-    expected_B2 +=
-      (1 // harmonic^2) * compose(L[-harmonic], compose(L[harmonic], L[0]))
+    expected_B2 += (1 // harmonic^2) * compose(L[-harmonic], compose(L[harmonic], L[0]))
   end
   @test liouvillian_vanishes(result.effective[3] - expected_B2)
 
