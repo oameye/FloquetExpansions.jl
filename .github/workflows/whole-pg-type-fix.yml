@@ -31,14 +31,12 @@ jobs:
           assert old in s
           p.write_text(s.replace(old, new))
           PY
-      - name: Install formatter and pinned JETLS
+      - name: Install pinned JETLS
         run: |
-          julia -e 'using Pkg; Pkg.Apps.add(name="JuliaFormatter"); Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
+          julia -e 'using Pkg; Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
           echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
-      - name: Format and instantiate
-        run: |
-          ${HOME}/.julia/bin/jlfmt --inplace src/engine.jl
-          julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Instantiate
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Require clean JETLS report
         run: |
           set -o pipefail
