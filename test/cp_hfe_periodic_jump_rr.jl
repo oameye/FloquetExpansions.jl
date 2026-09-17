@@ -45,16 +45,14 @@ end
   # physical dissipator. At grade two the result is cubic in that scale, so the symmetric
   # four-point combination isolates exactly the sector containing one dissipative vertex.
   direct = Dict(
-    scale => floquet_expansion(H_map + scale * R, VanVleck(), 3) for scale in (-2, -1, 0, 1, 2)
+    scale => floquet_expansion(H_map + scale * R, VanVleck(), 3) for
+    scale in (-2, -1, 0, 1, 2)
   )
   one_R_first = cp_hfe_linear_dissipative_sector(direct, 1)
   one_R_second = cp_hfe_linear_dissipative_sector(direct, 2)
 
-  native = FloquetExpansions.cp_hfe_reconstruction(
-    H, ω, t, 3, (jump(rotating_jump, 1),)
-  )
-  native_first =
-    (1 / ω) * FloquetExpansions.cp_dissipative_component(native.amplitudes, 1)
+  native = FloquetExpansions.cp_hfe_reconstruction(H, ω, t, 3, (jump(rotating_jump, 1),))
+  native_first = (1 / ω) * FloquetExpansions.cp_dissipative_component(native.amplitudes, 1)
   native_second =
     (1 / ω^2) * FloquetExpansions.cp_dissipative_component(native.amplitudes, 2)
 
@@ -73,7 +71,9 @@ end
   @test !iszero(SQA.simplify(RR_first))
   @test iszero(SQA.simplify(RR_first - RR_pure))
   @test iszero(
-    SQA.simplify(effective_component(floquet_expansion(2 * R, VanVleck(), 2), 1) - 4 * RR_pure)
+    SQA.simplify(
+      effective_component(floquet_expansion(2 * R, VanVleck(), 2), 1) - 4 * RR_pure
+    ),
   )
 
   # At second order the one-R difference is precisely the certified static similarity generated
@@ -81,9 +81,7 @@ end
   B_R = zero(R[0])
   for harmonic in keys(H_map)
     iszero(harmonic) && continue
-    B_R +=
-      (1 // (2 * harmonic^2 * ω^2)) *
-      SQA.commutator(H_map[harmonic], R[-harmonic])
+    B_R += (1 // (2 * harmonic^2 * ω^2)) * SQA.commutator(H_map[harmonic], R[-harmonic])
   end
   gauge_residual = SQA.commutator(B_R, H_map[0])
 
