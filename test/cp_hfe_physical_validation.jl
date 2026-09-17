@@ -14,6 +14,11 @@ function cp_validation_retained_component(reconstruction, grade::Int)
   return SQA.simplify(hamiltonian_action(coherent) + dissipative)::Liouvillian
 end
 
+function cp_validation_matrix_equal(left, right)
+  size(left) == size(right) || return false
+  return all(iszero(SQA.simplify(left[index] - right[index])) for index in eachindex(left))
+end
+
 function cp_validation_matrix_hermitian(matrix)
   size(matrix, 1) == size(matrix, 2) || return false
   return all(
@@ -22,53 +27,119 @@ function cp_validation_matrix_hermitian(matrix)
   )
 end
 
-@testset "driven qubit validates the physical one-dissipator sector" begin
+function cp_validation_prefix_equal(low, high, retained_grades)
+  for grade in retained_grades
+    difference = low.coefficients[grade + 1] - high.coefficients[grade + 1]
+    all(iszero(SQA.simplify(difference[harmonic])) for harmonic in keys(difference)) ||
+      return false
+  end
+  return true
+end
+
+@testset "existing driven-qubit completion benchmark anchors native CP-HFE" begin
   pauli = PauliSpace(:cp_hfe_validation_qubit)
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
   bright = σy + σz
   dark = σy - σz
-  frame = DissipativeFrame(bright, dark)
-  @variables ω_cp_qubit::Real t_cp_qubit::Real Δ_cp_qubit::Real Ω_cp_qubit::Real
+  cartesian = DissipativeFrame(σx, σy, σz)
+  adapted = DissipativeFrame(bright, dark)
+  @variables ω_cp_qubit::Real t_cp_qubit::Real Ω_cp_qubit::Real
 
   ω = ω_cp_qubit
   t = t_cp_qubit
-  H = Δ_cp_qubit * σz + Ω_cp_qubit * cos(ω * t) * σx
+  H = Ω_cp_qubit * cos(ω * t) * σx
   physical_channels = (collapse(bright),)
 
   native_order2 = FE.cp_hfe_reconstruction(H, ω, t, 2, physical_channels)
-  native_order3 = FE.cp_hfe_reconstruction(H, ω, t, 3, physical_channels)
-
-  # Requesting a higher truncation order must not alter already-retained physical amplitudes.
-  low_series = only(native_order2.amplitudes)
-  high_series = only(native_order3.amplitudes)
-  for grade in 0:1
-    difference = low_series.coefficients[grade + 1] - high_series.coefficients[grade + 1]
-    @test all(iszero(SQA.simplify(difference[harmonic])) for harmonic in keys(difference))
-  end
-
+  native = FE.cp_hfe_reconstruction(H, ω, t, 3, physical_channels)
   raw = floquet_expansion(H, ω, t, VanVleck(), 3; channels=physical_channels)
   raw_components = getfield(raw, :effective_components)
 
-  # Static physical loss carries no nonzero dissipative Fourier harmonic, hence B_R^(2)=0.
-  # The complete one-dissipator sector therefore agrees directly in this physical frame.
+  @test cp_validation_prefix_equal(
+    only(native_order2.amplitudes), only(native.amplitudes), 0:1
+  )
+
+  # This is exactly the existing Gram/Spectral driven-qubit fixture. The physical collapse
+  # amplitude is static, so R_{m!=0}=0 and the certified B_R^(2) frame correction vanishes.
+  # Native amplitude transport and direct Liouvillian Van Vleck therefore agree coefficient by
+  # coefficient throughout the complete one-dissipator sector.
   for grade in 0:2
-    native_component = cp_validation_retained_component(native_order3, grade)
-    @test cp_validation_liouvillian_zero(raw_components[grade + 1] - native_component)
+    @test cp_validation_liouvillian_zero(
+      raw_components[grade + 1] - cp_validation_retained_component(native, grade)
+    )
   end
 
+  gram_cartesian = positive_completion(raw, Gram(), cartesian)
+  gram_adapted = positive_completion(raw, Gram(), adapted)
+  spectral_adapted = positive_completion(raw, Spectral(), adapted)
+  for grade in 0:2
+    @test effective_component(gram_cartesian, grade) == effective_component(raw, grade)
+    @test effective_component(gram_adapted, grade) == effective_component(raw, grade)
+    @test effective_component(spectral_adapted, grade) == effective_component(raw, grade)
+  end
+
+  native_cartesian = kossakowski(native.generator, cartesian)
+  native_adapted = kossakowski(native.generator, adapted)
+  @test cp_validation_matrix_hermitian(native_cartesian)
+  @test cp_validation_matrix_hermitian(native_adapted)
+  @test cp_validation_matrix_hermitian(kossakowski(gram_cartesian))
+  @test cp_validation_matrix_hermitian(kossakowski(gram_adapted))
+  @test cp_validation_matrix_hermitian(kossakowski(spectral_adapted))
+end
+
+@testset "existing full-rank two-channel fixture preserves microscopic channel covariance" begin
+  fock = FockSpace(:cp_hfe_validation_full_rank)
+  a = Destroy(fock, :a)
+  frame = DissipativeFrame(a, a^2)
+  @variables ω_cp_full::Real t_cp_full::Real
+
+  ω = ω_cp_full
+  t = t_cp_full
+  H = 0 * a
+  first = collapse(a + a^2)
+  second = collapse(a + im * a^2)
+  physical_channels = (first, second)
+
+  native = FE.cp_hfe_reconstruction(H, ω, t, 1, physical_channels)
+  raw = floquet_expansion(H, ω, t, VanVleck(), 1; channels=physical_channels)
+  gram = positive_completion(raw, Gram(), frame)
+
+  @test cp_validation_liouvillian_zero(native.generator - effective_generator(raw))
+  @test cp_validation_matrix_equal(kossakowski(native.generator, frame), kossakowski(gram))
+
+  # Reordering microscopic channels changes provenance order but not the physical Kraus sum.
+  reversed = FE.cp_hfe_reconstruction(H, ω, t, 1, (second, first))
+  @test cp_validation_liouvillian_zero(native.generator - reversed.generator)
+  @test native.amplitudes[1].seed.reference.index == 1
+  @test native.amplitudes[2].seed.reference.index == 2
+  @test reversed.amplitudes[1].seed.reference.index == 1
+  @test reversed.amplitudes[2].seed.reference.index == 2
+end
+
+@testset "existing Kerr number-selective-loss fixture agrees across CP constructions" begin
+  fock = FockSpace(:cp_hfe_validation_number_selective)
+  a = Destroy(fock, :a)
+  number_selective = a' * a^2
+  frame = DissipativeFrame(number_selective)
+  @variables ω_cp_ns::Real t_cp_ns::Real K_cp_ns::Real γ_cp_ns::Real
+
+  ω = ω_cp_ns
+  t = t_cp_ns
+  H = K_cp_ns * a'^2 * a^2
+  physical_channels = (jump(number_selective, γ_cp_ns),)
+
+  native = FE.cp_hfe_reconstruction(H, ω, t, 1, physical_channels)
+  raw = floquet_expansion(H, ω, t, VanVleck(), 1; channels=physical_channels)
   gram = positive_completion(raw, Gram(), frame)
   spectral = positive_completion(raw, Spectral(), frame)
-  for grade in 0:2
-    @test effective_component(gram, grade) == effective_component(raw, grade)
-    @test effective_component(spectral, grade) == effective_component(raw, grade)
-  end
 
-  native_kossakowski = kossakowski(native_order3.generator, frame)
-  @test cp_validation_matrix_hermitian(native_kossakowski)
-  @test cp_validation_matrix_hermitian(kossakowski(gram))
-  @test cp_validation_matrix_hermitian(kossakowski(spectral))
+  @test cp_validation_liouvillian_zero(native.generator - effective_generator(raw))
+  native_matrix = kossakowski(native.generator, frame)
+  @test cp_validation_matrix_equal(native_matrix, kossakowski(gram))
+  @test cp_validation_matrix_equal(native_matrix, kossakowski(spectral))
+  @test cp_validation_matrix_hermitian(native_matrix)
 end
 
 @testset "driven Kerr resonator generates one-photon loss from two-photon loss" begin
@@ -88,15 +159,15 @@ end
   native = FE.cp_hfe_reconstruction(H, ω, t, 3, physical_channels)
   raw = floquet_expansion(H, ω, t, VanVleck(), 3; channels=physical_channels)
 
-  # With a static physical dissipator the retained one-dissipator sector must again agree with
-  # direct Liouvillian Van Vleck through second order, now entirely in symbolic bosonic algebra.
+  # Static two-photon loss again has B_R^(2)=0. The second-order retained map is therefore a
+  # direct cutoff-free comparison with generic Liouvillian Van Vleck.
   @test cp_validation_liouvillian_zero(
     getfield(raw, :effective_components)[3] - cp_validation_retained_component(native, 2)
   )
 
-  # The first coherent kick dresses L=a^2 by i[K^(1),L]. For a linear coherent drive this
-  # creates an `a` direction. Squaring that transported first-order amplitude therefore produces
-  # a genuine one-photon dissipator at second order, without introducing a Fock cutoff.
+  # The first coherent kick dresses L=a^2 by i[K^(1),L]. A linear coherent drive creates an `a`
+  # amplitude. Squaring that transported first-order amplitude produces one-photon loss at second
+  # order without introducing a Fock cutoff.
   first_dressed = only(native.amplitudes).coefficients[2]
   generated = zero(Liouvillian)
   for harmonic in keys(first_dressed)
