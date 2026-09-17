@@ -78,7 +78,7 @@ end
   native_first = FloquetExpansions.cp_dissipative_component(native.amplitudes, 1)
   native_second = FloquetExpansions.cp_dissipative_component(native.amplitudes, 2)
 
-  @test iszero(SQA.simplify(ω * one_R_first - native_first))
+  @test iszero(FloquetExpansions.canonical_liouvillian(ω * one_R_first - native_first))
   @test !iszero(SQA.simplify(RR_first))
   @test iszero(
     SQA.simplify(
@@ -93,7 +93,9 @@ end
 
   @test !iszero(SQA.simplify(B_R))
   @test !iszero(SQA.simplify(gauge_residual))
-  @test iszero(SQA.simplify(V_R_second - native_second - gauge_residual))
+  @test iszero(
+    FloquetExpansions.canonical_liouvillian(V_R_second - native_second - gauge_residual)
+  )
 
   # Native CP-HFE remains exactly linear in the physical jump rate: doubling the microscopic
   # rate doubles the reconstructed dissipative generator, so no hidden γ^2 RR term is present.
