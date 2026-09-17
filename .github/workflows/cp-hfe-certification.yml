@@ -1,0 +1,56 @@
+name: CP-HFE certification
+
+on:
+  push:
+    branches:
+      - 'diagnostic/122-cp-hfe-certification'
+
+concurrency:
+  group: cp-hfe-certification-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JULIA_NUM_THREADS: 4
+
+jobs:
+  tests:
+    name: Tests - Julia ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.10'
+          - '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          show-versioninfo: true
+          version: ${{ matrix.version }}
+          arch: x64
+      - uses: julia-actions/cache@v3
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+
+  jet:
+    name: JET - Julia 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          show-versioninfo: true
+          version: '1'
+          arch: x64
+      - uses: julia-actions/cache@v3
+      - name: Set up test environment
+        run: julia --project=test -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Run dedicated JET suite
+        run: julia --project=test test/quality/JET.jl
