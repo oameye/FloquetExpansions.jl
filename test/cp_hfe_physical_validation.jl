@@ -150,10 +150,7 @@ end
   ω = ω_cp_kerr
   t = t_cp_kerr
   number = a' * a
-  H =
-    Δ_cp_kerr * number +
-    K_cp_kerr * a'^2 * a^2 +
-    ε_cp_kerr * cos(ω * t) * (a + a')
+  H = Δ_cp_kerr * number + K_cp_kerr * a'^2 * a^2 + ε_cp_kerr * cos(ω * t) * (a + a')
 
   physical_channels = (collapse(a^2),)
   native = FE.cp_hfe_reconstruction(H, ω, t, 3, physical_channels)
