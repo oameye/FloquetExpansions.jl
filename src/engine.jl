@@ -278,12 +278,10 @@ function reattach(component::E, wd::Symbolics.Num, n::Int)::E where {E<:Generato
   scale = inverse_drive_power(wd, n)
   return (scale * component)::E
 end
-function reattach(
-  generator::PeriodicGenerator{T}, n::Int
-)::PeriodicGenerator{T} where {T<:GeneratorComponent}
+function reattach(generator::P, n::Int)::P where {P<:PeriodicGenerator}
   iszero(n) && return generator
   scale = inverse_drive_power(generator.wd, n)
-  return (scale * generator)::PeriodicGenerator{T}
+  return (scale * generator)::P
 end
 
 """
@@ -351,19 +349,19 @@ leaves the retained micromotion unchanged.
 See also [`effective_generator`](@ref), [`effective_component`](@ref), [`VanVleck`](@ref).
 """
 function micromotion(
-  expansion::FloquetExpansion{G,PeriodicGenerator{T},E,C,R}
-) where {G,T,E,C,R}
-  result = zero(expansion.generator)::PeriodicGenerator{T}
+  expansion::FloquetExpansion{G,P,E,C,R}
+) where {G,P<:PeriodicGenerator,E,C,R}
+  result = zero(expansion.generator)::P
   for (order, kick) in enumerate(expansion.kick_components)
-    result = (result + reattach(kick, order))::PeriodicGenerator{T}
+    result = (result + reattach(kick, order))::P
   end
-  return result::PeriodicGenerator{T}
+  return result::P
 end
 
 function micromotion(
-  expansion::FloquetExpansion{G,PeriodicGenerator{T},E,C,R}, n::Int
-) where {G,T,E,C,R}
+  expansion::FloquetExpansion{G,P,E,C,R}, n::Int
+) where {G,P<:PeriodicGenerator,E,C,R}
   1 <= n < expansion.order ||
     throw(ArgumentError("order $(n) is outside 1:$(expansion.order - 1)"))
-  return SQA.simplify(reattach(expansion.kick_components[n], n))::PeriodicGenerator{T}
+  return SQA.simplify(reattach(expansion.kick_components[n], n))::P
 end
