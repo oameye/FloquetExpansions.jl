@@ -39,7 +39,7 @@ function static_jump_rate(
   any(!iszero(harmonic) for harmonic in keys(rate_harmonics)) && throw(
     ArgumentError(
       "native CP-HFE amplitude transport currently requires time-independent jump rates; " *
-      "put periodic amplitude dependence in the jump operator instead",
+      "provide an explicit periodic collapse amplitude carrying the square-root channel weight instead",
     ),
   )
   return channel.rate
@@ -62,13 +62,12 @@ function physical_amplitude_seed(
   return PhysicalAmplitudeSeed(amplitude, rate, reference)
 end
 
-function physical_amplitude_seed(
-  channel, source_index::Int, wd::Symbolics.Num, t::Symbolics.Num
-)
-  channel isa LiouvillianChannel || throw(
-    ArgumentError("channels must contain only `collapse(...)` and `jump(...)` values")
+function physical_amplitude_seed(channel, ::Int, ::Symbolics.Num, ::Symbolics.Num)
+  throw(
+    ArgumentError(
+      "channels must contain only `collapse(...)` and `jump(...)` values; got `$(typeof(channel))`"
+    ),
   )
-  return physical_amplitude_seed(channel, source_index, wd, t)
 end
 
 function physical_amplitude_seeds(
