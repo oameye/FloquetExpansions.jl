@@ -44,7 +44,7 @@ function periodic_vanishes_cp(G::PeriodicGenerator)
 end
 
 function one_dissipator_cp_reference(H_map::PeriodicGenerator, R::PeriodicGenerator)
-  harmonics = filter(!=(0), collect(keys(H_map)))
+  h_harmonics = filter(!=(0), collect(keys(H_map)))
   H0_map = H_map[0]
   R0 = R[0]
 
@@ -52,16 +52,20 @@ function one_dissipator_cp_reference(H_map::PeriodicGenerator, R::PeriodicGenera
   C_R0 = zero(H0_map)
   C_3h = zero(H0_map)
 
-  for m in harmonics
+  for m in h_harmonics
     C_H0 -= (1 // m^2) * SQA.commutator(SQA.commutator(H_map[m], H0_map), R[-m])
     C_R0 += (1 // (2 * m^2)) * SQA.commutator(H_map[m], SQA.commutator(H_map[-m], R0))
   end
 
-  for m in harmonics, n in harmonics
-    if n != m
-      C_3h -=
-        (1 // (2 * m * n)) * SQA.commutator(SQA.commutator(H_map[n], H_map[m - n]), R[-m])
-    end
+  for n in h_harmonics, k in h_harmonics
+    generated = n + k
+    iszero(generated) && continue
+    C_3h -=
+      (1 // (2 * generated * n)) *
+      SQA.commutator(SQA.commutator(H_map[n], H_map[k]), R[-generated])
+  end
+
+  for m in h_harmonics, n in h_harmonics
     if m + n != 0
       C_3h -=
         (1 // (2 * m * n)) * SQA.commutator(H_map[m], SQA.commutator(H_map[n], R[-(m + n)]))
