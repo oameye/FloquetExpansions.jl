@@ -53,9 +53,7 @@ end
   @variables ω_cp::Real t_cp::Real γ_cp::Real
 
   H = σz + σx * SQAJet.expim(-ω_cp * t_cp) + σx * SQAJet.expim(ω_cp * t_cp)
-  seed = only(
-    FloquetExpansions.physical_amplitude_seeds((jump(σminus, γ_cp),), ω_cp, t_cp)
-  )
+  seed = only(FloquetExpansions.physical_amplitude_seeds((jump(σminus, γ_cp),), ω_cp, t_cp))
   coherent = floquet_expansion(harmonics(H, ω_cp, t_cp), VanVleck(), 2)
   kicks = getfield(coherent, :kick_components)
   transported = FloquetExpansions.transport_amplitude_series(seed, kicks, 2)
