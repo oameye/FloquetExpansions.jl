@@ -1,0 +1,22 @@
+name: CP-HFE Physical Diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/125-physical-tests
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Instantiate package
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Run physical validation only
+        run: julia --project=. -e 'using FloquetExpansions; include("test/cp_hfe_physical_validation.jl")'
