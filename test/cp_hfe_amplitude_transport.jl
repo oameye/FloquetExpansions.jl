@@ -36,15 +36,12 @@ C0 = σ12 + 2 * σ23 + im * σ31
 C1 = σ31 + σ12 - im * σ23
 Cm1 = 2 * σ21 + σ32
 C2 = σ13 - σ21 + im * σ32
-C =
-  C0 +
-  C1 * SQA.expim(-w * t) +
-  Cm1 * SQA.expim(w * t) +
-  C2 * SQA.expim(-2 * w * t)
+C = C0 + C1 * SQA.expim(-w * t) + Cm1 * SQA.expim(w * t) + C2 * SQA.expim(-2 * w * t)
 
 liouvillian_vanishes_cp(L::Liouvillian) = iszero(FE.canonical_liouvillian(L))
-periodic_vanishes_cp(G::PeriodicGenerator) =
-  all(iszero(SQA.simplify(G[harmonic])) for harmonic in keys(G))
+function periodic_vanishes_cp(G::PeriodicGenerator)
+  return all(iszero(SQA.simplify(G[harmonic])) for harmonic in keys(G))
+end
 
 function one_dissipator_cp_reference(H_map::PeriodicGenerator, R::PeriodicGenerator)
   harmonics = filter(!=(0), collect(keys(H_map)))
@@ -56,22 +53,18 @@ function one_dissipator_cp_reference(H_map::PeriodicGenerator, R::PeriodicGenera
   C_3h = zero(H0_map)
 
   for m in harmonics
-    C_H0 -=
-      (1 // m^2) * SQA.commutator(SQA.commutator(H_map[m], H0_map), R[-m])
-    C_R0 +=
-      (1 // (2 * m^2)) * SQA.commutator(H_map[m], SQA.commutator(H_map[-m], R0))
+    C_H0 -= (1 // m^2) * SQA.commutator(SQA.commutator(H_map[m], H0_map), R[-m])
+    C_R0 += (1 // (2 * m^2)) * SQA.commutator(H_map[m], SQA.commutator(H_map[-m], R0))
   end
 
   for m in harmonics, n in harmonics
     if n != m
       C_3h -=
-        (1 // (2 * m * n)) *
-        SQA.commutator(SQA.commutator(H_map[n], H_map[m - n]), R[-m])
+        (1 // (2 * m * n)) * SQA.commutator(SQA.commutator(H_map[n], H_map[m - n]), R[-m])
     end
     if m + n != 0
       C_3h -=
-        (1 // (2 * m * n)) *
-        SQA.commutator(H_map[m], SQA.commutator(H_map[n], R[-(m + n)]))
+        (1 // (2 * m * n)) * SQA.commutator(H_map[m], SQA.commutator(H_map[n], R[-(m + n)]))
     end
   end
 
@@ -122,7 +115,9 @@ end
   reconstruction = FE.cp_hfe_reconstruction(H, w, t, 3, (jump(C, γ),))
   H_periodic = harmonics(H, w, t)
   H_map = PeriodicGenerator(
-    Dict(harmonic => hamiltonian_action(H_periodic[harmonic]) for harmonic in keys(H_periodic)),
+    Dict(
+      harmonic => hamiltonian_action(H_periodic[harmonic]) for harmonic in keys(H_periodic)
+    ),
     w,
   )
   R = harmonics(γ * dissipator(C), w, t)
