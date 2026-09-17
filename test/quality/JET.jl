@@ -60,6 +60,8 @@ end
   kicks = getfield(coherent, :kick_components)
   transported = FloquetExpansions.transport_amplitude_series(seed, kicks, 2)
 
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.reattach(kicks[1], 1)
+
   JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.transport_amplitude_series(
     seed, kicks, 2
   )
