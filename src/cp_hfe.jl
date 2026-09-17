@@ -63,9 +63,9 @@ function physical_amplitude_seed(
 end
 
 function physical_amplitude_seed(channel, ::Int, ::Symbolics.Num, ::Symbolics.Num)
-  throw(
+  return throw(
     ArgumentError(
-      "channels must contain only `collapse(...)` and `jump(...)` values; got `$(typeof(channel))`"
+      "channels must contain only `collapse(...)` and `jump(...)` values; got `$(typeof(channel))`",
     ),
   )
 end
