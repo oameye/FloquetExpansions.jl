@@ -21,9 +21,11 @@ H_cp_inference =
   seed = only(
     FEInference.physical_amplitude_seeds(
       (jump(σminus_inference, γ_cp_inference),), w_cp_inference, t_cp_inference
-    )
+    ),
   )
-  coherent = floquet_expansion(harmonics(H_cp_inference, w_cp_inference, t_cp_inference), VanVleck(), 2)
+  coherent = floquet_expansion(
+    harmonics(H_cp_inference, w_cp_inference, t_cp_inference), VanVleck(), 2
+  )
   kicks = getfield(coherent, :kick_components)
 
   transported = @inferred FEInference.transport_amplitude_series(seed, kicks, 2)
