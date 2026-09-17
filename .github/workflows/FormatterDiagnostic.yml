@@ -25,16 +25,15 @@ jobs:
       - name: Install JuliaFormatter
         run: |
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
-      - name: Capture formatter check
+      - name: Format periodic-jump test
         run: |
-          set +e
-          ${HOME}/.julia/bin/jlfmt --check --verbose . > formatter-diagnostic.log 2>&1
-          echo "exit_code=$?" >> formatter-diagnostic.log
-          exit 0
-      - name: Commit diagnostic output
+          ${HOME}/.julia/bin/jlfmt --inplace test/cp_hfe_periodic_jump_rr.jl
+      - name: Commit formatter output
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add formatter-diagnostic.log
-          git commit -m "ci: capture JuliaFormatter diagnostic" || exit 0
-          git push origin HEAD:${{ github.head_ref }}
+          if ! git diff --quiet -- test/cp_hfe_periodic_jump_rr.jl; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add test/cp_hfe_periodic_jump_rr.jl
+            git commit -m "ci: capture JuliaFormatter output"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
