@@ -1,7 +1,10 @@
 using Test
 using FloquetExpansions
 using JET: JET
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 using Symbolics: @variables
+
+const SQAJet = SecondQuantizedAlgebra
 
 @testset "JET" begin
   JET.test_package(FloquetExpansions; target_modules=(FloquetExpansions,))
@@ -40,4 +43,33 @@ end
   completion = positive_completion(gram_expansion, Gram(), gram_frame)
   JET.@test_opt target_modules=(FloquetExpansions,) hamiltonian(completion)
   JET.@test_opt target_modules=(FloquetExpansions,) kossakowski_component(completion, 0)
+end
+
+@testset "native CP-HFE optimizer stability" begin
+  space = NLevelSpace(:jet_cp_hfe, 2)
+  σx = Transition(space, :σ, 1, 2) + Transition(space, :σ, 2, 1)
+  σz = Transition(space, :σ, 1, 1) - Transition(space, :σ, 2, 2)
+  σminus = Transition(space, :σ, 1, 2)
+  @variables ω_cp::Real t_cp::Real γ_cp::Real
+
+  H = σz + σx * SQAJet.expim(-ω_cp * t_cp) + σx * SQAJet.expim(ω_cp * t_cp)
+  seed = only(
+    FloquetExpansions.physical_amplitude_seeds((jump(σminus, γ_cp),), ω_cp, t_cp)
+  )
+  coherent = floquet_expansion(harmonics(H, ω_cp, t_cp), VanVleck(), 2)
+  kicks = getfield(coherent, :kick_components)
+  transported = FloquetExpansions.transport_amplitude_series(seed, kicks, 2)
+
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.transport_amplitude_series(
+    seed, kicks, 2
+  )
+
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.reconstruct_cp_amplitude_channels([
+    transported
+  ])
+
+  rows = FloquetExpansions.reconstruct_cp_amplitude_channels([transported])
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.reconstruct_cp_effective_generator(
+    coherent, rows
+  )
 end
