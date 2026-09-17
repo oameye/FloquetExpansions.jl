@@ -151,7 +151,9 @@ end
 
 reference_triindex(n::Int, j::Int) = (n * (n + 1)) ÷ 2 + j + 1
 
-function reference_periodic_commutator(left::P, right::P, product) where {P<:PeriodicGenerator}
+function reference_periodic_commutator(
+  left::P, right::P, product
+) where {P<:PeriodicGenerator}
   counts = BlochReferenceCounts()
   forward = reference_periodic_product(left, right, product, counts)
   reverse = reference_periodic_product(right, left, product, counts)
