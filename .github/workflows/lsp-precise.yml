@@ -1,0 +1,27 @@
+name: LSP precise diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/122-lsp-precise
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.13'
+      - name: Install pinned JETLS
+        run: |
+          julia -e 'using Pkg; Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
+          echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
+      - name: Instantiate package
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Print JETLS diagnostic with context
+        run: jetls check --context-lines=8 --progress=none --show-severity=hint src/FloquetExpansions.jl || true
