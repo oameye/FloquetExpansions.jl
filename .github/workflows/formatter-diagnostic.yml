@@ -1,0 +1,25 @@
+name: Formatter Diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/129-format
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Print formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace test/cp_hfe_periodic_jump_sectors.jl
+          git diff -- test/cp_hfe_periodic_jump_sectors.jl
+          git diff --quiet -- test/cp_hfe_periodic_jump_sectors.jl
