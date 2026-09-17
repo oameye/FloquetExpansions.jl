@@ -42,7 +42,7 @@ C =
   Cm1 * SQA.expim(w * t) +
   C2 * SQA.expim(-2 * w * t)
 
-liouvillian_vanishes_cp(L::Liouvillian) = iszero(SQA.simplify(L))
+liouvillian_vanishes_cp(L::Liouvillian) = iszero(FE.canonical_liouvillian(L))
 periodic_vanishes_cp(G::PeriodicGenerator) =
   all(iszero(SQA.simplify(G[harmonic])) for harmonic in keys(G))
 
@@ -127,7 +127,9 @@ end
   )
   R = harmonics(γ * dissipator(C), w, t)
 
-  @test liouvillian_vanishes_cp(FE.cp_dissipative_component(reconstruction.amplitudes, 0) - R[0])
+  @test liouvillian_vanishes_cp(
+    FE.cp_dissipative_component(reconstruction.amplitudes, 0) - R[0]
+  )
 
   expected_second_order = one_dissipator_cp_reference(H_map, R)
   actual_second_order = FE.cp_dissipative_component(reconstruction.amplitudes, 2)
