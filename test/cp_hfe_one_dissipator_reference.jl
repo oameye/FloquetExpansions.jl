@@ -81,7 +81,7 @@ end
   h_harmonics = filter(!=(0), collect(keys(H_map_cp)))
   r_harmonics = filter(!=(0), collect(keys(R_cp)))
   three_harmonic_bound = max(2 * maximum(abs, h_harmonics), maximum(abs, r_harmonics))
-  three_harmonics = filter(!=(0), collect(-three_harmonic_bound:three_harmonic_bound))
+  three_harmonics = filter(!=(0), collect((-three_harmonic_bound):three_harmonic_bound))
   H0 = H_map_cp[0]
   R0 = R_cp[0]
 
@@ -92,8 +92,7 @@ end
 
   for m in h_harmonics
     C_H0 -= (1 // m^2) * SQA.commutator(SQA.commutator(H_map_cp[m], H0), R_cp[-m])
-    C_R0 +=
-      (1 // (2 * m^2)) * SQA.commutator(H_map_cp[m], SQA.commutator(H_map_cp[-m], R0))
+    C_R0 += (1 // (2 * m^2)) * SQA.commutator(H_map_cp[m], SQA.commutator(H_map_cp[-m], R0))
     B_R += (1 // (2 * m^2)) * SQA.commutator(H_map_cp[m], R_cp[-m])
 
     V_R_a -=
@@ -163,7 +162,7 @@ matrix_commutator_cp(A, B) = A * B - B * A
   h_harmonics = [-2, -1, 1, 2]
   r_harmonics = [-3, -2, -1, 1, 2, 3]
   three_harmonic_bound = max(2 * maximum(abs, h_harmonics), maximum(abs, r_harmonics))
-  three_harmonics = filter(!=(0), collect(-three_harmonic_bound:three_harmonic_bound))
+  three_harmonics = filter(!=(0), collect((-three_harmonic_bound):three_harmonic_bound))
   H0 = H_matrix[0]
   R0 = R_matrix[0]
 
