@@ -1,0 +1,28 @@
+name: Periodic Jump Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+jobs:
+  test:
+    if: github.head_ref == 'ci/130-periodic-jump-full-stack'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.10'
+      - uses: julia-actions/cache@v3
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Run periodic-jump RR test
+        run: |
+          julia --project -e 'using Pkg; Pkg.test(test_args=["cp_hfe_periodic_jump_rr"])'
