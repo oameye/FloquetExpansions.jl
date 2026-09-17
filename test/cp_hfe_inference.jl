@@ -1,5 +1,6 @@
 using Test
 using FloquetExpansions
+using JET: JET
 using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 using Symbolics: @variables
 
@@ -30,10 +31,19 @@ H_cp_inference =
 
   transported = @inferred FEInference.transport_amplitude_series(seed, kicks, 2)
   @test transported isa FEInference.TransportedAmplitudeSeries
+  JET.@test_opt target_modules=(FloquetExpansions,) FEInference.transport_amplitude_series(
+    seed, kicks, 2
+  )
 
   rows = @inferred FEInference.reconstruct_cp_amplitude_channels([transported])
   @test rows isa Vector{FEInference.CPAmplitudeChannel}
+  JET.@test_opt target_modules=(FloquetExpansions,) FEInference.reconstruct_cp_amplitude_channels(
+    [transported]
+  )
 
   generator = @inferred FEInference.reconstruct_cp_effective_generator(coherent, rows)
   @test generator isa Liouvillian
+  JET.@test_opt target_modules=(FloquetExpansions,) FEInference.reconstruct_cp_effective_generator(
+    coherent, rows
+  )
 end
