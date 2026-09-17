@@ -8,8 +8,13 @@ const SQA = SecondQuantizedAlgebra
 
 function cp_oracle_scalar(value, substitutions)
   numeric = SQA.to_num(value)
-  re = Symbolics.value(Symbolics.substitute(real(numeric), substitutions))
-  im = Symbolics.value(Symbolics.substitute(imag(numeric), substitutions))
+  scalar_rules = Dict(Symbolics.unwrap(parameter) => replacement for (parameter, replacement) in substitutions)
+  re = Symbolics.value(
+    Symbolics.substitute(Symbolics.unwrap(real(numeric)), scalar_rules)
+  )
+  im = Symbolics.value(
+    Symbolics.substitute(Symbolics.unwrap(imag(numeric)), scalar_rules)
+  )
   return complex(Float64(re), Float64(im))
 end
 
@@ -63,9 +68,7 @@ function cp_oracle_exact_qubit_map(ω::Float64, Ω::Float64; steps::Int=2048)
   for step in 1:steps
     phase = 2π * (step - 1 // 2) / steps
     hamiltonian = Ω * cos(phase) * σx
-    coherent = -im * (
-      kron(identity, hamiltonian) - kron(transpose(hamiltonian), identity)
-    )
+    coherent = -im * (kron(identity, hamiltonian) - kron(transpose(hamiltonian), identity))
     propagator = exp(dt * (coherent + dissipative)) * propagator
   end
   return propagator
@@ -104,11 +107,11 @@ end
   spectral = positive_completion(raw, Spectral(), adapted)
 
   generators = (
-    native_order1 = native_order1.generator,
-    native_order3 = native_order3.generator,
-    raw_order3 = effective_generator(raw),
-    gram_order3 = effective_generator(gram),
-    spectral_order3 = effective_generator(spectral),
+    native_order1=native_order1.generator,
+    native_order3=native_order3.generator,
+    raw_order3=effective_generator(raw),
+    gram_order3=effective_generator(gram),
+    spectral_order3=effective_generator(spectral),
   )
 
   frequencies = (8.0, 12.0, 18.0)
