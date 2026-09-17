@@ -37,9 +37,9 @@ H_cp_inference =
 
   rows = @inferred FEInference.reconstruct_cp_amplitude_channels([transported])
   @test rows isa Vector{FEInference.CPAmplitudeChannel}
-  JET.@test_opt target_modules=(FloquetExpansions,) FEInference.reconstruct_cp_amplitude_channels(
-    [transported]
-  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FEInference.reconstruct_cp_amplitude_channels([
+    transported
+  ])
 
   generator = @inferred FEInference.reconstruct_cp_effective_generator(coherent, rows)
   @test generator isa Liouvillian
