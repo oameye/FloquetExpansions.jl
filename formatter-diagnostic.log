@@ -1,2 +1,86 @@
-ERROR: multiple input files require either `--inplace` to write changes or `--check` to verify formatting
-exit_code=2
+[ 1/84] Checking `AGENTS.md` ................................................. skipped (markdown)
+[ 2/84] Checking `CONTEXT.md` ................................................ skipped (markdown)
+[ 3/84] Checking `README.md` ................................................. skipped (markdown)
+[ 4/84] Checking `STANDARDS.md` .............................................. skipped (markdown)
+[ 5/84] Checking `benchmark/runbenchmarks.jl` ................................ ✓ already formatted
+[ 6/84] Checking `benchmark/workflows.jl` .................................... ✓ already formatted
+[ 7/84] Checking `docs/make.jl` .............................................. ✓ already formatted
+[ 8/84] Checking `docs/make_md_examples.jl` .................................. ✓ already formatted
+[ 9/84] Checking `docs/pages.jl` ............................................. ✓ already formatted
+[10/84] Checking `docs/adr/0001-generic-effective-liouvillian.md` ............ skipped (markdown)
+[11/84] Checking `docs/adr/0002-fourier-liouvillian-core.md` ................. skipped (markdown)
+[12/84] Checking `docs/adr/0003-explicit-periodic-dissipative-channels.md` ... skipped (markdown)
+[13/84] Checking `docs/adr/0004-unified-floquet-expansion-model.md` .......... skipped (markdown)
+[14/84] Checking `docs/adr/0005-periodic-generator-seam.md` .................. skipped (markdown)
+[15/84] Checking `docs/adr/0006-conditional-completely-positive-completion.md`  skipped (markdown)
+[16/84] Checking `docs/adr/0007-sqa-backed-left-right-liouvillian.md` ........ skipped (markdown)
+[17/84] Checking `docs/adr/0008-dissipative-quasienergy-operator.md` ......... skipped (markdown)
+[18/84] Checking `docs/adr/0009-cp-preserving-floquet-completion.md` ......... skipped (markdown)
+[19/84] Checking `docs/agents/architecture.md` ............................... skipped (markdown)
+[20/84] Checking `docs/agents/development.md` ................................ skipped (markdown)
+[21/84] Checking `docs/agents/domain.md` ..................................... skipped (markdown)
+[22/84] Checking `docs/agents/issue-tracker.md` .............................. skipped (markdown)
+[23/84] Checking `docs/agents/performance.md` ................................ skipped (markdown)
+[24/84] Checking `docs/agents/style.md` ...................................... skipped (markdown)
+[25/84] Checking `docs/agents/triage-labels.md` .............................. skipped (markdown)
+[26/84] Checking `docs/src/index.md` ......................................... skipped (markdown)
+[27/84] Checking `docs/src/literature.md` .................................... skipped (markdown)
+[28/84] Checking `docs/src/dev/cp_hfe_internal.md` ........................... skipped (markdown)
+[29/84] Checking `docs/src/manual/completion.md` ............................. skipped (markdown)
+[30/84] Checking `docs/src/manual/floquet_expansion.md` ...................... skipped (markdown)
+[31/84] Checking `docs/src/manual/system.md` ................................. skipped (markdown)
+[32/84] Checking `docs/src/theory/cp_completion.md` .......................... skipped (markdown)
+[33/84] Checking `docs/src/theory/floquet_theory.md` ......................... skipped (markdown)
+[34/84] Checking `docs/src/theory/high_frequency_expansion.md` ............... skipped (markdown)
+[35/84] Checking `examples/cp_completion.jl` ................................. ✓ already formatted
+[36/84] Checking `examples/floquet_meanfield_comparison.jl` .................. ✓ already formatted
+[37/84] Checking `examples/make_nb_examples.jl` .............................. ✓ already formatted
+[38/84] Checking `src/FloquetExpansions.jl` .................................. ✓ already formatted
+[39/84] Checking `src/completion.jl` ......................................... ✓ already formatted
+[40/84] Checking `src/completion_conversion.jl` .............................. ✓ already formatted
+[41/84] Checking `src/completion_frame.jl` ................................... ✓ already formatted
+[42/84] Checking `src/completion_linear_algebra.jl` .......................... ✓ already formatted
+[43/84] Checking `src/completion_types.jl` ................................... ✓ already formatted
+[44/84] Checking `src/cp_hfe.jl` ............................................. ✓ already formatted
+[45/84] Checking `src/engine.jl` ............................................. ✓ already formatted
+[46/84] Checking `src/gksl_coordinates.jl` ................................... ✓ already formatted
+[47/84] Checking `src/gksl_floquet.jl` ....................................... ✓ already formatted
+[48/84] Checking `src/gram_completion.jl` .................................... ✓ already formatted
+[49/84] Checking `src/gram_recursion.jl` ..................................... ✓ already formatted
+[50/84] Checking `src/liouvillian.jl` ........................................ ✓ already formatted
+[51/84] Checking `src/matrix_series.jl` ...................................... ✓ already formatted
+[52/84] Checking `src/periodic_operator.jl` .................................. ✓ already formatted
+[53/84] Checking `src/quasienergy.jl` ........................................ ✓ already formatted
+[54/84] Checking `src/spectral_completion.jl` ................................ ✓ already formatted
+[55/84] Checking `test/collector.jl` ......................................... ✓ already formatted
+[56/84] Checking `test/completion_state.jl` .................................. ✓ already formatted
+[57/84] Checking `test/completion_storage.jl` ................................ ✓ already formatted
+[58/84] Checking `test/cp_completion_analytic_examples.jl` ................... ✓ already formatted
+[59/84] Checking `test/cp_completion_numeric_oracle.jl` ...................... ✓ already formatted
+[60/84] Checking `test/cp_completion_validation.jl` .......................... ✓ already formatted
+[61/84] Checking `test/cp_hfe_amplitude_transport.jl` ........................ ✓ already formatted
+[62/84] Checking `test/cp_hfe_inference.jl` .................................. ✓ already formatted
+[63/84] Checking `test/cp_hfe_one_dissipator_reference.jl` ................... ✓ already formatted
+[64/84] Checking `test/cp_hfe_periodic_jump_rr.jl` ........................... ✗ needs formatting
+[65/84] Checking `test/cp_hfe_physical_validation.jl` ........................ ✓ already formatted
+[66/84] Checking `test/cp_hfe_qubit_stroboscopic_oracle.jl` .................. ✓ already formatted
+[67/84] Checking `test/engine.jl` ............................................ ✓ already formatted
+[68/84] Checking `test/gksl_coordinates.jl` .................................. ✓ already formatted
+[69/84] Checking `test/gram_completion.jl` ................................... ✓ already formatted
+[70/84] Checking `test/gram_recursion.jl` .................................... ✓ already formatted
+[71/84] Checking `test/kpo.jl` ............................................... ✓ already formatted
+[72/84] Checking `test/liouvillian.jl` ....................................... ✓ already formatted
+[73/84] Checking `test/liouvillian_van_vleck_phase.jl` ....................... ✓ already formatted
+[74/84] Checking `test/periodic_operator.jl` ................................. ✓ already formatted
+[75/84] Checking `test/quasienergy.jl` ....................................... ✓ already formatted
+[76/84] Checking `test/residual_scaling.jl` .................................. ✓ already formatted
+[77/84] Checking `test/runtests.jl` .......................................... ✓ already formatted
+[78/84] Checking `test/spectral_completion.jl` ............................... ✓ already formatted
+[79/84] Checking `test/helpers/shared.jl` .................................... ✓ already formatted
+[80/84] Checking `test/quality/Aqua.jl` ...................................... ✓ already formatted
+[81/84] Checking `test/quality/CheckConcreteStructs.jl` ...................... ✓ already formatted
+[82/84] Checking `test/quality/Documenter.jl` ................................ ✓ already formatted
+[83/84] Checking `test/quality/ExplicitImports.jl` ........................... ✓ already formatted
+[84/84] Checking `test/quality/JET.jl` ....................................... ✓ already formatted
+Some files are not formatted correctly. Run again with `--inplace` instead of `--check` to format them.
+exit_code=1
