@@ -29,7 +29,7 @@ end
   Ω = Ω_cp_rr
   η = η_cp_rr
 
-  H = (Δ // 2) * σz + Ω * cos(ω * t) * σx
+  H = (1 // 2) * Δ * σz + Ω * cos(ω * t) * σx
   rotating_jump = σz + η * (cos(ω * t) * σy + sin(ω * t) * σx)
 
   H_map = harmonics(hamiltonian_action(H), ω, t)
