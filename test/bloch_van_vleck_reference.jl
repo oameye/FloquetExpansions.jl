@@ -123,16 +123,15 @@ M_vv = PeriodicGenerator(
   converted_hamiltonian = bloch_van_vleck_reference(
     bloch_hamiltonian, M_vv; product=matrix_product_vv
   )
-  hori_hamiltonian = hori_deprit_reference(
-    M_vv, order; product=matrix_product_vv, phase=im
-  )
+  hori_hamiltonian = hori_deprit_reference(M_vv, order; product=matrix_product_vv, phase=im)
 
   @test converted_hamiltonian.counts.log_products == expected_mercator_products(order - 1)
   @test converted_hamiltonian.counts.log_products == 20
   @test all(norm(time_average(Gn)) <= 1.0e-12 for Gn in converted_hamiltonian.log_embedding)
 
   for n in 1:order
-    @test norm(converted_hamiltonian.effective[n] - hori_hamiltonian.effective[n]) <= tolerance
+    @test norm(converted_hamiltonian.effective[n] - hori_hamiltonian.effective[n]) <=
+      tolerance
   end
   for n in 1:(order - 1)
     kick_residual = im * converted_hamiltonian.log_embedding[n] - hori_hamiltonian.kick[n]
@@ -150,7 +149,8 @@ M_vv = PeriodicGenerator(
     @test norm(converted_map.effective[n] - hori_map.effective[n]) <= tolerance
   end
   for n in 1:(order - 1)
-    @test matrix_generator_norm_vv(converted_map.log_embedding[n] - hori_map.kick[n]) <= tolerance
+    @test matrix_generator_norm_vv(converted_map.log_embedding[n] - hori_map.kick[n]) <=
+      tolerance
   end
 
   lower = bloch_van_vleck_reference(
