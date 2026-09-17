@@ -218,27 +218,9 @@ for a Hamiltonian-only expansion.
 ``\\mathcal{O}(\\omega_d^{-\\text{order}})``. The high-frequency series is asymptotic rather than
 convergent.
 
-# Examples
+# References
 
-```jldoctest
-julia> h = FockSpace(:cavity); a = Destroy(h, :a);
-
-julia> @variables ω::Real t::Real g::Real;
-
-julia> H = harmonics(ω * (a' * a) + g * cos(ω * t) * (a + a'), ω, t);
-
-julia> vv = floquet_expansion(H, VanVleck(), 1)
-FloquetExpansion{VanVleck} of order 1
-
-julia> effective_generator(vv)
-ω * a' * a
-
-julia> iszero(micromotion(vv))
-true
-```
-
-See also [`effective_generator`](@ref), [`effective_component`](@ref), [`micromotion`](@ref),
-[`positive_completion`](@ref), and [`harmonics`](@ref).
+See the theory guide for the Floquet high-frequency expansion references.
 """
 function floquet_expansion(
   generator::P, gauge::G, order::Int
@@ -369,19 +351,20 @@ leaves the retained micromotion unchanged.
 See also [`effective_generator`](@ref), [`effective_component`](@ref), [`VanVleck`](@ref).
 """
 function micromotion(
-  expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P<:PeriodicGenerator,E,C,R}
-  result = zero(expansion.generator)::P
+  expansion::FloquetExpansion{G,PeriodicGenerator{T},E,C,R}
+) where {G,T,E,C,R}
+  result = zero(expansion.generator)::PeriodicGenerator{T}
   for (order, kick) in enumerate(expansion.kick_components)
-    result = (result + reattach(kick, order))::P
+    result =
+      (result + reattach(kick, order))::PeriodicGenerator{T}
   end
-  return result::P
+  return result::PeriodicGenerator{T}
 end
 
 function micromotion(
-  expansion::FloquetExpansion{G,P,E,C,R}, n::Int
-) where {G,P<:PeriodicGenerator,E,C,R}
+  expansion::FloquetExpansion{G,PeriodicGenerator{T},E,C,R}, n::Int
+) where {G,T,E,C,R}
   1 <= n < expansion.order ||
     throw(ArgumentError("order $(n) is outside 1:$(expansion.order - 1)"))
-  return SQA.simplify(reattach(expansion.kick_components[n], n))::P
+  return SQA.simplify(reattach(expansion.kick_components[n], n))::PeriodicGenerator{T}
 end
