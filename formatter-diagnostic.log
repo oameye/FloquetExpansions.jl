@@ -1,0 +1,2 @@
+ERROR: multiple input files require either `--inplace` to write changes or `--check` to verify formatting
+exit_code=2
