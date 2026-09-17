@@ -14,6 +14,25 @@ function periodic_jump_retained_component(reconstruction, grade::Int)
   return SQA.simplify(hamiltonian_action(coherent) + dissipative)::Liouvillian
 end
 
+function periodic_jump_substitute(L::Liouvillian, rules)
+  result = zero(L)
+  for (left, right, coefficient) in terms(L)
+    result += FE.action(left, right, SQA.substitute_cnum(coefficient, rules))
+  end
+  return FE.canonical_liouvillian(result)
+end
+
+function periodic_jump_linear_rate(L::Liouvillian, rate)
+  values = ntuple(
+    n -> periodic_jump_substitute(L, Dict(rate => n - 1)),
+    4,
+  )
+  Δ1 = values[2] - values[1]
+  Δ2 = values[3] - 2 * values[2] + values[1]
+  Δ3 = values[4] - 3 * values[3] + 3 * values[2] - values[1]
+  return FE.canonical_liouvillian(Δ1 - (1 // 2) * Δ2 + (1 // 3) * Δ3)
+end
+
 @testset "physical periodic jump separates one-R gauge physics from RR" begin
   pauli = PauliSpace(:cp_hfe_periodic_jump)
   σx = Pauli(pauli, :sigma, 1)
@@ -71,52 +90,16 @@ end
     raw_components[2] - periodic_jump_retained_component(native, 1) - RR
   )
 
-  # Build the complete one-R second-order sector independently from the #104 identities. This
-  # isolates the theorem from the RR/RRR pieces carried by the full direct Liouvillian expansion.
-  C_H0 = zero(R0)
-  C_R0 = zero(R0)
-  V_R_a = zero(R0)
-  for m in h_harmonics
-    C_H0 -= (1 // m^2) * SQA.commutator(SQA.commutator(H_map[m], H0), R[-m])
-    C_R0 +=
-      (1 // (2 * m^2)) * SQA.commutator(H_map[m], SQA.commutator(H_map[-m], R0))
-    V_R_a -=
-      (1 // (2 * m^2)) * (
-        SQA.commutator(R[-m], SQA.commutator(H0, H_map[m])) +
-        SQA.commutator(H_map[-m], SQA.commutator(R0, H_map[m])) +
-        SQA.commutator(H_map[-m], SQA.commutator(H0, R[m]))
-      )
-  end
-
-  three_harmonic_bound = max(2 * maximum(abs, h_harmonics), maximum(abs, r_harmonics))
-  three_harmonics = filter(!=(0), collect((-three_harmonic_bound):three_harmonic_bound))
-  C_3h = zero(R0)
-  V_R_b = zero(R0)
-  for m in three_harmonics, n in three_harmonics
-    if n != m
-      C_3h -=
-        (1 // (2 * m * n)) *
-        SQA.commutator(SQA.commutator(H_map[n], H_map[m - n]), R[-m])
-      V_R_b -=
-        (1 // (3 * n * m)) * (
-          SQA.commutator(R[-n], SQA.commutator(H_map[n - m], H_map[m])) +
-          SQA.commutator(H_map[-n], SQA.commutator(R[n - m], H_map[m])) +
-          SQA.commutator(H_map[-n], SQA.commutator(H_map[n - m], R[m]))
-        )
-    end
-    if m + n != 0
-      C_3h -=
-        (1 // (2 * m * n)) *
-        SQA.commutator(H_map[m], SQA.commutator(H_map[n], R[-(m + n)]))
-    end
-  end
-
-  R_CP = SQA.simplify(C_H0 + C_R0 + C_3h)
-  V_R = SQA.simplify(V_R_a + V_R_b)
+  # A second-order Van Vleck coefficient contains at most three dissipative vertices, hence is a
+  # cubic polynomial in the formal channel strength γ. Exact forward differences at γ=0,1,2,3
+  # isolate its coefficient linear in γ without reusing the #104 one-R formula. The native
+  # dissipative coefficient is itself linear in γ. Their independently obtained representatives
+  # differ exactly by the certified static similarity [B_R^(2), H_0].
+  direct_one_R2 = periodic_jump_linear_rate(raw_components[3], γ)
   native_R2 = FE.cp_dissipative_component(native.amplitudes, 2)
-
-  @test periodic_jump_zero(native_R2 - R_CP)
-  @test periodic_jump_zero(V_R - native_R2 - SQA.commutator(B_R, H0))
+  native_one_R2 = periodic_jump_substitute(native_R2, Dict(γ => 1))
+  gauge_one_R2 = periodic_jump_substitute(SQA.commutator(B_R, H0), Dict(γ => 1))
+  @test periodic_jump_zero(direct_one_R2 - native_one_R2 - gauge_one_R2)
 
   # With the Hamiltonian switched off there is no coherent amplitude transport at O(1/ω), while
   # the same microscopic periodic jump still has the nonzero direct-Liouvillian RR contribution.
