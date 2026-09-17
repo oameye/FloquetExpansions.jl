@@ -196,7 +196,7 @@ contributions.
 - `generator`: Prepared periodic Hamiltonian or Liouvillian generator.
 - `L`: Symbolic time-dependent Liouvillian to decompose using `ωd` and `t`.
 - `H`: Symbolic time-dependent Hamiltonian to decompose using `ωd` and `t`.
-- `ωd`: Symbolic drive frequency.
+- `ωd`: Symbolic drive frequency defining the Fourier basis.
 - `t`: Symbolic time variable.
 - `gauge`: Gauge fixing the micromotion integration constant.
 - `order`: Number of retained orders; must be at least one.
@@ -296,8 +296,12 @@ function reattach(component::E, wd::Symbolics.Num, n::Int)::E where {E<:Generato
   scale = inverse_drive_power(wd, n)
   return (scale * component)::E
 end
-function reattach(generator::PeriodicGenerator{T}, n::Int) where {T<:GeneratorComponent}
-  return iszero(n) ? generator : generator.wd^(-n) * generator
+function reattach(
+  generator::PeriodicGenerator{T}, n::Int
+)::PeriodicGenerator{T} where {T<:GeneratorComponent}
+  iszero(n) && return generator
+  scale = inverse_drive_power(generator.wd, n)
+  return (scale * generator)::PeriodicGenerator{T}
 end
 
 """
