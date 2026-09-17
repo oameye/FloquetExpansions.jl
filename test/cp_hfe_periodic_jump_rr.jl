@@ -21,16 +21,16 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  @variables ω_cp_rr::Real t_cp_rr::Real Δ_cp_rr::Real Ω_cp_rr::Real η_cp_rr::Real
+  @variables ω_cp_rr::Real t_cp_rr::Real
 
   ω = ω_cp_rr
   t = t_cp_rr
-  Δ = Δ_cp_rr
-  Ω = Ω_cp_rr
-  η = η_cp_rr
 
-  H = (1 // 2) * Δ * σz + Ω * cos(ω * t) * σx
-  rotating_jump = σz + η * (cos(ω * t) * σy + sin(ω * t) * σx)
+  # Exact nondegenerate point Δ = 2, Ω = 1, η = 1 of
+  # H(t) = Δ σz / 2 + Ω cos(ωt) σx and
+  # J(t) = σz + η [cos(ωt) σy + sin(ωt) σx].
+  H = σz + cos(ω * t) * σx
+  rotating_jump = σz + cos(ω * t) * σy + sin(ω * t) * σx
 
   H_map = harmonics(hamiltonian_action(H), ω, t)
   R = harmonics(dissipator(rotating_jump), ω, t)
