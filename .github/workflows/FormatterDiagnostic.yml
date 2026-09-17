@@ -1,0 +1,39 @@
+name: Formatter Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.head_ref == 'ci/130-periodic-jump-full-stack'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: julia-actions/setup-julia@v3
+      - uses: julia-actions/cache@v3
+      - name: Install JuliaFormatter
+        run: |
+          julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Format target
+        run: |
+          ${HOME}/.julia/bin/jlfmt test/cp_hfe_periodic_jump_rr.jl
+      - name: Commit formatter output
+        run: |
+          if ! git diff --quiet -- test/cp_hfe_periodic_jump_rr.jl; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add test/cp_hfe_periodic_jump_rr.jl
+            git commit -m "ci: capture JuliaFormatter output"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
