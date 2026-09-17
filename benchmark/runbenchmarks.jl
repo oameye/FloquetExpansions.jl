@@ -7,6 +7,7 @@ include("workflows.jl")
 benchmark_fourier_expansion!(SUITE)
 benchmark_floquet_expansion!(SUITE)
 benchmark_positive_completion!(SUITE)
+benchmark_cp_hfe!(SUITE)
 
 BenchmarkTools.tune!(SUITE)
 results = BenchmarkTools.run(SUITE; verbose=true)
