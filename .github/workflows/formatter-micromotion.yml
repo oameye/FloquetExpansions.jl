@@ -1,0 +1,25 @@
+name: Micromotion formatter diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/122-micromotion-format
+
+permissions:
+  contents: read
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Print formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace src/engine.jl
+          git diff -- src/engine.jl
+          test -z "$(git status --porcelain -- src/engine.jl)"
