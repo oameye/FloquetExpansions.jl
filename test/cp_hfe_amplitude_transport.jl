@@ -126,6 +126,8 @@ end
   )
   R = harmonics(γ * dissipator(C), w, t)
 
+  @test !liouvillian_vanishes_cp(R[3])
+  @test !liouvillian_vanishes_cp(R[-3])
   @test liouvillian_vanishes_cp(
     FE.cp_dissipative_component(reconstruction.amplitudes, 0) - R[0]
   )
