@@ -1,13 +1,12 @@
 const CPPeriodicAmplitude = PeriodicGenerator{SQA.QAdd}
 
-# Physical amplitude data are kept separate from generic Liouvillian algebra. The rate is a
-# nonnegative physical channel weight; all drive dependence belongs to `amplitude` in this first
-# implementation tranche.
+# Physical amplitude data remain separate from generic Liouvillian algebra. The external rate is a
+# nonnegative physical channel weight; all periodic amplitude dependence belongs to `amplitude` in
+# this first implementation tranche.
 struct PhysicalAmplitudeSeed
   amplitude::CPPeriodicAmplitude
   rate::SQA.CNum
-  kind::DissipativeSeedKind
-  source_index::Int
+  reference::DissipativeSeedRef
 end
 
 struct TransportedAmplitudeSeries
@@ -15,17 +14,17 @@ struct TransportedAmplitudeSeries
   coefficients::Vector{CPPeriodicAmplitude}
 end
 
-# One finite Kraus row after coherent-frame transport and period averaging. Keeping the physical
-# seed and Fourier harmonic avoids lowering provenance into an opaque dense Kossakowski matrix.
+# One finite Kraus row after coherent-frame transport and period averaging. The microscopic seed
+# reference and Fourier harmonic are retained rather than lowering provenance into an opaque dense
+# Kossakowski matrix.
 struct CPAmplitudeChannel
   operator::SQA.QAdd
   rate::SQA.CNum
-  kind::DissipativeSeedKind
-  source_index::Int
+  reference::DissipativeSeedRef
   harmonic::Int
 end
 
-struct CPHFEReconstruction{F}
+struct CPHFEReconstruction{F<:FloquetExpansion}
   coherent::F
   amplitudes::Vector{TransportedAmplitudeSeries}
   channels::Vector{CPAmplitudeChannel}
@@ -50,9 +49,8 @@ function physical_amplitude_seed(
   channel::CollapseChannel, source_index::Int, wd::Symbolics.Num, t::Symbolics.Num
 )
   amplitude = harmonics(qadd(channel.operator), wd, t)
-  return PhysicalAmplitudeSeed(
-    amplitude, convert(SQA.CNum, 1), COLLAPSE_SEED, source_index
-  )
+  reference = DissipativeSeedRef(COLLAPSE_SEED, source_index)
+  return PhysicalAmplitudeSeed(amplitude, convert(SQA.CNum, 1), reference)
 end
 
 function physical_amplitude_seed(
@@ -60,7 +58,8 @@ function physical_amplitude_seed(
 )
   rate = static_jump_rate(channel, wd, t)
   amplitude = harmonics(qadd(channel.operator), wd, t)
-  return PhysicalAmplitudeSeed(amplitude, rate, JUMP_SEED, source_index)
+  reference = DissipativeSeedRef(JUMP_SEED, source_index)
+  return PhysicalAmplitudeSeed(amplitude, rate, reference)
 end
 
 function physical_amplitude_seed(
@@ -125,19 +124,15 @@ end
 function reconstruct_cp_amplitude_channels(amplitudes::Vector{TransportedAmplitudeSeries})
   result = CPAmplitudeChannel[]
   for series in amplitudes
+    seed = series.seed
+    iszero(seed.rate) && continue
     finite = finite_transported_amplitude(series)
     harmonic_indices = sort!(collect(keys(finite)))
     sizehint!(result, length(result) + length(harmonic_indices))
     for harmonic in harmonic_indices
       operator = SQA.simplify(finite[harmonic])::SQA.QAdd
       iszero(operator) && continue
-      seed = series.seed
-      push!(
-        result,
-        CPAmplitudeChannel(
-          operator, seed.rate, seed.kind, seed.source_index, harmonic
-        ),
-      )
+      push!(result, CPAmplitudeChannel(operator, seed.rate, seed.reference, harmonic))
     end
   end
   return result
@@ -170,6 +165,7 @@ function cp_dissipative_component(
   for series in amplitudes
     grade < 2 * length(series.coefficients) - 1 || continue
     rate = series.seed.rate
+    iszero(rate) && continue
     for left_grade in 0:grade
       right_grade = grade - left_grade
       left_grade < length(series.coefficients) || continue
@@ -179,8 +175,7 @@ function cp_dissipative_component(
       for harmonic in keys(left)
         right_component = right[harmonic]
         iszero(right_component) && continue
-        result =
-          result + rate * cross_dissipator(left[harmonic], right_component)
+        result = result + rate * cross_dissipator(left[harmonic], right_component)
       end
     end
   end
