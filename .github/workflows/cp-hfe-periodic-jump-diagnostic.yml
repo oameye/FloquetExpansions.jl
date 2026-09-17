@@ -1,0 +1,22 @@
+name: CP-HFE Periodic Jump Diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/106-periodic-jump-sectors
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Instantiate package
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Run periodic-jump diagnostic
+        run: julia --project=. -e 'using FloquetExpansions; include("test/cp_hfe_periodic_jump_diagnostic.jl")'
