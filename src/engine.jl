@@ -355,8 +355,7 @@ function micromotion(
 ) where {G,T,E,C,R}
   result = zero(expansion.generator)::PeriodicGenerator{T}
   for (order, kick) in enumerate(expansion.kick_components)
-    result =
-      (result + reattach(kick, order))::PeriodicGenerator{T}
+    result = (result + reattach(kick, order))::PeriodicGenerator{T}
   end
   return result::PeriodicGenerator{T}
 end
