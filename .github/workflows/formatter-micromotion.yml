@@ -6,10 +6,10 @@ on:
       - diagnostic/122-micromotion-format
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  diff:
+  apply:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -18,8 +18,12 @@ jobs:
           version: '1'
       - name: Install JuliaFormatter
         run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
-      - name: Print formatter diff
+      - name: Apply formatter and commit
         run: |
           ${HOME}/.julia/bin/jlfmt --inplace src/engine.jl
-          git diff -- src/engine.jl
-          test -z "$(git status --porcelain -- src/engine.jl)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/engine.jl
+          git diff --cached --quiet && exit 0
+          git commit -m "style: apply formatter to typed micromotion"
+          git push
