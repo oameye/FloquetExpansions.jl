@@ -1,0 +1,53 @@
+name: Whole PeriodicGenerator type fix diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/122-whole-pg-type
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - name: Apply whole-type PeriodicGenerator barrier
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/engine.jl')
+          s = p.read_text()
+          old = '''function reattach(\n  generator::PeriodicGenerator{T}, n::Int\n)::PeriodicGenerator{T} where {T<:GeneratorComponent}\n  iszero(n) && return generator\n  scale = inverse_drive_power(generator.wd, n)\n  return (scale * generator)::PeriodicGenerator{T}\nend\n'''
+          new = '''function reattach(generator::P, n::Int)::P where {P<:PeriodicGenerator}\n  iszero(n) && return generator\n  scale = inverse_drive_power(generator.wd, n)\n  return (scale * generator)::P\nend\n'''
+          assert old in s
+          s = s.replace(old, new)
+          old = '''function micromotion(\n  expansion::FloquetExpansion{G,PeriodicGenerator{T},E,C,R}\n) where {G,T,E,C,R}\n  result = zero(expansion.generator)::PeriodicGenerator{T}\n  for (order, kick) in enumerate(expansion.kick_components)\n    result = (result + reattach(kick, order))::PeriodicGenerator{T}\n  end\n  return result::PeriodicGenerator{T}\nend\n\nfunction micromotion(\n  expansion::FloquetExpansion{G,PeriodicGenerator{T},E,C,R}, n::Int\n) where {G,T,E,C,R}\n  1 <= n < expansion.order ||\n    throw(ArgumentError(\"order $(n) is outside 1:$(expansion.order - 1)\"))\n  return SQA.simplify(reattach(expansion.kick_components[n], n))::PeriodicGenerator{T}\nend\n'''
+          new = '''function micromotion(\n  expansion::FloquetExpansion{G,P,E,C,R}\n) where {G,P<:PeriodicGenerator,E,C,R}\n  result = zero(expansion.generator)::P\n  for (order, kick) in enumerate(expansion.kick_components)\n    result = (result + reattach(kick, order))::P\n  end\n  return result::P\nend\n\nfunction micromotion(\n  expansion::FloquetExpansion{G,P,E,C,R}, n::Int\n) where {G,P<:PeriodicGenerator,E,C,R}\n  1 <= n < expansion.order ||\n    throw(ArgumentError(\"order $(n) is outside 1:$(expansion.order - 1)\"))\n  return SQA.simplify(reattach(expansion.kick_components[n], n))::P\nend\n'''
+          assert old in s
+          p.write_text(s.replace(old, new))
+          PY
+      - name: Install formatter and pinned JETLS
+        run: |
+          julia -e 'using Pkg; Pkg.Apps.add(name="JuliaFormatter"); Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
+          echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
+      - name: Format and instantiate
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace src/engine.jl
+          julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Require clean JETLS report
+        run: |
+          set -o pipefail
+          jetls check --context-lines=0 --progress=none --show-severity=hint src/FloquetExpansions.jl 2>&1 | tee /tmp/jetls.txt
+          ! grep -q 'Found [1-9][0-9]* diagnostic' /tmp/jetls.txt
+      - name: Commit tested source fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/engine.jl
+          git commit -m 'fix: preserve concrete periodic generator type'
+          git push origin HEAD:diagnostic/122-whole-pg-type
