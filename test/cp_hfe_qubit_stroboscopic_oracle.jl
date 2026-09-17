@@ -7,12 +7,9 @@ using Symbolics: Symbolics, @variables
 const SQA = SecondQuantizedAlgebra
 
 function cp_oracle_scalar(value, substitutions)
-  numeric = SQA.to_num(value)
-  scalar_rules = Dict(
-    Symbolics.unwrap(parameter) => replacement for (parameter, replacement) in substitutions
-  )
-  re = Symbolics.value(Symbolics.substitute(Symbolics.unwrap(real(numeric)), scalar_rules))
-  im = Symbolics.value(Symbolics.substitute(Symbolics.unwrap(imag(numeric)), scalar_rules))
+  numeric = SQA.to_num(SQA.substitute_cnum(value, substitutions))
+  re = Symbolics.value(real(numeric))
+  im = Symbolics.value(imag(numeric))
   return complex(Float64(re), Float64(im))
 end
 
