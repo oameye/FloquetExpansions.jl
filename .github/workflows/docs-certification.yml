@@ -1,0 +1,30 @@
+name: Docs certification
+
+on:
+  push:
+    branches:
+      - diagnostic/122-docs-final
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v3
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Set up docs environment
+        run: julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Build documentation
+        env:
+          CI: 'false'
+          GKSwstype: '100'
+        run: julia --project=docs docs/make.jl
