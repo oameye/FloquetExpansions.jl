@@ -4,9 +4,11 @@ using FloquetExpansions
 const SUITE = BenchmarkGroup()
 
 include("workflows.jl")
+include("cp_hfe.jl")
 benchmark_fourier_expansion!(SUITE)
 benchmark_floquet_expansion!(SUITE)
 benchmark_positive_completion!(SUITE)
+benchmark_cp_hfe!(SUITE)
 
 BenchmarkTools.tune!(SUITE)
 results = BenchmarkTools.run(SUITE; verbose=true)
