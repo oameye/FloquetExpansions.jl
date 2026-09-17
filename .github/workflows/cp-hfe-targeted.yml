@@ -1,0 +1,22 @@
+name: CP-HFE targeted
+
+on:
+  push:
+    branches:
+      - diagnostic/122-targeted-test
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Instantiate test environment
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.resolve(); Pkg.add(["Test", "Symbolics"]); Pkg.develop(PackageSpec(path=pwd()))'
+      - name: Run CP-HFE transport test
+        run: julia --project=. -e 'include("test/cp_hfe_amplitude_transport.jl")'
