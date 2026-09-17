@@ -1,0 +1,342 @@
+Precompiling packages...
+    735.1 ms  ✓ TaskLocalValues
+    841.3 ms  ✓ CompositeTypes
+   1002.1 ms  ✓ OrderedCollections
+   1025.5 ms  ✓ Compat
+   1420.8 ms  ✓ Combinatorics
+    486.2 ms  ✓ IntegerMathUtils
+    757.9 ms  ✓ Requires
+    484.9 ms  ✓ LazilyInitializedFields
+    733.6 ms  ✓ EnumX
+   1259.7 ms  ✓ Format
+    637.5 ms  ✓ InverseFunctions
+    486.7 ms  ✓ Reexport
+    829.6 ms  ✓ LaTeXStrings
+    601.7 ms  ✓ WeakCacheSets
+    628.0 ms  ✓ Inflate
+    470.3 ms  ✓ ReadOnlyArrays
+    416.5 ms  ✓ ExprTools
+    854.8 ms  ✓ DocStringExtensions
+    869.9 ms  ✓ AbstractTrees
+    844.8 ms  ✓ StructUtils
+    422.4 ms  ✓ Adapt
+    735.7 ms  ✓ IntervalSets
+    623.6 ms  ✓ ConstructionBase
+    676.0 ms  ✓ TensorCore
+    738.5 ms  ✓ CompilerSupportLibraries_jll
+   1580.7 ms  ✓ IrrationalConstants
+    579.9 ms  ✓ AbstractPlutoDingetjes
+    602.1 ms  ✓ CompositionsBase
+    539.4 ms  ✓ TermInterface
+    749.4 ms  ✓ Scratch
+    464.7 ms  ✓ StaticArraysCore
+   1260.0 ms  ✓ CodeTracking
+    664.6 ms  ✓ ANSIColoredPrinters
+    517.3 ms  ✓ Bijections
+    702.1 ms  ✓ CheckConcreteStructs
+   2059.7 ms  ✓ ExproniconLite
+   1014.0 ms  ✓ TranscodingStreams
+    558.6 ms  ✓ IOCapture
+   3474.9 ms  ✓ MacroTools
+   1032.9 ms  ✓ Preferences
+    595.3 ms  ✓ NaNMath
+    401.3 ms  ✓ Compat → CompatLinearAlgebraExt
+    541.7 ms  ✓ Primes
+   1312.8 ms  ✓ Statistics
+    680.9 ms  ✓ InverseFunctions → InverseFunctionsDatesExt
+   1680.5 ms  ✓ DataStructures
+    755.4 ms  ✓ RegistryInstances
+    331.1 ms  ✓ StructUtils → StructUtilsLazilyInitializedFieldsExt
+    764.5 ms  ✓ InverseFunctions → InverseFunctionsTestExt
+    515.5 ms  ✓ Adapt → AdaptSparseArraysExt
+   1136.4 ms  ✓ MarkdownAST
+    389.1 ms  ✓ IntervalSets → IntervalSetsRandomExt
+    725.5 ms  ✓ ArrayInterface
+    497.1 ms  ✓ ConstructionBase → ConstructionBaseLinearAlgebraExt
+    891.9 ms  ✓ ConstructionBase → ConstructionBaseIntervalSetsExt
+    850.2 ms  ✓ QuantumInterface
+    609.2 ms  ✓ CompositionsBase → CompositionsBaseInverseFunctionsExt
+   1268.0 ms  ✓ LogExpFunctions
+    739.5 ms  ✓ RelocatableFolders
+    846.5 ms  ✓ StructUtils → StructUtilsStaticArraysCoreExt
+    520.2 ms  ✓ CodecZlib
+   1193.5 ms  ✓ SimpleTraits
+    932.1 ms  ✓ PrecompileTools
+    836.2 ms  ✓ JLLWrappers
+   8952.6 ms  ✓ MutableArithmetics
+   4106.3 ms  ✓ Jieko
+   1102.6 ms  ✓ IntervalSets → IntervalSetsStatisticsExt
+   1161.5 ms  ✓ ArrayInterface → ArrayInterfaceSparseArraysExt
+    624.6 ms  ✓ ArrayInterface → ArrayInterfaceStaticArraysCoreExt
+   2876.1 ms  ✓ Aqua
+   2419.2 ms  ✓ Setfield
+    953.6 ms  ✓ LogExpFunctions → LogExpFunctionsInverseFunctionsExt
+  19947.7 ms  ✓ JuliaSyntax
+   1648.4 ms  ✓ Malt
+   3782.6 ms  ✓ Accessors
+   1891.9 ms  ✓ RecipesBase
+    492.2 ms  ✓ CommonWorldInvalidations
+  13022.6 ms  ✓ JuliaInterpreter
+   1531.5 ms  ✓ ADTypes
+    778.7 ms  ✓ SciMLPublic
+   2648.6 ms  ✓ RuntimeGeneratedFunctions
+   1026.0 ms  ✓ OpenSSL_jll
+    886.2 ms  ✓ JpegTurbo_jll
+    869.4 ms  ✓ Libiconv_jll
+  10126.6 ms  ✓ StaticArrays
+   1014.4 ms  ✓ Expat_jll
+   1107.3 ms  ✓ Git_LFS_jll
+   1099.9 ms  ✓ OpenSpecFun_jll
+   2351.7 ms  ✓ StarAlgebras
+    562.6 ms  ✓ Accessors → LinearAlgebraExt
+    972.6 ms  ✓ Accessors → TestExt
+    751.5 ms  ✓ Accessors → IntervalSetsExt
+  16117.1 ms  ✓ StyledStrings
+    653.6 ms  ✓ IntervalSets → IntervalSetsRecipesBaseExt
+    763.8 ms  ✓ ADTypes → ADTypesConstructionBaseExt
+   1094.4 ms  ✓ OpenSSH_jll
+   1431.8 ms  ✓ Ghostscript_jll
+   1521.5 ms  ✓ StaticArrays → StaticArraysStatisticsExt
+   2164.1 ms  ✓ ArnoldiMethod
+   2897.8 ms  ✓ FunctionMaps
+  14814.4 ms  ✓ Moshi
+   1429.7 ms  ✓ Adapt → AdaptStaticArraysExt
+   1024.2 ms  ✓ ConstructionBase → ConstructionBaseStaticArraysExt
+   1246.2 ms  ✓ Git_jll
+   1347.4 ms  ✓ Accessors → StaticArraysExt
+  14980.9 ms  ✓ LoweredCodeUtils
+   2921.9 ms  ✓ MultivariatePolynomials
+   4891.4 ms  ✓ SpecialFunctions
+   3086.3 ms  ✓ SymbolicIndexingInterface
+   2184.4 ms  ✓ ParallelTestRunner
+   2702.6 ms  ✓ DomainSets
+    776.9 ms  ✓ Git
+   5112.8 ms  ✓ Latexify
+   2384.1 ms  ✓ DynamicPolynomials
+   8102.7 ms  ✓ Graphs
+   1187.7 ms  ✓ DiffRules
+   1459.4 ms  ✓ DomainSets → DomainSetsRandomExt
+   1551.5 ms  ✓ Latexify → SparseArraysExt
+  48073.4 ms  ✓ Parsers
+  44409.2 ms  ✓ ExplicitImports
+  19663.5 ms  ✓ JSON
+  36188.3 ms  ✓ Documenter
+  81973.2 ms  ✓ JET
+  86748.1 ms  ✓ SymbolicUtils
+  19639.0 ms  ✓ SymbolicLimits
+  40044.8 ms  ✓ Symbolics
+   2109.0 ms  ✓ Symbolics → SymbolicsStaticArraysExt
+   2206.6 ms  ✓ Symbolics → SymbolicsLatexifyExt
+  20393.9 ms  ✓ SecondQuantizedAlgebra
+   2803.3 ms  ✓ FloquetExpansions
+  130 dependencies successfully precompiled in 239 seconds. 7 already precompiled.
+  1 dependency had output during precompilation:
+┌ JET
+│  ┌ Warning: `@lookup(mod, frame, node)` at /home/runner/.julia/packages/JET/sQkqi/src/toplevel/virtualprocess.jl:1321 is deprecated, use `lookup(frame, node)` instead.
+│  └ @ JuliaInterpreter ~/.julia/packages/JuliaInterpreter/ZNccU/src/interpret.jl:46
+└  
+     Testing FloquetExpansions
+┌ Warning: Could not use exact versions of packages in manifest, re-resolving
+└ @ Pkg.Operations /opt/hostedtoolcache/julia/1.10.12/x64/share/julia/stdlib/v1.10/Pkg/src/Operations.jl:1846
+      Status `/tmp/jl_8qbHVl/Project.toml`
+  [4c88cf16] Aqua v0.8.17
+  [73c92db5] CheckConcreteStructs v0.1.0
+  [e30172f5] Documenter v1.19.0
+  [7d51a73a] ExplicitImports v1.15.0
+  [3d8c71b5] FloquetExpansions v0.0.1 `~/work/FloquetExpansions.jl/FloquetExpansions.jl`
+⌅ [c3a54625] JET v0.9.18
+  [b964fa9f] LaTeXStrings v1.4.1
+  [23fbe1c1] Latexify v0.16.12
+  [d3525ed8] ParallelTestRunner v2.8.3
+  [f7aa4685] SecondQuantizedAlgebra v0.12.0
+⌅ [d1185830] SymbolicUtils v4.46.4
+  [0c5d862f] Symbolics v7.40.0
+  [37e2e46d] LinearAlgebra
+  [9a3f8284] Random
+  [8dfed614] Test
+      Status `/tmp/jl_8qbHVl/Manifest.toml`
+  [47edcb42] ADTypes v1.24.0
+  [a4c015fc] ANSIColoredPrinters v0.0.1
+  [6e696c72] AbstractPlutoDingetjes v1.4.1
+  [1520ce14] AbstractTrees v0.4.5
+  [7d9f7c33] Accessors v0.1.45
+  [79e6a3ab] Adapt v4.7.1
+  [4c88cf16] Aqua v0.8.17
+  [ec485272] ArnoldiMethod v0.4.0
+  [4fba245c] ArrayInterface v7.30.2
+  [e2ed5e7c] Bijections v0.2.2
+  [73c92db5] CheckConcreteStructs v0.1.0
+⌅ [da1fd8a2] CodeTracking v1.3.9
+  [944b1d66] CodecZlib v0.7.9
+⌅ [861a8166] Combinatorics v1.0.2
+  [f70d9fcc] CommonWorldInvalidations v1.2.2
+  [34da2185] Compat v4.18.1
+  [b152e2b5] CompositeTypes v0.1.4
+  [a33af91c] CompositionsBase v0.1.2
+  [187b0558] ConstructionBase v1.6.0
+  [864edb3b] DataStructures v0.19.6
+  [b552c78f] DiffRules v1.16.0
+  [ffbed154] DocStringExtensions v0.9.5
+  [e30172f5] Documenter v1.19.0
+  [5b8099bc] DomainSets v0.8.2
+  [7c1d4256] DynamicPolynomials v0.6.8
+  [4e289a0a] EnumX v1.0.7
+  [7d51a73a] ExplicitImports v1.15.0
+  [e2ba6199] ExprTools v0.1.11
+  [55351af7] ExproniconLite v0.10.14
+  [3d8c71b5] FloquetExpansions v0.0.1 `~/work/FloquetExpansions.jl/FloquetExpansions.jl`
+  [1fa38f19] Format v1.3.7
+  [a85aefff] FunctionMaps v0.1.2
+  [d7ba0133] Git v1.5.0
+  [86223c79] Graphs v1.15.0
+  [b5f81e59] IOCapture v1.0.0
+  [d25df0c9] Inflate v0.1.5
+  [18e54dd8] IntegerMathUtils v0.1.4
+  [8197267c] IntervalSets v0.7.14
+  [3587e190] InverseFunctions v0.1.17
+  [92d709cd] IrrationalConstants v0.2.6
+⌅ [c3a54625] JET v0.9.18
+  [692b3bcd] JLLWrappers v1.8.0
+  [682c06a0] JSON v1.8.1
+  [ae98c720] Jieko v0.2.1
+⌅ [aa1ae85d] JuliaInterpreter v0.9.46
+⌅ [70703baa] JuliaSyntax v0.4.10
+  [b964fa9f] LaTeXStrings v1.4.1
+  [23fbe1c1] Latexify v0.16.12
+  [0e77f7df] LazilyInitializedFields v1.3.0
+  [2ab3a3ac] LogExpFunctions v1.0.1
+⌃ [6f1432cf] LoweredCodeUtils v3.2.2
+  [1914dd2f] MacroTools v0.5.16
+  [36869731] Malt v1.4.1
+  [d0879d2d] MarkdownAST v0.1.3
+⌅ [2e0e35c7] Moshi v0.3.9
+  [102ac46a] MultivariatePolynomials v0.5.19
+  [d8a4904e] MutableArithmetics v1.8.0
+  [77ba4419] NaNMath v1.1.4
+  [bac558e1] OrderedCollections v2.0.1
+  [d3525ed8] ParallelTestRunner v2.8.3
+  [69de0a69] Parsers v3.0.0
+⌅ [aea7be01] PrecompileTools v1.2.1
+  [21216c6a] Preferences v1.6.0
+  [27ebfcd6] Primes v0.5.7
+  [5717a53b] QuantumInterface v0.4.4
+  [988b38a3] ReadOnlyArrays v0.2.0
+  [3cdcf5f2] RecipesBase v1.3.4
+  [189a3867] Reexport v1.2.2
+  [2792f1a3] RegistryInstances v0.1.0
+  [05181044] RelocatableFolders v1.0.1
+  [ae029012] Requires v1.3.1
+  [7e49a35a] RuntimeGeneratedFunctions v0.5.26
+  [431bcebd] SciMLPublic v1.3.0
+  [6c6a2e73] Scratch v1.3.0
+  [f7aa4685] SecondQuantizedAlgebra v0.12.0
+  [efcf1570] Setfield v1.1.2
+  [699a6c99] SimpleTraits v0.9.6
+  [276daf66] SpecialFunctions v2.9.0
+  [0c0c59c1] StarAlgebras v0.3.0
+  [90137ffa] StaticArrays v1.9.22
+  [1e83bf80] StaticArraysCore v1.4.4
+  [ec057cc2] StructUtils v2.9.1
+  [f489334b] StyledStrings v1.0.3
+  [2efcf032] SymbolicIndexingInterface v0.3.55
+  [19f23fe9] SymbolicLimits v1.2.1
+⌅ [d1185830] SymbolicUtils v4.46.4
+  [0c5d862f] Symbolics v7.40.0
+  [ed4db957] TaskLocalValues v0.1.3
+  [62fd8b95] TensorCore v0.1.1
+  [8ea1fca8] TermInterface v2.0.0
+  [3bb67fe8] TranscodingStreams v0.11.3
+  [d30d5f5c] WeakCacheSets v0.1.0
+  [2e619515] Expat_jll v2.8.4+0
+  [61579ee1] Ghostscript_jll v9.55.1+0
+  [020c3dae] Git_LFS_jll v3.7.1+0
+  [f8c6e375] Git_jll v2.55.0+0
+  [aacddb02] JpegTurbo_jll v3.2.0+1
+  [94ce4f54] Libiconv_jll v1.18.0+0
+  [9bd350c2] OpenSSH_jll v10.5.1+0
+  [458c3c95] OpenSSL_jll v3.5.8+0
+  [efe28fd5] OpenSpecFun_jll v0.5.6+0
+  [0dad84c5] ArgTools v1.1.1
+  [56f22d72] Artifacts
+  [2a0f44e3] Base64
+  [ade2ca70] Dates
+  [8ba89e20] Distributed
+  [f43a241f] Downloads v1.6.0
+  [7b1f6079] FileWatching
+  [9fa8497b] Future
+  [b77e0a4c] InteractiveUtils
+  [b27032c2] LibCURL v0.6.4
+  [76f85450] LibGit2
+  [8f399da3] Libdl
+  [37e2e46d] LinearAlgebra
+  [56ddb016] Logging
+  [d6f4376e] Markdown
+  [ca575930] NetworkOptions v1.2.0
+  [44cfe95a] Pkg v1.10.0
+  [de0858da] Printf
+  [3fa0cd96] REPL
+  [9a3f8284] Random
+  [ea8e919c] SHA v0.7.0
+  [9e88b42a] Serialization
+  [6462fe0b] Sockets
+  [2f01184e] SparseArrays v1.10.0
+  [10745b16] Statistics v1.10.0
+  [fa267f1f] TOML v1.0.3
+  [a4e569a6] Tar v1.10.0
+  [8dfed614] Test
+  [cf7118a7] UUIDs
+  [4ec0a83e] Unicode
+  [e66e0078] CompilerSupportLibraries_jll v1.1.2+1
+  [deac9b47] LibCURL_jll v8.4.0+0
+  [e37daf67] LibGit2_jll v1.6.4+0
+  [29816b5a] LibSSH2_jll v1.11.0+1
+  [c8ffd9c3] MbedTLS_jll v2.28.1010+0
+  [14a3606d] MozillaCACerts_jll v2025.12.2
+  [4536629a] OpenBLAS_jll v0.3.23+5
+  [05823500] OpenLibm_jll v0.8.5+0
+  [efcefdf7] PCRE2_jll v10.42.0+1
+  [bea87d4a] SuiteSparse_jll v7.2.1+1
+  [83775a58] Zlib_jll v1.2.13+1
+  [8e850b90] libblastrampoline_jll v5.11.0+0
+  [8e850ede] nghttp2_jll v1.52.0+1
+  [3f19e933] p7zip_jll v17.6.1+0
+        Info Packages marked with ⌃ and ⌅ have new versions available. Those with ⌃ may be upgradable, but those with ⌅ are restricted by compatibility constraints from upgrading.
+     Testing Running tests...
+Running 1 tests using 1 parallel jobs. If this is too many concurrent jobs, specify the `--jobs=N` argument to the tests, or set the `JULIA_CPU_THREADS` environment variable.
+                              │   Test   │ ──────────────── CPU ──────────────── │
+Test                 (Worker) │ time (s) │ GC (s) │ GC % │ Alloc (MB) │ RSS (MB) │
+cp_hfe_periodic_jump_rr   (1) │     7.07 │   failed at 2026-09-17T17:11:47.775
+    FAILURE
+
+ERROR: LoadError: Test run finished with errors
+in expression starting at /home/runner/work/FloquetExpansions.jl/FloquetExpansions.jl/test/runtests.jl:24
+
+Test Summary:                                                     | Pass  Fail  Total   Time
+  Overall                                                         |    8     2     10  13.8s
+    cp_hfe_periodic_jump_rr                                       |    8     2     10   7.1s
+      periodic physical jump separates one-R gauge and RR sectors |    8     2     10   6.8s
+Error in testset periodic physical jump separates one-R gauge and RR sectors:
+Test Failed at /home/runner/work/FloquetExpansions.jl/FloquetExpansions.jl/test/cp_hfe_periodic_jump_rr.jl:81
+  Expression: iszero(SQA.simplify(ω * one_R_first - native_first))
+
+Error in testset periodic physical jump separates one-R gauge and RR sectors:
+Test Failed at /home/runner/work/FloquetExpansions.jl/FloquetExpansions.jl/test/cp_hfe_periodic_jump_rr.jl:96
+  Expression: iszero(SQA.simplify((V_R_second - native_second) - gauge_residual))
+
+ERROR: Package FloquetExpansions errored during testing
+Stacktrace:
+ [1] pkgerror(msg::String)
+   @ Pkg.Types /opt/hostedtoolcache/julia/1.10.12/x64/share/julia/stdlib/v1.10/Pkg/src/Types.jl:70
+ [2] test(ctx::Pkg.Types.Context, pkgs::Vector{Pkg.Types.PackageSpec}; coverage::Bool, julia_args::Cmd, test_args::Cmd, test_fn::Nothing, force_latest_compatible_version::Bool, allow_earlier_backwards_compatible_versions::Bool, allow_reresolve::Bool)
+   @ Pkg.Operations /opt/hostedtoolcache/julia/1.10.12/x64/share/julia/stdlib/v1.10/Pkg/src/Operations.jl:2051
+ [3] test
+   @ /opt/hostedtoolcache/julia/1.10.12/x64/share/julia/stdlib/v1.10/Pkg/src/Operations.jl:1932 [inlined]
+ [4] test(ctx::Pkg.Types.Context, pkgs::Vector{Pkg.Types.PackageSpec}; coverage::Bool, test_fn::Nothing, julia_args::Cmd, test_args::Vector{String}, force_latest_compatible_version::Bool, allow_earlier_backwards_compatible_versions::Bool, allow_reresolve::Bool, kwargs::@Kwargs{io::IOStream})
+   @ Pkg.API /opt/hostedtoolcache/julia/1.10.12/x64/share/julia/stdlib/v1.10/Pkg/src/API.jl:444
+ [5] test(pkgs::Vector{Pkg.Types.PackageSpec}; io::IOStream, kwargs::@Kwargs{test_args::Vector{String}})
+   @ Pkg.API /opt/hostedtoolcache/julia/1.10.12/x64/share/julia/stdlib/v1.10/Pkg/src/API.jl:159
+ [6] test(; name::Nothing, uuid::Nothing, version::Nothing, url::Nothing, rev::Nothing, path::Nothing, mode::Pkg.Types.PackageMode, subdir::Nothing, kwargs::@Kwargs{test_args::Vector{String}})
+   @ Pkg.API /opt/hostedtoolcache/julia/1.10.12/x64/share/julia/stdlib/v1.10/Pkg/src/API.jl:174
+ [7] top-level scope
+   @ none:1
+exit_code=1
