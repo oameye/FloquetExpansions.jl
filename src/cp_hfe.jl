@@ -142,8 +142,8 @@ end
 end
 
 function reconstruct_cp_effective_generator(
-  coherent::FloquetExpansion, channels::Vector{CPAmplitudeChannel}
-)
+  coherent::FloquetExpansion{G,P,SQA.QAdd,C,R}, channels::Vector{CPAmplitudeChannel}
+) where {G<:Gauge,P<:PeriodicGenerator{SQA.QAdd},C<:Completion,R<:FloquetProvenance}
   H_eff = effective_generator(coherent)::SQA.QAdd
   generator = hamiltonian_action(H_eff)
   for channel in channels
