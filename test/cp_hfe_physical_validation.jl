@@ -118,6 +118,41 @@ end
   @test reversed.amplitudes[2].seed.reference.index == 2
 end
 
+@testset "existing rational frame-congruence fixture stays physical in native CP-HFE" begin
+  fock = FockSpace(:cp_hfe_validation_congruence)
+  a = Destroy(fock, :a)
+  native_frame = DissipativeFrame(a, a^2)
+  g1 = a + (1 // 2) * a^2
+  g2 = 2a - a^2
+  transformed_frame = DissipativeFrame(g1, g2)
+  channel = 2g1 + 3g2
+  @variables ω_cp_congruence::Real t_cp_congruence::Real
+
+  ω = ω_cp_congruence
+  t = t_cp_congruence
+  H = 0 * a
+  physical_channels = (collapse(channel),)
+
+  native = FE.cp_hfe_reconstruction(H, ω, t, 1, physical_channels)
+  raw = floquet_expansion(H, ω, t, VanVleck(), 1; channels=physical_channels)
+  gram_native = positive_completion(raw, Gram(), native_frame)
+  gram_transformed = positive_completion(raw, Gram(), transformed_frame)
+
+  @test cp_validation_liouvillian_zero(native.generator - effective_generator(raw))
+  @test cp_validation_matrix_equal(
+    kossakowski(native.generator, native_frame), kossakowski(gram_native)
+  )
+  @test cp_validation_matrix_equal(
+    kossakowski(native.generator, transformed_frame), kossakowski(gram_transformed)
+  )
+  @test iszero(
+    SQA.simplify(
+      hamiltonian(native.generator, native_frame) -
+      hamiltonian(native.generator, transformed_frame)
+    )
+  )
+end
+
 @testset "existing Kerr number-selective-loss fixture agrees across CP constructions" begin
   fock = FockSpace(:cp_hfe_validation_number_selective)
   a = Destroy(fock, :a)
