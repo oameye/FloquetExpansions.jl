@@ -1,0 +1,25 @@
+name: Formatter diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/122-formatter
+
+permissions:
+  contents: read
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Print formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace test/cp_hfe_amplitude_transport.jl test/cp_hfe_inference.jl
+          git diff -- test/cp_hfe_amplitude_transport.jl test/cp_hfe_inference.jl
+          test -z "$(git status --porcelain -- test/cp_hfe_amplitude_transport.jl test/cp_hfe_inference.jl)"
