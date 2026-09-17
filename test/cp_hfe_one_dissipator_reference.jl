@@ -54,6 +54,8 @@ R_cp = PeriodicGenerator(
     -1 => dissipator(σ31 + σ12),
     2 => dissipator(σ13 - im * σ23),
     -2 => dissipator(σ21 + σ32),
+    3 => dissipator(σ12 + im * σ31 + σ23),
+    -3 => dissipator(σ21 - im * σ13 + σ32),
   ),
   ω_cp,
 )
@@ -76,7 +78,10 @@ R_cp = PeriodicGenerator(
 end
 
 @testset "CP-HFE one-dissipator second-order sector identities" begin
-  harmonics = filter(!=(0), collect(keys(H_map_cp)))
+  h_harmonics = filter(!=(0), collect(keys(H_map_cp)))
+  r_harmonics = filter(!=(0), collect(keys(R_cp)))
+  three_harmonic_bound = max(2 * maximum(abs, h_harmonics), maximum(abs, r_harmonics))
+  three_harmonics = filter(!=(0), collect((-three_harmonic_bound):three_harmonic_bound))
   H0 = H_map_cp[0]
   R0 = R_cp[0]
 
@@ -85,7 +90,7 @@ end
   B_R = zero(H0)
   V_R_a = zero(H0)
 
-  for m in harmonics
+  for m in h_harmonics
     C_H0 -= (1 // m^2) * SQA.commutator(SQA.commutator(H_map_cp[m], H0), R_cp[-m])
     C_R0 += (1 // (2 * m^2)) * SQA.commutator(H_map_cp[m], SQA.commutator(H_map_cp[-m], R0))
     B_R += (1 // (2 * m^2)) * SQA.commutator(H_map_cp[m], R_cp[-m])
@@ -103,7 +108,9 @@ end
   C_3h = zero(H0)
   V_R_b = zero(H0)
 
-  for m in harmonics, n in harmonics
+  # The dummy indices of the three-harmonic identities can be generated sums outside the
+  # original Hamiltonian support. Sum over a closed finite domain instead of the input support.
+  for m in three_harmonics, n in three_harmonics
     if n != m
       C_3h -=
         (1 // (2 * m * n)) *
@@ -148,9 +155,14 @@ matrix_commutator_cp(A, B) = A * B - B * A
     -1 => ComplexF64[0.3im -0.7; 0.2 + 0.1im 0.4],
     2 => ComplexF64[-0.1 0.5; 0.8im 0.2],
     -2 => ComplexF64[0.7 -0.3im; -0.2 0.6im],
+    3 => ComplexF64[0.4 + 0.2im -0.5; 0.3im -0.6],
+    -3 => ComplexF64[-0.2im 0.8; -0.1 + 0.4im 0.7],
   )
   harmonic(H, m) = get(H, m, zero_matrix)
-  harmonics = [-2, -1, 1, 2]
+  h_harmonics = [-2, -1, 1, 2]
+  r_harmonics = [-3, -2, -1, 1, 2, 3]
+  three_harmonic_bound = max(2 * maximum(abs, h_harmonics), maximum(abs, r_harmonics))
+  three_harmonics = filter(!=(0), collect((-three_harmonic_bound):three_harmonic_bound))
   H0 = H_matrix[0]
   R0 = R_matrix[0]
 
@@ -159,7 +171,7 @@ matrix_commutator_cp(A, B) = A * B - B * A
   B_R = copy(zero_matrix)
   V_R_a = copy(zero_matrix)
 
-  for m in harmonics
+  for m in h_harmonics
     Hm = harmonic(H_matrix, m)
     Hminus = harmonic(H_matrix, -m)
     Rm = harmonic(R_matrix, m)
@@ -179,7 +191,7 @@ matrix_commutator_cp(A, B) = A * B - B * A
   C_3h = copy(zero_matrix)
   V_R_b = copy(zero_matrix)
 
-  for m in harmonics, n in harmonics
+  for m in three_harmonics, n in three_harmonics
     if n != m
       C_3h -=
         matrix_commutator_cp(
