@@ -1,0 +1,22 @@
+name: CP-HFE Qubit Oracle Diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/127-qubit-oracle
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Instantiate package
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Run qubit oracle only
+        run: julia --project=. -e 'using FloquetExpansions; include("test/cp_hfe_qubit_stroboscopic_oracle.jl")'
