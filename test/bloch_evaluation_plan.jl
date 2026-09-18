@@ -66,7 +66,9 @@ end
   support = [-2, -1, 0, 1, 2]
   order = 6
   evaluation_plan = compile_bloch_evaluation_plan(support, order)
-  word_plan = compile_bloch_word_plan(support, order; inverse_weight=harmonic -> 1 // harmonic)
+  word_plan = compile_bloch_word_plan(
+    support, order; inverse_weight=harmonic -> 1 // harmonic
+  )
 
   recurrence_states =
     evaluation_plan.counts.residual_nodes +
@@ -74,10 +76,17 @@ end
     evaluation_plan.counts.effective_nodes
   expanded_words = weighted_word_term_count(word_plan)
 
+  @test evaluation_plan.counts.residual_nodes == 85
+  @test evaluation_plan.counts.wave_nodes == 60
+  @test evaluation_plan.counts.effective_nodes == 6
+  @test evaluation_plan.counts.generator_products == 300
+  @test evaluation_plan.counts.fold_products == 140
+  @test recurrence_states == 151
   @test recurrence_states < expanded_words
-  @test evaluation_plan.counts.generator_products > 0
-  @test evaluation_plan.counts.fold_products > 0
-  @test all(!iszero(harmonic) for support_n in evaluation_plan.wave_support for harmonic in support_n)
+  @test all(
+    !iszero(harmonic) for support_n in evaluation_plan.wave_support for
+    harmonic in support_n
+  )
 end
 
 struct EvaluationTestHarmonicIndex
@@ -93,7 +102,9 @@ end
 function Base.:+(left::EvaluationTestHarmonicIndex, right::EvaluationTestHarmonicIndex)
   return EvaluationTestHarmonicIndex(left.n1 + right.n1, left.n2 + right.n2)
 end
-Base.:-(index::EvaluationTestHarmonicIndex) = EvaluationTestHarmonicIndex(-index.n1, -index.n2)
+function Base.:-(index::EvaluationTestHarmonicIndex)
+  return EvaluationTestHarmonicIndex(-index.n1, -index.n2)
+end
 
 @testset "sparse evaluation-plan geometry is not scalar-frequency specific" begin
   zero_index = zero(EvaluationTestHarmonicIndex)
