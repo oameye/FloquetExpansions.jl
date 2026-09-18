@@ -1,0 +1,19 @@
+name: Format 150 Diagnostic
+
+on:
+  push:
+    branches:
+      - ci/150-format-diagnostic
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show exact formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace test/helpers/bloch_van_vleck_projection.jl test/bloch_van_vleck_projection.jl benchmark/bloch_van_vleck.jl benchmark/runbenchmarks.jl
+          git diff -- test/helpers/bloch_van_vleck_projection.jl test/bloch_van_vleck_projection.jl benchmark/bloch_van_vleck.jl benchmark/runbenchmarks.jl
