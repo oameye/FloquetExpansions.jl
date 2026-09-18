@@ -14,8 +14,9 @@ function openleg_periodic(components::Dict{Tuple{Int,Int},T}, zero_component::T)
   return OpenLegPeriodic(cleaned, zero_component)
 end
 
-Base.zero(value::OpenLegPeriodic{T}) where {T} =
-  OpenLegPeriodic(Dict{Tuple{Int,Int},T}(), zero(value.zero_component))
+function Base.zero(value::OpenLegPeriodic{T}) where {T}
+  return OpenLegPeriodic(Dict{Tuple{Int,Int},T}(), zero(value.zero_component))
+end
 
 function Base.getindex(value::OpenLegPeriodic, harmonic::Int, grade::Int)
   return get(value.components, (harmonic, grade), value.zero_component)
@@ -56,7 +57,9 @@ function openleg_identity(template::OpenLegPeriodic{T}, identity_component::T) w
   return openleg_periodic(Dict((0, 0) => identity_component), template.zero_component)
 end
 
-function openleg_product(left::OpenLegPeriodic{T}, right::OpenLegPeriodic{T}, product) where {T}
+function openleg_product(
+  left::OpenLegPeriodic{T}, right::OpenLegPeriodic{T}, product
+) where {T}
   out = Dict{Tuple{Int,Int},T}()
   for ((left_harmonic, left_grade), left_component) in left.components
     for ((right_harmonic, right_grade), right_component) in right.components
@@ -115,7 +118,8 @@ function openleg_bloch_reference(
   amplitude_orders::Vector{P}, order::Int; product, identity_component
 ) where {P<:OpenLegPeriodic}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
-  isempty(amplitude_orders) && throw(ArgumentError("at least one amplitude order is required"))
+  isempty(amplitude_orders) &&
+    throw(ArgumentError("at least one amplitude order is required"))
 
   template = first(amplitude_orders)
   identity = openleg_identity(template, identity_component)
@@ -151,8 +155,7 @@ function openleg_hori_deprit_order2(A1::P, A2::P; product) where {P<:OpenLegPeri
   G1 = openleg_q_inverse(A1)
   derivative_G1 = openleg_derivative(G1)
   F2 =
-    A2 -
-    openleg_commutator(G1, A1, product) +
+    A2 - openleg_commutator(G1, A1, product) +
     (1 // 2) * openleg_commutator(G1, derivative_G1, product)
   B2 = openleg_project(F2)
   G2 = openleg_q_inverse(F2)
