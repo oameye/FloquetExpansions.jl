@@ -1,0 +1,44 @@
+name: Magnus Van Vleck Candidate
+
+on:
+  push:
+    branches:
+      - ci/165-magnus-log
+
+jobs:
+  oracle:
+    name: oracle ${{ matrix.julia }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        julia: ['1.10', '1']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/165-magnus-log
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia }}
+      - name: Instantiate tests
+        run: julia --project=test -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+      - name: Run direct Magnus Van Vleck oracle
+        run: julia --project=test test/magnus_van_vleck_reconstruction.jl
+
+  scaling:
+    name: ${{ matrix.workload }} order ${{ matrix.order }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        workload: [qubit, kerr]
+        order: [4, 5, 6]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/165-magnus-log
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.10'
+      - name: Instantiate benchmark environment
+        run: julia --project=benchmark -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+      - name: Run direct Magnus Van Vleck benchmark
+        run: julia --project=benchmark benchmark/magnus_van_vleck_scaling.jl ${{ matrix.workload }} ${{ matrix.order }}
