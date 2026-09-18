@@ -18,7 +18,11 @@ end
 CoherentWorkProfile() = CoherentWorkProfile(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
 function generator_term_count(generator)
-  return sum(length(component) for component in values(getfield(generator, :components)); init=0)
+  total = 0
+  for component in values(getfield(generator, :components))
+    total += length(component)
+  end
+  return total
 end
 
 function observe_harmonics!(profile::CoherentWorkProfile, generator)
