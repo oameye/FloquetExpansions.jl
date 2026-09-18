@@ -28,8 +28,10 @@ space_projection = NLevelSpace(:bloch_van_vleck_projection, 3)
 @variables ω_projection::Real
 
 H0_projection =
-  2 * σ11_projection - σ22_projection + (3 // 2) * σ33_projection +
-  σ12_projection + σ12_projection'
+  2 * σ11_projection - σ22_projection +
+  (3 // 2) * σ33_projection +
+  σ12_projection +
+  σ12_projection'
 H1_projection = σ12_projection + 2 * σ23_projection + im * σ31_projection
 H2_projection = 2 * σ13_projection - σ21_projection + im * σ32_projection
 H_projection = PeriodicGenerator(
