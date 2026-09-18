@@ -56,8 +56,7 @@ function record_assembly!(profile, dressed_generator, dressed_kick_derivative, n
   end
   for j in 1:n
     profile.assembly_terms += 1
-    profile.assembly_harmonic_inputs +=
-      length(dressed_kick_derivative[FE.triindex(n, j)])
+    profile.assembly_harmonic_inputs += length(dressed_kick_derivative[FE.triindex(n, j)])
   end
   return nothing
 end
