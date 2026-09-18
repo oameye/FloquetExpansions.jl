@@ -1,0 +1,19 @@
+name: Format 148 Diagnostic
+
+on:
+  push:
+    branches:
+      - ci/148-format-diagnostic
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show exact formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace src/bloch_projection.jl test/helpers/bloch_evaluation_plan.jl
+          git diff -- src/bloch_projection.jl test/helpers/bloch_evaluation_plan.jl
