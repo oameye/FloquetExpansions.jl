@@ -1,0 +1,21 @@
+name: Format 155 Diagnostic
+
+on:
+  push:
+    branches:
+      - ci/155-format-diagnostic
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show exact formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace test/helpers/connected_word_log.jl test/connected_word_log.jl
+          git diff -- test/helpers/connected_word_log.jl test/connected_word_log.jl
