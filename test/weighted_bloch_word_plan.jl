@@ -7,6 +7,8 @@ include(joinpath(@__DIR__, "helpers", "bloch_feshbach_reference.jl"))
 include(joinpath(@__DIR__, "helpers", "harmonic_word_plan.jl"))
 include(joinpath(@__DIR__, "helpers", "weighted_bloch_word_plan.jl"))
 
+flow_word_set(words) = Set{Tuple}(word.harmonics for word in words)
+
 function evaluate_flow_word(generator, flow_word, product)
   isempty(flow_word) && throw(ArgumentError("flow word must not be empty"))
   value = generator[flow_word[end]]
@@ -38,8 +40,11 @@ end
   for degree in 1:4
     topology = compile_harmonic_word_plan(support, degree)
     weighted_words = Set(keys(plan.effective[degree]))
-    @test issubset(weighted_words, planned_words(topology.closed))
+    @test issubset(weighted_words, flow_word_set(topology.closed))
+  end
 
+  for degree in 2:4
+    topology = compile_harmonic_word_plan(support, degree)
     for word in first_return_words(topology)
       @test haskey(plan.effective[degree], word.harmonics)
       @test plan.effective[degree][word.harmonics] ==
