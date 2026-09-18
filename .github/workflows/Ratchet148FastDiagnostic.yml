@@ -1,0 +1,26 @@
+name: Ratchet 148 Fast Diagnostic
+
+on:
+  push:
+    branches:
+      - ci/148-ratchet-fast-diagnostic
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - name: Instantiate ratchet environment
+        run: julia --project=code_ratchet -e 'using Pkg; Pkg.instantiate()'
+      - name: Refresh and show non-LSP baselines
+        run: |
+          for metric in complexity style docs boxes; do
+            julia --project=code_ratchet -e 'using CodeRatchet; try; @eval using JET; catch; end; exit(CodeRatchet.main())' "$metric" refresh --accept-change
+          done
+          for file in code_ratchet/{complexity,style,docs,boxes}_baseline.toml; do
+            echo "===== $file ====="
+            cat "$file"
+          done
