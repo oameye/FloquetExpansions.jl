@@ -125,16 +125,9 @@ function benchmark_connected_van_vleck_reconstruction!(suite)
   )
 
   for (label, (H, ω, t)) in workloads, order in 2:4
-    (
-      components,
-      zero_component,
-      projection_plan,
-      bloch,
-      _,
-      log_plan,
-      static_plan,
-      connected,
-    ) = cvvb_context(H, ω, t, order)
+    (components, zero_component, projection_plan, bloch, _, log_plan, static_plan, connected) = cvvb_context(
+      H, ω, t, order
+    )
     log_embedding = connected.log_embedding
     identity_component = one(first(bloch.effective))
     zero_harmonic = projection_plan.zero_harmonic
@@ -143,12 +136,7 @@ function benchmark_connected_van_vleck_reconstruction!(suite)
       $projection_plan, $bloch, $zero_component
     )
     suite["Connected Canonical Reconstruction"][label]["order $order"]["connected reconstruction"] = @benchmarkable cvvb_connected_reconstruction(
-      $projection_plan,
-      $bloch,
-      $components,
-      $log_plan,
-      $static_plan,
-      $zero_component,
+      $projection_plan, $bloch, $components, $log_plan, $static_plan, $zero_component
     )
     suite["Connected Canonical Reconstruction"][label]["order $order"]["static full periodic exp"] = @benchmarkable connected_static_factor(
       $log_embedding,
