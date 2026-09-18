@@ -2,6 +2,7 @@ using FloquetExpansions
 using Statistics: median
 
 include("workflows.jl")
+include("lyndon_log_evaluation.jl")
 include(joinpath(@__DIR__, "..", "test", "helpers", "magnus_van_vleck_reconstruction.jl"))
 
 const FE_MVVB = FloquetExpansions
