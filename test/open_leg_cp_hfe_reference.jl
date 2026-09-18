@@ -7,8 +7,9 @@ const ExactComplex = Complex{Rational{Int}}
 const exact_im = ExactComplex(0 // 1, 1 // 1)
 
 matrix_product(left::Matrix{ExactComplex}, right::Matrix{ExactComplex}) = left * right
-matrix_commutator(left::Matrix{ExactComplex}, right::Matrix{ExactComplex}) =
-  left * right - right * left
+function matrix_commutator(left::Matrix{ExactComplex}, right::Matrix{ExactComplex})
+  return left * right - right * left
+end
 
 I2_exact = ExactComplex[1 0; 0 1]
 Z2_exact = zeros(ExactComplex, 2, 2)
@@ -28,18 +29,9 @@ Z2_exact = zeros(ExactComplex, 2, 2)
   Nm1 = ExactComplex[2 -1; 0 -1]
 
   A1 = openleg_periodic(
-    Dict(
-      (0, 1) => M0,
-      (1, 1) => M1,
-      (-1, 1) => Mm1,
-      (2, 1) => M2,
-      (-2, 1) => Mm2,
-    ),
-    Z2_exact,
+    Dict((0, 1) => M0, (1, 1) => M1, (-1, 1) => Mm1, (2, 1) => M2, (-2, 1) => Mm2), Z2_exact
   )
-  A2 = openleg_periodic(
-    Dict((0, 0) => N0, (1, 0) => N1, (-1, 0) => Nm1), Z2_exact
-  )
+  A2 = openleg_periodic(Dict((0, 0) => N0, (1, 0) => N1, (-1, 0) => Nm1), Z2_exact)
 
   bloch = openleg_bloch_reference(
     [A1, A2], 4; product=matrix_product, identity_component=I2_exact
@@ -56,8 +48,7 @@ Z2_exact = zeros(ExactComplex, 2, 2)
   expected_two_output = zero(Z2_exact)
   for harmonic in (1, 2)
     expected_two_output +=
-      (-exact_im * (1 // harmonic)) *
-      matrix_commutator(A1[harmonic, 1], A1[-harmonic, 1])
+      (-exact_im * (1 // harmonic)) * matrix_commutator(A1[harmonic, 1], A1[-harmonic, 1])
   end
   @test bloch.effective[2][0, 2] == expected_two_output
   @test bloch.effective[2][0, 0] == A2[0, 0]
@@ -78,9 +69,7 @@ function recycling_super(left::Matrix{ExactComplex}, right::Matrix{ExactComplex}
   return kron(conj.(right), left)
 end
 
-function cross_dissipator_super(
-  left::Matrix{ExactComplex}, right::Matrix{ExactComplex}
-)
+function cross_dissipator_super(left::Matrix{ExactComplex}, right::Matrix{ExactComplex})
   product = adjoint(right) * left
   recycling = recycling_super(left, right)
   anticommutator = kron(I2_exact, product) + kron(transpose(product), I2_exact)
@@ -116,11 +105,7 @@ end
 @testset "rotating-jump open-leg history oracle" begin
   σminus = (1 // 2) * (σx_exact - exact_im * σy_exact)
   σplus = (1 // 2) * (σx_exact + exact_im * σy_exact)
-  amplitudes = Dict(
-    0 => σz_exact,
-    1 => exact_im * σminus,
-    -1 => -exact_im * σplus,
-  )
+  amplitudes = Dict(0 => σz_exact, 1 => exact_im * σminus, -1 => -exact_im * σplus)
 
   @test loss_harmonic(amplitudes, 0) == 2 * I2_exact
   for harmonic in (-2, -1, 1, 2)
@@ -147,8 +132,7 @@ end
   @test dissipative[0] == averaged_rows
 
   rr1 = -exact_im * matrix_commutator(dissipative[1], dissipative[-1])
-  rr2 =
-    (-exact_im * (1 // 2)) * matrix_commutator(dissipative[2], dissipative[-2])
+  rr2 = (-exact_im * (1 // 2)) * matrix_commutator(dissipative[2], dissipative[-2])
   rr = rr1 + rr2
 
   @test rr1 == hamiltonian_super(-σz_exact)
@@ -178,8 +162,7 @@ end
   scalar_no_jump = -2 * I4
 
   first_channel = A + scalar_no_jump
-  second_channel =
-    B + scalar_no_jump * A + (1 // 2) * scalar_no_jump * scalar_no_jump
+  second_channel = B + scalar_no_jump * A + (1 // 2) * scalar_no_jump * scalar_no_jump
   connected_second = second_channel - (1 // 2) * first_channel * first_channel
 
   @test connected_second == B - (1 // 2) * A * A
@@ -195,8 +178,6 @@ end
     for channel_order in 0:(generator_order + 1)
       @test openleg_triangle_contains_channel_order(generator_order, channel_order)
     end
-    @test !openleg_triangle_contains_channel_order(
-      generator_order, generator_order + 2
-    )
+    @test !openleg_triangle_contains_channel_order(generator_order, generator_order + 2)
   end
 end
