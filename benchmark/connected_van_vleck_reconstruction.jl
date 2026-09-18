@@ -1,6 +1,8 @@
 using BenchmarkTools: @benchmarkable
 
-include(joinpath(@__DIR__, "..", "test", "helpers", "connected_van_vleck_reconstruction.jl"))
+include(
+  joinpath(@__DIR__, "..", "test", "helpers", "connected_van_vleck_reconstruction.jl")
+)
 
 const FE_CVVB = FloquetExpansions
 
@@ -21,11 +23,7 @@ function cvvb_context(H, ω, t, order)
     simplifier=cvvb_simplify,
   )
   direct = FE_CVVB.bloch_van_vleck_reconstruction(
-    projection_plan,
-    bloch;
-    product=cvvb_product,
-    zero_component,
-    simplifier=cvvb_simplify,
+    projection_plan, bloch; product=cvvb_product, zero_component, simplifier=cvvb_simplify
   )
   log_plan = compile_lyndon_log_evaluation_plan(keys(components), order)
   connected = connected_van_vleck_reconstruction(
@@ -42,11 +40,7 @@ end
 
 function cvvb_direct_reconstruction(projection_plan, bloch, zero_component)
   return FE_CVVB.bloch_van_vleck_reconstruction(
-    projection_plan,
-    bloch;
-    product=cvvb_product,
-    zero_component,
-    simplifier=cvvb_simplify,
+    projection_plan, bloch; product=cvvb_product, zero_component, simplifier=cvvb_simplify
   )
 end
 
@@ -116,35 +110,33 @@ function benchmark_connected_van_vleck_reconstruction!(suite)
   )
 
   for (label, (H, ω, t)) in workloads, order in 2:4
-    components, zero_component, projection_plan, bloch, _, log_plan, connected =
-      cvvb_context(H, ω, t, order)
+    components, zero_component, projection_plan, bloch, _, log_plan, connected = cvvb_context(
+      H, ω, t, order
+    )
     log_embedding = connected.log_embedding
     identity_component = one(first(bloch.effective))
     zero_harmonic = projection_plan.zero_harmonic
 
-    suite["Connected Canonical Reconstruction"][label]["order $order"]["direct reconstruction"] =
-      @benchmarkable cvvb_direct_reconstruction(
-        $projection_plan, $bloch, $zero_component
-      )
-    suite["Connected Canonical Reconstruction"][label]["order $order"]["connected reconstruction"] =
-      @benchmarkable cvvb_connected_reconstruction(
-        $projection_plan, $bloch, $components, $log_plan, $zero_component
-      )
-    suite["Connected Canonical Reconstruction"][label]["order $order"]["static from exp log"] =
-      @benchmarkable connected_static_factor(
-        $log_embedding,
-        $zero_harmonic,
-        $identity_component,
-        $zero_component;
-        product=cvvb_product,
-        simplifier=cvvb_simplify,
-      )
-    suite["Connected Canonical Reconstruction"][label]["order $order"]["direct core"] =
-      @benchmarkable cvvb_direct_core($projection_plan, $components, $zero_component)
-    suite["Connected Canonical Reconstruction"][label]["order $order"]["connected core"] =
-      @benchmarkable cvvb_connected_core(
-        $projection_plan, $log_plan, $components, $zero_component
-      )
+    suite["Connected Canonical Reconstruction"][label]["order $order"]["direct reconstruction"] = @benchmarkable cvvb_direct_reconstruction(
+      $projection_plan, $bloch, $zero_component
+    )
+    suite["Connected Canonical Reconstruction"][label]["order $order"]["connected reconstruction"] = @benchmarkable cvvb_connected_reconstruction(
+      $projection_plan, $bloch, $components, $log_plan, $zero_component
+    )
+    suite["Connected Canonical Reconstruction"][label]["order $order"]["static from exp log"] = @benchmarkable connected_static_factor(
+      $log_embedding,
+      $zero_harmonic,
+      $identity_component,
+      $zero_component;
+      product=cvvb_product,
+      simplifier=cvvb_simplify,
+    )
+    suite["Connected Canonical Reconstruction"][label]["order $order"]["direct core"] = @benchmarkable cvvb_direct_core(
+      $projection_plan, $components, $zero_component
+    )
+    suite["Connected Canonical Reconstruction"][label]["order $order"]["connected core"] = @benchmarkable cvvb_connected_core(
+      $projection_plan, $log_plan, $components, $zero_component
+    )
 
     print_connected_reconstruction_profile(label, H, ω, t, order)
   end

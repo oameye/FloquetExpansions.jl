@@ -70,11 +70,7 @@ function connected_van_vleck_reconstruction(
     throw(ArgumentError("connected-log plan/result truncations are inconsistent"))
 
   log_embedding = evaluate_lyndon_log_plan(
-    log_plan,
-    components;
-    product,
-    zero_component,
-    simplifier,
+    log_plan, components; product, zero_component, simplifier
   )
   identity_component = one(first(bloch.effective))
   static_factor, counts = connected_static_factor(
@@ -96,11 +92,7 @@ function connected_van_vleck_reconstruction(
   )
 
   return ConnectedVanVleckResult(
-    static_factor,
-    inverse_static_factor,
-    log_embedding,
-    effective,
-    counts,
+    static_factor, inverse_static_factor, log_embedding, effective, counts
   )
 end
 

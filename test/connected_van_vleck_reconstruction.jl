@@ -12,8 +12,9 @@ cvvt_simplify(value) = FE_CVVT.SQA.simplify(value)
 function cvvt_embedding_equal(left, right, zero_component; simplifier=identity)
   harmonics = union(keys(left), keys(right))
   return all(
-    iszero(simplifier(get(left, harmonic, zero_component) - get(right, harmonic, zero_component))) for
-    harmonic in harmonics
+    iszero(
+      simplifier(get(left, harmonic, zero_component) - get(right, harmonic, zero_component))
+    ) for harmonic in harmonics
   )
 end
 
@@ -36,20 +37,16 @@ end
   )
   log_plan = compile_lyndon_log_evaluation_plan(support, order)
   connected = connected_van_vleck_reconstruction(
-    projection_plan,
-    bloch,
-    components,
-    log_plan;
-    product=(*),
-    zero_component,
+    projection_plan, bloch, components, log_plan; product=(*), zero_component
   )
 
   @test connected.static_factor == direct.static_factor
   @test connected.inverse_static_factor == direct.inverse_static_factor
   @test connected.effective == direct.effective
   @test all(
-    cvvt_embedding_equal(connected.log_embedding[n], direct.log_embedding[n], zero_component) for
-    n in eachindex(connected.log_embedding)
+    cvvt_embedding_equal(
+      connected.log_embedding[n], direct.log_embedding[n], zero_component
+    ) for n in eachindex(connected.log_embedding)
   )
 end
 
@@ -117,7 +114,7 @@ end
         iszero(
           cvvt_simplify(
             connected.inverse_static_factor[n] - direct.inverse_static_factor[n]
-          )
+          ),
         ) for n in eachindex(connected.inverse_static_factor)
       )
       @test all(

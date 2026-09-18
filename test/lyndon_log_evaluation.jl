@@ -23,10 +23,7 @@ function lle_kerr_workload()
   a = Destroy(fock, :a)
   @variables ω_lle_k::Real t_lle_k::Real Δ_lle_k::Real K_lle_k::Real ε_lle_k::Real
   number = a' * a
-  H =
-    Δ_lle_k * number +
-    K_lle_k * a'^2 * a^2 +
-    ε_lle_k * cos(ω_lle_k * t_lle_k) * (a + a')
+  H = Δ_lle_k * number + K_lle_k * a'^2 * a^2 + ε_lle_k * cos(ω_lle_k * t_lle_k) * (a + a')
   return H, ω_lle_k, t_lle_k
 end
 
@@ -44,19 +41,11 @@ function lle_context(H, ω, t, order)
     simplifier=lle_simplify,
   )
   direct = FE_LLE.bloch_van_vleck_reconstruction(
-    bloch_plan,
-    bloch;
-    product=lle_product,
-    zero_component,
-    simplifier=lle_simplify,
+    bloch_plan, bloch; product=lle_product, zero_component, simplifier=lle_simplify
   )
   lyndon = compile_lyndon_log_evaluation_plan(keys(components), order)
   evaluated = evaluate_lyndon_log_plan(
-    lyndon,
-    components;
-    product=lle_product,
-    zero_component,
-    simplifier=lle_simplify,
+    lyndon, components; product=lle_product, zero_component, simplifier=lle_simplify
   )
   return components, zero_component, direct, lyndon, evaluated
 end
@@ -64,8 +53,11 @@ end
 function lle_embedding_equal(left, right, zero_component)
   harmonics = union(keys(left), keys(right))
   return all(
-    iszero(lle_simplify(get(left, harmonic, zero_component) - get(right, harmonic, zero_component))) for
-    harmonic in harmonics
+    iszero(
+      lle_simplify(
+        get(left, harmonic, zero_component) - get(right, harmonic, zero_component)
+      ),
+    ) for harmonic in harmonics
   )
 end
 
