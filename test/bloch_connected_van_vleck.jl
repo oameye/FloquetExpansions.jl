@@ -35,12 +35,7 @@ end
   )
   connected_plan = FE_BCVV.compile_bloch_connected_van_vleck_plan(projection_plan)
   connected = FE_BCVV.evaluate_bloch_connected_van_vleck(
-    projection_plan,
-    bloch,
-    components,
-    connected_plan;
-    product=(*),
-    zero_component,
+    projection_plan, bloch, components, connected_plan; product=(*), zero_component
   )
 
   @test connected.static_factor == reference.static_factor
@@ -87,11 +82,7 @@ end
     simplifier=SQA_BCVV.simplify,
   )
   reference = FE_BCVV.bloch_van_vleck_reconstruction(
-    projection_plan,
-    bloch;
-    product,
-    zero_component,
-    simplifier=SQA_BCVV.simplify,
+    projection_plan, bloch; product, zero_component, simplifier=SQA_BCVV.simplify
   )
   connected_plan = FE_BCVV.compile_bloch_connected_van_vleck_plan(projection_plan)
   connected = FE_BCVV.evaluate_bloch_connected_van_vleck(

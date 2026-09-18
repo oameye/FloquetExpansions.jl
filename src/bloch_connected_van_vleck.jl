@@ -79,9 +79,7 @@ function bloch_word_copy_embedding(embedding::Dict{H,Dict{Tuple,C}}) where {H,C}
 end
 
 function bloch_word_add_embedding!(
-  destination::Dict{H,Dict{Tuple,C}},
-  source::Dict{H,Dict{Tuple,C}},
-  weight::C=one(C),
+  destination::Dict{H,Dict{Tuple,C}}, source::Dict{H,Dict{Tuple,C}}, weight::C=one(C)
 ) where {H,C}
   for (harmonic, terms) in source
     bloch_word_add_terms!(bloch_word_terms!(destination, harmonic), terms, weight)
@@ -93,17 +91,13 @@ function bloch_word_periodic_product(
   left::Dict{H,Dict{Tuple,C}}, right::Dict{H,Dict{Tuple,C}}
 ) where {H,C}
   result = Dict{H,Dict{Tuple,C}}()
-  for (left_harmonic, left_terms) in left,
-    (right_harmonic, right_terms) in right
-
+  for (left_harmonic, left_terms) in left, (right_harmonic, right_terms) in right
     output = bloch_word_terms!(result, left_harmonic + right_harmonic)
     for (left_word, left_coefficient) in left_terms,
       (right_word, right_coefficient) in right_terms
 
       bloch_word_accumulate!(
-        output,
-        (left_word..., right_word...),
-        left_coefficient * right_coefficient,
+        output, (left_word..., right_word...), left_coefficient * right_coefficient
       )
     end
   end
@@ -177,11 +171,7 @@ function bloch_compile_connected_log_words(
     for generator_harmonic in support, (wave_harmonic, wave_terms) in wave[n]
       output = bloch_word_terms!(residual, generator_harmonic + wave_harmonic)
       for (wave_word, wave_coefficient) in wave_terms
-        bloch_word_accumulate!(
-          output,
-          (generator_harmonic, wave_word...),
-          wave_coefficient,
-        )
+        bloch_word_accumulate!(output, (generator_harmonic, wave_word...), wave_coefficient)
       end
     end
 
@@ -290,9 +280,7 @@ end
 
 function bloch_word_commutator(left::Dict{Tuple,C}, right::Dict{Tuple,C}) where {C}
   result = Dict{Tuple,C}()
-  for (left_word, left_coefficient) in left,
-    (right_word, right_coefficient) in right
-
+  for (left_word, left_coefficient) in left, (right_word, right_coefficient) in right
     bloch_word_accumulate!(
       result, (left_word..., right_word...), left_coefficient * right_coefficient
     )
@@ -461,8 +449,7 @@ function compile_bloch_static_exp_plan(
       for left_harmonic in supports[1][k]
         for right_harmonic in supports[power - 1][right_order]
           left_harmonic + right_harmonic == harmonic || continue
-          right_node =
-            power == 2 ? 0 : ensure_node(power - 1, right_order, right_harmonic)
+          right_node = power == 2 ? 0 : ensure_node(power - 1, right_order, right_harmonic)
           push!(
             dependencies,
             BlochStaticExpDependency(
@@ -526,7 +513,9 @@ function evaluate_bloch_static_exp_plan(
 end
 
 function compile_bloch_connected_van_vleck_plan(plan::BlochProjectionPlan{H}) where {H}
-  log_plan = compile_bloch_connected_log_plan(plan.input_support, plan.order, plan.zero_harmonic)
+  log_plan = compile_bloch_connected_log_plan(
+    plan.input_support, plan.order, plan.zero_harmonic
+  )
   static_plan = compile_bloch_static_exp_plan(log_plan, plan.zero_harmonic)
   return BlochConnectedVanVleckPlan(log_plan, static_plan)
 end
