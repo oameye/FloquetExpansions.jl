@@ -1,0 +1,26 @@
+name: Lyndon Compile Profile
+
+on:
+  push:
+    branches:
+      - ci/165-compile-profile
+
+jobs:
+  profile:
+    strategy:
+      fail-fast: false
+      matrix:
+        order: [4, 5, 6]
+    runs-on: ubuntu-latest
+    name: order ${{ matrix.order }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/165-compile-profile
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.10'
+      - name: Instantiate benchmark environment
+        run: julia --project=benchmark -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+      - name: Profile Lyndon plan compiler
+        run: julia --project=benchmark benchmark/lyndon_plan_compile_profile.jl ${{ matrix.order }}
