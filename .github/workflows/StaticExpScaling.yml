@@ -1,0 +1,27 @@
+name: Static Exponential Scaling
+
+on:
+  push:
+    branches:
+      - ci/164-scaling
+
+jobs:
+  scaling:
+    strategy:
+      fail-fast: false
+      matrix:
+        workload: [qubit, kerr]
+        order: [4, 5, 6]
+    runs-on: ubuntu-latest
+    name: ${{ matrix.workload }} order ${{ matrix.order }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/164-scaling
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.10'
+      - name: Instantiate benchmark environment
+        run: julia --project=benchmark -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+      - name: Run scaling benchmark
+        run: julia --project=benchmark benchmark/connected_van_vleck_scaling.jl ${{ matrix.workload }} ${{ matrix.order }}
