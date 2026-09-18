@@ -1,5 +1,3 @@
-using LinearAlgebra: kron
-
 struct OpenLegPeriodic{T}
   components::Dict{Tuple{Int,Int},T}
   zero_component::T
