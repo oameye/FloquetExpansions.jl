@@ -251,6 +251,78 @@ function connected_word_reconstruction(support, order::Int)
   return plan, bloch, converted
 end
 
+function connected_word_log_only(support, order::Int)
+  C = Rational{Int}
+  zero_harmonic = zero(first(support))
+  components = Dict(harmonic => harmonic_word_leaf(harmonic, C) for harmonic in support)
+  zero_component = HarmonicWordPolynomial{C}()
+  plan = FE_CWL.compile_bloch_projection_plan(support, order, zero_harmonic)
+  bloch = FE_CWL.evaluate_bloch_projection_plan(
+    plan,
+    components;
+    product=harmonic_word_product,
+    inverse_weight=harmonic -> 1 // harmonic,
+    zero_component,
+  )
+
+  reconstruction_order = length(bloch.effective) - 1
+  identity_component = one(first(bloch.effective))
+  static_factor = typeof(identity_component)[identity_component]
+  normalized_embedding = Vector{Dict{typeof(zero_harmonic),HarmonicWordPolynomial{C}}}()
+  log_embedding = Vector{Dict{typeof(zero_harmonic),HarmonicWordPolynomial{C}}}()
+  powers = [
+    [Dict{typeof(zero_harmonic),HarmonicWordPolynomial{C}}() for _ in 1:max(reconstruction_order, 1)] for _ in 1:max(reconstruction_order, 1)
+  ]
+  counts = FE_CWL.BlochVanVleckCounts()
+
+  for n in 1:reconstruction_order
+    prefactor = copy(bloch.wave[n])
+    for j in 1:(n - 1)
+      counts.factor_products += 1
+      correction = FE_CWL.bloch_vv_right_static_product(
+        bloch.wave[j], static_factor[n - j + 1], harmonic_word_product, identity, counts
+      )
+      prefactor = FE_CWL.bloch_vv_add(prefactor, correction, identity)
+    end
+
+    nonlinear_log = Dict{typeof(zero_harmonic),HarmonicWordPolynomial{C}}()
+    for power in 2:n
+      power_coefficient = Dict{typeof(zero_harmonic),HarmonicWordPolynomial{C}}()
+      for k in 1:(n - power + 1)
+        counts.log_products += 1
+        contribution = FE_CWL.bloch_vv_periodic_product(
+          normalized_embedding[k],
+          powers[power - 1][n - k],
+          harmonic_word_product,
+          identity,
+          counts,
+        )
+        power_coefficient = FE_CWL.bloch_vv_add(power_coefficient, contribution, identity)
+      end
+      powers[power][n] = power_coefficient
+      weight = (-1)^(power + 1) * (1 // power)
+      nonlinear_log = FE_CWL.bloch_vv_add(
+        nonlinear_log, FE_CWL.bloch_vv_scale(weight, power_coefficient, identity), identity
+      )
+    end
+
+    candidate = FE_CWL.bloch_vv_add(prefactor, nonlinear_log, identity)
+    static_n = -get(candidate, zero_harmonic, zero_component)
+    push!(static_factor, static_n)
+
+    normalized_n = copy(prefactor)
+    if !iszero(static_n)
+      FE_CWL.bloch_vv_accumulate!(normalized_n, zero_harmonic, static_n)
+      normalized_n = FE_CWL.bloch_vv_simplify_embedding(normalized_n, identity)
+    end
+    push!(normalized_embedding, normalized_n)
+    powers[1][n] = normalized_n
+    push!(log_embedding, FE_CWL.bloch_vv_add(normalized_n, nonlinear_log, identity))
+  end
+
+  return log_embedding
+end
+
 function harmonic_word_count(embedding)
   return sum(length(polynomial.terms) for polynomial in values(embedding))
 end
