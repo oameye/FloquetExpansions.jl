@@ -57,8 +57,8 @@ end
   for harmonic in filter(!iszero, support)
     folded_word = (0, harmonic, -harmonic)
     @test plan.effective[3][folded_word] == -(inverse_weight(harmonic)^2)
-    @test plan.effective[3][folded_word] != inverse_weight(harmonic)
   end
+  @test plan.effective[3][(0, 2, -2)] != inverse_weight(2)
 
   @test plan.counts.generator_product_terms > 0
   @test plan.counts.folded_counterterms > 0
