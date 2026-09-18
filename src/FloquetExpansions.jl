@@ -14,6 +14,9 @@ using SecondQuantizedAlgebra: expim, exponential_form, trigonometric_form
 export expim, exponential_form, trigonometric_form
 
 include("periodic_operator.jl")
+include("bloch_projection.jl")
+include("bloch_van_vleck.jl")
+include("bloch_connected_van_vleck.jl")
 include("completion_types.jl")
 include("matrix_series.jl")
 include("completion_linear_algebra.jl")
