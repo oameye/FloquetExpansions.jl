@@ -82,6 +82,39 @@ end
   end
 end
 
+struct WeightedTestHarmonicIndex
+  n1::Int
+  n2::Int
+end
+
+Base.zero(::Type{WeightedTestHarmonicIndex}) = WeightedTestHarmonicIndex(0, 0)
+Base.zero(::WeightedTestHarmonicIndex) = zero(WeightedTestHarmonicIndex)
+function Base.iszero(index::WeightedTestHarmonicIndex)
+  return iszero(index.n1) && iszero(index.n2)
+end
+function Base.:+(left::WeightedTestHarmonicIndex, right::WeightedTestHarmonicIndex)
+  return WeightedTestHarmonicIndex(left.n1 + right.n1, left.n2 + right.n2)
+end
+Base.:-(index::WeightedTestHarmonicIndex) = WeightedTestHarmonicIndex(-index.n1, -index.n2)
+
+@testset "weighted Bloch plan remains generic over multidimensional harmonic labels" begin
+  zero_index = zero(WeightedTestHarmonicIndex)
+  e1 = WeightedTestHarmonicIndex(1, 0)
+  e2 = WeightedTestHarmonicIndex(0, 1)
+  support = [zero_index, e1, -e1, e2, -e2]
+  inverse_weight = index -> 1 // (7 * index.n1 + 11 * index.n2)
+  plan = compile_bloch_word_plan(support, 4; inverse_weight, zero_harmonic=zero_index)
+
+  for degree in 2:4
+    topology = compile_harmonic_word_plan(support, degree; zero_harmonic=zero_index)
+    for word in first_return_words(topology)
+      @test haskey(plan.effective[degree], word.harmonics)
+      @test plan.effective[degree][word.harmonics] ==
+        primitive_bloch_word_weight(word.harmonics, inverse_weight, zero_index)
+    end
+  end
+end
+
 @testset "weighted Bloch plan reproduces the certified recurrence before operator algebra" begin
   @variables w::Real
   matrix_generator = PeriodicGenerator(
