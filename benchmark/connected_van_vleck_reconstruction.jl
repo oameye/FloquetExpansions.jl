@@ -26,16 +26,27 @@ function cvvb_context(H, ω, t, order)
     projection_plan, bloch; product=cvvb_product, zero_component, simplifier=cvvb_simplify
   )
   log_plan = compile_lyndon_log_evaluation_plan(keys(components), order)
+  static_plan = compile_static_sector_exp_plan(log_plan, projection_plan.zero_harmonic)
   connected = connected_van_vleck_reconstruction(
     projection_plan,
     bloch,
     components,
-    log_plan;
+    log_plan,
+    static_plan;
     product=cvvb_product,
     zero_component,
     simplifier=cvvb_simplify,
   )
-  return components, zero_component, projection_plan, bloch, direct, log_plan, connected
+  return (
+    components,
+    zero_component,
+    projection_plan,
+    bloch,
+    direct,
+    log_plan,
+    static_plan,
+    connected,
+  )
 end
 
 function cvvb_direct_reconstruction(projection_plan, bloch, zero_component)
@@ -45,13 +56,14 @@ function cvvb_direct_reconstruction(projection_plan, bloch, zero_component)
 end
 
 function cvvb_connected_reconstruction(
-  projection_plan, bloch, components, log_plan, zero_component
+  projection_plan, bloch, components, log_plan, static_plan, zero_component
 )
   return connected_van_vleck_reconstruction(
     projection_plan,
     bloch,
     components,
-    log_plan;
+    log_plan,
+    static_plan;
     product=cvvb_product,
     zero_component,
     simplifier=cvvb_simplify,
@@ -70,7 +82,9 @@ function cvvb_direct_core(projection_plan, components, zero_component)
   return cvvb_direct_reconstruction(projection_plan, bloch, zero_component)
 end
 
-function cvvb_connected_core(projection_plan, log_plan, components, zero_component)
+function cvvb_connected_core(
+  projection_plan, log_plan, static_plan, components, zero_component
+)
   bloch = FE_CVVB.evaluate_bloch_projection_plan(
     projection_plan,
     components;
@@ -80,12 +94,12 @@ function cvvb_connected_core(projection_plan, log_plan, components, zero_compone
     simplifier=cvvb_simplify,
   )
   return cvvb_connected_reconstruction(
-    projection_plan, bloch, components, log_plan, zero_component
+    projection_plan, bloch, components, log_plan, static_plan, zero_component
   )
 end
 
 function print_connected_reconstruction_profile(label, H, ω, t, order)
-  _, _, _, _, direct, log_plan, connected = cvvb_context(H, ω, t, order)
+  _, _, _, _, direct, log_plan, static_plan, connected = cvvb_context(H, ω, t, order)
   direct_products =
     direct.counts.harmonic_products +
     direct.counts.inverse_products +
@@ -99,6 +113,7 @@ function print_connected_reconstruction_profile(label, H, ω, t, order)
     "connected_backend_products=$(connected_products) ",
     "connected_bracket_products=$(lyndon_backend_products(log_plan)) ",
     "connected_exp_harmonic_products=$(connected.counts.harmonic_products) ",
+    "compiled_exp_harmonic_products=$(static_plan.product_count) ",
     "connected_static_products=$(connected.counts.inverse_products + connected.counts.similarity_products)",
   )
   return nothing
@@ -110,9 +125,16 @@ function benchmark_connected_van_vleck_reconstruction!(suite)
   )
 
   for (label, (H, ω, t)) in workloads, order in 2:4
-    components, zero_component, projection_plan, bloch, _, log_plan, connected = cvvb_context(
-      H, ω, t, order
-    )
+    (
+      components,
+      zero_component,
+      projection_plan,
+      bloch,
+      _,
+      log_plan,
+      static_plan,
+      connected,
+    ) = cvvb_context(H, ω, t, order)
     log_embedding = connected.log_embedding
     identity_component = one(first(bloch.effective))
     zero_harmonic = projection_plan.zero_harmonic
@@ -121,11 +143,24 @@ function benchmark_connected_van_vleck_reconstruction!(suite)
       $projection_plan, $bloch, $zero_component
     )
     suite["Connected Canonical Reconstruction"][label]["order $order"]["connected reconstruction"] = @benchmarkable cvvb_connected_reconstruction(
-      $projection_plan, $bloch, $components, $log_plan, $zero_component
+      $projection_plan,
+      $bloch,
+      $components,
+      $log_plan,
+      $static_plan,
+      $zero_component,
     )
-    suite["Connected Canonical Reconstruction"][label]["order $order"]["static from exp log"] = @benchmarkable connected_static_factor(
+    suite["Connected Canonical Reconstruction"][label]["order $order"]["static full periodic exp"] = @benchmarkable connected_static_factor(
       $log_embedding,
       $zero_harmonic,
+      $identity_component,
+      $zero_component;
+      product=cvvb_product,
+      simplifier=cvvb_simplify,
+    )
+    suite["Connected Canonical Reconstruction"][label]["order $order"]["static pruned exp"] = @benchmarkable evaluate_static_sector_exp_plan(
+      $static_plan,
+      $log_embedding,
       $identity_component,
       $zero_component;
       product=cvvb_product,
@@ -135,7 +170,7 @@ function benchmark_connected_van_vleck_reconstruction!(suite)
       $projection_plan, $components, $zero_component
     )
     suite["Connected Canonical Reconstruction"][label]["order $order"]["connected core"] = @benchmarkable cvvb_connected_core(
-      $projection_plan, $log_plan, $components, $zero_component
+      $projection_plan, $log_plan, $static_plan, $components, $zero_component
     )
 
     print_connected_reconstruction_profile(label, H, ω, t, order)
