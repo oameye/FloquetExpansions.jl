@@ -114,26 +114,55 @@ function lyndon_standard_factorization(word::Tuple)
   return throw(ArgumentError("word is not Lyndon"))
 end
 
+function lyndon_bracket_polynomial!(
+  cache::Dict{Tuple,HarmonicWordPolynomial{C}}, word::Tuple, ::Type{C}
+) where {C}
+  haskey(cache, word) && return cache[word]
+  result = if length(word) == 1
+    harmonic_word_leaf(first(word), C)
+  else
+    left_word, right_word = lyndon_standard_factorization(word)
+    left = lyndon_bracket_polynomial!(cache, left_word, C)
+    right = lyndon_bracket_polynomial!(cache, right_word, C)
+    harmonic_word_commutator(left, right)
+  end
+  cache[word] = result
+  return result
+end
+
 function lyndon_bracket_polynomial(word::Tuple, ::Type{C}) where {C}
-  length(word) == 1 && return harmonic_word_leaf(first(word), C)
-  left_word, right_word = lyndon_standard_factorization(word)
-  left = lyndon_bracket_polynomial(left_word, C)
-  right = lyndon_bracket_polynomial(right_word, C)
-  return harmonic_word_commutator(left, right)
+  cache = Dict{Tuple,HarmonicWordPolynomial{C}}()
+  return lyndon_bracket_polynomial!(cache, word, C)
+end
+
+function lyndon_decomposition(
+  polynomial::HarmonicWordPolynomial{C},
+  bracket_cache::Dict{Tuple,HarmonicWordPolynomial{C}},
+) where {C}
+  residual = copy(polynomial.terms)
+  coefficients = Dict{Tuple,C}()
+  while !isempty(residual)
+    word = minimum(keys(residual))
+    is_lyndon_word(word) ||
+      throw(ArgumentError("primitive polynomial has a non-Lyndon leading word"))
+    coefficient = residual[word]
+    coefficients[word] = get(coefficients, word, zero(C)) + coefficient
+    bracket = lyndon_bracket_polynomial!(bracket_cache, word, C)
+    for (term_word, term_coefficient) in bracket.terms
+      updated = get(residual, term_word, zero(C)) - coefficient * term_coefficient
+      if iszero(updated)
+        delete!(residual, term_word)
+      else
+        residual[term_word] = updated
+      end
+    end
+  end
+  return coefficients
 end
 
 function lyndon_decomposition(polynomial::HarmonicWordPolynomial{C}) where {C}
-  residual = polynomial
-  coefficients = Dict{Tuple,C}()
-  while !iszero(residual)
-    word = minimum(keys(residual.terms))
-    is_lyndon_word(word) ||
-      throw(ArgumentError("primitive polynomial has a non-Lyndon leading word"))
-    coefficient = residual.terms[word]
-    coefficients[word] = get(coefficients, word, zero(C)) + coefficient
-    residual -= coefficient * lyndon_bracket_polynomial(word, C)
-  end
-  return coefficients
+  cache = Dict{Tuple,HarmonicWordPolynomial{C}}()
+  return lyndon_decomposition(polynomial, cache)
 end
 
 function collect_lyndon_bracket_nodes!(nodes::Set{Tuple}, word::Tuple)
@@ -149,8 +178,9 @@ function lyndon_profile(embeddings::AbstractVector)
   coefficient_count = 0
   basis_words = Set{Tuple}()
   bracket_nodes = Set{Tuple}()
+  bracket_cache = Dict{Tuple,HarmonicWordPolynomial{Rational{Int}}}()
   for embedding in embeddings, polynomial in values(embedding)
-    decomposition = lyndon_decomposition(polynomial)
+    decomposition = lyndon_decomposition(polynomial, bracket_cache)
     coefficient_count += length(decomposition)
     for word in keys(decomposition)
       push!(basis_words, word)
