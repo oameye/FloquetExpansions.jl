@@ -20,6 +20,16 @@ function weighted_word_term_count(plan)
   return effective_terms + wave_terms
 end
 
+@testset "production Bloch projection core is concrete and internal" begin
+  plan = @inferred FloquetExpansions.compile_bloch_projection_plan([-1, 0, 1], 4)
+  @test plan isa FloquetExpansions.BlochProjectionPlan{Int}
+  @test plan.order == 4
+  @test plan.zero_harmonic == 0
+  @test_throws ArgumentError FloquetExpansions.compile_bloch_projection_plan(Int[], 2)
+  @test_throws ArgumentError FloquetExpansions.compile_bloch_projection_plan([0, 1], 0)
+  @test !isdefined(Main, :compile_bloch_projection_plan)
+end
+
 @testset "sparse Bloch evaluation plan reproduces the certified dense recurrence" begin
   @variables w::Real
   generator = PeriodicGenerator(
