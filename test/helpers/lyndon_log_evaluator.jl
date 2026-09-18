@@ -1,6 +1,7 @@
 using FloquetExpansions
 
 include(joinpath(@__DIR__, "connected_word_log.jl"))
+include(joinpath(@__DIR__, "sparse_connected_word_log.jl"))
 
 struct LyndonBracketNode
   left::Int
@@ -45,13 +46,14 @@ function compile_lyndon_log_evaluation_plan(support, order::Int)
   word_ids = Dict{Tuple,Int}()
   brackets = LyndonBracketNode[]
   bracket_cache = Dict{Tuple,HarmonicWordPolynomial{C}}()
-  _, _, converted = connected_word_reconstruction(leaves, order)
+  log_embedding = compile_sparse_connected_log_words(leaves, order)
   H = eltype(leaves)
   outputs = Vector{Dict{H,Vector{LyndonOutputTerm{C}}}}()
 
-  for embedding in converted.log_embedding
+  for embedding in log_embedding
     compiled = Dict{H,Vector{LyndonOutputTerm{C}}}()
-    for (harmonic, polynomial) in embedding
+    for (harmonic, word_terms) in embedding
+      polynomial = HarmonicWordPolynomial{C}(word_terms)
       terms = LyndonOutputTerm{C}[]
       for (word, coefficient) in lyndon_decomposition(polynomial, bracket_cache)
         node = lyndon_ensure_node!(word, leaves, leaf_ids, word_ids, brackets)
