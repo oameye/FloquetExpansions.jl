@@ -34,7 +34,8 @@ end
 
 for (label, f) in (
   "word_reconstruction" => (() -> connected_word_reconstruction(support, order)),
-  "sparse_word_reconstruction" => (() -> compile_sparse_connected_log_words(support, order)),
+  "sparse_word_reconstruction" =>
+    (() -> compile_sparse_connected_log_words(support, order)),
   "lyndon_decomposition" => decomposition_stage,
   "full_plan_compile" => (() -> compile_lyndon_log_evaluation_plan(support, order)),
 )

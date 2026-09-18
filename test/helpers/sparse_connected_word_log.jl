@@ -8,9 +8,7 @@ function sparse_accumulate!(terms::Dict{Tuple,C}, word::Tuple, coefficient) wher
   return terms
 end
 
-function sparse_word_terms!(
-  embedding::Dict{H,Dict{Tuple,C}}, harmonic::H
-) where {H,C}
+function sparse_word_terms!(embedding::Dict{H,Dict{Tuple,C}}, harmonic::H) where {H,C}
   return get!(embedding, harmonic) do
     return Dict{Tuple,C}()
   end
@@ -42,17 +40,13 @@ function sparse_periodic_product(
   left::Dict{H,Dict{Tuple,C}}, right::Dict{H,Dict{Tuple,C}}
 ) where {H,C}
   result = Dict{H,Dict{Tuple,C}}()
-  for (left_harmonic, left_terms) in left,
-    (right_harmonic, right_terms) in right
-
+  for (left_harmonic, left_terms) in left, (right_harmonic, right_terms) in right
     output = sparse_word_terms!(result, left_harmonic + right_harmonic)
     for (left_word, left_coefficient) in left_terms,
       (right_word, right_coefficient) in right_terms
 
       sparse_accumulate!(
-        output,
-        (left_word..., right_word...),
-        left_coefficient * right_coefficient,
+        output, (left_word..., right_word...), left_coefficient * right_coefficient
       )
     end
   end
@@ -125,11 +119,7 @@ function compile_sparse_connected_log_words(support_input, order::Int)
     for generator_harmonic in support, (wave_harmonic, wave_terms) in wave[n]
       output = sparse_word_terms!(residual, generator_harmonic + wave_harmonic)
       for (wave_word, wave_coefficient) in wave_terms
-        sparse_accumulate!(
-          output,
-          (generator_harmonic, wave_word...),
-          wave_coefficient,
-        )
+        sparse_accumulate!(output, (generator_harmonic, wave_word...), wave_coefficient)
       end
     end
 

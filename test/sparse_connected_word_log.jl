@@ -15,11 +15,8 @@ include(joinpath(@__DIR__, "helpers", "sparse_connected_word_log.jl"))
     harmonics = union(keys(sparse[n]), keys(generic.log_embedding[n]))
     for harmonic in harmonics
       sparse_terms = get(sparse[n], harmonic, Dict{Tuple,Rational{Int}}())
-      generic_terms = get(
-        generic.log_embedding[n],
-        harmonic,
-        HarmonicWordPolynomial{Rational{Int}}(),
-      ).terms
+      generic_terms =
+        get(generic.log_embedding[n], harmonic, HarmonicWordPolynomial{Rational{Int}}()).terms
       @test sparse_terms == generic_terms
     end
   end
