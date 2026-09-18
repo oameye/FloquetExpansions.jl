@@ -8,16 +8,26 @@ mutable struct CoherentWorkProfile
   periodic_simplify_calls::Int
   component_simplify_calls::Int
   simplify_harmonic_inputs::Int
+  simplify_term_inputs::Int
   materialized_harmonics::Int
+  materialized_terms::Int
   peak_harmonics::Int
+  peak_terms::Int
 end
 
-CoherentWorkProfile() = CoherentWorkProfile(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+CoherentWorkProfile() = CoherentWorkProfile(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+function generator_term_count(generator)
+  return sum(length(component) for component in values(getfield(generator, :components)); init=0)
+end
 
 function observe_harmonics!(profile::CoherentWorkProfile, generator)
   harmonics = length(generator)
+  terms = generator_term_count(generator)
   profile.materialized_harmonics += harmonics
+  profile.materialized_terms += terms
   profile.peak_harmonics = max(profile.peak_harmonics, harmonics)
+  profile.peak_terms = max(profile.peak_terms, terms)
   return generator
 end
 
@@ -97,6 +107,7 @@ function coherent_work_profile(generator, gauge, order)
     observe_harmonics!(profile, raw_resolvent)
     profile.periodic_simplify_calls += 1
     profile.simplify_harmonic_inputs += length(raw_resolvent)
+    profile.simplify_term_inputs += generator_term_count(raw_resolvent)
     resolvent = observe_harmonics!(profile, FE.SQA.simplify(raw_resolvent))
 
     profile.component_simplify_calls += 1
@@ -108,6 +119,7 @@ function coherent_work_profile(generator, gauge, order)
       observe_harmonics!(profile, raw_kick)
       profile.periodic_simplify_calls += 1
       profile.simplify_harmonic_inputs += length(raw_kick)
+      profile.simplify_term_inputs += generator_term_count(raw_kick)
       next_kick = observe_harmonics!(profile, FE.SQA.simplify(raw_kick))
       push!(K, next_kick)
       push!(Kdot, observe_harmonics!(profile, FE.derivative(next_kick)))
@@ -133,6 +145,7 @@ function print_coherent_profile(label, H, ω, t, order)
     "workload=$(label)",
     "order=$(order)",
     "input_harmonics=$(length(generator))",
+    "input_terms=$(generator_term_count(generator))",
     "dressed_generator_nodes=$(profile.dressed_generator_nodes)",
     "dressed_kick_nodes=$(profile.dressed_kick_nodes)",
     "periodic_commutators=$(profile.periodic_commutators)",
@@ -142,8 +155,11 @@ function print_coherent_profile(label, H, ω, t, order)
     "periodic_simplify_calls=$(profile.periodic_simplify_calls)",
     "component_simplify_calls=$(profile.component_simplify_calls)",
     "simplify_harmonic_inputs=$(profile.simplify_harmonic_inputs)",
+    "simplify_term_inputs=$(profile.simplify_term_inputs)",
     "materialized_harmonics=$(profile.materialized_harmonics)",
+    "materialized_terms=$(profile.materialized_terms)",
     "peak_harmonics=$(profile.peak_harmonics)",
+    "peak_terms=$(profile.peak_terms)",
   )
   println("COHERENT_PROFILE ", join(fields, " "))
   return nothing
