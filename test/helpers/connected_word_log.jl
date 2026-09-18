@@ -98,6 +98,72 @@ function harmonic_word_lengths(polynomial::HarmonicWordPolynomial)
   return unique(length(word) for word in keys(polynomial.terms))
 end
 
+function is_lyndon_word(word::Tuple)
+  isempty(word) && return false
+  return all(isless(word, word[index:end]) for index in 2:length(word))
+end
+
+function lyndon_standard_factorization(word::Tuple)
+  length(word) > 1 || throw(ArgumentError("a Lyndon leaf has no standard factorization"))
+  for split in 2:length(word)
+    suffix = word[split:end]
+    if is_lyndon_word(suffix)
+      return word[1:(split - 1)], suffix
+    end
+  end
+  throw(ArgumentError("word is not Lyndon"))
+end
+
+function lyndon_bracket_polynomial(word::Tuple, ::Type{C}) where {C}
+  length(word) == 1 && return harmonic_word_leaf(first(word), C)
+  left_word, right_word = lyndon_standard_factorization(word)
+  left = lyndon_bracket_polynomial(left_word, C)
+  right = lyndon_bracket_polynomial(right_word, C)
+  return harmonic_word_commutator(left, right)
+end
+
+function lyndon_decomposition(polynomial::HarmonicWordPolynomial{C}) where {C}
+  residual = polynomial
+  coefficients = Dict{Tuple,C}()
+  while !iszero(residual)
+    word = minimum(keys(residual.terms))
+    is_lyndon_word(word) || throw(ArgumentError("primitive polynomial has a non-Lyndon leading word"))
+    coefficient = residual.terms[word]
+    coefficients[word] = get(coefficients, word, zero(C)) + coefficient
+    residual -= coefficient * lyndon_bracket_polynomial(word, C)
+  end
+  return coefficients
+end
+
+function collect_lyndon_bracket_nodes!(nodes::Set{Tuple}, word::Tuple)
+  length(word) <= 1 && return nodes
+  push!(nodes, word)
+  left, right = lyndon_standard_factorization(word)
+  collect_lyndon_bracket_nodes!(nodes, left)
+  collect_lyndon_bracket_nodes!(nodes, right)
+  return nodes
+end
+
+function lyndon_profile(embeddings::AbstractVector)
+  coefficient_count = 0
+  basis_words = Set{Tuple}()
+  bracket_nodes = Set{Tuple}()
+  for embedding in embeddings, polynomial in values(embedding)
+    decomposition = lyndon_decomposition(polynomial)
+    coefficient_count += length(decomposition)
+    for word in keys(decomposition)
+      push!(basis_words, word)
+      collect_lyndon_bracket_nodes!(bracket_nodes, word)
+    end
+  end
+  return (
+    coefficients=coefficient_count,
+    basis_words=length(basis_words),
+    bracket_nodes=length(bracket_nodes),
+    associative_products=2 * length(bracket_nodes),
+  )
+end
+
 function evaluate_harmonic_word_polynomial(
   polynomial::HarmonicWordPolynomial,
   components::AbstractDict;
