@@ -1,0 +1,41 @@
+name: Format 165
+
+on:
+  push:
+    branches:
+      - ci/165-format
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/165-format
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Format research files
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace \
+            test/helpers/connected_word_log.jl \
+            test/helpers/lyndon_log_evaluator.jl \
+            test/helpers/sparse_connected_word_log.jl \
+            test/sparse_connected_word_log.jl \
+            benchmark/lyndon_plan_compile_profile.jl
+      - name: Commit formatting
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add test/helpers/connected_word_log.jl test/helpers/lyndon_log_evaluator.jl test/helpers/sparse_connected_word_log.jl test/sparse_connected_word_log.jl benchmark/lyndon_plan_compile_profile.jl
+          if git diff --cached --quiet; then
+            echo "No formatting changes"
+          else
+            git commit -m "style: format Lyndon compiler research files"
+            git push origin HEAD:ci/165-format
+          fi
