@@ -1,0 +1,25 @@
+name: Connected Van Vleck Targeted
+
+on:
+  push:
+    branches:
+      - ci/166-targeted
+
+jobs:
+  oracle:
+    name: oracle ${{ matrix.julia }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        julia: ['1.10', '1']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/166-targeted
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia }}
+      - name: Instantiate tests
+        run: julia --project=test -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+      - name: Run connected Van Vleck oracle
+        run: julia --project=test test/bloch_connected_van_vleck.jl
