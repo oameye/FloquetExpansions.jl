@@ -10,9 +10,13 @@ workload_name = ARGS[1]
 order = parse(Int, ARGS[2])
 order >= 4 || error("scaling benchmark is intended for order >= 4")
 
-H, ω, t =
-  workload_name == "qubit" ? llb_qubit_workload() :
-  workload_name == "kerr" ? llb_kerr_workload() : error("unknown workload: $(workload_name)")
+H, ω, t = if workload_name == "qubit"
+  llb_qubit_workload()
+elseif workload_name == "kerr"
+  llb_kerr_workload()
+else
+  error("unknown workload: $(workload_name)")
+end
 
 function scaling_measure(f; samples=3)
   f()
@@ -26,8 +30,9 @@ function scaling_measure(f; samples=3)
   return median(times), memory
 end
 
-components, zero_component, projection_plan, bloch, direct, log_plan, connected =
-  cvvb_context(H, ω, t, order)
+components, zero_component, projection_plan, bloch, direct, log_plan, connected = cvvb_context(
+  H, ω, t, order
+)
 
 print_connected_reconstruction_profile(workload_name, H, ω, t, order)
 println(
@@ -39,11 +44,15 @@ println(
   "connected_backend_products=$(connected_reconstruction_backend_products(connected, log_plan))",
 )
 
-direct_reconstruction = () -> cvvb_direct_reconstruction(projection_plan, bloch, zero_component)
-connected_reconstruction = () ->
-  cvvb_connected_reconstruction(projection_plan, bloch, components, log_plan, zero_component)
+direct_reconstruction =
+  () -> cvvb_direct_reconstruction(projection_plan, bloch, zero_component)
+connected_reconstruction =
+  () -> cvvb_connected_reconstruction(
+    projection_plan, bloch, components, log_plan, zero_component
+  )
 direct_core = () -> cvvb_direct_core(projection_plan, components, zero_component)
-connected_core = () -> cvvb_connected_core(projection_plan, log_plan, components, zero_component)
+connected_core =
+  () -> cvvb_connected_core(projection_plan, log_plan, components, zero_component)
 plan_compile = () -> compile_lyndon_log_evaluation_plan(keys(components), order)
 production = () -> begin
   expansion = floquet_expansion(H, ω, t, VanVleck(), order)
