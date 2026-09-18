@@ -15,7 +15,7 @@ jobs:
         with:
           version: '1'
       - run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
-      - run: ${HOME}/.julia/bin/jlfmt --verbose benchmark/connected_van_vleck_reconstruction.jl benchmark/lyndon_log_evaluation.jl test/connected_van_vleck_reconstruction.jl test/lyndon_log_evaluation.jl test/helpers/connected_van_vleck_reconstruction.jl
+      - run: ${HOME}/.julia/bin/jlfmt --inplace --verbose benchmark/connected_van_vleck_reconstruction.jl benchmark/lyndon_log_evaluation.jl test/connected_van_vleck_reconstruction.jl test/lyndon_log_evaluation.jl test/helpers/connected_van_vleck_reconstruction.jl
       - run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
