@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "f450778"
+commit = "687f3b5"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -30,6 +30,17 @@ arg_over = 0
 cyc_sum = 25
 cog_sum = 37
 arg_sum = 13
+
+[files."src/bloch_van_vleck.jl"]
+cyc = 8
+cog = 12
+arg = 6
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 33
+cog_sum = 32
+arg_sum = 38
 
 [files."src/completion.jl"]
 cyc = 2
