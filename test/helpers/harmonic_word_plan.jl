@@ -105,7 +105,7 @@ function compile_harmonic_word_plan(
   attempted_edges = Ref(0)
   pruned_edges = Ref(0)
 
-  function visit(depth::Int, current_sum::H)
+  function visit(depth::Int, current_sum)
     for harmonic in support
       attempted_edges[] += 1
       next_sum = current_sum + harmonic
