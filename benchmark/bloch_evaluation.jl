@@ -51,9 +51,7 @@ function bloch_kerr_workload()
   t = t_bloch_kerr
   number = a' * a
   H =
-    Δ_bloch_kerr * number +
-    K_bloch_kerr * a'^2 * a^2 +
-    ε_bloch_kerr * cos(ω * t) * (a + a')
+    Δ_bloch_kerr * number + K_bloch_kerr * a'^2 * a^2 + ε_bloch_kerr * cos(ω * t) * (a + a')
   return H, ω, t
 end
 
