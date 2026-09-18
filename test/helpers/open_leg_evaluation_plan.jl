@@ -144,7 +144,7 @@ function compile_openleg_evaluation_plan(
   input = openleg_compile_input(amplitude_orders; leg_factory)
   zero_harmonic = 0
   paths = input.paths
-  path_ids = Dict(path => index for (index, path) in enumerate(paths))
+  path_ids = Dict{Tuple,Int}(path => index for (index, path) in enumerate(paths))
   identity_state = OpenLegPlanState(zero_harmonic, 1, 0)
 
   wave_support = [OpenLegPlanState{Int}[] for _ in 1:order]
