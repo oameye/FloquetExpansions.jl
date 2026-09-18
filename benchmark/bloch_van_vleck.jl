@@ -97,8 +97,7 @@ end
 
 function benchmark_bloch_van_vleck!(suite)
   workloads = (
-    "Driven qubit" => bvv_qubit_workload(),
-    "Driven Kerr resonator" => bvv_kerr_workload(),
+    "Driven qubit" => bvv_qubit_workload(), "Driven Kerr resonator" => bvv_kerr_workload()
   )
 
   for (label, (H, ω, t)) in workloads, order in 2:4
@@ -107,22 +106,24 @@ function benchmark_bloch_van_vleck!(suite)
     static_factor = converted.static_factor
     effective = bloch.effective
 
-    suite["Bloch Canonical Reconstruction"][label]["order $order"]["projection"] =
-      @benchmarkable bvv_projection($generator, $order)
-    suite["Bloch Canonical Reconstruction"][label]["order $order"]["canonical reconstruction"] =
-      @benchmarkable bvv_reconstruction($bloch, $generator)
-    suite["Bloch Canonical Reconstruction"][label]["order $order"]["Mercator log replay"] =
-      @benchmarkable replay_mercator_log(
-        $normalized, $generator; product=bvv_product, simplifier=bvv_simplify
-      )
-    suite["Bloch Canonical Reconstruction"][label]["order $order"]["static similarity replay"] =
-      @benchmarkable replay_static_similarity(
-        $effective, $static_factor; product=bvv_product, simplifier=bvv_simplify
-      )
-    suite["Bloch Canonical Reconstruction"][label]["order $order"]["end to end"] =
-      @benchmarkable bvv_end_to_end($H, $ω, $t, $order)
-    suite["Bloch Canonical Reconstruction"][label]["order $order"]["production Hori-Deprit"] =
-      @benchmarkable floquet_expansion($H, $ω, $t, VanVleck(), $order)
+    suite["Bloch Canonical Reconstruction"][label]["order $order"]["projection"] = @benchmarkable bvv_projection(
+      $generator, $order
+    )
+    suite["Bloch Canonical Reconstruction"][label]["order $order"]["canonical reconstruction"] = @benchmarkable bvv_reconstruction(
+      $bloch, $generator
+    )
+    suite["Bloch Canonical Reconstruction"][label]["order $order"]["Mercator log replay"] = @benchmarkable replay_mercator_log(
+      $normalized, $generator; product=bvv_product, simplifier=bvv_simplify
+    )
+    suite["Bloch Canonical Reconstruction"][label]["order $order"]["static similarity replay"] = @benchmarkable replay_static_similarity(
+      $effective, $static_factor; product=bvv_product, simplifier=bvv_simplify
+    )
+    suite["Bloch Canonical Reconstruction"][label]["order $order"]["end to end"] = @benchmarkable bvv_end_to_end(
+      $H, $ω, $t, $order
+    )
+    suite["Bloch Canonical Reconstruction"][label]["order $order"]["production Hori-Deprit"] = @benchmarkable floquet_expansion(
+      $H, $ω, $t, VanVleck(), $order
+    )
   end
   return nothing
 end
