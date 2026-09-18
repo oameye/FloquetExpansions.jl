@@ -52,6 +52,12 @@ end
     for polynomial in values(embedding)
       @test harmonic_word_lengths(polynomial) == [grade]
       @test dynkin_projection(polynomial) == grade * polynomial
+      decomposition = lyndon_decomposition(polynomial)
+      reconstructed = HarmonicWordPolynomial{Rational{Int}}()
+      for (word, coefficient) in decomposition
+        reconstructed += coefficient * lyndon_bracket_polynomial(word, Rational{Int})
+      end
+      @test reconstructed == polynomial
     end
   end
 end
@@ -64,6 +70,7 @@ end
     normalized_words = harmonic_word_count(converted.normalized_embedding)
     log_words = harmonic_word_count(converted.log_embedding)
     prefix_products = harmonic_word_prefix_products(converted.log_embedding)
+    lyndon = lyndon_profile(converted.log_embedding)
     println(
       "CONNECTED_WORD_PROFILE ",
       "order=$(order) ",
@@ -71,9 +78,15 @@ end
       "normalized_words=$(normalized_words) ",
       "log_words=$(log_words) ",
       "prefix_products=$(prefix_products) ",
+      "lyndon_coefficients=$(lyndon.coefficients) ",
+      "lyndon_basis_words=$(lyndon.basis_words) ",
+      "lyndon_bracket_nodes=$(lyndon.bracket_nodes) ",
+      "lyndon_associative_products=$(lyndon.associative_products) ",
       "reconstruction_harmonic_products=$(converted.counts.harmonic_products)",
     )
     @test log_words > 0
     @test prefix_products >= 0
+    @test lyndon.coefficients <= log_words
+    @test lyndon.associative_products <= 2 * prefix_products
   end
 end
