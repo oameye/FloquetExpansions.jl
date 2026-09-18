@@ -17,16 +17,13 @@ struct BlochVanVleckResult{H,T}
   counts::BlochVanVleckCounts
 end
 
-function bloch_vv_accumulate!(
-  destination::Dict{H,T}, harmonic::H, value::T
-) where {H,T}
-  destination[harmonic] = haskey(destination, harmonic) ? destination[harmonic] + value : value
+function bloch_vv_accumulate!(destination::Dict{H,T}, harmonic::H, value::T) where {H,T}
+  destination[harmonic] =
+    haskey(destination, harmonic) ? destination[harmonic] + value : value
   return destination
 end
 
-function bloch_vv_simplify_embedding(
-  embedding::Dict{H,T}, simplifier
-) where {H,T}
+function bloch_vv_simplify_embedding(embedding::Dict{H,T}, simplifier) where {H,T}
   simplified = Dict{H,T}()
   for (harmonic, value) in embedding
     component = simplifier(value)::T
@@ -35,9 +32,7 @@ function bloch_vv_simplify_embedding(
   return simplified
 end
 
-function bloch_vv_add(
-  left::Dict{H,T}, right::Dict{H,T}, simplifier
-) where {H,T}
+function bloch_vv_add(left::Dict{H,T}, right::Dict{H,T}, simplifier) where {H,T}
   result = copy(left)
   for (harmonic, value) in right
     bloch_vv_accumulate!(result, harmonic, value)
@@ -45,9 +40,7 @@ function bloch_vv_add(
   return bloch_vv_simplify_embedding(result, simplifier)
 end
 
-function bloch_vv_scale(
-  weight, embedding::Dict{H,T}, simplifier
-) where {H,T}
+function bloch_vv_scale(weight, embedding::Dict{H,T}, simplifier) where {H,T}
   result = Dict{H,T}()
   for (harmonic, value) in embedding
     component = simplifier(weight * value)::T
@@ -57,11 +50,7 @@ function bloch_vv_scale(
 end
 
 function bloch_vv_periodic_product(
-  left::Dict{H,T},
-  right::Dict{H,T},
-  product,
-  simplifier,
-  counts::BlochVanVleckCounts,
+  left::Dict{H,T}, right::Dict{H,T}, product, simplifier, counts::BlochVanVleckCounts
 ) where {H,T}
   result = Dict{H,T}()
   for (left_harmonic, left_value) in left, (right_harmonic, right_value) in right
@@ -73,11 +62,7 @@ function bloch_vv_periodic_product(
 end
 
 function bloch_vv_right_static_product(
-  periodic::Dict{H,T},
-  static::T,
-  product,
-  simplifier,
-  counts::BlochVanVleckCounts,
+  periodic::Dict{H,T}, static::T, product, simplifier, counts::BlochVanVleckCounts
 ) where {H,T}
   result = Dict{H,T}()
   for (harmonic, value) in periodic
@@ -89,11 +74,7 @@ function bloch_vv_right_static_product(
 end
 
 function bloch_vv_static_series_inverse(
-  factor::Vector{T},
-  order::Int,
-  product,
-  counts::BlochVanVleckCounts;
-  simplifier=identity,
+  factor::Vector{T}, order::Int, product, counts::BlochVanVleckCounts; simplifier=identity
 ) where {T}
   inverse = T[first(factor)]
   for n in 1:order
@@ -144,9 +125,7 @@ function bloch_van_vleck_reconstruction(
   static_factor = T[identity_component]
   normalized_embedding = Vector{Dict{H,T}}()
   log_embedding = Vector{Dict{H,T}}()
-  powers = [
-    [Dict{H,T}() for _ in 1:max(order, 1)] for _ in 1:max(order, 1)
-  ]
+  powers = [[Dict{H,T}() for _ in 1:max(order, 1)] for _ in 1:max(order, 1)]
   counts = BlochVanVleckCounts()
 
   for n in 1:order
@@ -154,11 +133,7 @@ function bloch_van_vleck_reconstruction(
     for j in 1:(n - 1)
       counts.factor_products += 1
       correction = bloch_vv_right_static_product(
-        bloch.wave[j],
-        static_factor[n - j + 1],
-        product,
-        simplifier,
-        counts,
+        bloch.wave[j], static_factor[n - j + 1], product, simplifier, counts
       )
       prefactor = bloch_vv_add(prefactor, correction, simplifier)
     end
