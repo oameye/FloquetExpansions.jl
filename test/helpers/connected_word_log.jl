@@ -111,7 +111,7 @@ function lyndon_standard_factorization(word::Tuple)
       return word[1:(split - 1)], suffix
     end
   end
-  throw(ArgumentError("word is not Lyndon"))
+  return throw(ArgumentError("word is not Lyndon"))
 end
 
 function lyndon_bracket_polynomial(word::Tuple, ::Type{C}) where {C}
@@ -127,7 +127,8 @@ function lyndon_decomposition(polynomial::HarmonicWordPolynomial{C}) where {C}
   coefficients = Dict{Tuple,C}()
   while !iszero(residual)
     word = minimum(keys(residual.terms))
-    is_lyndon_word(word) || throw(ArgumentError("primitive polynomial has a non-Lyndon leading word"))
+    is_lyndon_word(word) ||
+      throw(ArgumentError("primitive polynomial has a non-Lyndon leading word"))
     coefficient = residual.terms[word]
     coefficients[word] = get(coefficients, word, zero(C)) + coefficient
     residual -= coefficient * lyndon_bracket_polynomial(word, C)
