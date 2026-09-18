@@ -19,7 +19,7 @@ jobs:
         with:
           version: ${{ matrix.version }}
       - uses: julia-actions/cache@v3
-      - name: Set up test environment
-        run: julia --project=test -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Instantiate package environment
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Run Phase-I and open-leg reference tests
-        run: julia --project=test -e 'using FloquetExpansions; include("test/cp_hfe_amplitude_transport.jl"); include("test/open_leg_cp_hfe_reference.jl")'
+        run: julia --project=. -e 'using FloquetExpansions; include("test/cp_hfe_amplitude_transport.jl"); include("test/open_leg_cp_hfe_reference.jl")'
