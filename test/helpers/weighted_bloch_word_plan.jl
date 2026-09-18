@@ -27,19 +27,14 @@ function add_word_coefficient!(
   return terms
 end
 
-function harmonic_word_terms!(
-  terms::Dict{H,Dict{Tuple,C}}, harmonic::H
-) where {H,C}
+function harmonic_word_terms!(terms::Dict{H,Dict{Tuple,C}}, harmonic::H) where {H,C}
   return get!(terms, harmonic) do
-    Dict{Tuple,C}()
+    return Dict{Tuple,C}()
   end
 end
 
 function compile_bloch_word_plan(
-  support_input,
-  order::Int;
-  inverse_weight,
-  zero_harmonic=zero(first(support_input)),
+  support_input, order::Int; inverse_weight, zero_harmonic=zero(first(support_input))
 )
   order >= 1 || throw(ArgumentError("order must be >= 1"))
   isempty(support_input) && throw(ArgumentError("harmonic support must not be empty"))
@@ -51,8 +46,7 @@ function compile_bloch_word_plan(
   support = H[harmonic for harmonic in support]
 
   nonzero_index = findfirst(!iszero, support)
-  coefficient_sample =
-    isnothing(nonzero_index) ? 1 : inverse_weight(support[nonzero_index])
+  coefficient_sample = isnothing(nonzero_index) ? 1 : inverse_weight(support[nonzero_index])
   C = typeof(coefficient_sample)
   one_coefficient = one(coefficient_sample)
 
@@ -70,8 +64,7 @@ function compile_bloch_word_plan(
     X1 = Dict{H,Dict{Tuple,C}}()
     for harmonic in support
       iszero(harmonic) && continue
-      harmonic_word_terms!(X1, harmonic)[(harmonic,)] =
-        convert(C, inverse_weight(harmonic))
+      harmonic_word_terms!(X1, harmonic)[(harmonic,)] = convert(C, inverse_weight(harmonic))
     end
     push!(wave, X1)
   end
@@ -85,10 +78,7 @@ function compile_bloch_word_plan(
       for (wave_word, coefficient) in wave_terms
         counts.generator_product_terms += 1
         add_word_coefficient!(
-          output_terms,
-          (wave_word..., generator_harmonic),
-          coefficient,
-          counts,
+          output_terms, (wave_word..., generator_harmonic), coefficient, counts
         )
       end
     end
@@ -100,6 +90,7 @@ function compile_bloch_word_plan(
         output_terms = harmonic_word_terms!(residual, wave_harmonic)
         for (wave_word, wave_coefficient) in wave_terms,
           (effective_word, effective_coefficient) in Bj
+
           counts.folded_counterterms += 1
           add_word_coefficient!(
             output_terms,
