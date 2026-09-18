@@ -22,10 +22,7 @@ function llb_kerr_workload()
   a = Destroy(fock, :a)
   @variables ω_llb_k::Real t_llb_k::Real Δ_llb_k::Real K_llb_k::Real ε_llb_k::Real
   number = a' * a
-  H =
-    Δ_llb_k * number +
-    K_llb_k * a'^2 * a^2 +
-    ε_llb_k * cos(ω_llb_k * t_llb_k) * (a + a')
+  H = Δ_llb_k * number + K_llb_k * a'^2 * a^2 + ε_llb_k * cos(ω_llb_k * t_llb_k) * (a + a')
   return H, ω_llb_k, t_llb_k
 end
 
@@ -74,11 +71,7 @@ function llb_context(H, ω, t, order)
     simplifier=llb_simplify,
   )
   direct = FE_LLB.bloch_van_vleck_reconstruction(
-    bloch_plan,
-    bloch;
-    product=llb_product,
-    zero_component,
-    simplifier=llb_simplify,
+    bloch_plan, bloch; product=llb_product, zero_component, simplifier=llb_simplify
   )
   lyndon = compile_lyndon_log_evaluation_plan(keys(components), order)
   _, mercator_counts = llb_mercator_replay(direct.normalized_embedding)
@@ -110,18 +103,19 @@ function benchmark_lyndon_log_evaluation!(suite)
     support = collect(keys(components))
     normalized = direct.normalized_embedding
 
-    suite["Connected Log Evaluation"][label]["order $order"]["Mercator replay"] =
-      @benchmarkable llb_mercator_replay($normalized)
-    suite["Connected Log Evaluation"][label]["order $order"]["Lyndon DAG"] =
-      @benchmarkable evaluate_lyndon_log_plan(
-        $lyndon,
-        $components;
-        product=llb_product,
-        zero_component=$zero_component,
-        simplifier=llb_simplify,
-      )
-    suite["Connected Log Evaluation"][label]["order $order"]["Lyndon plan compile"] =
-      @benchmarkable compile_lyndon_log_evaluation_plan($support, $order)
+    suite["Connected Log Evaluation"][label]["order $order"]["Mercator replay"] = @benchmarkable llb_mercator_replay(
+      $normalized
+    )
+    suite["Connected Log Evaluation"][label]["order $order"]["Lyndon DAG"] = @benchmarkable evaluate_lyndon_log_plan(
+      $lyndon,
+      $components;
+      product=llb_product,
+      zero_component=($zero_component),
+      simplifier=llb_simplify,
+    )
+    suite["Connected Log Evaluation"][label]["order $order"]["Lyndon plan compile"] = @benchmarkable compile_lyndon_log_evaluation_plan(
+      $support, $order
+    )
 
     print_lyndon_backend_profile(label, H, ω, t, order)
   end
