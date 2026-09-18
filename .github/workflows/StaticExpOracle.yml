@@ -1,0 +1,24 @@
+name: Static Exponential Oracle
+
+on:
+  push:
+    branches: [ci/164-static-exp-oracle]
+
+jobs:
+  oracle:
+    strategy:
+      fail-fast: false
+      matrix:
+        julia: ['1.10', '1']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/164-static-exp-oracle
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia }}
+      - name: Instantiate
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Run static exponential oracle
+        run: julia --project=. test/static_sector_exponential.jl
