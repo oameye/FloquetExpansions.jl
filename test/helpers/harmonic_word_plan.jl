@@ -43,7 +43,9 @@ function compiled_harmonic_word(harmonics, zero_harmonic)
   return CompiledHarmonicWord{H}(Tuple(harmonics), Tuple(sums), Tuple(returns))
 end
 
-is_closed(word::CompiledHarmonicWord) = !isempty(word.partial_sums) && iszero(last(word.partial_sums))
+function is_closed(word::CompiledHarmonicWord)
+  return !isempty(word.partial_sums) && iszero(last(word.partial_sums))
+end
 function is_first_return(word::CompiledHarmonicWord)
   is_closed(word) || return false
   return all(!iszero(sum) for sum in word.partial_sums[1:(end - 1)])
@@ -51,7 +53,9 @@ end
 
 function fold_positions(word::CompiledHarmonicWord)
   is_closed(word) || return ()
-  return Tuple(position for position in word.return_positions if position < length(word.harmonics))
+  return Tuple(
+    position for position in word.return_positions if position < length(word.harmonics)
+  )
 end
 
 function return_blocks(word::CompiledHarmonicWord)
@@ -65,7 +69,9 @@ function return_blocks(word::CompiledHarmonicWord)
   return blocks
 end
 
-function reachable_harmonic_sums(support::Vector{H}, max_steps::Int, zero_harmonic::H) where {H}
+function reachable_harmonic_sums(
+  support::Vector{H}, max_steps::Int, zero_harmonic::H
+) where {H}
   reachable = [Set{H}() for _ in 0:max_steps]
   push!(reachable[1], zero_harmonic)
   for steps in 1:max_steps
