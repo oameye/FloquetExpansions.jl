@@ -51,13 +51,13 @@ end
   for (grade, embedding) in enumerate(converted.log_embedding)
     for polynomial in values(embedding)
       @test harmonic_word_lengths(polynomial) == [grade]
-      @test dynkin_projection(polynomial) == grade * polynomial
+      @test dynkin_projection(polynomial).terms == (grade * polynomial).terms
       decomposition = lyndon_decomposition(polynomial)
       reconstructed = HarmonicWordPolynomial{Rational{Int}}()
       for (word, coefficient) in decomposition
         reconstructed += coefficient * lyndon_bracket_polynomial(word, Rational{Int})
       end
-      @test reconstructed == polynomial
+      @test reconstructed.terms == polynomial.terms
     end
   end
 end
