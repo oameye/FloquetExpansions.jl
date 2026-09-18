@@ -7,7 +7,7 @@ function mlr_bernoulli_numbers(order::Int)
   values = Rational{Int}[1 // 1]
   for n in 1:order
     total = sum(binomial(n + 1, k) * values[k + 1] for k in 0:(n - 1); init=0 // 1)
-    push!(values, -total // (n + 1))
+    push!(values, -total / (n + 1))
   end
   return values
 end
@@ -63,7 +63,7 @@ function connected_log_magnus_recurrence(
         coefficient = FE_MLR.bloch_vv_add(coefficient, contribution, simplifier)
       end
       ad_coefficients[depth][n + 1] = coefficient
-      weight = bernoulli[depth + 1] // factorial(depth)
+      weight = bernoulli[depth + 1] / factorial(depth)
       derivative = FE_MLR.bloch_vv_add(
         derivative, FE_MLR.bloch_vv_scale(weight, coefficient, simplifier), simplifier
       )
