@@ -12,8 +12,9 @@ struct BVVIHarmonic2D
   n2::Int
 end
 
-Base.:+(left::BVVIHarmonic2D, right::BVVIHarmonic2D) =
-  BVVIHarmonic2D(left.n1 + right.n1, left.n2 + right.n2)
+function Base.:+(left::BVVIHarmonic2D, right::BVVIHarmonic2D)
+  return BVVIHarmonic2D(left.n1 + right.n1, left.n2 + right.n2)
+end
 Base.zero(::BVVIHarmonic2D) = BVVIHarmonic2D(0, 0)
 Base.iszero(harmonic::BVVIHarmonic2D) = iszero(harmonic.n1) && iszero(harmonic.n2)
 
@@ -75,12 +76,11 @@ end
   )
   vv = floquet_expansion(H, VanVleck(), order)
 
-  @test converted.counts.log_products == FE_BVVI.bloch_van_vleck_mercator_products(order - 1)
+  @test converted.counts.log_products ==
+    FE_BVVI.bloch_van_vleck_mercator_products(order - 1)
   @test all(!haskey(term, plan.zero_harmonic) for term in converted.log_embedding)
   for n in 1:(order - 1)
-    @test bvvi_vanishes(
-      converted.effective[n + 1] - ω_bvvi^n * effective_component(vv, n)
-    )
+    @test bvvi_vanishes(converted.effective[n + 1] - ω_bvvi^n * effective_component(vv, n))
     kick = im * bvvi_periodic(converted.log_embedding[n], H)
     @test bvvi_vanishes(kick - ω_bvvi^n * micromotion(vv, n))
   end
@@ -151,22 +151,14 @@ end
 
   plan = FE_BVVI.compile_bloch_projection_plan(support, order, zero_harmonic)
   bloch = FE_BVVI.evaluate_bloch_projection_plan(
-    plan,
-    components;
-    product,
-    inverse_weight,
-    zero_component,
+    plan, components; product, inverse_weight, zero_component
   )
-  converted = FE_BVVI.bloch_van_vleck_reconstruction(
-    plan,
-    bloch;
-    product,
-    zero_component,
-  )
+  converted = FE_BVVI.bloch_van_vleck_reconstruction(plan, bloch; product, zero_component)
 
   @test length(converted.effective) == order
   @test length(converted.log_embedding) == order - 1
-  @test converted.counts.log_products == FE_BVVI.bloch_van_vleck_mercator_products(order - 1)
+  @test converted.counts.log_products ==
+    FE_BVVI.bloch_van_vleck_mercator_products(order - 1)
   @test all(!haskey(term, zero_harmonic) for term in converted.log_embedding)
   @test all(
     all(harmonic isa BVVIHarmonic2D for harmonic in keys(term)) for
