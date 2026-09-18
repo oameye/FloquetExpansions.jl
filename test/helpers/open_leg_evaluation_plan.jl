@@ -1,3 +1,7 @@
+if !isdefined(@__MODULE__, :OpenLegPeriodic)
+  include(joinpath(@__DIR__, "open_leg_reference.jl"))
+end
+
 struct OpenLegOutputLeg{C,S}
   channel::C
   sideband::S
