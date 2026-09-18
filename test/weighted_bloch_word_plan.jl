@@ -26,7 +26,9 @@ function evaluate_word_sum(terms, generator, product, zero_harmonic)
   return value
 end
 
-function evaluate_wave_component(plan, generator, product, order_index, harmonic, zero_harmonic)
+function evaluate_wave_component(
+  plan, generator, product, order_index, harmonic, zero_harmonic
+)
   terms = get(plan.wave[order_index], harmonic, nothing)
   isnothing(terms) && return zero(generator[zero_harmonic])
   return evaluate_word_sum(terms, generator, product, zero_harmonic)
@@ -122,8 +124,8 @@ end
         @test norm(planned - reference.wave[n][harmonic]) <= 5.0e-11
       end
       @test all(
-        length(word) == n && sum(word) == harmonic
-        for (harmonic, terms) in plan.wave[n] for word in keys(terms)
+        length(word) == n && sum(word) == harmonic for (harmonic, terms) in plan.wave[n] for
+        word in keys(terms)
       )
     end
   end
