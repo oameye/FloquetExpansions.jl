@@ -44,6 +44,7 @@ function compile_lyndon_log_evaluation_plan(support, order::Int)
   leaf_ids = Dict(harmonic => index for (index, harmonic) in enumerate(leaves))
   word_ids = Dict{Tuple,Int}()
   brackets = LyndonBracketNode[]
+  bracket_cache = Dict{Tuple,HarmonicWordPolynomial{C}}()
   _, _, converted = connected_word_reconstruction(leaves, order)
   H = eltype(leaves)
   outputs = Vector{Dict{H,Vector{LyndonOutputTerm{C}}}}()
@@ -52,7 +53,7 @@ function compile_lyndon_log_evaluation_plan(support, order::Int)
     compiled = Dict{H,Vector{LyndonOutputTerm{C}}}()
     for (harmonic, polynomial) in embedding
       terms = LyndonOutputTerm{C}[]
-      for (word, coefficient) in lyndon_decomposition(polynomial)
+      for (word, coefficient) in lyndon_decomposition(polynomial, bracket_cache)
         node = lyndon_ensure_node!(word, leaves, leaf_ids, word_ids, brackets)
         push!(terms, LyndonOutputTerm(node, coefficient))
       end
