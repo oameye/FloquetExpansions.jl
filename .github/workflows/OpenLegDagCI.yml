@@ -1,0 +1,25 @@
+name: OpenLegDagCI
+
+on:
+  push:
+    branches:
+      - research/169-open-leg-dag-ci2
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.10'
+          - '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.version }}
+      - name: Run open-leg reference tranches
+        run: |
+          julia test/open_leg_cp_hfe_reference.jl
+          julia test/open_leg_dag_reference.jl
