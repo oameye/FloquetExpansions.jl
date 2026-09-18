@@ -1,0 +1,19 @@
+name: OpenLegDagFormatProbe
+
+on:
+  push:
+    branches:
+      - research/169-open-leg-dag-format
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - run: |
+          ${HOME}/.julia/bin/jlfmt --inplace test/helpers/open_leg_evaluation_plan.jl test/helpers/open_leg_hori_deprit_order3.jl test/open_leg_dag_reference.jl
+          git diff -- test/helpers/open_leg_evaluation_plan.jl test/helpers/open_leg_hori_deprit_order3.jl test/open_leg_dag_reference.jl
