@@ -151,8 +151,8 @@ end
 
   plan = FE_BVVI.compile_bloch_projection_plan(support, order, zero_harmonic)
   bloch = FE_BVVI.evaluate_bloch_projection_plan(
-    plan;
-    components,
+    plan,
+    components;
     product,
     inverse_weight,
     zero_component,
