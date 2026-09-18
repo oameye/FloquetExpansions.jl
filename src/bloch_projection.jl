@@ -39,7 +39,9 @@ function compile_bloch_projection_plan(support_input, order::Int)
   return compile_bloch_projection_plan(support, order, zero(first(support)))
 end
 
-function compile_bloch_projection_plan(support_input, order::Int, zero_harmonic::H) where {H}
+function compile_bloch_projection_plan(
+  support_input, order::Int, zero_harmonic::H
+) where {H}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
 
   support = unique(collect(support_input))
