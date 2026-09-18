@@ -185,7 +185,9 @@ function compile_openleg_evaluation_plan(
         edges = get!(fold_edges, output) do
           return OpenLegFoldEdge{Int}[]
         end
-        push!(edges, OpenLegFoldEdge(wave_order, wave_state, effective_order, effective_state))
+        push!(
+          edges, OpenLegFoldEdge(wave_order, wave_state, effective_order, effective_state)
+        )
         fold_product_count += 1
       end
     end
