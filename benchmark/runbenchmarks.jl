@@ -5,6 +5,9 @@ const SUITE = BenchmarkGroup()
 
 include("workflows.jl")
 include("cp_hfe.jl")
+include("coherent_profile.jl")
+
+print_coherent_work_profiles()
 benchmark_fourier_expansion!(SUITE)
 benchmark_floquet_expansion!(SUITE)
 benchmark_positive_completion!(SUITE)
