@@ -45,10 +45,7 @@ function projection_periodic_product(
 end
 
 function projection_right_static_product(
-  periodic::PeriodicGenerator{T},
-  static::T,
-  product,
-  counts::BlochVanVleckProjectionCounts,
+  periodic::PeriodicGenerator{T}, static::T, product, counts::BlochVanVleckProjectionCounts
 ) where {T}
   out = Dict{Int,T}()
   for harmonic in keys(periodic)
@@ -104,10 +101,14 @@ end
 function periodicize_bloch_projection(
   result::FE_BVV.BlochProjectionResult{H,T}, template::PeriodicGenerator{T}
 ) where {H,T}
-  H === Int || throw(ArgumentError("periodic reconstruction currently expects integer harmonics"))
+  H === Int ||
+    throw(ArgumentError("periodic reconstruction currently expects integer harmonics"))
   wave = PeriodicGenerator{T}[
-    PeriodicGenerator(Dict(harmonic => value for (harmonic, value) in coefficient), template.wd, template.zero_component)
-    for coefficient in result.wave
+    PeriodicGenerator(
+      Dict(harmonic => value for (harmonic, value) in coefficient),
+      template.wd,
+      template.zero_component,
+    ) for coefficient in result.wave
   ]
   return PeriodicBlochProjectionResult(wave, result.effective)
 end
@@ -229,7 +230,9 @@ function replay_static_similarity(
 ) where {T}
   order = length(effective) - 1
   counts = BlochVanVleckProjectionCounts()
-  inverse = projection_static_series_inverse(static_factor, order, product, counts; simplifier)
+  inverse = projection_static_series_inverse(
+    static_factor, order, product, counts; simplifier
+  )
   right = projection_static_series_product(
     effective, static_factor, order, product, counts; simplifier
   )
@@ -239,5 +242,6 @@ function replay_static_similarity(
   return transformed, counts
 end
 
-expected_projection_mercator_products(order::Int) =
-  order < 2 ? 0 : (order + 1) * order * (order - 1) ÷ 6
+function expected_projection_mercator_products(order::Int)
+  return order < 2 ? 0 : (order + 1) * order * (order - 1) ÷ 6
+end
