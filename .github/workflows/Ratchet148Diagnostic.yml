@@ -1,0 +1,30 @@
+name: Ratchet 148 Diagnostic
+
+on:
+  push:
+    branches:
+      - ci/148-ratchet-diagnostic
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - name: Install JETLS
+        run: |
+          julia -e 'using Pkg; Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
+          echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
+      - name: Instantiate ratchet environment
+        run: julia --project=code_ratchet -e 'using Pkg; Pkg.instantiate()'
+      - name: Refresh and show exact baselines
+        run: |
+          for metric in complexity style docs boxes lsp; do
+            julia --project=code_ratchet -e 'using CodeRatchet; try; @eval using JET; catch; end; exit(CodeRatchet.main())' "$metric" refresh --accept-change
+          done
+          for file in code_ratchet/{complexity,style,docs,boxes,lsp}_baseline.toml; do
+            echo "===== $file ====="
+            cat "$file"
+          done
