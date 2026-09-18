@@ -1,0 +1,22 @@
+name: Connected Word Final
+
+on:
+  push:
+    branches:
+      - ci/155-targeted-final
+
+jobs:
+  oracle:
+    strategy:
+      matrix:
+        julia-version: ['1', '1.10']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia-version }}
+      - name: Instantiate
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Run connected-word oracle
+        run: julia --project=. test/connected_word_log.jl
