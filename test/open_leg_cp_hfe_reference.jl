@@ -1,5 +1,5 @@
 using Test
-using LinearAlgebra: kron
+using LinearAlgebra: I, kron
 
 include(joinpath(@__DIR__, "helpers", "open_leg_reference.jl"))
 
