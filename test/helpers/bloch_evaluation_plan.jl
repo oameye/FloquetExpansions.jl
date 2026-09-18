@@ -96,7 +96,9 @@ function compile_bloch_evaluation_plan(
 
     effective_active[n + 1] = zero_harmonic in residual_support
     if n < order - 1
-      wave_support[n + 1] = H[harmonic for harmonic in residual_support if !iszero(harmonic)]
+      wave_support[n + 1] = H[
+        harmonic for harmonic in residual_support if !iszero(harmonic)
+      ]
     end
   end
 
