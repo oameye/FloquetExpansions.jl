@@ -2,6 +2,8 @@ using FloquetExpansions
 
 isdefined(@__MODULE__, :LyndonLogEvaluationPlan) ||
   include(joinpath(@__DIR__, "lyndon_log_evaluator.jl"))
+isdefined(@__MODULE__, :StaticSectorExpPlan) ||
+  include(joinpath(@__DIR__, "static_sector_exponential.jl"))
 
 const FE_CVVR = FloquetExpansions
 
@@ -58,7 +60,8 @@ function connected_van_vleck_reconstruction(
   projection_plan::FE_CVVR.BlochProjectionPlan{H},
   bloch::FE_CVVR.BlochProjectionResult{H,T},
   components::AbstractDict{H,T},
-  log_plan::LyndonLogEvaluationPlan{H};
+  log_plan::LyndonLogEvaluationPlan{H},
+  static_plan::StaticSectorExpPlan{H};
   product,
   zero_component::T,
   simplifier=identity,
@@ -68,19 +71,25 @@ function connected_van_vleck_reconstruction(
     throw(ArgumentError("Bloch plan/result truncations are inconsistent"))
   length(log_plan.outputs) == order ||
     throw(ArgumentError("connected-log plan/result truncations are inconsistent"))
+  length(static_plan.targets) == order ||
+    throw(ArgumentError("static-exponential plan/result truncations are inconsistent"))
+  static_plan.zero_harmonic == projection_plan.zero_harmonic ||
+    throw(ArgumentError("static-exponential and Bloch zero harmonics are inconsistent"))
 
   log_embedding = evaluate_lyndon_log_plan(
     log_plan, components; product, zero_component, simplifier
   )
   identity_component = one(first(bloch.effective))
-  static_factor, counts = connected_static_factor(
+  static_factor = evaluate_static_sector_exp_plan(
+    static_plan,
     log_embedding,
-    projection_plan.zero_harmonic,
     identity_component,
     zero_component;
     product,
     simplifier,
   )
+  counts = FE_CVVR.BlochVanVleckCounts()
+  counts.harmonic_products = static_plan.product_count
   inverse_static_factor = FE_CVVR.bloch_vv_static_series_inverse(
     static_factor, order, product, counts; simplifier
   )
@@ -93,6 +102,28 @@ function connected_van_vleck_reconstruction(
 
   return ConnectedVanVleckResult(
     static_factor, inverse_static_factor, log_embedding, effective, counts
+  )
+end
+
+function connected_van_vleck_reconstruction(
+  projection_plan::FE_CVVR.BlochProjectionPlan{H},
+  bloch::FE_CVVR.BlochProjectionResult{H,T},
+  components::AbstractDict{H,T},
+  log_plan::LyndonLogEvaluationPlan{H};
+  product,
+  zero_component::T,
+  simplifier=identity,
+) where {H,T}
+  static_plan = compile_static_sector_exp_plan(log_plan, projection_plan.zero_harmonic)
+  return connected_van_vleck_reconstruction(
+    projection_plan,
+    bloch,
+    components,
+    log_plan,
+    static_plan;
+    product,
+    zero_component,
+    simplifier,
   )
 end
 
