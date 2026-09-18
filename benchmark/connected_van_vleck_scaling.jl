@@ -30,7 +30,7 @@ function scaling_measure(f; samples=3)
   return median(times), memory
 end
 
-components, zero_component, projection_plan, bloch, direct, log_plan, connected = cvvb_context(
+(components, zero_component, projection_plan, bloch, direct, log_plan, static_plan, connected) = cvvb_context(
   H, ω, t, order
 )
 
@@ -41,6 +41,7 @@ println(
   "order=$(order) ",
   "lyndon_brackets=$(length(log_plan.brackets)) ",
   "lyndon_backend_products=$(lyndon_backend_products(log_plan)) ",
+  "static_exp_backend_products=$(static_plan.product_count) ",
   "connected_backend_products=$(connected_reconstruction_backend_products(connected, log_plan))",
 )
 
@@ -48,12 +49,15 @@ direct_reconstruction =
   () -> cvvb_direct_reconstruction(projection_plan, bloch, zero_component)
 connected_reconstruction =
   () -> cvvb_connected_reconstruction(
-    projection_plan, bloch, components, log_plan, zero_component
+    projection_plan, bloch, components, log_plan, static_plan, zero_component
   )
 direct_core = () -> cvvb_direct_core(projection_plan, components, zero_component)
 connected_core =
-  () -> cvvb_connected_core(projection_plan, log_plan, components, zero_component)
-plan_compile = () -> compile_lyndon_log_evaluation_plan(keys(components), order)
+  () ->
+    cvvb_connected_core(projection_plan, log_plan, static_plan, components, zero_component)
+lyndon_plan_compile = () -> compile_lyndon_log_evaluation_plan(keys(components), order)
+static_plan_compile =
+  () -> compile_static_sector_exp_plan(log_plan, projection_plan.zero_harmonic)
 production = () -> begin
   expansion = floquet_expansion(H, ω, t, VanVleck(), order)
   effective_generator(expansion), micromotion(expansion)
@@ -64,7 +68,8 @@ for (label, f) in (
   "connected_reconstruction" => connected_reconstruction,
   "direct_core" => direct_core,
   "connected_core" => connected_core,
-  "lyndon_plan_compile" => plan_compile,
+  "lyndon_plan_compile" => lyndon_plan_compile,
+  "static_plan_compile" => static_plan_compile,
   "production_hori_deprit" => production,
 )
   seconds, memory = scaling_measure(f)
