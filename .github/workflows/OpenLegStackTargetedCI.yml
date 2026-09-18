@@ -1,0 +1,25 @@
+name: OpenLegStackTargetedCI
+
+on:
+  push:
+    branches:
+      - research/169-open-leg-stack-targeted-ci
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version:
+          - '1.10'
+          - '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.version }}
+      - uses: julia-actions/cache@v3
+      - name: Set up test environment
+        run: julia --project=test -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Run Phase-I and open-leg reference tests
+        run: julia --project=test -e 'using FloquetExpansions; include("test/cp_hfe_amplitude_transport.jl"); include("test/open_leg_cp_hfe_reference.jl")'
