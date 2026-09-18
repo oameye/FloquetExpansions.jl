@@ -71,6 +71,33 @@ function harmonic_word_product(
   return harmonic_word_polynomial(terms)
 end
 
+function harmonic_word_commutator(
+  left::HarmonicWordPolynomial{C}, right::HarmonicWordPolynomial{C}
+) where {C}
+  return harmonic_word_product(left, right) - harmonic_word_product(right, left)
+end
+
+function dynkin_word(word::Tuple, ::Type{C}) where {C}
+  isempty(word) && return HarmonicWordPolynomial{C}()
+  result = harmonic_word_leaf(first(word), C)
+  for harmonic in Iterators.drop(word, 1)
+    result = harmonic_word_commutator(result, harmonic_word_leaf(harmonic, C))
+  end
+  return result
+end
+
+function dynkin_projection(polynomial::HarmonicWordPolynomial{C}) where {C}
+  result = HarmonicWordPolynomial{C}()
+  for (word, coefficient) in polynomial.terms
+    result += coefficient * dynkin_word(word, C)
+  end
+  return result
+end
+
+function harmonic_word_lengths(polynomial::HarmonicWordPolynomial)
+  return unique(length(word) for word in keys(polynomial.terms))
+end
+
 function evaluate_harmonic_word_polynomial(
   polynomial::HarmonicWordPolynomial,
   components::AbstractDict;
