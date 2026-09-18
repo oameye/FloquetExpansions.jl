@@ -9,6 +9,29 @@ bloch_operator_product(left, right) = left * right
 bloch_hamiltonian_inverse(harmonic) = 1 // harmonic
 bloch_simplify(value) = FE_BLOCH.SQA.simplify(value)
 
+mutable struct BlochAlgebraProfile
+  simplify_calls::Int
+  simplify_term_inputs::Int
+  simplify_term_outputs::Int
+  peak_simplify_input_terms::Int
+  peak_simplify_output_terms::Int
+end
+
+BlochAlgebraProfile() = BlochAlgebraProfile(0, 0, 0, 0, 0)
+
+function profiled_bloch_simplify(profile::BlochAlgebraProfile, value)
+  input_terms = length(value)
+  profile.simplify_calls += 1
+  profile.simplify_term_inputs += input_terms
+  profile.peak_simplify_input_terms = max(profile.peak_simplify_input_terms, input_terms)
+
+  simplified = bloch_simplify(value)
+  output_terms = length(simplified)
+  profile.simplify_term_outputs += output_terms
+  profile.peak_simplify_output_terms = max(profile.peak_simplify_output_terms, output_terms)
+  return simplified
+end
+
 function bloch_qubit_workload()
   pauli = PauliSpace(:bloch_benchmark_qubit)
   σx = Pauli(pauli, :sigma, 1)
@@ -54,6 +77,20 @@ function evaluate_bloch_hamiltonian(plan, components, zero_component)
   )
 end
 
+function profile_bloch_hamiltonian(plan, components, zero_component)
+  profile = BlochAlgebraProfile()
+  simplifier = value -> profiled_bloch_simplify(profile, value)
+  result = evaluate_bloch_evaluation_plan(
+    plan,
+    components;
+    product=bloch_operator_product,
+    inverse_weight=bloch_hamiltonian_inverse,
+    zero_component,
+    simplifier,
+  )
+  return result, profile
+end
+
 function solve_bloch_hamiltonian(H, ω, t, order)
   _, _, plan, components, zero_component = bloch_benchmark_context(H, ω, t, order)
   return evaluate_bloch_hamiltonian(plan, components, zero_component)
@@ -64,7 +101,8 @@ function bloch_input_term_count(generator)
 end
 
 function print_bloch_plan_profile(label, H, ω, t, order)
-  generator, _, plan, _, _ = bloch_benchmark_context(H, ω, t, order)
+  generator, _, plan, components, zero_component = bloch_benchmark_context(H, ω, t, order)
+  _, algebra = profile_bloch_hamiltonian(plan, components, zero_component)
   counts = plan.counts
   fields = (
     "workload=$(label)",
@@ -77,6 +115,11 @@ function print_bloch_plan_profile(label, H, ω, t, order)
     "generator_products=$(counts.generator_products)",
     "fold_products=$(counts.fold_products)",
     "total_products=$(counts.generator_products + counts.fold_products)",
+    "simplify_calls=$(algebra.simplify_calls)",
+    "simplify_term_inputs=$(algebra.simplify_term_inputs)",
+    "simplify_term_outputs=$(algebra.simplify_term_outputs)",
+    "peak_simplify_input_terms=$(algebra.peak_simplify_input_terms)",
+    "peak_simplify_output_terms=$(algebra.peak_simplify_output_terms)",
   )
   println("BLOCH_PLAN_PROFILE ", join(fields, " "))
   return nothing
