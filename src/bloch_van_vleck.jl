@@ -1,4 +1,4 @@
-struct BlochVanVleckCounts
+mutable struct BlochVanVleckCounts
   factor_products::Int
   log_products::Int
   inverse_products::Int
