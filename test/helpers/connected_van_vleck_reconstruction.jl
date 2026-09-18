@@ -1,6 +1,7 @@
 using FloquetExpansions
 
-include(joinpath(@__DIR__, "lyndon_log_evaluator.jl"))
+isdefined(@__MODULE__, :LyndonLogEvaluationPlan) ||
+  include(joinpath(@__DIR__, "lyndon_log_evaluator.jl"))
 
 const FE_CVVR = FloquetExpansions
 
