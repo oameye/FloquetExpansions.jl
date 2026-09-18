@@ -7,6 +7,16 @@ using Symbolics: @variables
 const FE_BVVI = FloquetExpansions
 const SQA_BVVI = SecondQuantizedAlgebra
 
+struct BVVIHarmonic2D
+  n1::Int
+  n2::Int
+end
+
+Base.:+(left::BVVIHarmonic2D, right::BVVIHarmonic2D) =
+  BVVIHarmonic2D(left.n1 + right.n1, left.n2 + right.n2)
+Base.zero(::BVVIHarmonic2D) = BVVIHarmonic2D(0, 0)
+Base.iszero(harmonic::BVVIHarmonic2D) = iszero(harmonic.n1) && iszero(harmonic.n2)
+
 function bvvi_vanishes(value)
   return iszero(SQA_BVVI.simplify(value))
 end
@@ -45,7 +55,7 @@ end
   @variables ω_bvvi::Real
 
   H1 = σx + im * σy
-  H = PeriodicGenerator(Dict(0 => σz, 1 => H1, -1 => H1'), ω_bvvi)
+  H = PeriodicGenerator(Dict(0 => 1 * σz, 1 => H1, -1 => H1'), ω_bvvi)
   product(left, right) = left * right
   order = 3
 
@@ -121,33 +131,37 @@ end
 end
 
 @testset "internal Bloch reconstruction preserves generic additive harmonics" begin
-  H = Tuple{Int,Int}
-  zero_harmonic = (0, 0)
-  support = H[zero_harmonic, (1, 0), (-1, 0), (0, 1), (0, -1)]
-  components = Dict{H,Matrix{ComplexF64}}(
+  zero_harmonic = BVVIHarmonic2D(0, 0)
+  h10 = BVVIHarmonic2D(1, 0)
+  hm10 = BVVIHarmonic2D(-1, 0)
+  h01 = BVVIHarmonic2D(0, 1)
+  h0m1 = BVVIHarmonic2D(0, -1)
+  support = [zero_harmonic, h10, hm10, h01, h0m1]
+  components = Dict{BVVIHarmonic2D,Matrix{ComplexF64}}(
     zero_harmonic => ComplexF64[0.2 0.3im; -0.1 0.4],
-    (1, 0) => ComplexF64[0.1 0.7; 0.2im -0.3],
-    (-1, 0) => ComplexF64[0.3im -0.2; 0.5 0.1],
-    (0, 1) => ComplexF64[-0.2 0.4im; 0.6 0.3],
-    (0, -1) => ComplexF64[0.1 -0.5; 0.2 0.4im],
+    h10 => ComplexF64[0.1 0.7; 0.2im -0.3],
+    hm10 => ComplexF64[0.3im -0.2; 0.5 0.1],
+    h01 => ComplexF64[-0.2 0.4im; 0.6 0.3],
+    h0m1 => ComplexF64[0.1 -0.5; 0.2 0.4im],
   )
   product(left, right) = left * right
-  inverse_weight(harmonic) = inv(harmonic[1] + sqrt(2) * harmonic[2])
+  inverse_weight(harmonic) = inv(harmonic.n1 + sqrt(2) * harmonic.n2)
   order = 4
+  zero_component = zeros(ComplexF64, 2, 2)
 
   plan = FE_BVVI.compile_bloch_projection_plan(support, order, zero_harmonic)
   bloch = FE_BVVI.evaluate_bloch_projection_plan(
-    plan,
-    components;
+    plan;
+    components,
     product,
     inverse_weight,
-    zero_component=zeros(ComplexF64, 2, 2),
+    zero_component,
   )
   converted = FE_BVVI.bloch_van_vleck_reconstruction(
     plan,
     bloch;
     product,
-    zero_component=zeros(ComplexF64, 2, 2),
+    zero_component,
   )
 
   @test length(converted.effective) == order
@@ -155,7 +169,8 @@ end
   @test converted.counts.log_products == FE_BVVI.bloch_van_vleck_mercator_products(order - 1)
   @test all(!haskey(term, zero_harmonic) for term in converted.log_embedding)
   @test all(
-    all(harmonic isa H for harmonic in keys(term)) for term in converted.log_embedding
+    all(harmonic isa BVVIHarmonic2D for harmonic in keys(term)) for
+    term in converted.log_embedding
   )
   @test all(isfinite, (norm(term) for term in converted.effective))
 end
