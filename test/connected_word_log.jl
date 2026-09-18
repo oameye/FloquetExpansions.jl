@@ -44,6 +44,18 @@ end
   end
 end
 
+@testset "canonical log is homogeneous primitive word-by-word" begin
+  support = [-1, 0, 1]
+  order = 6
+  _, _, converted = connected_word_reconstruction(support, order)
+  for (grade, embedding) in enumerate(converted.log_embedding)
+    for polynomial in values(embedding)
+      @test harmonic_word_lengths(polynomial) == [grade]
+      @test dynkin_projection(polynomial) == grade * polynomial
+    end
+  end
+end
+
 @testset "connected-word structural profile" begin
   support = [-1, 0, 1]
   for order in 2:6
