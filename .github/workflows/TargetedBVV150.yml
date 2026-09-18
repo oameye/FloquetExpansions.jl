@@ -1,0 +1,65 @@
+name: Targeted BVV 150
+
+on:
+  push:
+    branches:
+      - ci/150-targeted-bvv-benchmark
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+          arch: x64
+      - uses: julia-actions/cache@v3
+      - name: Run targeted Bloch Van Vleck benchmark
+        run: |
+          cd benchmark
+          julia --project --threads=1 --gcthreads=1 --color=yes -e '
+            using Pkg;
+            Pkg.develop(PackageSpec(path=joinpath(pwd(), "..")));
+            Pkg.instantiate();
+            using BenchmarkTools, FloquetExpansions;
+            include("bloch_van_vleck.jl");
+
+            function emit(label, order, stage, trial)
+              estimate = median(trial)
+              println("BVV_TARGET workload=", label,
+                      " order=", order,
+                      " stage=", stage,
+                      " time_ns=", estimate.time,
+                      " memory=", estimate.memory,
+                      " allocs=", estimate.allocs)
+            end
+
+            function measure(label, H, ω, t, order)
+              generator, _, bloch, converted = bvv_benchmark_context(H, ω, t, order)
+              normalized = converted.normalized_embedding
+              static_factor = converted.static_factor
+              effective = bloch.effective
+
+              emit(label, order, "projection",
+                   @benchmark bvv_projection($generator, $order) samples=20 evals=1 seconds=1)
+              emit(label, order, "reconstruction",
+                   @benchmark bvv_reconstruction($bloch, $generator) samples=20 evals=1 seconds=1)
+              emit(label, order, "mercator",
+                   @benchmark replay_mercator_log($normalized, $generator; product=bvv_product, simplifier=bvv_simplify) samples=20 evals=1 seconds=1)
+              emit(label, order, "similarity",
+                   @benchmark replay_static_similarity($effective, $static_factor; product=bvv_product, simplifier=bvv_simplify) samples=20 evals=1 seconds=1)
+              emit(label, order, "end_to_end",
+                   @benchmark bvv_end_to_end($H, $ω, $t, $order) samples=20 evals=1 seconds=1)
+              emit(label, order, "hori_deprit",
+                   @benchmark floquet_expansion($H, $ω, $t, VanVleck(), $order) samples=20 evals=1 seconds=1)
+            end
+
+            print_bvv_profiles()
+            qubit_H, qubit_ω, qubit_t = bvv_qubit_workload()
+            kerr_H, kerr_ω, kerr_t = bvv_kerr_workload()
+            for order in 2:4
+              measure("qubit", qubit_H, qubit_ω, qubit_t, order)
+              measure("kerr", kerr_H, kerr_ω, kerr_t, order)
+            end
+          '
