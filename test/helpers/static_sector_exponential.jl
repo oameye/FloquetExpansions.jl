@@ -63,13 +63,10 @@ function compile_static_sector_exp_plan(
       for left_harmonic in supports[1][k]
         for right_harmonic in supports[power - 1][right_order]
           left_harmonic + right_harmonic == harmonic || continue
-          right_node =
-            power == 2 ? 0 : ensure_node(power - 1, right_order, right_harmonic)
+          right_node = power == 2 ? 0 : ensure_node(power - 1, right_order, right_harmonic)
           push!(
             dependencies,
-            StaticExpDependency(
-              k, left_harmonic, right_order, right_harmonic, right_node
-            ),
+            StaticExpDependency(k, left_harmonic, right_order, right_harmonic, right_node),
           )
           product_count[] += 1
         end
@@ -107,11 +104,11 @@ function evaluate_static_sector_exp_plan(
       left = get(
         log_embedding[dependency.left_order], dependency.left_harmonic, zero_component
       )
-      right =
-        dependency.right_node == 0 ?
-        get(
-          log_embedding[dependency.right_order], dependency.right_harmonic, zero_component
-        ) : values[dependency.right_node]
+      right = if dependency.right_node == 0
+        get(log_embedding[dependency.right_order], dependency.right_harmonic, zero_component)
+      else
+        values[dependency.right_node]
+      end
       value += product(left, right)
     end
     values[node_id] = simplifier(value)::T
