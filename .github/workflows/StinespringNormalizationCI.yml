@@ -1,0 +1,23 @@
+name: StinespringNormalizationCI
+
+on:
+  push:
+    branches:
+      - research/169-stinespring-normalization-ci
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.10'
+          - '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.version }}
+      - name: Run Stinespring normalization reference
+        run: julia test/stinespring_normalization_reference.jl
