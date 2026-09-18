@@ -1,0 +1,47 @@
+name: Lyndon Compiler Candidate
+
+on:
+  push:
+    branches:
+      - ci/165-candidate
+
+jobs:
+  certify:
+    strategy:
+      fail-fast: false
+      matrix:
+        julia: ['1', '1.10']
+    runs-on: ubuntu-latest
+    name: oracle ${{ matrix.julia }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/165-candidate
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia }}
+      - name: Instantiate tests
+        run: julia --project=test -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+      - name: Run connected compiler oracles
+        run: |
+          julia --project=test test/connected_word_log.jl
+          julia --project=test test/connected_van_vleck_reconstruction.jl
+          julia --project=test test/static_sector_exponential.jl
+  profile:
+    strategy:
+      fail-fast: false
+      matrix:
+        order: [4, 5, 6]
+    runs-on: ubuntu-latest
+    name: profile order ${{ matrix.order }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/165-candidate
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.10'
+      - name: Instantiate benchmark environment
+        run: julia --project=benchmark -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+      - name: Profile Lyndon plan compiler
+        run: julia --project=benchmark benchmark/lyndon_plan_compile_profile.jl ${{ matrix.order }}
