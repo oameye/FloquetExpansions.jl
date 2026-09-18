@@ -21,11 +21,14 @@ function harmonic_word_polynomial(terms::Dict{Tuple,C}) where {C}
 end
 
 Base.zero(polynomial::HarmonicWordPolynomial{C}) where {C} = HarmonicWordPolynomial{C}()
-Base.one(polynomial::HarmonicWordPolynomial{C}) where {C} =
-  HarmonicWordPolynomial{C}(Dict(() => one(C)))
+function Base.one(polynomial::HarmonicWordPolynomial{C}) where {C}
+  return HarmonicWordPolynomial{C}(Dict(() => one(C)))
+end
 Base.iszero(polynomial::HarmonicWordPolynomial) = isempty(polynomial.terms)
 
-function Base.:+(left::HarmonicWordPolynomial{C}, right::HarmonicWordPolynomial{C}) where {C}
+function Base.:+(
+  left::HarmonicWordPolynomial{C}, right::HarmonicWordPolynomial{C}
+) where {C}
   terms = copy(left.terms)
   for (word, coefficient) in right.terms
     terms[word] = get(terms, word, zero(C)) + coefficient
@@ -33,9 +36,16 @@ function Base.:+(left::HarmonicWordPolynomial{C}, right::HarmonicWordPolynomial{
   return harmonic_word_polynomial(terms)
 end
 
-Base.:-(polynomial::HarmonicWordPolynomial{C}) where {C} =
-  HarmonicWordPolynomial{C}(Dict(word => -coefficient for (word, coefficient) in polynomial.terms))
-Base.:-(left::HarmonicWordPolynomial{C}, right::HarmonicWordPolynomial{C}) where {C} = left + (-right)
+function Base.:-(polynomial::HarmonicWordPolynomial{C}) where {C}
+  return HarmonicWordPolynomial{C}(
+    Dict(word => -coefficient for (word, coefficient) in polynomial.terms)
+  )
+end
+function Base.:-(
+  left::HarmonicWordPolynomial{C}, right::HarmonicWordPolynomial{C}
+) where {C}
+  return left + (-right)
+end
 
 function Base.:*(weight::Number, polynomial::HarmonicWordPolynomial{C}) where {C}
   terms = Dict{Tuple,C}()
@@ -53,7 +63,8 @@ function harmonic_word_product(
 ) where {C}
   terms = Dict{Tuple,C}()
   for (left_word, left_coefficient) in left.terms,
-      (right_word, right_coefficient) in right.terms
+    (right_word, right_coefficient) in right.terms
+
     word = (left_word..., right_word...)
     terms[word] = get(terms, word, zero(C)) + left_coefficient * right_coefficient
   end
@@ -126,7 +137,10 @@ end
 
 function harmonic_word_prefix_products(embeddings::AbstractVector)
   prefixes = Set{Tuple}()
-  for embedding in embeddings, polynomial in values(embedding), word in keys(polynomial.terms)
+  for embedding in embeddings,
+    polynomial in values(embedding),
+    word in keys(polynomial.terms)
+
     for length_prefix in 2:length(word)
       push!(prefixes, word[1:length_prefix])
     end
