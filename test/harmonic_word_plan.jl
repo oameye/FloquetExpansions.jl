@@ -26,8 +26,12 @@ end
     @test plan.counts.raw_words == length(support)^word_length
     @test plan.counts.closed_words == length(brute)
     @test plan.counts.first_return_words + plan.counts.folded_words == length(brute)
-    @test isempty(intersect(planned_words(first_return_words(plan)), planned_words(folded_words(plan))))
-    @test union(planned_words(first_return_words(plan)), planned_words(folded_words(plan))) == brute
+    @test isempty(
+      intersect(planned_words(first_return_words(plan)), planned_words(folded_words(plan)))
+    )
+    @test union(
+      planned_words(first_return_words(plan)), planned_words(folded_words(plan))
+    ) == brute
     @test all(is_first_return, first_return_words(plan))
     @test all(!is_first_return(word) for word in folded_words(plan))
   end
@@ -65,10 +69,7 @@ end
   for outer_harmonic in nonzero_support, inner_harmonic in nonzero_support
     middle_harmonic = outer_harmonic - inner_harmonic
     middle_harmonic in support || continue
-    push!(
-      expected_B2_primitive,
-      (inner_harmonic, middle_harmonic, -outer_harmonic),
-    )
+    push!(expected_B2_primitive, (inner_harmonic, middle_harmonic, -outer_harmonic))
   end
   for harmonic in nonzero_support
     push!(expected_B2_fold, (0, harmonic, -harmonic))
@@ -97,7 +98,8 @@ end
 
   permuted = compile_harmonic_word_plan(reverse(support), 6)
   @test planned_words(permuted.closed) == planned_words(plan.closed)
-  @test planned_words(first_return_words(permuted)) == planned_words(first_return_words(plan))
+  @test planned_words(first_return_words(permuted)) ==
+    planned_words(first_return_words(plan))
   @test permuted.counts.dag_nodes == plan.counts.dag_nodes
   @test permuted.counts.dag_edges == plan.counts.dag_edges
 end
