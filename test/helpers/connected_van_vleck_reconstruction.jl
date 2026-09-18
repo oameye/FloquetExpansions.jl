@@ -81,12 +81,7 @@ function connected_van_vleck_reconstruction(
   )
   identity_component = one(first(bloch.effective))
   static_factor = evaluate_static_sector_exp_plan(
-    static_plan,
-    log_embedding,
-    identity_component,
-    zero_component;
-    product,
-    simplifier,
+    static_plan, log_embedding, identity_component, zero_component; product, simplifier
   )
   counts = FE_CVVR.BlochVanVleckCounts()
   counts.harmonic_products = static_plan.product_count

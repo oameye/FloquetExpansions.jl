@@ -30,16 +30,9 @@ function scaling_measure(f; samples=3)
   return median(times), memory
 end
 
-(
-  components,
-  zero_component,
-  projection_plan,
-  bloch,
-  direct,
-  log_plan,
-  static_plan,
-  connected,
-) = cvvb_context(H, ω, t, order)
+(components, zero_component, projection_plan, bloch, direct, log_plan, static_plan, connected) = cvvb_context(
+  H, ω, t, order
+)
 
 print_connected_reconstruction_profile(workload_name, H, ω, t, order)
 println(
@@ -60,9 +53,8 @@ connected_reconstruction =
   )
 direct_core = () -> cvvb_direct_core(projection_plan, components, zero_component)
 connected_core =
-  () -> cvvb_connected_core(
-    projection_plan, log_plan, static_plan, components, zero_component
-  )
+  () ->
+    cvvb_connected_core(projection_plan, log_plan, static_plan, components, zero_component)
 lyndon_plan_compile = () -> compile_lyndon_log_evaluation_plan(keys(components), order)
 static_plan_compile =
   () -> compile_static_sector_exp_plan(log_plan, projection_plan.zero_harmonic)

@@ -36,14 +36,12 @@ const FE_SSE = FloquetExpansions
   )
   static_plan = compile_static_sector_exp_plan(log_plan, projection_plan.zero_harmonic)
   compiled = evaluate_static_sector_exp_plan(
-    static_plan,
-    log_embedding,
-    identity_component,
-    zero_component;
-    product=(*),
+    static_plan, log_embedding, identity_component, zero_component; product=(*)
   )
 
   @test compiled == full
   @test static_plan.product_count <= full_counts.harmonic_products
-  @info "static-sector exponential profile" order static_plan.product_count full_products=full_counts.harmonic_products nodes=length(static_plan.nodes)
+  @info "static-sector exponential profile" order static_plan.product_count full_products=full_counts.harmonic_products nodes=length(
+    static_plan.nodes
+  )
 end
