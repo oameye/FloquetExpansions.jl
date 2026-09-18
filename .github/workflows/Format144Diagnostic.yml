@@ -1,0 +1,24 @@
+name: Format 144 Diagnostic
+
+on:
+  push:
+    branches:
+      - ci/144-format-diagnostic
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show exact formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace test/bloch_evaluation_plan.jl test/helpers/bloch_evaluation_plan.jl
+          git diff -- test/bloch_evaluation_plan.jl test/helpers/bloch_evaluation_plan.jl
