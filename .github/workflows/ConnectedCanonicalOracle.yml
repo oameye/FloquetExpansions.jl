@@ -1,0 +1,19 @@
+name: Connected Canonical Oracle
+on:
+  push:
+    branches: [ci/159-targeted-oracle]
+jobs:
+  oracle:
+    strategy:
+      matrix:
+        julia: ['1.10', '1']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia }}
+      - name: Instantiate
+        run: julia --project -e 'using Pkg; Pkg.instantiate()'
+      - name: Run connected canonical oracle
+        run: julia --project test/connected_van_vleck_reconstruction.jl
