@@ -105,12 +105,12 @@ function ck_kernel_has_forced_zero(key::CKKernelKey{H}) where {H}
     outputs_seen += Int(ck_is_jump(vertex))
 
     while model_index <= length(key.model_cuts) &&
-        key.model_cuts[model_index] == vertex_index
+          key.model_cuts[model_index] == vertex_index
       outputs_seen == 0 && !iszero(mismatch) && return true
       model_index += 1
     end
     while resolvent_index <= length(key.resolvent_cuts) &&
-        key.resolvent_cuts[resolvent_index] == vertex_index
+          key.resolvent_cuts[resolvent_index] == vertex_index
       outputs_seen == 0 && iszero(mismatch) && return true
       resolvent_index += 1
     end
@@ -136,9 +136,7 @@ function ck_kernel_accumulate!(
   return terms
 end
 
-function ck_physical_kernel(
-  terms::Dict{CKKernelKey{H},T}, zero_component::T
-) where {H,T}
+function ck_physical_kernel(terms::Dict{CKKernelKey{H},T}, zero_component::T) where {H,T}
   result = Dict{CKKernelKey{H},T}()
   for (key, value) in terms
     ck_kernel_iszero(value) || ck_kernel_accumulate!(result, key, value, zero_component)
@@ -279,7 +277,7 @@ function ck_kernel_ordered_sideband_coefficient(
       end
 
       while model_index <= length(key.model_cuts) &&
-          key.model_cuts[model_index] == vertex_index
+            key.model_cuts[model_index] == vertex_index
         if !iszero(mismatch)
           valid = false
           break
@@ -289,7 +287,7 @@ function ck_kernel_ordered_sideband_coefficient(
       valid || break
 
       while resolvent_index <= length(key.resolvent_cuts) &&
-          key.resolvent_cuts[resolvent_index] == vertex_index
+            key.resolvent_cuts[resolvent_index] == vertex_index
         if iszero(mismatch)
           valid = false
           break
