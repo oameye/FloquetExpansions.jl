@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "f450778"
+commit = "bdfdd6b"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -27,9 +27,20 @@ arg = 6
 cyc_over = 1
 cog_over = 2
 arg_over = 0
-cyc_sum = 25
-cog_sum = 37
-arg_sum = 13
+cyc_sum = 34
+cog_sum = 51
+arg_sum = 22
+
+[files."src/ck_physical_kernel.jl"]
+cyc = 20
+cog = 33
+arg = 4
+cyc_over = 2
+cog_over = 1
+arg_over = 0
+cyc_sum = 95
+cog_sum = 79
+arg_sum = 52
 
 [files."src/completion.jl"]
 cyc = 2
