@@ -28,6 +28,56 @@ struct BlochProjectionResult{H,T}
   effective::Vector{T}
 end
 
+struct BlochOrderRecurrenceResult{T}
+  wave::Vector{T}
+  effective::Vector{T}
+  products::Int
+end
+
+function evaluate_bloch_order_recurrence(
+  generators_by_order::AbstractVector{T},
+  order::Int,
+  identity_component::T,
+  zero_component::T;
+  product,
+  project_model,
+  solve_complement,
+  simplifier=identity,
+) where {T}
+  order >= 1 || throw(ArgumentError("order must be >= 1"))
+  isempty(generators_by_order) &&
+    throw(ArgumentError("at least one generator coefficient is required"))
+
+  wave = Vector{T}(undef, max(order - 1, 0))
+  effective = Vector{T}(undef, order)
+  products = 0
+
+  for n in 1:order
+    residual = zero_component
+
+    for generator_order in 1:min(n, length(generators_by_order))
+      previous_order = n - generator_order
+      previous = iszero(previous_order) ? identity_component : wave[previous_order]
+      residual += product(generators_by_order[generator_order], previous)
+      products += 1
+    end
+
+    for wave_order in 1:(n - 1)
+      effective_order = n - wave_order
+      residual -= product(wave[wave_order], effective[effective_order])
+      products += 1
+    end
+
+    residual = simplifier(residual)::T
+    effective[n] = simplifier(project_model(residual))::T
+    if n < order
+      wave[n] = simplifier(solve_complement(residual))::T
+    end
+  end
+
+  return BlochOrderRecurrenceResult(wave, effective, products)
+end
+
 function bloch_push_unique!(values::Vector{H}, value::H) where {H}
   value in values || push!(values, value)
   return values
