@@ -18,7 +18,7 @@ function mixed_add_coefficient!(
   value::MixedKernelExact,
 )
   coefficients = get!(state, frequency) do
-    MixedKernelExact[]
+    return MixedKernelExact[]
   end
   while length(coefficients) <= degree
     push!(coefficients, zero(MixedKernelExact))
@@ -34,9 +34,7 @@ function mixed_scale_add!(
 )
   for (frequency, coefficients) in source
     for (degree_index, coefficient) in enumerate(coefficients)
-      mixed_add_coefficient!(
-        target, frequency, degree_index - 1, scale * coefficient
-      )
+      mixed_add_coefficient!(target, frequency, degree_index - 1, scale * coefficient)
     end
   end
   return target
@@ -66,9 +64,7 @@ function mixed_monomial_integral(frequency::Int, degree::Int)
   return result
 end
 
-function mixed_shift_frequency(
-  state::Dict{Int,Vector{MixedKernelExact}}, harmonic::Int
-)
+function mixed_shift_frequency(state::Dict{Int,Vector{MixedKernelExact}}, harmonic::Int)
   shifted = Dict{Int,Vector{MixedKernelExact}}()
   for (frequency, coefficients) in state
     shifted[frequency + harmonic] = copy(coefficients)
@@ -136,7 +132,9 @@ function mixed_qr_jump_vertices(word::Vector{MixedQRVertex})
   return MixedQRVertex[vertex for vertex in word if mixed_qr_is_jump(vertex)]
 end
 
-function mixed_qr_add_precedence!(predecessors::Vector{Vector{Int}}, before::Int, after::Int)
+function mixed_qr_add_precedence!(
+  predecessors::Vector{Vector{Int}}, before::Int, after::Int
+)
   before == after && return predecessors
   before in predecessors[after] || push!(predecessors[after], before)
   return predecessors
@@ -153,8 +151,7 @@ function mixed_qr_poset(left::Vector{MixedQRVertex}, right::Vector{MixedQRVertex
 
   output_number = length(left_jumps)
   frequencies = Int[
-    left_jumps[index].harmonic - right_jumps[index].harmonic for
-    index in 1:output_number
+    left_jumps[index].harmonic - right_jumps[index].harmonic for index in 1:output_number
   ]
   predecessors = [Int[] for _ in 1:output_number]
 
@@ -204,7 +201,7 @@ function mixed_qr_linear_extensions(predecessors::Vector{Vector{Int}})
   function visit!()
     if length(current) == node_count
       push!(extensions, copy(current))
-      return
+      return nothing
     end
 
     for node in 1:node_count
@@ -222,9 +219,7 @@ function mixed_qr_linear_extensions(predecessors::Vector{Vector{Int}})
   return extensions
 end
 
-function mixed_qr_gram_polynomial(
-  left::Vector{MixedQRVertex}, right::Vector{MixedQRVertex}
-)
+function mixed_qr_gram_polynomial(left::Vector{MixedQRVertex}, right::Vector{MixedQRVertex})
   poset = mixed_qr_poset(left, right)
   isnothing(poset) && return MixedKernelExact[zero(MixedKernelExact)]
 
@@ -239,16 +234,16 @@ function mixed_qr_gram_polynomial(
   return result
 end
 
-function mixed_one_drift_jump_kernel(position::Symbol, drift_harmonic::Int, jump_harmonic::Int)
+function mixed_one_drift_jump_kernel(
+  position::Symbol, drift_harmonic::Int, jump_harmonic::Int
+)
   iszero(drift_harmonic) && throw(ArgumentError("drift harmonic must be nonzero"))
-  position in (:before, :after) || throw(ArgumentError("position must be :before or :after"))
+  position in (:before, :after) ||
+    throw(ArgumentError("position must be :before or :after"))
 
   inverse_frequency = one(MixedKernelExact) / (mixed_kernel_im * drift_harmonic)
   leading = position === :before ? inverse_frequency : -inverse_frequency
-  return Dict(
-    jump_harmonic => leading,
-    jump_harmonic + drift_harmonic => -leading,
-  )
+  return Dict(jump_harmonic => leading, jump_harmonic + drift_harmonic => -leading)
 end
 
 function mixed_qr_word_count(jump_labels::Int, drift_labels::Int, delta_cutoff::Int)
