@@ -73,6 +73,13 @@ end
 
 Base.:*(series::GradedOutputSeries, weight::Number) = weight * series
 
+struct OutputSectorComposition{K,W}
+  key::K
+  weight::W
+end
+
+OutputSectorComposition(key::K) where {K} = OutputSectorComposition(key, one(Int))
+
 struct GradedOutputProduct{F,G}
   compose_output::F
   system_product::G
@@ -95,8 +102,10 @@ function (algebra::GradedOutputProduct)(
       for (left_key, left_value) in left_terms,
         (right_key, right_value) in right_terms
 
-        output_key = algebra.compose_output(left_key, right_key)::K
-        value = algebra.system_product(left_value, right_value)::T
+        composition = algebra.compose_output(left_key, right_key)
+        output_key = composition.key::K
+        system_value = algebra.system_product(left_value, right_value)
+        value = (composition.weight * system_value)::T
         graded_output_accumulate!(result, degree, output_key, value)
       end
     end
