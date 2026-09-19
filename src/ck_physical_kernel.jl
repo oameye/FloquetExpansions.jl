@@ -20,24 +20,33 @@ ck_is_jump(vertex::CKBranchVertex) = vertex.output_channel > 0
 struct CKKernelKey{H}
   sector::CKKernelSector
   vertices::Vector{CKBranchVertex{H}}
+  model_cuts::Vector{Int}
   resolvent_cuts::Vector{Int}
 end
 
 function CKKernelKey(
   sector::CKKernelSector,
   vertices::Vector{CKBranchVertex{H}},
+  model_cuts::Vector{Int},
   resolvent_cuts::Vector{Int},
 ) where {H}
   vertex_count = length(vertices)
+  all(cut -> 1 <= cut <= vertex_count, model_cuts) ||
+    throw(ArgumentError("model cuts must lie inside the physical branch"))
   all(cut -> 1 <= cut <= vertex_count, resolvent_cuts) ||
     throw(ArgumentError("resolvent cuts must lie inside the physical branch"))
-  issorted(resolvent_cuts) || throw(ArgumentError("resolvent cuts must be ordered"))
-  return CKKernelKey{H}(sector, copy(vertices), copy(resolvent_cuts))
+
+  canonical_model_cuts = unique(sort(model_cuts))
+  canonical_resolvent_cuts = sort(resolvent_cuts)
+  return CKKernelKey{H}(
+    sector, copy(vertices), canonical_model_cuts, canonical_resolvent_cuts
+  )
 end
 
 function Base.:(==)(left::CKKernelKey, right::CKKernelKey)
   return left.sector == right.sector &&
          left.vertices == right.vertices &&
+         left.model_cuts == right.model_cuts &&
          left.resolvent_cuts == right.resolvent_cuts
 end
 
@@ -48,6 +57,10 @@ function Base.hash(key::CKKernelKey, seed::UInt)
   result = hash(length(key.vertices), result)
   for vertex in key.vertices
     result = hash(vertex, result)
+  end
+  result = hash(length(key.model_cuts), result)
+  for cut in key.model_cuts
+    result = hash(cut, result)
   end
   result = hash(length(key.resolvent_cuts), result)
   for cut in key.resolvent_cuts
@@ -80,22 +93,32 @@ function ck_kernel_total_harmonic(key::CKKernelKey{H}) where {H}
   return total
 end
 
-function ck_kernel_has_forced_zero_resolvent(key::CKKernelKey{H}) where {H}
-  isempty(key.resolvent_cuts) && return false
-  key.sector == CKModelSector && last(key.resolvent_cuts) == length(key.vertices) &&
-    return true
+function ck_kernel_has_forced_zero(key::CKKernelKey{H}) where {H}
+  any(cut -> cut in key.resolvent_cuts, key.model_cuts) && return true
 
   mismatch = zero(H)
   outputs_seen = 0
-  cut_index = 1
+  model_index = 1
+  resolvent_index = 1
   for (vertex_index, vertex) in enumerate(key.vertices)
     mismatch += vertex.harmonic
     outputs_seen += Int(ck_is_jump(vertex))
-    while cut_index <= length(key.resolvent_cuts) &&
-        key.resolvent_cuts[cut_index] == vertex_index
-      outputs_seen == 0 && iszero(mismatch) && return true
-      cut_index += 1
+
+    while model_index <= length(key.model_cuts) &&
+        key.model_cuts[model_index] == vertex_index
+      outputs_seen == 0 && !iszero(mismatch) && return true
+      model_index += 1
     end
+    while resolvent_index <= length(key.resolvent_cuts) &&
+        key.resolvent_cuts[resolvent_index] == vertex_index
+      outputs_seen == 0 && iszero(mismatch) && return true
+      resolvent_index += 1
+    end
+  end
+
+  if outputs_seen == 0
+    key.sector == CKModelSector && !iszero(mismatch) && return true
+    key.sector == CKComplementSector && iszero(mismatch) && return true
   end
   return false
 end
@@ -103,7 +126,7 @@ end
 function ck_kernel_accumulate!(
   terms::Dict{CKKernelKey{H},T}, key::CKKernelKey{H}, value::T, zero_component::T
 ) where {H,T}
-  ck_kernel_has_forced_zero_resolvent(key) && return terms
+  ck_kernel_has_forced_zero(key) && return terms
   updated = get(terms, key, zero_component) + value
   if ck_kernel_iszero(updated)
     haskey(terms, key) && delete!(terms, key)
@@ -131,7 +154,7 @@ function ck_kernel_identity(
   zero_harmonic::H, identity_component::T, zero_component::T
 ) where {H,T}
   terms = Dict{CKKernelKey{H},T}()
-  key = CKKernelKey(CKModelSector, CKBranchVertex{H}[], Int[])
+  key = CKKernelKey(CKModelSector, CKBranchVertex{H}[], Int[], Int[])
   terms[key] = identity_component
   return CKPhysicalKernel(terms, zero_component)
 end
@@ -141,7 +164,7 @@ function ck_kernel_generator(
 ) where {H,T}
   terms = Dict{CKKernelKey{H},T}()
   for (vertex, value) in components
-    key = CKKernelKey(CKUnresolvedSector, CKBranchVertex{H}[vertex], Int[])
+    key = CKKernelKey(CKUnresolvedSector, CKBranchVertex{H}[vertex], Int[], Int[])
     ck_kernel_accumulate!(terms, key, value, zero_component)
   end
   return CKPhysicalKernel(terms, zero_component)
@@ -174,6 +197,12 @@ function ck_kernel_product_sector(left::CKKernelSector, right::CKKernelSector)
   return nothing
 end
 
+function ck_kernel_shifted_cuts(right_cuts::Vector{Int}, left_cuts::Vector{Int}, shift::Int)
+  result = copy(right_cuts)
+  append!(result, (cut + shift for cut in left_cuts))
+  return result
+end
+
 function ck_kernel_product(
   left::CKPhysicalKernel{H,T}, right::CKPhysicalKernel{H,T}
 ) where {H,T}
@@ -184,8 +213,13 @@ function ck_kernel_product(
 
     right_length = length(right_key.vertices)
     vertices = CKBranchVertex{H}[right_key.vertices; left_key.vertices]
-    cuts = Int[right_key.resolvent_cuts; (cut + right_length for cut in left_key.resolvent_cuts)]
-    key = CKKernelKey(sector, vertices, cuts)
+    model_cuts = ck_kernel_shifted_cuts(
+      right_key.model_cuts, left_key.model_cuts, right_length
+    )
+    resolvent_cuts = ck_kernel_shifted_cuts(
+      right_key.resolvent_cuts, left_key.resolvent_cuts, right_length
+    )
+    key = CKKernelKey(sector, vertices, model_cuts, resolvent_cuts)
     ck_kernel_accumulate!(result, key, left_value * right_value, left.zero_component)
   end
   return CKPhysicalKernel(result, left.zero_component)
@@ -196,32 +230,14 @@ function ck_kernel_project_model(state::CKPhysicalKernel{H,T}) where {H,T}
   for (key, value) in state.terms
     key.sector == CKComplementSector && continue
 
-    if key.sector == CKUnresolvedSector &&
-       iszero(ck_kernel_output_number(key)) &&
-       !iszero(ck_kernel_total_harmonic(key))
-      continue
+    model_key = if key.sector == CKModelSector
+      key
+    else
+      model_cuts = copy(key.model_cuts)
+      isempty(key.vertices) || push!(model_cuts, length(key.vertices))
+      CKKernelKey(CKModelSector, key.vertices, model_cuts, key.resolvent_cuts)
     end
-
-    model_key = key.sector == CKModelSector ?
-                key : CKKernelKey(CKModelSector, key.vertices, key.resolvent_cuts)
     ck_kernel_accumulate!(result, model_key, value, state.zero_component)
-  end
-  return CKPhysicalKernel(result, state.zero_component)
-end
-
-function ck_kernel_project_complement(state::CKPhysicalKernel{H,T}) where {H,T}
-  result = Dict{CKKernelKey{H},T}()
-  for (key, value) in state.terms
-    key.sector == CKModelSector && continue
-    if key.sector == CKUnresolvedSector &&
-       iszero(ck_kernel_output_number(key)) &&
-       iszero(ck_kernel_total_harmonic(key))
-      continue
-    end
-
-    complement_key = key.sector == CKComplementSector ?
-                     key : CKKernelKey(CKComplementSector, key.vertices, key.resolvent_cuts)
-    ck_kernel_accumulate!(result, complement_key, value, state.zero_component)
   end
   return CKPhysicalKernel(result, state.zero_component)
 end
@@ -230,15 +246,12 @@ function ck_kernel_solve_complement(state::CKPhysicalKernel{H,T}) where {H,T}
   result = Dict{CKKernelKey{H},T}()
   for (key, value) in state.terms
     key.sector == CKModelSector && continue
-    if key.sector == CKUnresolvedSector &&
-       iszero(ck_kernel_output_number(key)) &&
-       iszero(ck_kernel_total_harmonic(key))
-      continue
-    end
 
-    cuts = copy(key.resolvent_cuts)
-    push!(cuts, length(key.vertices))
-    solved_key = CKKernelKey(CKComplementSector, key.vertices, cuts)
+    resolvent_cuts = copy(key.resolvent_cuts)
+    push!(resolvent_cuts, length(key.vertices))
+    solved_key = CKKernelKey(
+      CKComplementSector, key.vertices, key.model_cuts, resolvent_cuts
+    )
     ck_kernel_accumulate!(result, solved_key, value, state.zero_component)
   end
   return CKPhysicalKernel(result, state.zero_component)
@@ -253,7 +266,8 @@ function ck_kernel_ordered_sideband_coefficient(
 
     mismatch = zero(H)
     sideband_index = 0
-    cut_index = 1
+    model_index = 1
+    resolvent_index = 1
     weighted_value = value
     valid = true
 
@@ -264,14 +278,24 @@ function ck_kernel_ordered_sideband_coefficient(
         mismatch -= sidebands[sideband_index]
       end
 
-      while cut_index <= length(key.resolvent_cuts) &&
-          key.resolvent_cuts[cut_index] == vertex_index
+      while model_index <= length(key.model_cuts) &&
+          key.model_cuts[model_index] == vertex_index
+        if !iszero(mismatch)
+          valid = false
+          break
+        end
+        model_index += 1
+      end
+      valid || break
+
+      while resolvent_index <= length(key.resolvent_cuts) &&
+          key.resolvent_cuts[resolvent_index] == vertex_index
         if iszero(mismatch)
           valid = false
           break
         end
         weighted_value = inverse_weight(mismatch) * weighted_value
-        cut_index += 1
+        resolvent_index += 1
       end
       valid || break
     end
