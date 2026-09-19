@@ -1,7 +1,7 @@
 using Test
 using LinearAlgebra: I
-using FloquetExpansions
 
+include(joinpath(@__DIR__, "..", "src", "bloch_projection.jl"))
 include(joinpath(@__DIR__, "helpers", "bloch_order_kernel_reference.jl"))
 
 const CKOrderExact = Complex{Rational{Int}}
@@ -16,9 +16,7 @@ function ck_order_fixture()
     1 => CKOrderExact[2 -1; 1 1],
   )
   second = Dict(
-    -1 => CKOrderExact[1 0; -1 2],
-    0 => CKOrderExact[0 1; 1 -1],
-    1 => CKOrderExact[2 1; 0 1],
+    -1 => CKOrderExact[1 0; -1 2], 0 => CKOrderExact[0 1; 1 -1], 1 => CKOrderExact[2 1; 0 1]
   )
   return (; zero_component, identity_component, first, second)
 end
@@ -28,20 +26,18 @@ end
   order = 5
   inverse_weight(harmonic) = ck_order_im * (1 // harmonic)
 
-  plan = FloquetExpansions.compile_bloch_projection_plan(keys(fixture.first), order)
-  discrete = FloquetExpansions.evaluate_bloch_projection_plan(
-    plan,
-    fixture.first;
-    product=(*),
-    inverse_weight,
-    zero_component=fixture.zero_component,
+  plan = compile_bloch_projection_plan(keys(fixture.first), order)
+  discrete = evaluate_bloch_projection_plan(
+    plan, fixture.first; product=(*), inverse_weight, zero_component=fixture.zero_component
   )
 
   generator = kernel_fourier_series(fixture.first, fixture.zero_component)
   identity_series = kernel_fourier_series(
     Dict(0 => fixture.identity_component), fixture.zero_component
   )
-  zero_series = kernel_fourier_series(Dict{Int,Matrix{CKOrderExact}}(), fixture.zero_component)
+  zero_series = kernel_fourier_series(
+    Dict{Int,Matrix{CKOrderExact}}(), fixture.zero_component
+  )
   packed = bloch_order_recurrence(
     [generator],
     order,
@@ -53,7 +49,8 @@ end
   )
 
   for n in 1:order
-    @test get(packed.effective[n].components, 0, fixture.zero_component) == discrete.effective[n]
+    @test get(packed.effective[n].components, 0, fixture.zero_component) ==
+      discrete.effective[n]
     @test all(iszero, keys(packed.effective[n].components))
   end
   for n in 1:(order - 1)
@@ -73,7 +70,9 @@ end
   identity_series = kernel_fourier_series(
     Dict(0 => fixture.identity_component), fixture.zero_component
   )
-  zero_series = kernel_fourier_series(Dict{Int,Matrix{CKOrderExact}}(), fixture.zero_component)
+  zero_series = kernel_fourier_series(
+    Dict{Int,Matrix{CKOrderExact}}(), fixture.zero_component
+  )
 
   solve(series) = kernel_fourier_solve_complement(series, inverse_weight)
   short = bloch_order_recurrence(
