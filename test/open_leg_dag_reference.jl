@@ -5,6 +5,7 @@ include(joinpath(@__DIR__, "helpers", "open_leg_reference.jl"))
 include(joinpath(@__DIR__, "helpers", "bloch_evaluation_plan.jl"))
 include(joinpath(@__DIR__, "helpers", "open_leg_evaluation_plan.jl"))
 include(joinpath(@__DIR__, "helpers", "open_leg_hori_deprit_order3.jl"))
+include(joinpath(@__DIR__, "helpers", "open_leg_bloch_normalization.jl"))
 
 const OpenLegExactComplex = Complex{Rational{Int}}
 const openleg_exact_im = OpenLegExactComplex(0 // 1, 1 // 1)
@@ -28,18 +29,10 @@ function openleg_fixture()
 
   zero_component = zeros(OpenLegExactComplex, 2, 2)
   A1 = openleg_periodic(
-    Dict(
-      (0, 1) => M0,
-      (1, 1) => M1,
-      (-1, 1) => Mm1,
-      (2, 1) => M2,
-      (-2, 1) => Mm2,
-    ),
+    Dict((0, 1) => M0, (1, 1) => M1, (-1, 1) => Mm1, (2, 1) => M2, (-2, 1) => Mm2),
     zero_component,
   )
-  A2 = openleg_periodic(
-    Dict((0, 0) => N0, (1, 0) => N1, (-1, 0) => Nm1), zero_component
-  )
+  A2 = openleg_periodic(Dict((0, 0) => N0, (1, 0) => N1, (-1, 0) => Nm1), zero_component)
   identity_component = OpenLegExactComplex[1 0; 0 1]
   return (; A1, A2, identity_component, zero_component)
 end
@@ -91,9 +84,7 @@ end
 
   primitive = [OpenLegPlanState(1, 1, 1), OpenLegPlanState(-1, 1, 1)]
   folded = [
-    OpenLegPlanState(0, 1, 0),
-    OpenLegPlanState(1, 1, 1),
-    OpenLegPlanState(-1, 1, 1),
+    OpenLegPlanState(0, 1, 0), OpenLegPlanState(1, 1, 1), OpenLegPlanState(-1, 1, 1)
   ]
   @test openleg_first_return_mismatch(primitive)
   @test !openleg_first_return_mismatch(folded)
@@ -101,9 +92,7 @@ end
 
 @testset "open-leg DAG reduces exactly to the #144 sparse evaluation schedule" begin
   fixture = openleg_fixture()
-  components = Dict(
-    harmonic => fixture.A1[harmonic, 1] for harmonic in (-2, -1, 0, 1, 2)
-  )
+  components = Dict(harmonic => fixture.A1[harmonic, 1] for harmonic in (-2, -1, 0, 1, 2))
   grade_zero = openleg_periodic(
     Dict((harmonic, 0) => component for (harmonic, component) in components),
     fixture.zero_component,
@@ -149,15 +138,17 @@ end
     product=openleg_matrix_product,
     identity_component=fixture.identity_component,
   )
-  hori = openleg_hori_deprit_order3(
-    fixture.A1, fixture.A2; product=openleg_matrix_product
-  )
+  hori = openleg_hori_deprit_order3(fixture.A1, fixture.A2; product=openleg_matrix_product)
 
   @test bloch.effective[2][0, 0] == hori.effective2[0, 0]
   @test bloch.effective[2][0, 2] == hori.effective2[0, 2]
   @test bloch.effective[3][0, 1] == hori.effective3[0, 1]
 
-  # The pure three-output sector already sees the model-space normalization that
-  # distinguishes the nonunitary Bloch wave operator from the canonical Lie gauge.
+  # Raw Bloch and zero-average Lie gauges first differ in the three-output cubic sector.
   @test bloch.effective[3][0, 3] != hori.effective3[0, 3]
+
+  static2 = openleg_bloch_static_factor2(bloch; product=openleg_matrix_product)
+  @test openleg_grades(static2) == [2]
+  canonical_b3 = openleg_bloch_canonical_effective3(bloch; product=openleg_matrix_product)
+  @test openleg_equal(canonical_b3, hori.effective3)
 end
