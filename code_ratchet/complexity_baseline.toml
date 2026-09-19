@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "2103437"
+commit = "3a649ec"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -75,6 +75,17 @@ cyc_sum = 2
 cog_sum = 0
 arg_sum = 4
 
+[files."src/cp_hfe.jl"]
+cyc = 10
+cog = 12
+arg = 5
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 37
+cog_sum = 33
+arg_sum = 28
+
 [files."src/engine.jl"]
 cyc = 8
 cog = 12
@@ -83,8 +94,8 @@ cyc_over = 0
 cog_over = 0
 arg_over = 0
 cyc_sum = 53
-cog_sum = 33
-arg_sum = 73
+cog_sum = 32
+arg_sum = 71
 
 [files."src/gksl_coordinates.jl"]
 cyc = 8
@@ -137,8 +148,8 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 108
-cog_sum = 68
+cyc_sum = 111
+cog_sum = 72
 arg_sum = 96
 
 [files."src/matrix_series.jl"]
