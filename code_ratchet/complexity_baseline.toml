@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "f450778"
+commit = "a6333f4"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -118,6 +118,17 @@ arg_over = 0
 cyc_sum = 7
 cog_sum = 2
 arg_sum = 12
+
+[files."src/graded_output_series.jl"]
+cyc = 6
+cog = 8
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 27
+cog_sum = 25
+arg_sum = 21
 
 [files."src/gram_completion.jl"]
 cyc = 6

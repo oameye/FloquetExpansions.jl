@@ -7,6 +7,18 @@ using Symbolics: @variables
   JET.test_package(FloquetExpansions; target_modules=(FloquetExpansions,))
 end
 
+@testset "graded output optimizer stability" begin
+  left = FloquetExpansions.graded_output_series(Int, 0 // 1, 3)
+  right = FloquetExpansions.graded_output_series(Int, 0 // 1, 3)
+  FloquetExpansions.graded_output_accumulate!(left, 1, 1, 2 // 1)
+  FloquetExpansions.graded_output_accumulate!(right, 1, 2, 3 // 1)
+  compose_output =
+    (left_key, right_key) -> FloquetExpansions.OutputSectorComposition(left_key + right_key)
+  algebra = FloquetExpansions.GradedOutputProduct(compose_output, *)
+
+  JET.@test_opt target_modules=(FloquetExpansions,) algebra(left, right)
+end
+
 @testset "completion optimizer stability" begin
   fock = FockSpace(:jet_completion_fock)
   a = Destroy(fock, :a)
