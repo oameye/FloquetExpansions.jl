@@ -1,3 +1,7 @@
+if !isdefined(@__MODULE__, :OpenLegPeriodic)
+  include(joinpath(@__DIR__, "open_leg_reference.jl"))
+end
+
 struct OpenLegHoriDepritOrder3{P}
   generator1::P
   generator2::P
