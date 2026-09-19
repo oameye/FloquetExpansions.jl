@@ -96,7 +96,7 @@ function ck_physical_b2_product(
     else
       throw(
         ArgumentError(
-          "unsupported physical B2 product $left_kind * $right_kind in order-two reference"
+          "unsupported physical B2 product $left_kind * $right_kind in order-two reference",
         ),
       )
     end
@@ -175,9 +175,7 @@ function ck_physical_b2_bosonic_sideband_coefficient(
   )
   first_sideband == second_sideband && return result
   return result +
-         ck_physical_b2_ordered_sideband_coefficient(
-    state, second_sideband, first_sideband
-  )
+         ck_physical_b2_ordered_sideband_coefficient(state, second_sideband, first_sideband)
 end
 
 function ck_physical_b2_commutator_oracle(
@@ -187,9 +185,11 @@ function ck_physical_b2_commutator_oracle(
   zero_component::T,
 ) where {T}
   result = zero_component
-  sideband_assignments = first_sideband == second_sideband ?
-                         ((first_sideband, second_sideband),) :
-                         ((first_sideband, second_sideband), (second_sideband, first_sideband))
+  sideband_assignments = if first_sideband == second_sideband
+    ((first_sideband, second_sideband),)
+  else
+    ((first_sideband, second_sideband), (second_sideband, first_sideband))
+  end
 
   for (first_harmonic, first_value) in amplitudes,
     (second_harmonic, second_value) in amplitudes,
@@ -206,9 +206,8 @@ end
 
 @testset "physical B2 homological kernel is the finite periodic Bernoulli sawtooth" begin
   kernel = ck_bernoulli_scale(ck_physical_b2_im, ck_bernoulli_kernel(1))
-  @test ck_bernoulli_term_dictionary(kernel) == Dict(
-    (1, 0) => CKPhysicalB2Exact(-1 // 2), (0, 1) => one(CKPhysicalB2Exact)
-  )
+  @test ck_bernoulli_term_dictionary(kernel) ==
+    Dict((1, 0) => CKPhysicalB2Exact(-1 // 2), (0, 1) => one(CKPhysicalB2Exact))
   @test isempty(ck_bernoulli_average(kernel))
 
   for mismatch in vcat(collect(-16:-1), collect(1:16))
@@ -250,14 +249,10 @@ end
   for (first_harmonic, first_value) in amplitudes,
     (second_harmonic, second_value) in amplitudes
 
-    @test physical_terms[(first_harmonic, second_harmonic)] ==
-      second_value * first_value
+    @test physical_terms[(first_harmonic, second_harmonic)] == second_value * first_value
   end
 
-  @test all(
-    key -> first(key) != CKPhysicalB2ComplementTwo,
-    keys(result.effective[2].terms),
-  )
+  @test all(key -> first(key) != CKPhysicalB2ComplementTwo, keys(result.effective[2].terms))
 
   for first_sideband in -8:8, second_sideband in first_sideband:8
     from_kernel = ck_physical_b2_bosonic_sideband_coefficient(
