@@ -103,9 +103,11 @@ end
 
 function kernel_fourier_project_model(series::KernelFourierSeries{T}) where {T}
   value = get(series.components, 0, series.zero_component)
-  return value == series.zero_component ?
-         KernelFourierSeries(Dict{Int,T}(), series.zero_component) :
-         KernelFourierSeries(Dict(0 => value), series.zero_component)
+  return if value == series.zero_component
+    KernelFourierSeries(Dict{Int,T}(), series.zero_component)
+  else
+    KernelFourierSeries(Dict(0 => value), series.zero_component)
+  end
 end
 
 function kernel_fourier_solve_complement(
