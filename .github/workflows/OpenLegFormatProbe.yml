@@ -1,0 +1,21 @@
+name: OpenLegFormatProbe
+
+on:
+  push:
+    branches:
+      - research/169-open-leg-format-probe
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Print canonical formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace test/helpers/open_leg_bloch_normalization.jl
+          git diff -- test/helpers/open_leg_bloch_normalization.jl
