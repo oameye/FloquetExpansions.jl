@@ -9,13 +9,7 @@ end
 
 @testset "Bloch order recurrence optimizer stability" begin
   JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.evaluate_bloch_order_recurrence(
-    [1.0, 0.25],
-    5,
-    1.0,
-    0.0;
-    product=*,
-    project_model=identity,
-    solve_complement=identity,
+    [1.0, 0.25], 5, 1.0, 0.0; product=(*), project_model=identity, solve_complement=identity
   )
 end
 
