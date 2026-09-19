@@ -29,9 +29,8 @@ end
   identity_series = FloquetExpansions.ck_truncated_series_product(
     omega, omega_inverse, 3, zero_matrix
   )
-  @test identity_series == Matrix{CKPeriodExact}[
-    identity_matrix, zero_matrix, zero_matrix, zero_matrix
-  ]
+  @test identity_series ==
+    Matrix{CKPeriodExact}[identity_matrix, zero_matrix, zero_matrix, zero_matrix]
 
   generator = Matrix{CKPeriodExact}[zero_matrix, B1, B2, B3]
   slow = FloquetExpansions.ck_zero_constant_series_exponential(
@@ -101,11 +100,7 @@ end
     [fixture.A1], 2, fixture.identity_state, fixture.zero_state, fixture.operations
   )
   reconstruction2 = FloquetExpansions.evaluate_ck_period_amplitude(
-    recurrence2.effective,
-    recurrence2.wave,
-    2,
-    fixture.identity_state,
-    fixture.zero_state,
+    recurrence2.effective, recurrence2.wave, 2, fixture.identity_state, fixture.zero_state
   )
 
   @test length(reconstruction2.amplitude) == 3
@@ -143,11 +138,7 @@ end
     [fixture.A1], 3, fixture.identity_state, fixture.zero_state, fixture.operations
   )
   reconstruction3 = FloquetExpansions.evaluate_ck_period_amplitude(
-    recurrence3.effective,
-    recurrence3.wave,
-    3,
-    fixture.identity_state,
-    fixture.zero_state,
+    recurrence3.effective, recurrence3.wave, 3, fixture.identity_state, fixture.zero_state
   )
   @test reconstruction3.amplitude[1:3] == reconstruction2.amplitude
 end
