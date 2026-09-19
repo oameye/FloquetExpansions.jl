@@ -18,5 +18,9 @@ jobs:
       - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
+      - name: Run standalone helper load checks
+        run: |
+          julia test/helpers/open_leg_hori_deprit_order3.jl
+          julia test/helpers/open_leg_bloch_normalization.jl
       - name: Run exact open-leg reference tests
         run: julia -e 'include("test/open_leg_cp_hfe_reference.jl"); include("test/open_leg_dag_reference.jl")'
