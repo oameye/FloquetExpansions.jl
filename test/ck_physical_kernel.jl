@@ -67,8 +67,10 @@ end
 
   @test length(model.terms) == 3
   @test all(key -> key.sector == FloquetExpansions.CKModelSector, keys(model.terms))
+  @test all(key -> key.model_cuts == [1], keys(model.terms))
   @test length(solved.terms) == 3
   @test all(key -> key.sector == FloquetExpansions.CKComplementSector, keys(solved.terms))
+  @test all(key -> isempty(key.model_cuts), keys(solved.terms))
   @test all(key -> key.resolvent_cuts == [1], keys(solved.terms))
   @test all(key -> key.resolvent_cuts == [1, 1], keys(solved_twice.terms))
 
@@ -94,6 +96,14 @@ end
       solved_twice, [sideband]; inverse_weight=ck_kernel_inverse_weight
     ) == second_expected
   end
+
+  folded = FloquetExpansions.ck_kernel_product(solved, model)
+  @test all(key -> key.sector == FloquetExpansions.CKComplementSector, keys(folded.terms))
+  @test all(key -> key.model_cuts == [1], keys(folded.terms))
+  @test all(key -> key.resolvent_cuts == [2], keys(folded.terms))
+  @test FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
+    folded, [99, 0]; inverse_weight=ck_kernel_inverse_weight
+  ) == fixture.zero_component
 end
 
 @testset "generic Bloch recurrence produces the exact finite physical B2 kernel" begin
@@ -122,6 +132,7 @@ end
   for key in keys(result.effective[2].terms)
     @test key.sector == FloquetExpansions.CKModelSector
     @test length(key.vertices) == 2
+    @test key.model_cuts == [2]
     @test key.resolvent_cuts == [1]
     @test FloquetExpansions.ck_kernel_output_number(key) == 2
   end
@@ -179,11 +190,13 @@ end
     drift_number = FloquetExpansions.ck_kernel_drift_number(key)
     @test output_number + 2 * drift_number == n
     @test key.sector == FloquetExpansions.CKModelSector
+    isempty(key.vertices) || @test last(key.model_cuts) == length(key.vertices)
   end
   for n in eachindex(order5.wave), key in keys(order5.wave[n].terms)
     output_number = FloquetExpansions.ck_kernel_output_number(key)
     drift_number = FloquetExpansions.ck_kernel_drift_number(key)
     @test output_number + 2 * drift_number == n
     @test key.sector == FloquetExpansions.CKComplementSector
+    @test last(key.resolvent_cuts) == length(key.vertices)
   end
 end
