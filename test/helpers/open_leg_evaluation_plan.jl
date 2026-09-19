@@ -67,7 +67,9 @@ struct OpenLegEvaluationPlan{H,T}
   counts::OpenLegEvaluationPlanCounts
 end
 
-function openleg_intern_path!(paths::Vector{Tuple}, path_ids::Dict{Tuple,Int}, path::Tuple)
+function openleg_intern_path!(
+  paths::Vector{Tuple}, path_ids::AbstractDict{<:Tuple,Int}, path::Tuple
+)
   return get!(path_ids, path) do
     push!(paths, path)
     return length(paths)
@@ -110,7 +112,7 @@ function openleg_compose_state!(
   left_grade::Int,
   right::OpenLegPlanState{H},
   paths::Vector{Tuple},
-  path_ids::Dict{Tuple,Int},
+  path_ids::AbstractDict{<:Tuple,Int},
 ) where {H}
   path = openleg_intern_path!(paths, path_ids, (paths[left_path]..., paths[right.path]...))
   return OpenLegPlanState(left_harmonic + right.harmonic, path, left_grade + right.grade)
@@ -120,7 +122,7 @@ function openleg_compose_states!(
   left::OpenLegPlanState{H},
   right::OpenLegPlanState{H},
   paths::Vector{Tuple},
-  path_ids::Dict{Tuple,Int},
+  path_ids::AbstractDict{<:Tuple,Int},
 ) where {H}
   return openleg_compose_state!(
     left.harmonic, left.path, left.grade, right, paths, path_ids
