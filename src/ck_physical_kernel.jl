@@ -143,12 +143,14 @@ function ck_physical_kernel(terms::Dict{CKKernelKey{H},T}, zero_component::T) wh
 end
 
 function ck_kernel_zero(zero_harmonic::H, zero_component::T) where {H,T}
+  iszero(zero_harmonic) || throw(ArgumentError("zero harmonic must be zero"))
   return CKPhysicalKernel(Dict{CKKernelKey{H},T}(), zero_component)
 end
 
 function ck_kernel_identity(
   zero_harmonic::H, identity_component::T, zero_component::T
 ) where {H,T}
+  iszero(zero_harmonic) || throw(ArgumentError("zero harmonic must be zero"))
   terms = Dict{CKKernelKey{H},T}()
   key = CKKernelKey(CKModelSector, CKBranchVertex{H}[], Int[], Int[])
   terms[key] = identity_component
