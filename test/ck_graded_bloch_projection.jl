@@ -43,11 +43,21 @@ end
   @test @inferred(FloquetExpansions.graded_output_accumulate!(left, 1, 1, 2 // 1)) === left
   @test @inferred(FloquetExpansions.graded_output_accumulate!(right, 1, 2, 3 // 1)) === right
 
-  algebra = FloquetExpansions.GradedOutputProduct(+, *)
+  compose_output =
+    (left_key, right_key) -> FloquetExpansions.OutputSectorComposition(left_key + right_key)
+  algebra = FloquetExpansions.GradedOutputProduct(compose_output, *)
   product = @inferred algebra(left, right)
   @test product isa FloquetExpansions.GradedOutputSeries{Int,Rational{Int}}
   @test product.coefficients[3] == Dict(3 => 6 // 1)
   @test @inferred((2 // 1) * left).coefficients[2] == Dict(1 => 4 // 1)
+
+  weighted_compose = (left_key, right_key) ->
+    FloquetExpansions.OutputSectorComposition(left_key + right_key, -1)
+  weighted_product = @inferred FloquetExpansions.GradedOutputProduct(weighted_compose, *)(
+    left, right
+  )
+  @test weighted_product.coefficients[3] == Dict(3 => -6 // 1)
+
   @test_throws ArgumentError left + FloquetExpansions.graded_output_series(Int, 0 // 1, 2)
   @test !isdefined(Main, :GradedOutputSeries)
 end
