@@ -82,6 +82,22 @@ end
     ) == value
   end
 
+  channel_two_value = CKKernelExact[3 1; -2 4]
+  multichannel_components = copy(fixture.jump_components)
+  multichannel_components[FloquetExpansions.ck_jump_vertex(2, 0)] = channel_two_value
+  multichannel_model = FloquetExpansions.ck_kernel_project_model(
+    FloquetExpansions.ck_kernel_generator(multichannel_components, fixture.zero_component)
+  )
+  @test FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
+    multichannel_model, [1], [0]; inverse_weight=ck_kernel_inverse_weight
+  ) == fixture.jump_components[FloquetExpansions.ck_jump_vertex(1, 0)]
+  @test FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
+    multichannel_model, [2], [0]; inverse_weight=ck_kernel_inverse_weight
+  ) == channel_two_value
+  @test_throws ArgumentError FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
+    multichannel_model, [1, 2], [0]; inverse_weight=ck_kernel_inverse_weight
+  )
+
   for sideband in -8:8
     first_expected = fixture.zero_component
     second_expected = fixture.zero_component
