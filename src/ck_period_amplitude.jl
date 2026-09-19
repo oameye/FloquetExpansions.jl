@@ -3,7 +3,8 @@ struct CKEndpointConstraint
   stop::Int
 
   function CKEndpointConstraint(start::Int, stop::Int)
-    0 <= start < stop || throw(ArgumentError("endpoint constraint must span a nonempty interval"))
+    0 <= start < stop ||
+      throw(ArgumentError("endpoint constraint must span a nonempty interval"))
     return new(start, stop)
   end
 end
@@ -64,9 +65,7 @@ function ck_endpoint_kernel(state::CKPhysicalKernel{H,T}) where {H,T}
     resolvent_intervals = CKEndpointConstraint[
       CKEndpointConstraint(0, cut) for cut in key.resolvent_cuts
     ]
-    endpoint_key = CKEndpointKey(
-      copy(key.vertices), model_intervals, resolvent_intervals
-    )
+    endpoint_key = CKEndpointKey(copy(key.vertices), model_intervals, resolvent_intervals)
     ck_endpoint_accumulate!(result, endpoint_key, value, state.zero_component)
   end
   return CKEndpointKernel(result, state.zero_component)
@@ -76,11 +75,10 @@ function ck_endpoint_zero(state::CKEndpointKernel{H,T}) where {H,T}
   return CKEndpointKernel(Dict{CKEndpointKey{H},T}(), state.zero_component)
 end
 
-function ck_endpoint_shifted_intervals(
-  intervals::Vector{CKEndpointConstraint}, shift::Int
-)
+function ck_endpoint_shifted_intervals(intervals::Vector{CKEndpointConstraint}, shift::Int)
   return CKEndpointConstraint[
-    CKEndpointConstraint(interval.start + shift, interval.stop + shift) for interval in intervals
+    CKEndpointConstraint(interval.start + shift, interval.stop + shift) for
+    interval in intervals
   ]
 end
 
