@@ -4,13 +4,16 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "9e6d4f4"
+commit = "a6333f4"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
 binding = ["boxes"]
 
 [files."src/FloquetExpansions.jl"]
+boxes = 0
+
+[files."src/bloch_projection.jl"]
 boxes = 0
 
 [files."src/completion.jl"]
@@ -35,6 +38,9 @@ boxes = 0
 boxes = 0
 
 [files."src/gksl_floquet.jl"]
+boxes = 0
+
+[files."src/graded_output_series.jl"]
 boxes = 0
 
 [files."src/gram_completion.jl"]
