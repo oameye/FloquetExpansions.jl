@@ -109,7 +109,10 @@ end
   left_word = SimplexOutputWord((:a, :a, :a), (2, -1, -1))
   right_word = SimplexOutputWord((:a, :a, :a), (0, 0, 0))
   simplex_overlap = simplex_slow_overlap(
-    left_word, right_word; imaginary=simplex_im, inverse_weight=harmonic -> 1 // harmonic
+    left_word,
+    right_word;
+    imaginary=mixed_kernel_im,
+    inverse_weight=harmonic -> 1 // harmonic,
   )
   @test simplex_overlap.class == SimplexSlowPrimitive
 
