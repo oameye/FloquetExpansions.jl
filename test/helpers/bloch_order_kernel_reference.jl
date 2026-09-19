@@ -108,11 +108,13 @@ function kernel_fourier_project_model(series::KernelFourierSeries{T}) where {T}
          KernelFourierSeries(Dict(0 => value), series.zero_component)
 end
 
-function kernel_fourier_solve_complement(series::KernelFourierSeries{T}) where {T}
+function kernel_fourier_solve_complement(
+  series::KernelFourierSeries{T}, inverse_weight
+) where {T}
   result = Dict{Int,T}()
   for (harmonic, value) in series.components
     iszero(harmonic) && continue
-    result[harmonic] = (im // harmonic) * value
+    result[harmonic] = inverse_weight(harmonic) * value
   end
   return KernelFourierSeries(result, series.zero_component)
 end
