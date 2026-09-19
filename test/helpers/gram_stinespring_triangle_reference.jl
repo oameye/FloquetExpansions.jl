@@ -56,9 +56,8 @@ end
 function formal_period_scale(
   scale, polynomial::FormalPeriodMatrix{T}, zero_component::T
 ) where {T}
-  result = formal_period_zero(zero_component)
-  result.coefficients = T[scale * coefficient for coefficient in polynomial.coefficients]
-  return result
+  isempty(polynomial.coefficients) && return formal_period_zero(zero_component)
+  return FormalPeriodMatrix{T}(T[scale * coefficient for coefficient in polynomial.coefficients])
 end
 
 function formal_period_product(
