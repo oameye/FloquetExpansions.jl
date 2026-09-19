@@ -1,0 +1,25 @@
+name: Simplex kernel format diff
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/SimplexKernelFormatDiff.yml'
+      - 'test/simplex_output_kernel_reference.jl'
+      - 'test/helpers/simplex_output_kernel_reference.jl'
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v3
+      - run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace .
+          git diff -- test/simplex_output_kernel_reference.jl test/helpers/simplex_output_kernel_reference.jl
