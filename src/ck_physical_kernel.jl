@@ -256,15 +256,6 @@ function ck_kernel_solve_complement(state::CKPhysicalKernel{H,T}) where {H,T}
 end
 
 function ck_kernel_ordered_sideband_coefficient(
-  state::CKPhysicalKernel{H,T}, sidebands::AbstractVector{H}; inverse_weight
-) where {H,T}
-  output_channels = fill(1, length(sidebands))
-  return ck_kernel_ordered_sideband_coefficient(
-    state, output_channels, sidebands; inverse_weight
-  )
-end
-
-function ck_kernel_ordered_sideband_coefficient(
   state::CKPhysicalKernel{H,T},
   output_channels::AbstractVector{Int},
   sidebands::AbstractVector{H};
