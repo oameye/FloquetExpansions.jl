@@ -5,6 +5,7 @@ include(joinpath(@__DIR__, "helpers", "open_leg_reference.jl"))
 include(joinpath(@__DIR__, "helpers", "bloch_evaluation_plan.jl"))
 include(joinpath(@__DIR__, "helpers", "open_leg_evaluation_plan.jl"))
 include(joinpath(@__DIR__, "helpers", "open_leg_hori_deprit_order3.jl"))
+include(joinpath(@__DIR__, "helpers", "open_leg_bloch_normalization.jl"))
 
 const OpenLegExactComplex = Complex{Rational{Int}}
 const openleg_exact_im = OpenLegExactComplex(0 // 1, 1 // 1)
@@ -143,7 +144,11 @@ end
   @test bloch.effective[2][0, 2] == hori.effective2[0, 2]
   @test bloch.effective[3][0, 1] == hori.effective3[0, 1]
 
-  # The pure three-output sector already sees the model-space normalization that
-  # distinguishes the nonunitary Bloch wave operator from the canonical Lie gauge.
+  # Raw Bloch and zero-average Lie gauges first differ in the three-output cubic sector.
   @test bloch.effective[3][0, 3] != hori.effective3[0, 3]
+
+  static2 = openleg_bloch_static_factor2(bloch; product=openleg_matrix_product)
+  @test openleg_grades(static2) == [2]
+  canonical_b3 = openleg_bloch_canonical_effective3(bloch; product=openleg_matrix_product)
+  @test openleg_equal(canonical_b3, hori.effective3)
 end
