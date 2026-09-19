@@ -2,6 +2,8 @@ using Test
 using FloquetExpansions
 using LinearAlgebra: I
 
+include(joinpath(@__DIR__, "helpers", "ck_periodic_bernoulli_reference.jl"))
+
 const CKKernelExact = Complex{Rational{Int}}
 const ck_kernel_im = CKKernelExact(0 // 1, 1 // 1)
 
@@ -62,6 +64,46 @@ function ck_kernel_commutator_oracle(
     result += (-ck_kernel_im / mismatch) * commutator
   end
   return result
+end
+
+@testset "resolvent cuts exactly realize the periodic Bernoulli quotient" begin
+  fixture = ck_kernel_fixture()
+  state = FloquetExpansions.ck_kernel_generator(
+    fixture.jump_components, fixture.zero_component
+  )
+
+  for order in 1:4
+    state = FloquetExpansions.ck_kernel_solve_complement(state)
+    kernel = ck_bernoulli_kernel(order)
+    @test isempty(ck_bernoulli_average(kernel))
+
+    if order < 4
+      derivative = ck_bernoulli_term_dictionary(
+        ck_bernoulli_derivative(ck_bernoulli_kernel(order + 1))
+      )
+      expected_derivative = ck_bernoulli_term_dictionary(
+        ck_bernoulli_scale(ck_bernoulli_im, kernel)
+      )
+      @test derivative == expected_derivative
+    end
+
+    for sideband in -7:7
+      expected = fixture.zero_component
+      for (vertex, value) in fixture.jump_components
+        mismatch = vertex.harmonic - sideband
+        iszero(mismatch) && continue
+        coefficient = ck_bernoulli_fourier_coefficient(kernel, mismatch)
+        @test coefficient == Dict(0 => CKBernoulliExact(1 // (mismatch^order)))
+        expected += ck_kernel_im^order * coefficient[0] * value
+      end
+      @test FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
+        state, [1], [sideband]; inverse_weight=ck_kernel_inverse_weight
+      ) == expected
+    end
+  end
+
+  @test ck_bernoulli_term_dictionary(ck_bernoulli_kernel(1)) ==
+    Dict((1, 0) => ck_bernoulli_im / 2, (0, 1) => -ck_bernoulli_im)
 end
 
 @testset "CK physical kernel keeps model/complement and output sidebands distinct" begin
