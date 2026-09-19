@@ -27,11 +27,17 @@ end
 
 function ck_kernel_bosonic_two_output(state, first_sideband::Int, second_sideband::Int)
   result = FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
-    state, [1, 1], [first_sideband, second_sideband]; inverse_weight=ck_kernel_inverse_weight
+    state,
+    [1, 1],
+    [first_sideband, second_sideband];
+    inverse_weight=ck_kernel_inverse_weight,
   )
   first_sideband == second_sideband && return result
   return result + FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
-    state, [1, 1], [second_sideband, first_sideband]; inverse_weight=ck_kernel_inverse_weight
+    state,
+    [1, 1],
+    [second_sideband, first_sideband];
+    inverse_weight=ck_kernel_inverse_weight,
   )
 end
 
