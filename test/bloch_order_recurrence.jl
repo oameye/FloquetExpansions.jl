@@ -7,7 +7,9 @@ struct BlochOrderTestSeries{T}
   zero_component::T
 end
 
-function bloch_order_test_series(components::AbstractDict{Int,T}, zero_component::T) where {T}
+function bloch_order_test_series(
+  components::AbstractDict{Int,T}, zero_component::T
+) where {T}
   return BlochOrderTestSeries(
     Dict(harmonic => value for (harmonic, value) in components if value != zero_component),
     zero_component,
@@ -160,11 +162,7 @@ end
 
   plan = FloquetExpansions.compile_bloch_projection_plan(keys(components), order)
   planned = FloquetExpansions.evaluate_bloch_projection_plan(
-    plan,
-    components;
-    product=*,
-    inverse_weight=harmonic -> 1 // harmonic,
-    zero_component,
+    plan, components; product=(*), inverse_weight=harmonic -> 1 // harmonic, zero_component
   )
 
   for n in 1:order
@@ -191,8 +189,7 @@ end
     zero_component,
   )
   A2 = bloch_order_test_series(
-    Dict(0 => Rational{Int}[1 -1; 2 0], 1 => Rational{Int}[0 2; -1 1]),
-    zero_component,
+    Dict(0 => Rational{Int}[1 -1; 2 0], 1 => Rational{Int}[0 2; -1 1]), zero_component
   )
   identity_series = BlochOrderTestSeries(Dict(0 => identity_component), zero_component)
   zero_series = BlochOrderTestSeries(Dict{Int,Matrix{Rational{Int}}}(), zero_component)
