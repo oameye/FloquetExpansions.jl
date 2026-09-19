@@ -196,7 +196,7 @@ contributions.
 - `generator`: Prepared periodic Hamiltonian or Liouvillian generator.
 - `L`: Symbolic time-dependent Liouvillian to decompose using `ωd` and `t`.
 - `H`: Symbolic time-dependent Hamiltonian to decompose using `ωd` and `t`.
-- `ωd`: Symbolic drive frequency.
+- `ωd`: Symbolic drive frequency defining the Fourier basis.
 - `t`: Symbolic time variable.
 - `gauge`: Gauge fixing the micromotion integration constant.
 - `order`: Number of retained orders; must be at least one.
@@ -218,27 +218,9 @@ for a Hamiltonian-only expansion.
 ``\\mathcal{O}(\\omega_d^{-\\text{order}})``. The high-frequency series is asymptotic rather than
 convergent.
 
-# Examples
+# References
 
-```jldoctest
-julia> h = FockSpace(:cavity); a = Destroy(h, :a);
-
-julia> @variables ω::Real t::Real g::Real;
-
-julia> H = harmonics(ω * (a' * a) + g * cos(ω * t) * (a + a'), ω, t);
-
-julia> vv = floquet_expansion(H, VanVleck(), 1)
-FloquetExpansion{VanVleck} of order 1
-
-julia> effective_generator(vv)
-ω * a' * a
-
-julia> iszero(micromotion(vv))
-true
-```
-
-See also [`effective_generator`](@ref), [`effective_component`](@ref), [`micromotion`](@ref),
-[`positive_completion`](@ref), and [`harmonics`](@ref).
+See the theory guide for the Floquet high-frequency expansion references.
 """
 function floquet_expansion(
   generator::P, gauge::G, order::Int
@@ -296,8 +278,10 @@ function reattach(component::E, wd::Symbolics.Num, n::Int)::E where {E<:Generato
   scale = inverse_drive_power(wd, n)
   return (scale * component)::E
 end
-function reattach(generator::PeriodicGenerator{T}, n::Int) where {T<:GeneratorComponent}
-  return iszero(n) ? generator : generator.wd^(-n) * generator
+function reattach(generator::P, n::Int)::P where {P<:PeriodicGenerator}
+  iszero(n) && return generator
+  scale = inverse_drive_power(generator.wd, n)
+  return (scale * generator)::P
 end
 
 """
