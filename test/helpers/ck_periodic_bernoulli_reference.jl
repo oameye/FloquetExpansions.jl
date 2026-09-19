@@ -69,9 +69,7 @@ function ck_bernoulli_fourier_coefficient(terms, harmonic::Int)
     integral = ck_periodic_monomial_fourier_integral(term.coordinate_power, harmonic)
     for (integral_period_power, coefficient) in integral
       output_period_power = term.period_power + integral_period_power - 1
-      ck_bernoulli_accumulate!(
-        result, output_period_power, term.coefficient * coefficient
-      )
+      ck_bernoulli_accumulate!(result, output_period_power, term.coefficient * coefficient)
     end
   end
   return result
@@ -104,9 +102,7 @@ end
 function ck_bernoulli_derivative(terms)
   return CKBernoulliKernelTerm[
     CKBernoulliKernelTerm(
-      term.coordinate_power * term.coefficient,
-      term.period_power,
-      term.coordinate_power - 1,
+      term.coordinate_power * term.coefficient, term.period_power, term.coordinate_power - 1
     ) for term in terms if term.coordinate_power > 0
   ]
 end
