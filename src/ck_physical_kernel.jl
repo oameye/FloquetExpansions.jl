@@ -258,6 +258,21 @@ end
 function ck_kernel_ordered_sideband_coefficient(
   state::CKPhysicalKernel{H,T}, sidebands::AbstractVector{H}; inverse_weight
 ) where {H,T}
+  output_channels = fill(1, length(sidebands))
+  return ck_kernel_ordered_sideband_coefficient(
+    state, output_channels, sidebands; inverse_weight
+  )
+end
+
+function ck_kernel_ordered_sideband_coefficient(
+  state::CKPhysicalKernel{H,T},
+  output_channels::AbstractVector{Int},
+  sidebands::AbstractVector{H};
+  inverse_weight,
+) where {H,T}
+  length(output_channels) == length(sidebands) ||
+    throw(ArgumentError("output channels and sidebands must have equal length"))
+
   result = state.zero_component
   for (key, value) in state.terms
     ck_kernel_output_number(key) == length(sidebands) || continue
@@ -273,6 +288,10 @@ function ck_kernel_ordered_sideband_coefficient(
       mismatch += vertex.harmonic
       if ck_is_jump(vertex)
         sideband_index += 1
+        if vertex.output_channel != output_channels[sideband_index]
+          valid = false
+          break
+        end
         mismatch -= sidebands[sideband_index]
       end
 
