@@ -47,6 +47,19 @@ end
   JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
     multichannel, [2], [0]; inverse_weight=inv
   )
+
+  recurrence = FloquetExpansions.evaluate_bloch_order_recurrence(
+    [A1, A2], 3, identity_state, zero_state, operations
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.evaluate_ck_period_amplitude(
+    recurrence.effective, recurrence.wave, 3, identity_state, zero_state
+  )
+  reconstruction = FloquetExpansions.evaluate_ck_period_amplitude(
+    recurrence.effective, recurrence.wave, 3, identity_state, zero_state
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.ck_period_ordered_sideband_coefficients(
+    reconstruction.amplitude[3], [1, 1], [-1, 1]; inverse_weight=inv
+  )
 end
 
 @testset "completion optimizer stability" begin
