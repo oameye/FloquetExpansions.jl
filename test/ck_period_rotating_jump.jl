@@ -136,6 +136,32 @@ function ck_period_rotating_q2_by_phase(amplitudes, zero_superoperator; overlap)
   return resolved
 end
 
+function ck_period_rotating_q2_by_first_mismatch(amplitudes, zero_superoperator; overlap)
+  resolved = Dict{Int,Vector{Matrix{CKPeriodRotatingExact}}}()
+  for (first_left, first_left_value) in amplitudes,
+    (second_left, second_left_value) in amplitudes,
+    (first_right, first_right_value) in amplitudes,
+    (second_right, second_right_value) in amplitudes
+
+    first_left + second_left == first_right + second_right || continue
+    coefficients = overlap(first_left - first_right, second_left - second_right)
+    all(iszero, coefficients) && continue
+    mismatch = abs(first_left - first_right)
+    polynomial = get!(resolved, mismatch) do
+      return ck_period_rotating_zero_polynomial(zero_superoperator)
+    end
+    left_value = second_left_value * first_left_value
+    right_value = second_right_value * first_right_value
+    ck_period_rotating_accumulate!(
+      polynomial,
+      coefficients,
+      ck_period_rotating_recycling(left_value, right_value),
+      zero_superoperator,
+    )
+  end
+  return resolved
+end
+
 function ck_period_rotating_first_channel(amplitudes, zero_superoperator)
   identity_superoperator = Matrix{CKPeriodRotatingExact}(I, 4, 4)
   recycling_zero = copy(zero_superoperator)
@@ -234,4 +260,15 @@ end
   @test iszero(ck_period_rotating_coefficient(log_zero_phase, 2, zero_superoperator))
   expected = ck_period_rotating_hamiltonian_super(-(5 // 4) * fixture.sigma_z)
   @test ck_period_rotating_coefficient(log_zero_phase, 1, zero_superoperator) == expected
+
+  rr = ck_period_rotating_q2_by_first_mismatch(
+    fixture.amplitudes, zero_superoperator; overlap=production_overlap
+  )
+  @test sort!(collect(keys(rr))) == [0, 1, 2]
+  @test iszero(ck_period_rotating_coefficient(rr[0], 1, zero_superoperator))
+  m1 = ck_period_rotating_coefficient(rr[1], 1, zero_superoperator)
+  m2 = ck_period_rotating_coefficient(rr[2], 1, zero_superoperator)
+  @test m1 == ck_period_rotating_hamiltonian_super(-fixture.sigma_z)
+  @test m2 == ck_period_rotating_hamiltonian_super(-(1 // 4) * fixture.sigma_z)
+  @test m1 + m2 == expected
 end
