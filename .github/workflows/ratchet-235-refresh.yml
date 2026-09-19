@@ -6,30 +6,26 @@ on:
       - feature/226-physical-kernel-algebra
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v2
-        with:
-          version: '1.13'
-      - name: Instantiate ratchet environment
-        run: julia --project=code_ratchet -e 'using Pkg; Pkg.instantiate()'
-      - name: Generate and print accepted baseline candidate
+      - name: Download existing ratchet refresh artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 35470142056 -R oameye/FloquetExpansions.jl -n coderatchet-refresh -D refresh
+      - name: Print exact generated baselines
         run: |
-          set +e
-          julia --project=code_ratchet -e 'using CodeRatchet; try; @eval using JET; catch; end; exit(CodeRatchet.main())' all check
-          set -e
           echo '=== complexity ==='
-          cat code_ratchet/_refresh/complexity_baseline.toml
+          cat refresh/complexity_baseline.toml
           echo '=== style ==='
-          cat code_ratchet/_refresh/style_baseline.toml
+          cat refresh/style_baseline.toml
           echo '=== docs ==='
-          cat code_ratchet/_refresh/docs_baseline.toml
+          cat refresh/docs_baseline.toml
           echo '=== boxes ==='
-          cat code_ratchet/_refresh/boxes_baseline.toml
+          cat refresh/boxes_baseline.toml
           echo '=== lsp ==='
-          cat code_ratchet/_refresh/lsp_baseline.toml
+          cat refresh/lsp_baseline.toml
