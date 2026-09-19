@@ -1,0 +1,33 @@
+name: Bernoulli kernel diagnostic
+
+on:
+  pull_request:
+
+jobs:
+  reference:
+    strategy:
+      matrix:
+        julia-version: ['1.10', '1']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia-version }}
+      - name: Run periodic Bernoulli kernel reference
+        run: julia --project=. test/ck_periodic_bernoulli_kernel_reference.jl
+
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v3
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace .
+          git diff -- test/ck_periodic_bernoulli_kernel_reference.jl
