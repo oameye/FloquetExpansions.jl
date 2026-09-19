@@ -28,6 +28,17 @@ struct BlochProjectionResult{H,T}
   effective::Vector{T}
 end
 
+struct BlochOrderOperations{P,M,Q,S}
+  product::P
+  project_model::M
+  solve_complement::Q
+  simplifier::S
+end
+
+function BlochOrderOperations(product, project_model, solve_complement; simplifier=identity)
+  return BlochOrderOperations(product, project_model, solve_complement, simplifier)
+end
+
 struct BlochOrderRecurrenceResult{T}
   wave::Vector{T}
   effective::Vector{T}
@@ -38,11 +49,8 @@ function evaluate_bloch_order_recurrence(
   generators_by_order::AbstractVector{T},
   order::Int,
   identity_component::T,
-  zero_component::T;
-  product,
-  project_model,
-  solve_complement,
-  simplifier=identity,
+  zero_component::T,
+  operations::BlochOrderOperations,
 ) where {T}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
   isempty(generators_by_order) &&
@@ -58,20 +66,20 @@ function evaluate_bloch_order_recurrence(
     for generator_order in 1:min(n, length(generators_by_order))
       previous_order = n - generator_order
       previous = iszero(previous_order) ? identity_component : wave[previous_order]
-      residual += product(generators_by_order[generator_order], previous)
+      residual += operations.product(generators_by_order[generator_order], previous)
       products += 1
     end
 
     for wave_order in 1:(n - 1)
       effective_order = n - wave_order
-      residual -= product(wave[wave_order], effective[effective_order])
+      residual -= operations.product(wave[wave_order], effective[effective_order])
       products += 1
     end
 
-    residual = simplifier(residual)::T
-    effective[n] = simplifier(project_model(residual))::T
+    residual = operations.simplifier(residual)::T
+    effective[n] = operations.simplifier(operations.project_model(residual))::T
     if n < order
-      wave[n] = simplifier(solve_complement(residual))::T
+      wave[n] = operations.simplifier(operations.solve_complement(residual))::T
     end
   end
 
