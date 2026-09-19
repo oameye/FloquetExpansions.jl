@@ -1,3 +1,7 @@
+if !isdefined(@__MODULE__, :OpenLegPeriodic)
+  include(joinpath(@__DIR__, "open_leg_reference.jl"))
+end
+
 struct OpenLegOutputLeg{C,S}
   channel::C
   sideband::S
@@ -63,7 +67,9 @@ struct OpenLegEvaluationPlan{H,T}
   counts::OpenLegEvaluationPlanCounts
 end
 
-function openleg_intern_path!(paths::Vector{Tuple}, path_ids::Dict{Tuple,Int}, path::Tuple)
+function openleg_intern_path!(
+  paths::Vector{Tuple}, path_ids::AbstractDict{<:Tuple,Int}, path::Tuple
+)
   return get!(path_ids, path) do
     push!(paths, path)
     return length(paths)
@@ -90,10 +96,7 @@ function openleg_compile_input(
         throw(ArgumentError("leg_factory must return exactly grade external legs"))
       path = openleg_intern_path!(paths, path_ids, legs)
       push!(values, component)
-      push!(
-        vertices,
-        OpenLegPlanVertex(order, harmonic, path, grade, length(values)),
-      )
+      push!(vertices, OpenLegPlanVertex(order, harmonic, path, grade, length(values)))
     end
     push!(vertices_by_order, vertices)
   end
@@ -109,11 +112,9 @@ function openleg_compose_state!(
   left_grade::Int,
   right::OpenLegPlanState{H},
   paths::Vector{Tuple},
-  path_ids::Dict{Tuple,Int},
+  path_ids::AbstractDict{<:Tuple,Int},
 ) where {H}
-  path = openleg_intern_path!(
-    paths, path_ids, (paths[left_path]..., paths[right.path]...)
-  )
+  path = openleg_intern_path!(paths, path_ids, (paths[left_path]..., paths[right.path]...))
   return OpenLegPlanState(left_harmonic + right.harmonic, path, left_grade + right.grade)
 end
 
@@ -121,7 +122,7 @@ function openleg_compose_states!(
   left::OpenLegPlanState{H},
   right::OpenLegPlanState{H},
   paths::Vector{Tuple},
-  path_ids::Dict{Tuple,Int},
+  path_ids::AbstractDict{<:Tuple,Int},
 ) where {H}
   return openleg_compose_state!(
     left.harmonic, left.path, left.grade, right, paths, path_ids
@@ -144,7 +145,7 @@ function compile_openleg_evaluation_plan(
   input = openleg_compile_input(amplitude_orders; leg_factory)
   zero_harmonic = 0
   paths = input.paths
-  path_ids = Dict(path => index for (index, path) in enumerate(paths))
+  path_ids = Dict{Tuple,Int}(path => index for (index, path) in enumerate(paths))
   identity_state = OpenLegPlanState(zero_harmonic, 1, 0)
 
   wave_support = [OpenLegPlanState{Int}[] for _ in 1:order]
@@ -162,17 +163,14 @@ function compile_openleg_evaluation_plan(
 
     for vertex_order in 1:min(n, length(input.vertices_by_order))
       previous_order = n - vertex_order
-      previous_states =
-        iszero(previous_order) ? OpenLegPlanState{Int}[identity_state] :
+      previous_states = if iszero(previous_order)
+        OpenLegPlanState{Int}[identity_state]
+      else
         wave_support[previous_order]
+      end
       for vertex in input.vertices_by_order[vertex_order], previous in previous_states
         output = openleg_compose_state!(
-          vertex.harmonic,
-          vertex.path,
-          vertex.grade,
-          previous,
-          paths,
-          path_ids,
+          vertex.harmonic, vertex.path, vertex.grade, previous, paths, path_ids
         )
         openleg_push_unique_state!(residual_support, output)
         edges = get!(generator_edges, output) do
@@ -188,18 +186,13 @@ function compile_openleg_evaluation_plan(
       for wave_state in wave_support[wave_order],
         effective_state in effective_support[effective_order]
 
-        output = openleg_compose_states!(
-          wave_state, effective_state, paths, path_ids
-        )
+        output = openleg_compose_states!(wave_state, effective_state, paths, path_ids)
         openleg_push_unique_state!(residual_support, output)
         edges = get!(fold_edges, output) do
           return OpenLegFoldEdge{Int}[]
         end
         push!(
-          edges,
-          OpenLegFoldEdge(
-            wave_order, wave_state, effective_order, effective_state
-          ),
+          edges, OpenLegFoldEdge(wave_order, wave_state, effective_order, effective_state)
         )
         fold_product_count += 1
       end
@@ -238,13 +231,7 @@ function compile_openleg_evaluation_plan(
     length(paths),
   )
   return OpenLegEvaluationPlan(
-    compiled_input,
-    order,
-    zero_harmonic,
-    wave_support,
-    effective_support,
-    residuals,
-    counts,
+    compiled_input, order, zero_harmonic, wave_support, effective_support, residuals, counts
   )
 end
 
@@ -260,9 +247,11 @@ function evaluate_openleg_evaluation_plan(
       value = plan.input.zero_component
       for edge in node.generator_edges
         left = plan.input.values[edge.vertex]
-        right =
-          iszero(edge.wave_order) ? identity_component :
+        right = if iszero(edge.wave_order)
+          identity_component
+        else
           wave[edge.wave_order][edge.wave_state]
+        end
         value += product(left, right)
       end
       for edge in node.fold_edges
@@ -291,8 +280,7 @@ function evaluate_openleg_evaluation_plan(
 end
 
 function collapse_openleg_plan_component(
-  components::Dict{OpenLegPlanState{H},T},
-  plan::OpenLegEvaluationPlan{H,T},
+  components::Dict{OpenLegPlanState{H},T}, plan::OpenLegEvaluationPlan{H,T}
 ) where {H,T}
   collapsed = Dict{Tuple{Int,Int},T}()
   for (state, value) in components
