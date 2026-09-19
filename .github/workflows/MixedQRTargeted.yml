@@ -1,0 +1,26 @@
+name: Mixed Q/R targeted reference
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/MixedQRTargeted.yml'
+      - 'test/mixed_qr_kernel_reference.jl'
+      - 'test/helpers/mixed_qr_kernel_reference.jl'
+      - 'test/helpers/simplex_output_kernel_reference.jl'
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1.10', '1']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia-version }}
+      - name: Run exact mixed Q/R reference
+        run: julia --project=. test/mixed_qr_kernel_reference.jl
