@@ -192,7 +192,9 @@ end
     drift_number = FloquetExpansions.ck_kernel_drift_number(key)
     @test output_number + 2 * drift_number == n
     @test key.sector == FloquetExpansions.CKModelSector
-    isempty(key.vertices) || @test last(key.model_cuts) == length(key.vertices)
+    if !isempty(key.vertices)
+      @test last(key.model_cuts) == length(key.vertices)
+    end
   end
   for n in eachindex(order5.wave), key in keys(order5.wave[n].terms)
     output_number = FloquetExpansions.ck_kernel_output_number(key)
