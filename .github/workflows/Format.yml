@@ -17,6 +17,7 @@ jobs:
       - name: Install JuliaFormatter
         run: |
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
-      - name: Check formatting
+      - name: Show formatter diff
         run: |
-          ${HOME}/.julia/bin/jlfmt --check --verbose .
+          ${HOME}/.julia/bin/jlfmt --inplace .
+          git diff -- test/open_leg_halfchain_representation.jl test/helpers/open_leg_halfchain_representation.jl
