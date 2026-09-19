@@ -35,7 +35,8 @@ struct CKPeriodPolynomial{H,T}
 end
 
 function ck_period_polynomial(coefficients::Vector{CKPhysicalKernel{H,T}}) where {H,T}
-  isempty(coefficients) && throw(ArgumentError("period polynomial must contain a coefficient"))
+  isempty(coefficients) &&
+    throw(ArgumentError("period polynomial must contain a coefficient"))
   last_nonzero = findlast(coefficient -> !isempty(coefficient.terms), coefficients)
   length_to_keep = isnothing(last_nonzero) ? 1 : last_nonzero
   return CKPeriodPolynomial{H,T}(copy(coefficients[1:length_to_keep]))
@@ -66,7 +67,8 @@ function Base.:+(left::CKPeriodPolynomial{H,T}, right::CKPeriodPolynomial{H,T}) 
   coefficients = Vector{CKPhysicalKernel{H,T}}(undef, length_result)
   for index in 1:length_result
     left_value = index <= length(left.coefficients) ? left.coefficients[index] : zero_state
-    right_value = index <= length(right.coefficients) ? right.coefficients[index] : zero_state
+    right_value =
+      index <= length(right.coefficients) ? right.coefficients[index] : zero_state
     coefficients[index] = left_value + right_value
   end
   return ck_period_polynomial(coefficients)
@@ -78,7 +80,8 @@ function Base.:-(left::CKPeriodPolynomial{H,T}, right::CKPeriodPolynomial{H,T}) 
   coefficients = Vector{CKPhysicalKernel{H,T}}(undef, length_result)
   for index in 1:length_result
     left_value = index <= length(left.coefficients) ? left.coefficients[index] : zero_state
-    right_value = index <= length(right.coefficients) ? right.coefficients[index] : zero_state
+    right_value =
+      index <= length(right.coefficients) ? right.coefficients[index] : zero_state
     coefficients[index] = left_value - right_value
   end
   return ck_period_polynomial(coefficients)
@@ -91,8 +94,12 @@ end
 function Base.:*(left::CKPeriodPolynomial{H,T}, right::CKPeriodPolynomial{H,T}) where {H,T}
   zero_state = ck_kernel_zero_like(first(left.coefficients))
   maximum_power = length(left.coefficients) + length(right.coefficients) - 2
-  coefficients = CKPhysicalKernel{H,T}[ck_kernel_zero_like(zero_state) for _ in 0:maximum_power]
-  for left_index in eachindex(left.coefficients), right_index in eachindex(right.coefficients)
+  coefficients = CKPhysicalKernel{H,T}[
+    ck_kernel_zero_like(zero_state) for _ in 0:maximum_power
+  ]
+  for left_index in eachindex(left.coefficients),
+    right_index in eachindex(right.coefficients)
+
     output_index = left_index + right_index - 1
     coefficients[output_index] += ck_kernel_endpoint_product(
       left.coefficients[left_index], right.coefficients[right_index]
@@ -130,7 +137,8 @@ function ck_unit_series_inverse(
 ) where {T}
   order >= 0 || throw(ArgumentError("series order must be nonnegative"))
   isempty(series) && throw(ArgumentError("series must contain its order-zero coefficient"))
-  series[1] == one_value || throw(ArgumentError("series must have unit order-zero coefficient"))
+  series[1] == one_value ||
+    throw(ArgumentError("series must have unit order-zero coefficient"))
 
   result = Vector{T}(undef, order + 1)
   result[1] = one_value
