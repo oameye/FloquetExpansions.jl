@@ -6,26 +6,22 @@ on:
       - feature/226-physical-kernel-algebra
 
 permissions:
-  actions: read
   contents: read
 
 jobs:
-  refresh:
+  lsp-report:
     runs-on: ubuntu-latest
     steps:
-      - name: Download existing ratchet refresh artifact
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh run download 35470142056 -R oameye/FloquetExpansions.jl -n coderatchet-refresh -D refresh
-      - name: Print exact generated baselines
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@v2
+      - name: Install pinned JETLS
         run: |
-          echo '=== complexity ==='
-          cat refresh/complexity_baseline.toml
-          echo '=== style ==='
-          cat refresh/style_baseline.toml
-          echo '=== docs ==='
-          cat refresh/docs_baseline.toml
-          echo '=== boxes ==='
-          cat refresh/boxes_baseline.toml
-          echo '=== lsp ==='
-          cat refresh/lsp_baseline.toml
+          julia -e 'using Pkg; Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
+          echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
+      - name: Instantiate ratchet environment
+        run: julia --project=code_ratchet -e 'using Pkg; Pkg.instantiate()'
+      - name: Print exact JETLS report
+        run: julia --project=code_ratchet -e 'using CodeRatchet; println.(CodeRatchet.lsp_report())'
