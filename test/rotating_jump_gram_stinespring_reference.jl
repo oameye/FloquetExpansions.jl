@@ -73,13 +73,15 @@ end
   )
 
   @test sort!(collect(keys(first_order))) == [0]
-  @test sort!(collect(keys(second_order))) == [-1, 0, 1]
+  @test sort!(collect(keys(second_order))) == [-2, -1, 0, 1, 2]
 
   log_second_order_zero_phase = physical_log_second_order_phase_average(
     first_order[0], second_order[0], zero_superoperator
   )
 
   @test iszero(formal_period_coefficient(log_second_order_zero_phase, 2, zero_superoperator))
+  @test iszero(formal_period_coefficient(second_order[-2], 1, zero_superoperator))
+  @test iszero(formal_period_coefficient(second_order[2], 1, zero_superoperator))
   @test !iszero(formal_period_coefficient(second_order[-1], 1, zero_superoperator))
   @test !iszero(formal_period_coefficient(second_order[1], 1, zero_superoperator))
 
