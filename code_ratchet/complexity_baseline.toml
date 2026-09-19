@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "2103437"
+commit = "a6333f4"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -19,6 +19,17 @@ arg_over = 0
 cyc_sum = 0
 cog_sum = 0
 arg_sum = 0
+
+[files."src/bloch_projection.jl"]
+cyc = 12
+cog = 17
+arg = 6
+cyc_over = 1
+cog_over = 2
+arg_over = 0
+cyc_sum = 25
+cog_sum = 37
+arg_sum = 13
 
 [files."src/completion.jl"]
 cyc = 2
@@ -108,6 +119,17 @@ cyc_sum = 7
 cog_sum = 2
 arg_sum = 12
 
+[files."src/graded_output_series.jl"]
+cyc = 6
+cog = 8
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 27
+cog_sum = 25
+arg_sum = 21
+
 [files."src/gram_completion.jl"]
 cyc = 6
 cog = 6
@@ -137,8 +159,8 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 108
-cog_sum = 68
+cyc_sum = 111
+cog_sum = 72
 arg_sum = 96
 
 [files."src/matrix_series.jl"]
