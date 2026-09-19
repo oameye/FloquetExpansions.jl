@@ -1,0 +1,33 @@
+name: Kernel sideband diagnostic
+
+on:
+  pull_request:
+
+jobs:
+  reference:
+    strategy:
+      matrix:
+        julia-version: ['1.10', '1']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia-version }}
+      - name: Run physical-kernel sideband obstruction reference
+        run: julia --project=. test/ck_physical_kernel_sideband_obstruction.jl
+
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v3
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace .
+          git diff -- test/ck_physical_kernel_sideband_obstruction.jl
