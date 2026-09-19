@@ -55,7 +55,9 @@ function ck_period_rotating_production_kernel()
   return reconstruction.amplitude[3]
 end
 
-function ck_period_rotating_production_overlap(kernel, first_mismatch::Int, second_mismatch::Int)
+function ck_period_rotating_production_overlap(
+  kernel, first_mismatch::Int, second_mismatch::Int
+)
   return FloquetExpansions.ck_period_ordered_sideband_coefficients(
     kernel,
     [1, 2],
@@ -175,7 +177,9 @@ function ck_period_rotating_first_channel(amplitudes, zero_superoperator)
   return polynomial, recycling_zero
 end
 
-function ck_period_rotating_full_second_channel(q2_by_phase, recycling_zero, zero_superoperator)
+function ck_period_rotating_full_second_channel(
+  q2_by_phase, recycling_zero, zero_superoperator
+)
   resolved = Dict(
     phase => [copy(value) for value in polynomial] for (phase, polynomial) in q2_by_phase
   )
@@ -209,8 +213,8 @@ end
 
 @testset "production period kernel reproduces the rotating-jump channel/log oracle" begin
   physical_kernel = ck_period_rotating_production_kernel()
-  production_overlap = (first, second) ->
-    ck_period_rotating_production_overlap(physical_kernel, first, second)
+  production_overlap =
+    (first, second) -> ck_period_rotating_production_overlap(physical_kernel, first, second)
   exact_overlap = ck_period_rotating_exact_overlap
 
   for first_mismatch in -12:12, second_mismatch in -12:12
