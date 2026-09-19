@@ -105,3 +105,58 @@ end
     end
   end
 end
+
+@testset "right normalization starts beyond the retained physical HFE coefficients" begin
+  identity_component = GramExact[1;;]
+  zero_component = zero(identity_component)
+  jump = gram_qr_jump(:loss, 0, GramExact[1;;])
+  drift = gram_qr_drift(0, GramExact[-1 // 2;;])
+
+  for generator_order in 0:2
+    words = gram_stinespring_triangle_words(
+      [jump], [drift], generator_order, identity_component
+    )
+    metric = gram_stinespring_metric_series(words, generator_order, zero_component)
+    normalization_order = 2 * (generator_order + 1)
+    inverse_sqrt = gram_metric_inverse_sqrt_series(
+      metric, normalization_order, identity_component
+    )
+
+    @test inverse_sqrt[1].coefficients == [identity_component]
+    for order in 1:(generator_order + 1)
+      @test gram_all_period_coefficients_zero(inverse_sqrt[order + 1])
+    end
+    @test !gram_all_period_coefficients_zero(inverse_sqrt[generator_order + 3])
+
+    normalized = gram_normalized_metric_series(
+      metric, inverse_sqrt, normalization_order, zero_component
+    )
+    @test normalized[1].coefficients == [identity_component]
+    for order in 1:normalization_order
+      @test gram_all_period_coefficients_zero(normalized[order + 1])
+    end
+  end
+end
+
+@testset "Gram inverse-square-root recurrence is exact for noncommuting matrices" begin
+  identity_component = gram_exact_identity(2)
+  zero_component = zero(identity_component)
+  jump_a = gram_qr_jump(:a, 1, GramExact[0 1; 1 0])
+  jump_b = gram_qr_jump(:a, -1, GramExact[1 1; 0 -1])
+  drift = gram_qr_drift(0, GramExact[1 0; 1 1])
+
+  words = gram_stinespring_triangle_words(
+    [jump_a, jump_b], [drift], 1, identity_component
+  )
+  metric = gram_stinespring_metric_series(words, 1, zero_component)
+  inverse_sqrt = gram_metric_inverse_sqrt_series(metric, 4, identity_component)
+  normalized = gram_normalized_metric_series(metric, inverse_sqrt, 4, zero_component)
+
+  @test normalized[1].coefficients == [identity_component]
+  for order in 1:4
+    @test gram_all_period_coefficients_zero(normalized[order + 1])
+  end
+  for coefficient in inverse_sqrt, matrix in coefficient.coefficients
+    @test matrix == adjoint(matrix)
+  end
+end
