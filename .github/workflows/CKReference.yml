@@ -20,5 +20,10 @@ jobs:
         with:
           version: '1.10'
       - uses: julia-actions/cache@v3
+      - run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace test/ck_graded_bloch_projection.jl test/helpers/ck_graded_output_algebra.jl
+          git diff -- test/ck_graded_bloch_projection.jl test/helpers/ck_graded_output_algebra.jl
       - run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - run: julia --project=. test/ck_graded_bloch_projection.jl
