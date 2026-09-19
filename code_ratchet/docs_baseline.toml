@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "f450778"
+commit = "a6333f4"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -47,6 +47,10 @@ public = 2
 [files."src/gksl_floquet.jl"]
 undocumented = 0
 public = 4
+
+[files."src/graded_output_series.jl"]
+undocumented = 0
+public = 0
 
 [files."src/gram_completion.jl"]
 undocumented = 0
