@@ -43,90 +43,20 @@ function ck_drift_vertex(
   )
 end
 
-struct CKDeltaOutputSeries{T}
-  coefficients::Vector{Dict{Tuple,T}}
-  zero_component::T
-end
+ck_zero_series(zero_component::T, cutoff::Int) where {T} =
+  FloquetExpansions.graded_output_series(Tuple, zero_component, cutoff)
 
-function ck_zero_series(zero_component::T, cutoff::Int) where {T}
-  cutoff >= 0 || throw(ArgumentError("cutoff must be nonnegative"))
-  return CKDeltaOutputSeries([Dict{Tuple,T}() for _ in 0:cutoff], zero_component)
-end
-
-ck_series_cutoff(series::CKDeltaOutputSeries) = length(series.coefficients) - 1
-
-function ck_accumulate!(
-  destination::Dict{Tuple,T}, key::Tuple, value::T, zero_component::T
-) where {T}
-  updated = get(destination, key, zero_component) + value
-  if updated == zero_component
-    haskey(destination, key) && delete!(destination, key)
-  else
-    destination[key] = updated
+function ck_counted_series_product(products::Base.RefValue{Int})
+  system_product = function (left, right)
+    products[] += 1
+    return left * right
   end
-  return destination
-end
-
-function Base.:+(left::CKDeltaOutputSeries{T}, right::CKDeltaOutputSeries{T}) where {T}
-  cutoff = ck_series_cutoff(left)
-  cutoff == ck_series_cutoff(right) || throw(ArgumentError("series cutoffs must agree"))
-  result = ck_zero_series(left.zero_component, cutoff)
-  for degree in 0:cutoff
-    destination = result.coefficients[degree + 1]
-    for (key, value) in left.coefficients[degree + 1]
-      destination[key] = value
-    end
-    for (key, value) in right.coefficients[degree + 1]
-      ck_accumulate!(destination, key, value, left.zero_component)
-    end
-  end
-  return result
-end
-
-function Base.:-(left::CKDeltaOutputSeries{T}, right::CKDeltaOutputSeries{T}) where {T}
-  return left + (-one(Int)) * right
-end
-
-function Base.:*(weight::Number, series::CKDeltaOutputSeries{T}) where {T}
-  cutoff = ck_series_cutoff(series)
-  result = ck_zero_series(series.zero_component, cutoff)
-  for degree in 0:cutoff
-    destination = result.coefficients[degree + 1]
-    for (key, value) in series.coefficients[degree + 1]
-      scaled = weight * value
-      scaled == series.zero_component || (destination[key] = scaled)
-    end
-  end
-  return result
-end
-
-function ck_series_product(
-  left::CKDeltaOutputSeries{T}, right::CKDeltaOutputSeries{T}, products::Base.RefValue{Int}
-) where {T}
-  cutoff = ck_series_cutoff(left)
-  cutoff == ck_series_cutoff(right) || throw(ArgumentError("series cutoffs must agree"))
-  result = ck_zero_series(left.zero_component, cutoff)
-  for left_degree in 0:cutoff
-    left_terms = left.coefficients[left_degree + 1]
-    isempty(left_terms) && continue
-    for right_degree in 0:(cutoff - left_degree)
-      right_terms = right.coefficients[right_degree + 1]
-      isempty(right_terms) && continue
-      destination = result.coefficients[left_degree + right_degree + 1]
-      for (left_key, left_value) in left_terms, (right_key, right_value) in right_terms
-        products[] += 1
-        output_key = ck_compose_output(left_key, right_key)
-        ck_accumulate!(
-          destination, output_key, left_value * right_value, left.zero_component
-        )
-      end
-    end
-  end
-  return result
+  return FloquetExpansions.GradedOutputProduct(ck_compose_output, system_product)
 end
 
 function ck_series_components(vertices_by_order, zero_component::T, cutoff::Int) where {T}
-  components = Dict{Int,CKDeltaOutputSeries{T}}()
+  S = FloquetExpansions.GradedOutputSeries{Tuple,T}
+  components = Dict{Int,S}()
   for vertices in vertices_by_order, vertex in vertices
     series = get!(components, vertex.mismatch) do
       return ck_zero_series(zero_component, cutoff)
@@ -136,7 +66,9 @@ function ck_series_components(vertices_by_order, zero_component::T, cutoff::Int)
     else
       (CKOutputLeg(vertex.channel, vertex.output_sideband),)
     end
-    ck_accumulate!(series.coefficients[vertex.order + 1], key, vertex.value, zero_component)
+    FloquetExpansions.graded_output_accumulate!(
+      series, vertex.order, key, vertex.value
+    )
   end
   return components
 end
@@ -240,10 +172,11 @@ end
 function ck_trivial_series_components(
   components::AbstractDict{H,T}, zero_component::T, cutoff::Int
 ) where {H,T}
-  result = Dict{H,CKDeltaOutputSeries{T}}()
+  S = FloquetExpansions.GradedOutputSeries{Tuple,T}
+  result = Dict{H,S}()
   for (harmonic, value) in components
     series = ck_zero_series(zero_component, cutoff)
-    series.coefficients[2][()] = value
+    FloquetExpansions.graded_output_accumulate!(series, 1, (), value)
     result[harmonic] = series
   end
   return result
