@@ -1,0 +1,20 @@
+name: Format 227 diagnostic
+
+on:
+  pull_request:
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show exact formatter delta
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace src/ck_physical_kernel.jl test/ck_physical_kernel.jl
+          git diff -- src/ck_physical_kernel.jl test/ck_physical_kernel.jl
+          test -z "$(git status --porcelain -- src/ck_physical_kernel.jl test/ck_physical_kernel.jl)"
