@@ -56,12 +56,8 @@ end
   jump_harmonic = 3
   expected_norm = MixedKernelExact(2 // drift_harmonic^2, 0 // 1)
 
-  before = MixedQRVertex[
-    mixed_qr_drift(drift_harmonic), mixed_qr_jump(:a, jump_harmonic)
-  ]
-  after = MixedQRVertex[
-    mixed_qr_jump(:a, jump_harmonic), mixed_qr_drift(drift_harmonic)
-  ]
+  before = MixedQRVertex[mixed_qr_drift(drift_harmonic), mixed_qr_jump(:a, jump_harmonic)]
+  after = MixedQRVertex[mixed_qr_jump(:a, jump_harmonic), mixed_qr_drift(drift_harmonic)]
 
   before_poset = mixed_qr_poset(before, before)
   after_poset = mixed_qr_poset(after, after)
@@ -75,9 +71,7 @@ end
   @test mixed_period_coefficient(before_norm, 1) == expected_norm
   @test mixed_period_coefficient(after_norm, 1) == expected_norm
   @test mixed_period_coefficient(cross, 1) == -expected_norm
-  @test all(
-    iszero(mixed_period_coefficient(before_norm, degree)) for degree in 2:3
-  )
+  @test all(iszero(mixed_period_coefficient(before_norm, degree)) for degree in 2:3)
   @test all(iszero(mixed_period_coefficient(after_norm, degree)) for degree in 2:3)
   @test all(iszero(mixed_period_coefficient(cross, degree)) for degree in 2:3)
 end
@@ -86,19 +80,12 @@ end
   left_word = SimplexOutputWord((:a, :a, :a), (2, -1, -1))
   right_word = SimplexOutputWord((:a, :a, :a), (0, 0, 0))
   simplex_overlap = simplex_slow_overlap(
-    left_word,
-    right_word;
-    imaginary=simplex_im,
-    inverse_weight=harmonic -> 1 // harmonic,
+    left_word, right_word; imaginary=simplex_im, inverse_weight=harmonic -> 1 // harmonic
   )
   @test simplex_overlap.class == SimplexSlowPrimitive
 
-  left = MixedQRVertex[
-    mixed_qr_jump(:a, 2), mixed_qr_jump(:a, -1), mixed_qr_jump(:a, -1)
-  ]
-  right = MixedQRVertex[
-    mixed_qr_jump(:a, 0), mixed_qr_jump(:a, 0), mixed_qr_jump(:a, 0)
-  ]
+  left = MixedQRVertex[mixed_qr_jump(:a, 2), mixed_qr_jump(:a, -1), mixed_qr_jump(:a, -1)]
+  right = MixedQRVertex[mixed_qr_jump(:a, 0), mixed_qr_jump(:a, 0), mixed_qr_jump(:a, 0)]
   gram = mixed_qr_gram_polynomial(left, right)
 
   @test mixed_period_coefficient(gram, 1) == simplex_overlap.coefficient
