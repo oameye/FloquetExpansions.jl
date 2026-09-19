@@ -1,0 +1,25 @@
+name: Format 235 Final Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - feature/226-physical-kernel-algebra
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show exact formatter delta
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace src/ck_period_amplitude.jl test/ck_period_rotating_jump.jl
+          git diff -- src/ck_period_amplitude.jl test/ck_period_rotating_jump.jl
+          test -z "$(git status --porcelain -- src/ck_period_amplitude.jl test/ck_period_rotating_jump.jl)"
