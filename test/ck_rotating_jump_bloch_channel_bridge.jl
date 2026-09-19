@@ -64,11 +64,10 @@ function ck_rotating_bridge_accumulate!(
   coefficients::Vector{CKRotatingBridgeExact},
   value::Matrix{CKRotatingBridgeExact},
 )
-  length(polynomial) >= length(coefficients) ||
-    append!(
-      polynomial,
-      [zero(first(polynomial)) for _ in 1:(length(coefficients) - length(polynomial))],
-    )
+  length(polynomial) >= length(coefficients) || append!(
+    polynomial,
+    [zero(first(polynomial)) for _ in 1:(length(coefficients) - length(polynomial))],
+  )
   for power in eachindex(coefficients)
     polynomial[power] += coefficients[power] * value
   end
@@ -99,9 +98,7 @@ function ck_rotating_bridge_q2_by_phase(amplitudes, zero_superoperator; overlap)
     (first_right, first_right_value) in amplitudes,
     (second_right, second_right_value) in amplitudes
 
-    coefficients = overlap(
-      first_left - first_right, second_left - second_right
-    )
+    coefficients = overlap(first_left - first_right, second_left - second_right)
     all(iszero, coefficients) && continue
 
     phase = first_left + second_left - first_right - second_right
@@ -125,9 +122,7 @@ function ck_rotating_bridge_q2_by_first_mismatch(amplitudes, zero_superoperator;
     (second_right, second_right_value) in amplitudes
 
     first_left + second_left == first_right + second_right || continue
-    coefficients = overlap(
-      first_left - first_right, second_left - second_right
-    )
+    coefficients = overlap(first_left - first_right, second_left - second_right)
     all(iszero, coefficients) && continue
 
     mismatch = abs(first_left - first_right)
@@ -169,10 +164,7 @@ function ck_rotating_bridge_full_second_channel(
   # Q=-I after factoring gamma. The exact scalar no-jump factor e^{-2 gamma T}
   # contributes +2 L^2 I and dresses the one-jump channel by -2 L^2 J0.
   ck_rotating_bridge_add_power!(
-    zero_phase,
-    2,
-    2 * identity_superoperator - 2 * recycling_zero,
-    zero_superoperator,
+    zero_phase, 2, 2 * identity_superoperator - 2 * recycling_zero, zero_superoperator
   )
   return resolved
 end
@@ -199,8 +191,7 @@ end
   end
 
   # Pin each distinct BF contribution separately.
-  @test ck_bloch_two_jump_period_polynomial(0, 0) ==
-    CKRotatingBridgeExact[0, 0, 1 // 2]
+  @test ck_bloch_two_jump_period_polynomial(0, 0) == CKRotatingBridgeExact[0, 0, 1 // 2]
   @test ck_bloch_two_jump_period_polynomial(2, -2) ==
     CKRotatingBridgeExact[0, ck_rotating_bridge_im / 2]
   @test ck_bloch_two_jump_period_polynomial(0, 3) ==
@@ -215,14 +206,10 @@ end
   zero_superoperator = zeros(CKRotatingBridgeExact, 4, 4)
 
   q2_bloch = ck_rotating_bridge_q2_by_phase(
-    fixture.amplitudes,
-    zero_superoperator;
-    overlap=ck_bloch_two_jump_period_polynomial,
+    fixture.amplitudes, zero_superoperator; overlap=ck_bloch_two_jump_period_polynomial
   )
   q2_direct = ck_rotating_bridge_q2_by_phase(
-    fixture.amplitudes,
-    zero_superoperator;
-    overlap=two_jump_period_polynomial,
+    fixture.amplitudes, zero_superoperator; overlap=two_jump_period_polynomial
   )
 
   @test sort!(collect(keys(q2_bloch))) == [-2, -1, 0, 1, 2]
@@ -266,9 +253,7 @@ end
   fixture = ck_rotating_bridge_fixture()
   zero_superoperator = zeros(CKRotatingBridgeExact, 4, 4)
   rr = ck_rotating_bridge_q2_by_first_mismatch(
-    fixture.amplitudes,
-    zero_superoperator;
-    overlap=ck_bloch_two_jump_period_polynomial,
+    fixture.amplitudes, zero_superoperator; overlap=ck_bloch_two_jump_period_polynomial
   )
 
   @test sort!(collect(keys(rr))) == [0, 1, 2]
