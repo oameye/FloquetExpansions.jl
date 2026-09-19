@@ -123,11 +123,12 @@ function ck_bernoulli_scale(scale, terms)
 end
 
 @testset "periodic Bernoulli kernels exactly quotient continuum homological denominators" begin
+  harmonics = vcat(collect(-7:-1), collect(1:7))
   for order in 1:4
     kernel = ck_bernoulli_kernel(order)
     @test isempty(ck_bernoulli_average(kernel))
 
-    for harmonic in (-7:-1..., 1:7...)
+    for harmonic in harmonics
       coefficient = ck_bernoulli_fourier_coefficient(kernel, harmonic)
       expected = CKBernoulliExact(1 // (harmonic^order))
       @test coefficient == Dict(0 => expected)
