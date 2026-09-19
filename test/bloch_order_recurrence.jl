@@ -86,6 +86,14 @@ function bloch_order_test_value(series::BlochOrderTestSeries, harmonic::Int)
   return get(series.components, harmonic, series.zero_component)
 end
 
+function bloch_order_test_operations()
+  return FloquetExpansions.BlochOrderOperations(
+    bloch_order_test_product,
+    bloch_order_test_project_model,
+    bloch_order_test_solve_complement,
+  )
+end
+
 @testset "generic Bloch order recurrence is concrete and internal" begin
   zero_component = zeros(Rational{Int}, 2, 2)
   identity_component = Matrix{Rational{Int}}(I, 2, 2)
@@ -99,15 +107,10 @@ end
   )
   identity_series = BlochOrderTestSeries(Dict(0 => identity_component), zero_component)
   zero_series = BlochOrderTestSeries(Dict{Int,Matrix{Rational{Int}}}(), zero_component)
+  operations = bloch_order_test_operations()
 
   result = @inferred FloquetExpansions.evaluate_bloch_order_recurrence(
-    [A1],
-    5,
-    identity_series,
-    zero_series;
-    product=bloch_order_test_product,
-    project_model=bloch_order_test_project_model,
-    solve_complement=bloch_order_test_solve_complement,
+    [A1], 5, identity_series, zero_series, operations
   )
 
   @test result isa FloquetExpansions.BlochOrderRecurrenceResult{typeof(A1)}
@@ -115,24 +118,13 @@ end
   @test length(result.wave) == 4
   @test result.products == 15
   @test_throws ArgumentError FloquetExpansions.evaluate_bloch_order_recurrence(
-    [A1],
-    0,
-    identity_series,
-    zero_series;
-    product=bloch_order_test_product,
-    project_model=bloch_order_test_project_model,
-    solve_complement=bloch_order_test_solve_complement,
+    [A1], 0, identity_series, zero_series, operations
   )
   @test_throws ArgumentError FloquetExpansions.evaluate_bloch_order_recurrence(
-    typeof(A1)[],
-    1,
-    identity_series,
-    zero_series;
-    product=bloch_order_test_product,
-    project_model=bloch_order_test_project_model,
-    solve_complement=bloch_order_test_solve_complement,
+    typeof(A1)[], 1, identity_series, zero_series, operations
   )
   @test !isdefined(Main, :evaluate_bloch_order_recurrence)
+  @test !isdefined(Main, :BlochOrderOperations)
 end
 
 @testset "generic recurrence exactly reproduces the finite Fourier projection core" begin
@@ -148,16 +140,11 @@ end
   A1 = bloch_order_test_series(components, zero_component)
   identity_series = BlochOrderTestSeries(Dict(0 => identity_component), zero_component)
   zero_series = BlochOrderTestSeries(Dict{Int,Matrix{Rational{Int}}}(), zero_component)
+  operations = bloch_order_test_operations()
   order = 5
 
   generic = FloquetExpansions.evaluate_bloch_order_recurrence(
-    [A1],
-    order,
-    identity_series,
-    zero_series;
-    product=bloch_order_test_product,
-    project_model=bloch_order_test_project_model,
-    solve_complement=bloch_order_test_solve_complement,
+    [A1], order, identity_series, zero_series, operations
   )
 
   plan = FloquetExpansions.compile_bloch_projection_plan(keys(components), order)
@@ -193,33 +180,16 @@ end
   )
   identity_series = BlochOrderTestSeries(Dict(0 => identity_component), zero_component)
   zero_series = BlochOrderTestSeries(Dict{Int,Matrix{Rational{Int}}}(), zero_component)
+  operations = bloch_order_test_operations()
 
   order4 = FloquetExpansions.evaluate_bloch_order_recurrence(
-    [A1, A2],
-    4,
-    identity_series,
-    zero_series;
-    product=bloch_order_test_product,
-    project_model=bloch_order_test_project_model,
-    solve_complement=bloch_order_test_solve_complement,
+    [A1, A2], 4, identity_series, zero_series, operations
   )
   order5 = FloquetExpansions.evaluate_bloch_order_recurrence(
-    [A1, A2],
-    5,
-    identity_series,
-    zero_series;
-    product=bloch_order_test_product,
-    project_model=bloch_order_test_project_model,
-    solve_complement=bloch_order_test_solve_complement,
+    [A1, A2], 5, identity_series, zero_series, operations
   )
   one_tier5 = FloquetExpansions.evaluate_bloch_order_recurrence(
-    [A1],
-    5,
-    identity_series,
-    zero_series;
-    product=bloch_order_test_product,
-    project_model=bloch_order_test_project_model,
-    solve_complement=bloch_order_test_solve_complement,
+    [A1], 5, identity_series, zero_series, operations
   )
 
   @test order4.effective == order5.effective[1:4]
