@@ -37,6 +37,21 @@ function ck_physical_fixture()
   )
 end
 
+@testset "production graded output algebra is concrete and internal" begin
+  left = @inferred FloquetExpansions.graded_output_series(Int, 0 // 1, 3)
+  right = @inferred FloquetExpansions.graded_output_series(Int, 0 // 1, 3)
+  @test @inferred(FloquetExpansions.graded_output_accumulate!(left, 1, 1, 2 // 1)) === left
+  @test @inferred(FloquetExpansions.graded_output_accumulate!(right, 1, 2, 3 // 1)) === right
+
+  algebra = FloquetExpansions.GradedOutputProduct(+, *)
+  product = @inferred algebra(left, right)
+  @test product isa FloquetExpansions.GradedOutputSeries{Int,Rational{Int}}
+  @test product.coefficients[3] == Dict(3 => 6 // 1)
+  @test @inferred((2 // 1) * left).coefficients[2] == Dict(1 => 4 // 1)
+  @test_throws ArgumentError left + FloquetExpansions.graded_output_series(Int, 0 // 1, 2)
+  @test !isdefined(Main, :GradedOutputSeries)
+end
+
 @testset "graded CK amplitudes reuse the shared Bloch projection core" begin
   fixture = ck_physical_fixture()
   cutoff = 5
@@ -44,11 +59,12 @@ end
   plan = FloquetExpansions.compile_bloch_projection_plan(keys(components), cutoff + 1)
   zero_series = ck_zero_series(fixture.zero_component, cutoff)
   series_products = Ref(0)
+  series_product = ck_counted_series_product(series_products)
 
   bloch = FloquetExpansions.evaluate_bloch_projection_plan(
     plan,
     components;
-    product=(left, right) -> ck_series_product(left, right, series_products),
+    product=series_product,
     inverse_weight=harmonic -> ck_im * (1 // harmonic),
     zero_component=zero_series,
   )
@@ -93,10 +109,11 @@ end
 
   series_components = ck_trivial_series_components(components, zero_component, cutoff)
   series_products = Ref(0)
+  series_product = ck_counted_series_product(series_products)
   series = FloquetExpansions.evaluate_bloch_projection_plan(
     plan,
     series_components;
-    product=(left, right) -> ck_series_product(left, right, series_products),
+    product=series_product,
     inverse_weight=harmonic -> ck_im * (1 // harmonic),
     zero_component=ck_zero_series(zero_component, cutoff),
   )
@@ -149,10 +166,11 @@ end
 
   series_components = ck_trivial_series_components(components, 0 // 1, cutoff)
   series_products = Ref(0)
+  series_product = ck_counted_series_product(series_products)
   series = FloquetExpansions.evaluate_bloch_projection_plan(
     plan,
     series_components;
-    product=(left, right) -> ck_series_product(left, right, series_products),
+    product=series_product,
     inverse_weight=harmonic -> 1 // harmonic.first,
     zero_component=ck_zero_series(0 // 1, cutoff),
   )
