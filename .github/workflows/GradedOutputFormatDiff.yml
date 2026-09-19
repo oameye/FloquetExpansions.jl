@@ -1,0 +1,27 @@
+name: Graded output format diff
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/GradedOutputFormatDiff.yml'
+      - 'src/graded_output_series.jl'
+      - 'test/ck_graded_bloch_projection.jl'
+      - 'test/helpers/ck_graded_output_algebra.jl'
+      - 'test/quality/JET.jl'
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v3
+      - run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace .
+          git diff -- src/graded_output_series.jl test/ck_graded_bloch_projection.jl test/helpers/ck_graded_output_algebra.jl test/quality/JET.jl
