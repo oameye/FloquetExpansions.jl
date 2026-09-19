@@ -39,9 +39,11 @@ function ck_kernel_commutator_oracle(
   amplitudes, first_sideband::Int, second_sideband::Int, zero_component
 )
   result = zero_component
-  assignments = first_sideband == second_sideband ?
-                ((first_sideband, second_sideband),) :
-                ((first_sideband, second_sideband), (second_sideband, first_sideband))
+  assignments = if first_sideband == second_sideband
+    ((first_sideband, second_sideband),)
+  else
+    ((first_sideband, second_sideband), (second_sideband, first_sideband))
+  end
 
   for (first_vertex, first_value) in amplitudes,
     (second_vertex, second_value) in amplitudes,
