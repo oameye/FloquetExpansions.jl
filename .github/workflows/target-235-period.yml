@@ -1,0 +1,22 @@
+name: Target 235 Period Amplitude
+
+on:
+  pull_request:
+
+jobs:
+  period-amplitude:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1.10', '1']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia-version }}
+      - uses: julia-actions/cache@v3
+      - name: Instantiate
+        run: julia --project -e 'using Pkg; Pkg.instantiate()'
+      - name: Run period-amplitude tests
+        run: julia --project -e 'include("test/ck_period_amplitude.jl"); include("test/ck_period_rotating_jump.jl")'
