@@ -1,0 +1,30 @@
+name: CK standalone reference
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/CKStandalone.yml'
+      - 'src/bloch_projection.jl'
+      - 'test/ck_graded_bloch_projection.jl'
+      - 'test/helpers/ck_graded_output_algebra.jl'
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.10'
+      - name: Run standalone projection reference
+        run: |
+          julia -e '
+            module FloquetExpansions
+              include("src/bloch_projection.jl")
+            end
+            source = read("test/ck_graded_bloch_projection.jl", String)
+            source = replace(source, "using FloquetExpansions\n" => "")
+            Base.include_string(Main, source, "test/ck_graded_bloch_projection.jl")
+          '
