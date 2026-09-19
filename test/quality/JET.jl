@@ -34,6 +34,19 @@ end
   JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.evaluate_bloch_order_recurrence(
     [A1, A2], 4, identity_state, zero_state, operations
   )
+
+  multichannel = FloquetExpansions.ck_kernel_project_model(
+    FloquetExpansions.ck_kernel_generator(
+      Dict(
+        FloquetExpansions.ck_jump_vertex(1, 0) => 2.0,
+        FloquetExpansions.ck_jump_vertex(2, 0) => 3.0,
+      ),
+      0.0,
+    ),
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
+    multichannel, [2], [0]; inverse_weight=inv
+  )
 end
 
 @testset "completion optimizer stability" begin
