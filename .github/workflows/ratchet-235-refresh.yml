@@ -17,9 +17,11 @@ jobs:
         with:
           version: '1.13'
       - uses: julia-actions/cache@v2
-      - name: Install pinned JETLS
+      - name: Ensure pinned JETLS
         run: |
-          julia -e 'using Pkg; Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
+          if [ ! -x "$HOME/.julia/bin/jetls" ]; then
+            julia -e 'using Pkg; Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
+          fi
           echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
       - name: Print exact JETLS diagnostics
         run: |
