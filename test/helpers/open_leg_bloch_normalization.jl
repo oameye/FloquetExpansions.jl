@@ -1,3 +1,7 @@
+if !isdefined(@__MODULE__, :OpenLegBlochReference)
+  include(joinpath(@__DIR__, "open_leg_reference.jl"))
+end
+
 function openleg_bloch_static_factor2(bloch::OpenLegBlochReference; product)
   X1 = bloch.wave[1]
   return (1 // 2) * openleg_project(openleg_product(X1, X1, product))
