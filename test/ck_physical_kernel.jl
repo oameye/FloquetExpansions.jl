@@ -27,11 +27,11 @@ end
 
 function ck_kernel_bosonic_two_output(state, first_sideband::Int, second_sideband::Int)
   result = FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
-    state, [first_sideband, second_sideband]; inverse_weight=ck_kernel_inverse_weight
+    state, [1, 1], [first_sideband, second_sideband]; inverse_weight=ck_kernel_inverse_weight
   )
   first_sideband == second_sideband && return result
   return result + FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
-    state, [second_sideband, first_sideband]; inverse_weight=ck_kernel_inverse_weight
+    state, [1, 1], [second_sideband, first_sideband]; inverse_weight=ck_kernel_inverse_weight
   )
 end
 
@@ -78,7 +78,7 @@ end
 
   for (vertex, value) in fixture.jump_components
     @test FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
-      model, [vertex.harmonic]; inverse_weight=ck_kernel_inverse_weight
+      model, [1], [vertex.harmonic]; inverse_weight=ck_kernel_inverse_weight
     ) == value
   end
 
@@ -108,10 +108,10 @@ end
       second_expected += ck_kernel_inverse_weight(mismatch)^2 * value
     end
     @test FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
-      solved, [sideband]; inverse_weight=ck_kernel_inverse_weight
+      solved, [1], [sideband]; inverse_weight=ck_kernel_inverse_weight
     ) == first_expected
     @test FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
-      solved_twice, [sideband]; inverse_weight=ck_kernel_inverse_weight
+      solved_twice, [1], [sideband]; inverse_weight=ck_kernel_inverse_weight
     ) == second_expected
   end
 
@@ -120,7 +120,7 @@ end
   @test all(key -> key.model_cuts == [1], keys(folded.terms))
   @test all(key -> key.resolvent_cuts == [2], keys(folded.terms))
   @test FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
-    folded, [99, 0]; inverse_weight=ck_kernel_inverse_weight
+    folded, [1, 1], [99, 0]; inverse_weight=ck_kernel_inverse_weight
   ) == fixture.zero_component
 end
 
