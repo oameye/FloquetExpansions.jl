@@ -1,5 +1,5 @@
 using Test
-using LinearAlgebra: I, kron
+using LinearAlgebra: I, det, kron
 
 const GramOracleExact = Complex{Rational{Int}}
 const gram_oracle_im = GramOracleExact(0 // 1, 1 // 1)
