@@ -14,6 +14,28 @@ end
   )
 end
 
+@testset "physical CK kernel optimizer stability" begin
+  jumps = Dict(
+    FloquetExpansions.ck_jump_vertex(1, -1) => 1.0,
+    FloquetExpansions.ck_jump_vertex(1, 0) => 2.0,
+    FloquetExpansions.ck_jump_vertex(1, 1) => 3.0,
+  )
+  drifts = Dict(FloquetExpansions.ck_drift_vertex(0) => -0.5)
+  A1 = FloquetExpansions.ck_kernel_generator(jumps, 0.0)
+  A2 = FloquetExpansions.ck_kernel_generator(drifts, 0.0)
+  identity_state = FloquetExpansions.ck_kernel_identity(0, 1.0, 0.0)
+  zero_state = FloquetExpansions.ck_kernel_zero(0, 0.0)
+  operations = FloquetExpansions.BlochOrderOperations(
+    FloquetExpansions.ck_kernel_product,
+    FloquetExpansions.ck_kernel_project_model,
+    FloquetExpansions.ck_kernel_solve_complement,
+  )
+
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.evaluate_bloch_order_recurrence(
+    [A1, A2], 4, identity_state, zero_state, operations
+  )
+end
+
 @testset "completion optimizer stability" begin
   fock = FockSpace(:jet_completion_fock)
   a = Destroy(fock, :a)
