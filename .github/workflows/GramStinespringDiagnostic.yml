@@ -1,0 +1,40 @@
+name: Gram Stinespring diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/GramStinespringDiagnostic.yml'
+      - 'test/gram_stinespring_triangle_reference.jl'
+      - 'test/helpers/gram_stinespring_triangle_reference.jl'
+      - 'test/helpers/mixed_qr_kernel_reference.jl'
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1.10', '1']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia-version }}
+      - name: Run exact Gram Stinespring reference
+        run: julia --project=. test/gram_stinespring_triangle_reference.jl
+
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v3
+      - run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Show formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace .
+          git diff -- test/gram_stinespring_triangle_reference.jl test/helpers/gram_stinespring_triangle_reference.jl
