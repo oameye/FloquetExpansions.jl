@@ -77,27 +77,23 @@ end
 end
 
 @testset "asymmetric mixed branch words preserve exact Gram hermiticity" begin
-  one_left = MixedQRVertex[
-    mixed_qr_drift(1), mixed_qr_jump(:a, 2), mixed_qr_drift(-2)
-  ]
+  one_left = MixedQRVertex[mixed_qr_drift(1), mixed_qr_jump(:a, 2), mixed_qr_drift(-2)]
   one_right = MixedQRVertex[mixed_qr_jump(:a, 1), mixed_qr_drift(3)]
   one_forward = mixed_qr_gram_polynomial(one_left, one_right)
   one_reverse = mixed_qr_gram_polynomial(one_right, one_left)
 
-  @test length(mixed_qr_linear_extensions(mixed_qr_poset(one_left, one_right).predecessors)) == 2
+  @test length(
+    mixed_qr_linear_extensions(mixed_qr_poset(one_left, one_right).predecessors)
+  ) == 2
   @test mixed_period_coefficient(one_forward, 1) == mixed_kernel_im / 6
   @test mixed_period_coefficient(one_reverse, 1) == -mixed_kernel_im / 6
   @test all(
     mixed_period_coefficient(one_forward, degree) ==
-      conj(mixed_period_coefficient(one_reverse, degree)) for degree in 0:4
+    conj(mixed_period_coefficient(one_reverse, degree)) for degree in 0:4
   )
 
-  two_left = MixedQRVertex[
-    mixed_qr_drift(1), mixed_qr_jump(:a, 1), mixed_qr_jump(:b, -1)
-  ]
-  two_right = MixedQRVertex[
-    mixed_qr_jump(:a, 0), mixed_qr_drift(2), mixed_qr_jump(:b, -2)
-  ]
+  two_left = MixedQRVertex[mixed_qr_drift(1), mixed_qr_jump(:a, 1), mixed_qr_jump(:b, -1)]
+  two_right = MixedQRVertex[mixed_qr_jump(:a, 0), mixed_qr_drift(2), mixed_qr_jump(:b, -2)]
   two_forward = mixed_qr_gram_polynomial(two_left, two_right)
   two_reverse = mixed_qr_gram_polynomial(two_right, two_left)
 
@@ -105,7 +101,7 @@ end
   @test mixed_period_coefficient(two_reverse, 1) == (3 // 2) * mixed_kernel_im
   @test all(
     mixed_period_coefficient(two_forward, degree) ==
-      conj(mixed_period_coefficient(two_reverse, degree)) for degree in 0:4
+    conj(mixed_period_coefficient(two_reverse, degree)) for degree in 0:4
   )
 end
 
