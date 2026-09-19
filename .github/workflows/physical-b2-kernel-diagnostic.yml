@@ -1,0 +1,37 @@
+name: Physical B2 kernel diagnostic
+
+on:
+  pull_request:
+    paths:
+      - "test/ck_periodic_bernoulli_kernel_reference.jl"
+      - "test/helpers/bloch_order_kernel_reference.jl"
+      - "test/ck_physical_b2_kernel_bridge.jl"
+      - ".github/workflows/physical-b2-kernel-diagnostic.yml"
+
+jobs:
+  reference:
+    strategy:
+      matrix:
+        julia-version: ["1.10", "1"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia-version }}
+      - name: Run physical B2 kernel bridge
+        run: julia test/ck_physical_b2_kernel_bridge.jl
+
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: "1"
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Check formatter diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace test/ck_periodic_bernoulli_kernel_reference.jl test/helpers/bloch_order_kernel_reference.jl test/ck_physical_b2_kernel_bridge.jl
+          git diff --exit-code -- test/ck_periodic_bernoulli_kernel_reference.jl test/helpers/bloch_order_kernel_reference.jl test/ck_physical_b2_kernel_bridge.jl
