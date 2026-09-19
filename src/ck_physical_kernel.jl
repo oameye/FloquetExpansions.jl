@@ -22,25 +22,23 @@ struct CKKernelKey{H}
   vertices::Vector{CKBranchVertex{H}}
   model_cuts::Vector{Int}
   resolvent_cuts::Vector{Int}
-end
 
-function CKKernelKey(
-  sector::CKKernelSector,
-  vertices::Vector{CKBranchVertex{H}},
-  model_cuts::Vector{Int},
-  resolvent_cuts::Vector{Int},
-) where {H}
-  vertex_count = length(vertices)
-  all(cut -> 1 <= cut <= vertex_count, model_cuts) ||
-    throw(ArgumentError("model cuts must lie inside the physical branch"))
-  all(cut -> 1 <= cut <= vertex_count, resolvent_cuts) ||
-    throw(ArgumentError("resolvent cuts must lie inside the physical branch"))
+  function CKKernelKey(
+    sector::CKKernelSector,
+    vertices::Vector{CKBranchVertex{H}},
+    model_cuts::Vector{Int},
+    resolvent_cuts::Vector{Int},
+  ) where {H}
+    vertex_count = length(vertices)
+    all(cut -> 1 <= cut <= vertex_count, model_cuts) ||
+      throw(ArgumentError("model cuts must lie inside the physical branch"))
+    all(cut -> 1 <= cut <= vertex_count, resolvent_cuts) ||
+      throw(ArgumentError("resolvent cuts must lie inside the physical branch"))
 
-  canonical_model_cuts = unique(sort(model_cuts))
-  canonical_resolvent_cuts = sort(resolvent_cuts)
-  return CKKernelKey{H}(
-    sector, copy(vertices), canonical_model_cuts, canonical_resolvent_cuts
-  )
+    canonical_model_cuts = unique(sort(model_cuts))
+    canonical_resolvent_cuts = sort(resolvent_cuts)
+    return new{H}(sector, copy(vertices), canonical_model_cuts, canonical_resolvent_cuts)
+  end
 end
 
 function Base.:(==)(left::CKKernelKey, right::CKKernelKey)
