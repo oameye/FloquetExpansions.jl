@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "9e6d4f4"
+commit = "bdfdd6b"
 entry = ["src/FloquetExpansions.jl"]
 full_analysis = true
 metric = "lsp"
@@ -13,6 +13,14 @@ version = "jetls version 2026-08-23, julia version 1.13.0"
 binding = ["reviewed"]
 
 [files."src/FloquetExpansions.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/bloch_projection.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/ck_physical_kernel.jl"]
 raw = 0
 reviewed = 0
 

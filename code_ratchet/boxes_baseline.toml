@@ -4,13 +4,19 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "9e6d4f4"
+commit = "bdfdd6b"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
 binding = ["boxes"]
 
 [files."src/FloquetExpansions.jl"]
+boxes = 0
+
+[files."src/bloch_projection.jl"]
+boxes = 0
+
+[files."src/ck_physical_kernel.jl"]
 boxes = 0
 
 [files."src/completion.jl"]
