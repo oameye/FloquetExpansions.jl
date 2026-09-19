@@ -47,11 +47,13 @@ ck_zero_series(zero_component::T, cutoff::Int) where {T} =
   FloquetExpansions.graded_output_series(Tuple, zero_component, cutoff)
 
 function ck_counted_series_product(products::Base.RefValue{Int})
+  compose_output = (left, right) ->
+    FloquetExpansions.OutputSectorComposition(ck_compose_output(left, right))
   system_product = function (left, right)
     products[] += 1
     return left * right
   end
-  return FloquetExpansions.GradedOutputProduct(ck_compose_output, system_product)
+  return FloquetExpansions.GradedOutputProduct(compose_output, system_product)
 end
 
 function ck_series_components(vertices_by_order, zero_component::T, cutoff::Int) where {T}
