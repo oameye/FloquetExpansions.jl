@@ -1,40 +1,144 @@
-function ck_kernel_endpoint_product(
-  left::CKPhysicalKernel{H,T}, right::CKPhysicalKernel{H,T}
+struct CKEndpointConstraint
+  start::Int
+  stop::Int
+
+  function CKEndpointConstraint(start::Int, stop::Int)
+    0 <= start < stop || throw(ArgumentError("endpoint constraint must span a nonempty interval"))
+    return new(start, stop)
+  end
+end
+
+struct CKEndpointKey{H}
+  vertices::Vector{CKBranchVertex{H}}
+  model_intervals::Vector{CKEndpointConstraint}
+  resolvent_intervals::Vector{CKEndpointConstraint}
+end
+
+function Base.:(==)(left::CKEndpointKey, right::CKEndpointKey)
+  return left.vertices == right.vertices &&
+         left.model_intervals == right.model_intervals &&
+         left.resolvent_intervals == right.resolvent_intervals
+end
+
+Base.isequal(left::CKEndpointKey, right::CKEndpointKey) = left == right
+
+function Base.hash(key::CKEndpointKey, seed::UInt)
+  result = hash(length(key.vertices), seed)
+  for vertex in key.vertices
+    result = hash(vertex, result)
+  end
+  result = hash(length(key.model_intervals), result)
+  for interval in key.model_intervals
+    result = hash(interval, result)
+  end
+  result = hash(length(key.resolvent_intervals), result)
+  for interval in key.resolvent_intervals
+    result = hash(interval, result)
+  end
+  return result
+end
+
+struct CKEndpointKernel{H,T}
+  terms::Dict{CKEndpointKey{H},T}
+  zero_component::T
+end
+
+function ck_endpoint_accumulate!(
+  terms::Dict{CKEndpointKey{H},T}, key::CKEndpointKey{H}, value::T, zero_component::T
 ) where {H,T}
-  result = Dict{CKKernelKey{H},T}()
+  updated = get(terms, key, zero_component) + value
+  if ck_kernel_iszero(updated)
+    haskey(terms, key) && delete!(terms, key)
+  else
+    terms[key] = updated
+  end
+  return terms
+end
+
+function ck_endpoint_kernel(state::CKPhysicalKernel{H,T}) where {H,T}
+  result = Dict{CKEndpointKey{H},T}()
+  for (key, value) in state.terms
+    model_intervals = CKEndpointConstraint[
+      CKEndpointConstraint(0, cut) for cut in key.model_cuts
+    ]
+    resolvent_intervals = CKEndpointConstraint[
+      CKEndpointConstraint(0, cut) for cut in key.resolvent_cuts
+    ]
+    endpoint_key = CKEndpointKey(
+      copy(key.vertices), model_intervals, resolvent_intervals
+    )
+    ck_endpoint_accumulate!(result, endpoint_key, value, state.zero_component)
+  end
+  return CKEndpointKernel(result, state.zero_component)
+end
+
+function ck_endpoint_zero(state::CKEndpointKernel{H,T}) where {H,T}
+  return CKEndpointKernel(Dict{CKEndpointKey{H},T}(), state.zero_component)
+end
+
+function ck_endpoint_shifted_intervals(
+  intervals::Vector{CKEndpointConstraint}, shift::Int
+)
+  return CKEndpointConstraint[
+    CKEndpointConstraint(interval.start + shift, interval.stop + shift) for interval in intervals
+  ]
+end
+
+function ck_endpoint_product(
+  left::CKEndpointKernel{H,T}, right::CKEndpointKernel{H,T}
+) where {H,T}
+  result = Dict{CKEndpointKey{H},T}()
   for (left_key, left_value) in left.terms, (right_key, right_value) in right.terms
     right_length = length(right_key.vertices)
     vertices = CKBranchVertex{H}[right_key.vertices; left_key.vertices]
-    model_cuts = ck_kernel_shifted_cuts(
-      right_key.model_cuts, left_key.model_cuts, right_length
-    )
-    resolvent_cuts = ck_kernel_shifted_cuts(
-      right_key.resolvent_cuts, left_key.resolvent_cuts, right_length
-    )
-    key = CKKernelKey(CKUnresolvedSector, vertices, model_cuts, resolvent_cuts)
-    ck_kernel_accumulate!(result, key, left_value * right_value, left.zero_component)
+    model_intervals = CKEndpointConstraint[
+      right_key.model_intervals;
+      ck_endpoint_shifted_intervals(left_key.model_intervals, right_length)
+    ]
+    resolvent_intervals = CKEndpointConstraint[
+      right_key.resolvent_intervals;
+      ck_endpoint_shifted_intervals(left_key.resolvent_intervals, right_length)
+    ]
+    key = CKEndpointKey(vertices, model_intervals, resolvent_intervals)
+    ck_endpoint_accumulate!(result, key, left_value * right_value, left.zero_component)
   end
-  return CKPhysicalKernel(result, left.zero_component)
+  return CKEndpointKernel(result, left.zero_component)
 end
 
-function ck_kernel_zero_like(state::CKPhysicalKernel{H,T}) where {H,T}
-  return CKPhysicalKernel(Dict{CKKernelKey{H},T}(), state.zero_component)
+function Base.:(==)(left::CKEndpointKernel, right::CKEndpointKernel)
+  return left.zero_component == right.zero_component && left.terms == right.terms
 end
 
-function ck_kernel_divide(state::CKPhysicalKernel{H,T}, divisor::Int) where {H,T}
+function Base.:+(left::CKEndpointKernel{H,T}, right::CKEndpointKernel{H,T}) where {H,T}
+  result = copy(left.terms)
+  for (key, value) in right.terms
+    ck_endpoint_accumulate!(result, key, value, left.zero_component)
+  end
+  return CKEndpointKernel(result, left.zero_component)
+end
+
+function Base.:-(left::CKEndpointKernel{H,T}, right::CKEndpointKernel{H,T}) where {H,T}
+  result = copy(left.terms)
+  for (key, value) in right.terms
+    ck_endpoint_accumulate!(result, key, -value, left.zero_component)
+  end
+  return CKEndpointKernel(result, left.zero_component)
+end
+
+function ck_endpoint_divide(state::CKEndpointKernel{H,T}, divisor::Int) where {H,T}
   iszero(divisor) && throw(DivideError())
-  result = Dict{CKKernelKey{H},T}()
+  result = Dict{CKEndpointKey{H},T}()
   for (key, value) in state.terms
-    ck_kernel_accumulate!(result, key, value / divisor, state.zero_component)
+    ck_endpoint_accumulate!(result, key, value / divisor, state.zero_component)
   end
-  return CKPhysicalKernel(result, state.zero_component)
+  return CKEndpointKernel(result, state.zero_component)
 end
 
 struct CKPeriodPolynomial{H,T}
-  coefficients::Vector{CKPhysicalKernel{H,T}}
+  coefficients::Vector{CKEndpointKernel{H,T}}
 end
 
-function ck_period_polynomial(coefficients::Vector{CKPhysicalKernel{H,T}}) where {H,T}
+function ck_period_polynomial(coefficients::Vector{CKEndpointKernel{H,T}}) where {H,T}
   isempty(coefficients) &&
     throw(ArgumentError("period polynomial must contain a coefficient"))
   last_nonzero = findlast(coefficient -> !isempty(coefficient.terms), coefficients)
@@ -42,17 +146,17 @@ function ck_period_polynomial(coefficients::Vector{CKPhysicalKernel{H,T}}) where
   return CKPeriodPolynomial{H,T}(copy(coefficients[1:length_to_keep]))
 end
 
-function ck_period_zero(state::CKPhysicalKernel{H,T}) where {H,T}
-  return ck_period_polynomial(CKPhysicalKernel{H,T}[ck_kernel_zero_like(state)])
+function ck_period_zero(state::CKEndpointKernel{H,T}) where {H,T}
+  return ck_period_polynomial(CKEndpointKernel{H,T}[ck_endpoint_zero(state)])
 end
 
-function ck_period_constant(state::CKPhysicalKernel{H,T}) where {H,T}
-  return ck_period_polynomial(CKPhysicalKernel{H,T}[state])
+function ck_period_constant(state::CKEndpointKernel{H,T}) where {H,T}
+  return ck_period_polynomial(CKEndpointKernel{H,T}[state])
 end
 
-function ck_period_monomial(state::CKPhysicalKernel{H,T}, power::Int) where {H,T}
+function ck_period_monomial(state::CKEndpointKernel{H,T}, power::Int) where {H,T}
   power >= 0 || throw(ArgumentError("period power must be nonnegative"))
-  coefficients = CKPhysicalKernel{H,T}[ck_kernel_zero_like(state) for _ in 0:power]
+  coefficients = CKEndpointKernel{H,T}[ck_endpoint_zero(state) for _ in 0:power]
   coefficients[power + 1] = state
   return ck_period_polynomial(coefficients)
 end
@@ -62,9 +166,9 @@ function Base.:(==)(left::CKPeriodPolynomial, right::CKPeriodPolynomial)
 end
 
 function Base.:+(left::CKPeriodPolynomial{H,T}, right::CKPeriodPolynomial{H,T}) where {H,T}
-  zero_state = ck_kernel_zero_like(first(left.coefficients))
+  zero_state = ck_endpoint_zero(first(left.coefficients))
   length_result = max(length(left.coefficients), length(right.coefficients))
-  coefficients = Vector{CKPhysicalKernel{H,T}}(undef, length_result)
+  coefficients = Vector{CKEndpointKernel{H,T}}(undef, length_result)
   for index in 1:length_result
     left_value = index <= length(left.coefficients) ? left.coefficients[index] : zero_state
     right_value =
@@ -75,9 +179,9 @@ function Base.:+(left::CKPeriodPolynomial{H,T}, right::CKPeriodPolynomial{H,T}) 
 end
 
 function Base.:-(left::CKPeriodPolynomial{H,T}, right::CKPeriodPolynomial{H,T}) where {H,T}
-  zero_state = ck_kernel_zero_like(first(left.coefficients))
+  zero_state = ck_endpoint_zero(first(left.coefficients))
   length_result = max(length(left.coefficients), length(right.coefficients))
-  coefficients = Vector{CKPhysicalKernel{H,T}}(undef, length_result)
+  coefficients = Vector{CKEndpointKernel{H,T}}(undef, length_result)
   for index in 1:length_result
     left_value = index <= length(left.coefficients) ? left.coefficients[index] : zero_state
     right_value =
@@ -92,16 +196,16 @@ function Base.:-(value::CKPeriodPolynomial{H,T}) where {H,T}
 end
 
 function Base.:*(left::CKPeriodPolynomial{H,T}, right::CKPeriodPolynomial{H,T}) where {H,T}
-  zero_state = ck_kernel_zero_like(first(left.coefficients))
+  zero_state = ck_endpoint_zero(first(left.coefficients))
   maximum_power = length(left.coefficients) + length(right.coefficients) - 2
-  coefficients = CKPhysicalKernel{H,T}[
-    ck_kernel_zero_like(zero_state) for _ in 0:maximum_power
+  coefficients = CKEndpointKernel{H,T}[
+    ck_endpoint_zero(zero_state) for _ in 0:maximum_power
   ]
   for left_index in eachindex(left.coefficients),
     right_index in eachindex(right.coefficients)
 
     output_index = left_index + right_index - 1
-    coefficients[output_index] += ck_kernel_endpoint_product(
+    coefficients[output_index] += ck_endpoint_product(
       left.coefficients[left_index], right.coefficients[right_index]
     )
   end
@@ -110,7 +214,7 @@ end
 
 function Base.:/(value::CKPeriodPolynomial{H,T}, divisor::Int) where {H,T}
   return ck_period_polynomial([
-    ck_kernel_divide(coefficient, divisor) for coefficient in value.coefficients
+    ck_endpoint_divide(coefficient, divisor) for coefficient in value.coefficients
   ])
 end
 
@@ -196,13 +300,15 @@ function evaluate_ck_period_amplitude(
   length(wave) >= order - 1 ||
     throw(ArgumentError("wave series does not contain the required endpoint orders"))
 
-  zero_period = ck_period_zero(zero_state)
-  identity_period = ck_period_constant(identity_state)
+  zero_endpoint = ck_endpoint_kernel(zero_state)
+  identity_endpoint = ck_endpoint_kernel(identity_state)
+  zero_period = ck_period_zero(zero_endpoint)
+  identity_period = ck_period_constant(identity_endpoint)
 
   endpoint_wave = typeof(identity_period)[zero_period for _ in 0:order]
   endpoint_wave[1] = identity_period
   for n in 1:(order - 1)
-    endpoint_wave[n + 1] = ck_period_constant(wave[n])
+    endpoint_wave[n + 1] = ck_period_constant(ck_endpoint_kernel(wave[n]))
   end
 
   endpoint_wave_inverse = ck_unit_series_inverse(
@@ -211,7 +317,7 @@ function evaluate_ck_period_amplitude(
 
   slow_generator = typeof(identity_period)[zero_period for _ in 0:order]
   for n in 1:order
-    slow_generator[n + 1] = ck_period_monomial(effective[n], 1)
+    slow_generator[n + 1] = ck_period_monomial(ck_endpoint_kernel(effective[n]), 1)
   end
   slow_propagator = ck_zero_constant_series_exponential(
     slow_generator, order, identity_period, zero_period
@@ -228,6 +334,63 @@ function evaluate_ck_period_amplitude(
   )
 end
 
+function ck_endpoint_ordered_sideband_coefficient(
+  state::CKEndpointKernel{H,T},
+  output_channels::AbstractVector{Int},
+  sidebands::AbstractVector{H};
+  inverse_weight,
+) where {H,T}
+  length(output_channels) == length(sidebands) ||
+    throw(ArgumentError("output channels and sidebands must have equal length"))
+
+  result = state.zero_component
+  for (key, value) in state.terms
+    count(ck_is_jump, key.vertices) == length(sidebands) || continue
+
+    prefix_mismatch = Vector{H}(undef, length(key.vertices) + 1)
+    prefix_mismatch[1] = zero(H)
+    sideband_index = 0
+    valid = true
+    for (vertex_index, vertex) in enumerate(key.vertices)
+      mismatch = prefix_mismatch[vertex_index] + vertex.harmonic
+      if ck_is_jump(vertex)
+        sideband_index += 1
+        if vertex.output_channel != output_channels[sideband_index]
+          valid = false
+          break
+        end
+        mismatch -= sidebands[sideband_index]
+      end
+      prefix_mismatch[vertex_index + 1] = mismatch
+    end
+    valid || continue
+
+    weighted_value = value
+    for interval in key.model_intervals
+      interval_mismatch =
+        prefix_mismatch[interval.stop + 1] - prefix_mismatch[interval.start + 1]
+      if !iszero(interval_mismatch)
+        valid = false
+        break
+      end
+    end
+    valid || continue
+
+    for interval in key.resolvent_intervals
+      interval_mismatch =
+        prefix_mismatch[interval.stop + 1] - prefix_mismatch[interval.start + 1]
+      if iszero(interval_mismatch)
+        valid = false
+        break
+      end
+      weighted_value = inverse_weight(interval_mismatch) * weighted_value
+    end
+    valid || continue
+    result += weighted_value
+  end
+  return result
+end
+
 function ck_period_ordered_sideband_coefficients(
   polynomial::CKPeriodPolynomial{H,T},
   output_channels::AbstractVector{Int},
@@ -235,7 +398,7 @@ function ck_period_ordered_sideband_coefficients(
   inverse_weight,
 ) where {H,T}
   return T[
-    ck_kernel_ordered_sideband_coefficient(
+    ck_endpoint_ordered_sideband_coefficient(
       coefficient, output_channels, sidebands; inverse_weight=inverse_weight
     ) for coefficient in polynomial.coefficients
   ]
