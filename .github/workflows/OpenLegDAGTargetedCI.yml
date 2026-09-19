@@ -1,0 +1,22 @@
+name: OpenLegDAGTargetedCI
+
+on:
+  push:
+    branches:
+      - research/169-open-leg-dag-targeted-ci
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version:
+          - '1.10'
+          - '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.version }}
+      - name: Run exact open-leg reference tests
+        run: julia -e 'include("test/open_leg_cp_hfe_reference.jl"); include("test/open_leg_dag_reference.jl")'
