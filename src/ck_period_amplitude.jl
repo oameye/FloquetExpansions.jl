@@ -51,7 +51,6 @@ end
 
 function ck_period_monomial(state::CKPhysicalKernel{H,T}, power::Int) where {H,T}
   power >= 0 || throw(ArgumentError("period power must be nonnegative"))
-  zero_state = ck_kernel_zero_like(state)
   coefficients = CKPhysicalKernel{H,T}[ck_kernel_zero_like(state) for _ in 0:power]
   coefficients[power + 1] = state
   return ck_period_polynomial(coefficients)
