@@ -21,7 +21,8 @@ jobs:
         run: |
           julia -e 'using Pkg; Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
           echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
-      - name: Instantiate ratchet environment
-        run: julia --project=code_ratchet -e 'using Pkg; Pkg.instantiate()'
-      - name: Print exact JETLS report
-        run: julia --project=code_ratchet -e 'using CodeRatchet; println.(CodeRatchet.lsp_report())'
+      - name: Print exact JETLS diagnostics
+        run: |
+          set +e
+          jetls check --context-lines=0 --progress=none --show-severity=hint src/FloquetExpansions.jl
+          exit 0
