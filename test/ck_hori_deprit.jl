@@ -49,10 +49,7 @@ end
 
 function ck_hd_query(kernel, sidebands::Vector{Int})
   return FloquetExpansions.ck_endpoint_ordered_sideband_coefficient(
-    kernel,
-    fill(1, length(sidebands)),
-    sidebands;
-    inverse_weight=ck_hd_inverse_weight,
+    kernel, fill(1, length(sidebands)), sidebands; inverse_weight=ck_hd_inverse_weight
   )
 end
 
@@ -65,9 +62,8 @@ function ck_hd_sideband_samples(outputs::Int)
   outputs == 0 && return [Int[]]
   outputs == 1 && return [[sideband] for sideband in -3:3]
   outputs == 2 && return [[left, right] for left in -2:2 for right in -2:2]
-  outputs == 3 && return [
-    [left, middle, right] for left in -1:1 for middle in -1:1 for right in -1:1
-  ]
+  outputs == 3 &&
+    return [[left, middle, right] for left in -1:1 for middle in -1:1 for right in -1:1]
   return [zeros(Int, outputs)]
 end
 
@@ -106,11 +102,7 @@ end
     fixture.operations,
   )
   canonical = FloquetExpansions.evaluate_ck_canonical_normalization(
-    recurrence.effective,
-    recurrence.wave,
-    5,
-    fixture.identity_state,
-    fixture.zero_state,
+    recurrence.effective, recurrence.wave, 5, fixture.identity_state, fixture.zero_state
   )
   hd = FloquetExpansions.evaluate_ck_hori_deprit(
     [fixture.A1, fixture.A2], 5, fixture.zero_state
