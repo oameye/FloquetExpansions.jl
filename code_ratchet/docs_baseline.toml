@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "2529e98"
+commit = "31917c2"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -17,6 +17,10 @@ undocumented = 0
 public = 0
 
 [files."src/ck_canonical_normalization.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_hori_deprit.jl"]
 undocumented = 0
 public = 0
 
