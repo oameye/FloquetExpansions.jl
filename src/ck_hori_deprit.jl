@@ -22,53 +22,48 @@ function ck_endpoint_solve_homological(state::CKEndpointKernel{H,T}) where {H,T}
   return CKEndpointKernel(result, state.zero_component)
 end
 
-function ck_endpoint_series_ad(
-  generator::AbstractVector{K},
-  values::AbstractVector{K},
-  order::Int,
-  zero_state::K,
+function ck_endpoint_ad_coefficient(
+  generator::AbstractVector{K}, previous::AbstractVector{K}, n::Int, zero_state::K
 ) where {K<:CKEndpointKernel}
-  result = K[zero_state for _ in 1:order]
+  coefficient = zero_state
   products = 0
-  for n in 1:order
-    coefficient = zero_state
-    for j in 1:(n - 1)
-      left = generator[j]
-      right = values[n - j]
-      (isempty(left.terms) || isempty(right.terms)) && continue
-      coefficient += ck_endpoint_product(left, right)
-      coefficient -= ck_endpoint_product(right, left)
-      products += 2
-    end
-    result[n] = coefficient
+  for j in 1:(n - 1)
+    left = generator[j]
+    right = previous[n - j]
+    (isempty(left.terms) || isempty(right.terms)) && continue
+    coefficient += ck_endpoint_product(left, right)
+    coefficient -= ck_endpoint_product(right, left)
+    products += 2
   end
-  return result, products
+  return coefficient, products
 end
 
-function ck_endpoint_hori_deprit_source(
-  amplitude::AbstractVector{K},
-  generator::AbstractVector{K},
-  derivative::AbstractVector{K},
+function ck_endpoint_hori_deprit_source!(
+  amplitude_tower::Vector{Vector{K}},
+  derivative_tower::Vector{Vector{K}},
+  generator::Vector{K},
   n::Int,
   zero_state::K,
 ) where {K<:CKEndpointKernel}
-  source = zero_state
+  source = amplitude_tower[1][n]
   products = 0
 
-  ad_amplitude = K[amplitude[index] for index in 1:n]
-  for power in 0:(n - 1)
-    source += ck_endpoint_scale(ad_amplitude[n], (-1)^power // factorial(power))
-    power == n - 1 && break
-    ad_amplitude, count = ck_endpoint_series_ad(generator, ad_amplitude, n, zero_state)
+  for power in 1:(n - 1)
+    coefficient, count = ck_endpoint_ad_coefficient(
+      generator, amplitude_tower[power], n, zero_state
+    )
+    amplitude_tower[power + 1][n] = coefficient
+    source += ck_endpoint_scale(coefficient, (-1)^power // factorial(power))
     products += count
   end
 
-  ad_derivative = K[derivative[index] for index in 1:n]
-  for power in 0:(n - 1)
+  for power in 1:(n - 1)
+    coefficient, count = ck_endpoint_ad_coefficient(
+      generator, derivative_tower[power], n, zero_state
+    )
+    derivative_tower[power + 1][n] = coefficient
     weight = (-1)^(power + 1) // factorial(power + 1)
-    source += ck_endpoint_scale(ad_derivative[n], weight)
-    power == n - 1 && break
-    ad_derivative, count = ck_endpoint_series_ad(generator, ad_derivative, n, zero_state)
+    source += ck_endpoint_scale(coefficient, weight)
     products += count
   end
 
@@ -81,19 +76,20 @@ function evaluate_ck_endpoint_hori_deprit(
   order >= 1 || throw(ArgumentError("order must be >= 1"))
   isempty(amplitude_orders) && throw(ArgumentError("amplitude series must not be empty"))
 
-  amplitude = K[zero_state for _ in 1:order]
+  amplitude_tower = [K[zero_state for _ in 1:order] for _ in 1:order]
+  derivative_tower = [K[zero_state for _ in 1:order] for _ in 1:order]
   for n in 1:min(order, length(amplitude_orders))
-    amplitude[n] = amplitude_orders[n]
+    amplitude_tower[1][n] = amplitude_orders[n]
   end
 
   generator = K[zero_state for _ in 1:order]
-  derivative = K[zero_state for _ in 1:order]
+  derivative = derivative_tower[1]
   effective = K[zero_state for _ in 1:order]
   products = 0
 
   for n in 1:order
-    source, count = ck_endpoint_hori_deprit_source(
-      amplitude, generator, derivative, n, zero_state
+    source, count = ck_endpoint_hori_deprit_source!(
+      amplitude_tower, derivative_tower, generator, n, zero_state
     )
     products += count
     effective[n] = ck_endpoint_project_model(source)
