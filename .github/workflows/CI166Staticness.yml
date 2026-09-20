@@ -13,17 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Lift recursive static-plan closure
+      - name: Make Lyndon predicate total Boolean
         run: |
           python - <<'PY'
           from pathlib import Path
           path = Path('src/bloch_connected_van_vleck.jl')
           text = path.read_text()
-          old = '''function compile_bloch_static_exp_plan(\n  log_plan::BlochConnectedLogPlan{H}, zero_harmonic::H\n) where {H}\n  order = length(log_plan.outputs)\n  supports = bloch_static_power_support(log_plan)\n  nodes = BlochStaticExpNode{H}[]\n  node_ids = Dict{Tuple{Int,Int,H},Int}()\n  product_count = Ref(0)\n\n  function ensure_node(power::Int, n::Int, harmonic::H)\n    state = (power, n, harmonic)\n    haskey(node_ids, state) && return node_ids[state]\n    dependencies = BlochStaticExpDependency{H}[]\n    for k in 1:(n - power + 1)\n      right_order = n - k\n      for left_harmonic in supports[1][k]\n        for right_harmonic in supports[power - 1][right_order]\n          left_harmonic + right_harmonic == harmonic || continue\n          right_node = power == 2 ? 0 : ensure_node(power - 1, right_order, right_harmonic)\n          push!(\n            dependencies,\n            BlochStaticExpDependency(\n              k, left_harmonic, right_order, right_harmonic, right_node\n            ),\n          )\n          product_count[] += 1\n        end\n      end\n    end\n    push!(nodes, BlochStaticExpNode(power, n, harmonic, dependencies))\n    node = length(nodes)\n    node_ids[state] = node\n    return node\n  end\n\n  targets = [zeros(Int, order) for _ in 1:order]\n  for n in 2:order, power in 2:n\n    zero_harmonic in supports[power][n] || continue\n    targets[n][power] = ensure_node(power, n, zero_harmonic)\n  end\n  return BlochStaticExpPlan(zero_harmonic, nodes, targets, product_count[])\nend\n'''
-          new = '''function bloch_static_exp_ensure_node!(\n  power::Int,\n  n::Int,\n  harmonic::H,\n  supports::Vector{Vector{Set{H}}},\n  nodes::Vector{BlochStaticExpNode{H}},\n  node_ids::Dict{Tuple{Int,Int,H},Int},\n  product_count::Base.RefValue{Int},\n) where {H}\n  state = (power, n, harmonic)\n  haskey(node_ids, state) && return node_ids[state]\n  dependencies = BlochStaticExpDependency{H}[]\n  for k in 1:(n - power + 1)\n    right_order = n - k\n    for left_harmonic in supports[1][k]\n      for right_harmonic in supports[power - 1][right_order]\n        left_harmonic + right_harmonic == harmonic || continue\n        right_node =\n          power == 2 ?\n          0 :\n          bloch_static_exp_ensure_node!(\n            power - 1,\n            right_order,\n            right_harmonic,\n            supports,\n            nodes,\n            node_ids,\n            product_count,\n          )\n        push!(\n          dependencies,\n          BlochStaticExpDependency(\n            k, left_harmonic, right_order, right_harmonic, right_node\n          ),\n        )\n        product_count[] += 1\n      end\n    end\n  end\n  push!(nodes, BlochStaticExpNode(power, n, harmonic, dependencies))\n  node = length(nodes)\n  node_ids[state] = node\n  return node\nend\n\nfunction compile_bloch_static_exp_plan(\n  log_plan::BlochConnectedLogPlan{H}, zero_harmonic::H\n) where {H}\n  order = length(log_plan.outputs)\n  supports = bloch_static_power_support(log_plan)\n  nodes = BlochStaticExpNode{H}[]\n  node_ids = Dict{Tuple{Int,Int,H},Int}()\n  product_count = Ref(0)\n\n  targets = [zeros(Int, order) for _ in 1:order]\n  for n in 2:order, power in 2:n\n    zero_harmonic in supports[power][n] || continue\n    targets[n][power] = bloch_static_exp_ensure_node!(\n      power, n, zero_harmonic, supports, nodes, node_ids, product_count\n    )\n  end\n  return BlochStaticExpPlan(zero_harmonic, nodes, targets, product_count[])\nend\n'''
-          if old not in text:
-              raise SystemExit('patch anchor not found')
-          path.write_text(text.replace(old, new, 1))
+          old = '  return all(isless(word, word[index:end]) for index in 2:length(word))\n'
+          new = '  return all(isless(word, word[index:end]) === true for index in 2:length(word))\n'
+          if old in text:
+              text = text.replace(old, new, 1)
+              path.write_text(text)
+          elif new not in text:
+              raise SystemExit('Lyndon predicate anchor not found')
           PY
       - uses: julia-actions/setup-julia@v3
         with:
@@ -36,10 +38,13 @@ jobs:
         run: jlfmt --inplace src/bloch_connected_van_vleck.jl
       - name: Commit exact source patch
         run: |
+          if git diff --quiet -- src/bloch_connected_van_vleck.jl; then
+            exit 0
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/bloch_connected_van_vleck.jl
-          git commit -m 'fix: remove recursive static-plan closure box'
+          git commit -m 'fix: make Lyndon predicate total Boolean'
           git push origin HEAD:ci/166-staticness-work
       - name: Targeted regression
         run: julia --project=. -e 'using Pkg; Pkg.test(; test_args=["bloch_connected_van_vleck"])'
