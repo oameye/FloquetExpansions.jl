@@ -66,8 +66,8 @@ end
 
 @testset "production endpoint overlap reproduces #197 asymmetric one-output Gram" begin
   dimension = 7
-  # Left chronological word: Q_1, R_{a,2}, Q_{-2}.
-  # Right chronological word: R_{a,1}, Q_3.
+  # Left chronological word: Q_1, R_{a,2}, Q_{-2}, total phase +1.
+  # Right chronological word: R_{a,1}, Q_3, total phase +4.
   A1 = ck_mixed_reference_generator(
     [
       FloquetExpansions.ck_jump_vertex(1, 2) =>
@@ -94,14 +94,20 @@ end
 
   forward = ck_mixed_reference_overlap(left, right)
   reverse = ck_mixed_reference_overlap(right, left)
-  @test forward.terms == Dict(1 => ck_mixed_reference_im / 6)
-  @test reverse.terms == Dict(1 => -ck_mixed_reference_im / 6)
+  @test FloquetExpansions.ck_output_pairing_period_terms(forward) ==
+    Dict(1 => ck_mixed_reference_im / 6)
+  @test FloquetExpansions.ck_output_pairing_period_terms(reverse) ==
+    Dict(1 => -ck_mixed_reference_im / 6)
+  @test FloquetExpansions.ck_output_pairing_phase_support(forward) == [-3]
+  @test FloquetExpansions.ck_output_pairing_phase_support(reverse) == [3]
+  @test FloquetExpansions.ck_output_pairing_coefficient(forward, -3, 1) ==
+    ck_mixed_reference_im / 6
 end
 
 @testset "production endpoint overlap reproduces #197 asymmetric two-output Gram" begin
   dimension = 8
-  # Left chronological word: Q_1, R_{a,1}, R_{b,-1}.
-  # Right chronological word: R_{a,0}, Q_2, R_{b,-2}.
+  # Left chronological word: Q_1, R_{a,1}, R_{b,-1}, total phase +1.
+  # Right chronological word: R_{a,0}, Q_2, R_{b,-2}, total phase 0.
   A1 = ck_mixed_reference_generator(
     [
       FloquetExpansions.ck_jump_vertex(1, 1) =>
@@ -130,8 +136,12 @@ end
 
   forward = ck_mixed_reference_overlap(left, right)
   reverse = ck_mixed_reference_overlap(right, left)
-  @test forward.terms == Dict(1 => -(3 // 2) * ck_mixed_reference_im)
-  @test reverse.terms == Dict(1 => (3 // 2) * ck_mixed_reference_im)
+  @test FloquetExpansions.ck_output_pairing_period_terms(forward) ==
+    Dict(1 => -(3 // 2) * ck_mixed_reference_im)
+  @test FloquetExpansions.ck_output_pairing_period_terms(reverse) ==
+    Dict(1 => (3 // 2) * ck_mixed_reference_im)
+  @test FloquetExpansions.ck_output_pairing_phase_support(forward) == [1]
+  @test FloquetExpansions.ck_output_pairing_phase_support(reverse) == [-1]
 end
 
 @testset "production endpoint overlap reproduces #197 pure-jump q=3 limit" begin
@@ -156,6 +166,10 @@ end
 
   forward = ck_mixed_reference_overlap(left, right)
   reverse = ck_mixed_reference_overlap(right, left)
-  @test forward.terms == Dict(1 => CKMixedReferenceExact(-1 // 2))
-  @test reverse.terms == Dict(1 => CKMixedReferenceExact(-1 // 2))
+  @test FloquetExpansions.ck_output_pairing_period_terms(forward) ==
+    Dict(1 => CKMixedReferenceExact(-1 // 2))
+  @test FloquetExpansions.ck_output_pairing_period_terms(reverse) ==
+    Dict(1 => CKMixedReferenceExact(-1 // 2))
+  @test FloquetExpansions.ck_output_pairing_phase_support(forward) == [0]
+  @test FloquetExpansions.ck_output_pairing_phase_support(reverse) == [0]
 end
