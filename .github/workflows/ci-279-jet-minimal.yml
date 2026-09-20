@@ -1,0 +1,22 @@
+name: CK279 JET Minimal
+
+on:
+  pull_request:
+
+jobs:
+  ck-hori-deprit-jet-minimal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - name: Instantiate test environment
+        env:
+          JULIA_PKG_PRECOMPILE_AUTO: '0'
+        run: julia --project=test -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Run minimal CK Hori-Deprit JET gate
+        env:
+          JULIA_PKG_PRECOMPILE_AUTO: '0'
+        run: julia --project=test ci/ck279_jet_minimal.jl
