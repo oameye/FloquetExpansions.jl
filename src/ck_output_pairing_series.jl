@@ -10,9 +10,7 @@ function ck_output_pairing_add!(
   target::CKOutputPairingPolynomial{T}, source::CKOutputPairingPolynomial{T}
 ) where {T}
   for (period_power, value) in source.terms
-    ck_output_pairing_accumulate!(
-      target.terms, period_power, value, target.zero_component
-    )
+    ck_output_pairing_accumulate!(target.terms, period_power, value, target.zero_component)
   end
   return target
 end
