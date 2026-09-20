@@ -130,8 +130,8 @@ end
     end
   end
 
-  raw_B3 = FloquetExpansions.ck_endpoint_kernel(recurrence.effective[3])
-  @test ck_hd_query(raw_B3, [0, 0, 0]) != ck_hd_query(hd.effective[3], [0, 0, 0])
+  raw_B5 = FloquetExpansions.ck_endpoint_kernel(recurrence.effective[5])
+  @test ck_hd_query(raw_B5, [0]) != ck_hd_query(hd.effective[5], [0])
 end
 
 @testset "direct CK Hori-Deprit preserves retained prefixes" begin
