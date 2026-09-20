@@ -1,0 +1,53 @@
+name: Final #298 Certification
+
+on:
+  push:
+    branches:
+      - 'ci/298-final-certification'
+
+jobs:
+  targeted:
+    name: Targeted Julia ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['1.10', '1']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.version }}
+          arch: x64
+      - uses: julia-actions/cache@v3
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Channel gauge bridge
+        run: julia --project=. -e 'using Pkg; Pkg.test(; test_args=["ck_one_dissipator_channel_gauge"])'
+      - name: Order-six algorithm boundary
+        run: julia --project=. -e 'using Pkg; Pkg.test(; test_args=["ck_one_dissipator_order6_diagnostic"])'
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Check formatting
+        run: ${HOME}/.julia/bin/jlfmt --check --verbose .
+
+  spell:
+    name: Spell
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: crate-ci/typos@v1.50.1
+
+  ratchet:
+    name: Ratchet
+    uses: oameye/CodeRatchet.jl/.github/workflows/ratchet.yml@90cc9753755fcbc1f898939347995cec1ca2f4eb
+    with:
+      julia-version: '1.13'
+      install-jetls: true
+      jetls-rev: '6893fcef26708d64360c048e039102c76ad032c0'
