@@ -60,6 +60,8 @@ function evaluate_ck_endpoint_canonical_normalization(
     throw(ArgumentError("effective series does not contain the requested order"))
   length(wave) >= order - 1 ||
     throw(ArgumentError("wave series does not contain the required canonical orders"))
+  identity_state.zero_component == zero_state.zero_component ||
+    throw(ArgumentError("identity and zero endpoint states must share one component type"))
 
   canonical_order = order - 1
   static_factor = K[zero_state for _ in 1:canonical_order]
@@ -148,14 +150,12 @@ function evaluate_ck_canonical_normalization(
   identity_state::K,
   zero_state::K,
 ) where {K<:CKPhysicalKernel}
-  endpoint_effective = CKEndpointKernel[ck_endpoint_kernel(effective[n]) for n in 1:order]
-  endpoint_wave = CKEndpointKernel[ck_endpoint_kernel(wave[n]) for n in 1:(order - 1)]
+  endpoint_effective = [ck_endpoint_kernel(effective[n]) for n in 1:order]
+  endpoint_wave = [ck_endpoint_kernel(wave[n]) for n in 1:(order - 1)]
+  identity_endpoint = ck_endpoint_kernel(identity_state)
+  zero_endpoint = ck_endpoint_kernel(zero_state)
   return evaluate_ck_endpoint_canonical_normalization(
-    endpoint_effective,
-    endpoint_wave,
-    order,
-    ck_endpoint_kernel(identity_state),
-    ck_endpoint_kernel(zero_state),
+    endpoint_effective, endpoint_wave, order, identity_endpoint, zero_endpoint
   )
 end
 
