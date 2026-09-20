@@ -12,10 +12,10 @@ jobs:
         with:
           version: '1'
       - uses: julia-actions/cache@v2
-      - name: Instantiate package environment
+      - name: Instantiate test environment
         env:
           JULIA_PKG_PRECOMPILE_AUTO: '0'
-        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+        run: julia --project=test -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
       - name: Run channel gauge bridge test
         env:
           JULIA_PKG_PRECOMPILE_AUTO: '0'
