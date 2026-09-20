@@ -30,7 +30,7 @@ jobs:
           version: '1.13'
       - name: Install JuliaFormatter
         run: |
-          julia -e 'using Pkg; Pkg.Apps.add(name="JuliaFormatter")'
+          julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
           echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
       - name: Format source
         run: jlfmt --inplace src/bloch_connected_van_vleck.jl
