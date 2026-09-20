@@ -1,0 +1,21 @@
+name: CK276 Format Diff
+
+on:
+  push:
+    branches:
+      - 'ci/276-order6-diagnostic'
+    paths:
+      - '.github/workflows/FormatDiff.yml'
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Format target files and print diff
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace test/ck_one_dissipator_channel_gauge.jl test/ck_one_dissipator_order6_diagnostic.jl
+          git diff -- test/ck_one_dissipator_channel_gauge.jl test/ck_one_dissipator_order6_diagnostic.jl
