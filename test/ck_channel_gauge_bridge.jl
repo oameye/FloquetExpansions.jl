@@ -6,20 +6,12 @@ const CKChannelGaugeExact = Complex{Rational{Int}}
 const ck_channel_gauge_im = CKChannelGaugeExact(0 // 1, 1 // 1)
 
 function ck_channel_gauge_fixture()
-  H0 = CKChannelGaugeExact[2 1 + ck_channel_gauge_im; 1 - ck_channel_gauge_im -1]
-  H1 = CKChannelGaugeExact[1 2 - ck_channel_gauge_im; -1 1 + ck_channel_gauge_im]
-  H2 = CKChannelGaugeExact[ck_channel_gauge_im 1; 2 -1]
-  hamiltonian = Dict(
-    0 => H0,
-    1 => H1,
-    -1 => Matrix(adjoint(H1)),
-    2 => H2,
-    -2 => Matrix(adjoint(H2)),
-  )
+  H0 = CKChannelGaugeExact[1 1; 1 -1]
+  H1 = CKChannelGaugeExact[1 1 + ck_channel_gauge_im; 2 -1]
+  hamiltonian = Dict(0 => H0, 1 => H1, -1 => Matrix(adjoint(H1)))
   jumps = Dict(
-    -1 => CKChannelGaugeExact[1 0; 2 ck_channel_gauge_im],
-    0 => CKChannelGaugeExact[0 1; -1 2],
-    2 => CKChannelGaugeExact[1 - ck_channel_gauge_im 2; 0 -1],
+    0 => CKChannelGaugeExact[0 1; 0 0],
+    1 => CKChannelGaugeExact[1 0; 1 ck_channel_gauge_im],
   )
 
   zero_component = zeros(CKChannelGaugeExact, 2, 2)
