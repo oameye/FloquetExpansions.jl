@@ -239,7 +239,7 @@ function ck_unit_series_inverse(
 ) where {T}
   order >= 0 || throw(ArgumentError("series order must be nonnegative"))
   isempty(series) && throw(ArgumentError("series must contain its order-zero coefficient"))
-  series[1] == one_value ||
+  isequal(series[1], one_value) ||
     throw(ArgumentError("series must have unit order-zero coefficient"))
 
   result = Vector{T}(undef, order + 1)
@@ -260,7 +260,7 @@ function ck_zero_constant_series_exponential(
 ) where {T}
   order >= 0 || throw(ArgumentError("series order must be nonnegative"))
   isempty(series) && throw(ArgumentError("series must contain its order-zero coefficient"))
-  series[1] == zero_value ||
+  isequal(series[1], zero_value) ||
     throw(ArgumentError("exponential input must have zero order-zero coefficient"))
 
   result = T[zero_value for _ in 0:order]
