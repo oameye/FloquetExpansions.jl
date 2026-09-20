@@ -1,0 +1,23 @@
+name: CK291 Format Diagnostic
+
+on:
+  pull_request:
+
+jobs:
+  format-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.add("JuliaFormatter")'
+      - name: Format gauge test
+        run: |
+          julia -e 'using JuliaFormatter; format_file("test/ck_one_dissipator_channel_gauge.jl")'
+          git diff -- test/ck_one_dissipator_channel_gauge.jl > /tmp/ck291-format.patch
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ck291-format-patch
+          path: /tmp/ck291-format.patch
