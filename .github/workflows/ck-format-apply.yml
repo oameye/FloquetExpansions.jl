@@ -1,0 +1,30 @@
+name: CK Format Apply Diagnostic
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/242-format-apply
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Format exact branch and commit
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace .
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src test
+          if ! git diff --cached --quiet; then
+            git commit -m 'style: format CK tranche'
+            git push origin HEAD:ci/242-format-apply
+          fi
