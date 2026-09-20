@@ -27,11 +27,13 @@ function ck_output_period_pairing(
 
   for (left_index, left_kernel) in enumerate(left.coefficients),
     (right_index, right_kernel) in enumerate(right.coefficients)
+
     left_period_power = left_index - 1
     right_period_power = right_index - 1
 
     for (left_key, left_value) in left_kernel.terms,
       (right_key, right_value) in right_kernel.terms
+
       left_key.output_channels == right_key.output_channels || continue
       output_number = length(left_key.output_channels)
       inverse_fourier_shift = left_period_power + right_period_power - 2 * output_number
