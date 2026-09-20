@@ -96,6 +96,11 @@ ck_endpoint_output_metric_pair(left, right) = adjoint(left) * right
     FloquetExpansions.ck_output_kernel_complete(key) for
     coefficient in finite_output.coefficients for key in keys(coefficient.terms)
   )
+  @test all(
+    key.phase_harmonic == drift_harmonic + jump_harmonic for
+    coefficient in finite_output.coefficients for
+    key in keys(coefficient.terms) if key.output_channels == [1]
+  )
 
   before = jump_value * drift_value
   after = drift_value * jump_value
@@ -162,7 +167,8 @@ ck_endpoint_output_metric_pair(left, right) = adjoint(left) * right
     ck_endpoint_output_metric_pair,
   )
   expected_metric = (2 // drift_harmonic^2) * identity_component
-  @test metric.terms == Dict(1 => expected_metric)
+  @test FloquetExpansions.ck_output_pairing_period_terms(metric) == Dict(1 => expected_metric)
+  @test FloquetExpansions.ck_output_pairing_phase_support(metric) == [0]
   @test !FloquetExpansions.ck_output_pairing_has_negative_power(metric)
 
   # The two matrix orderings isolate the raw-Dyson drift-before and drift-after
