@@ -40,7 +40,14 @@ function ck_rotating_normalization_fixture()
     FloquetExpansions.ck_kernel_solve_complement,
   )
   return (;
-    A1, A2, identity_state, zero_state, operations, identity_component, zero_component
+    A1,
+    A2,
+    identity_state,
+    zero_state,
+    operations,
+    identity_component,
+    zero_component,
+    sigma_z,
   )
 end
 
@@ -65,6 +72,12 @@ end
 ck_rotating_normalization_metric_pair(left, right) = adjoint(left) * right
 ck_rotating_normalization_channel_pair(left, right) = kron(conj.(right), left)
 
+function ck_rotating_normalization_hamiltonian_super(H)
+  identity_component = Matrix{CKRotatingNormalizationExact}(I, 2, 2)
+  return -ck_rotating_normalization_im *
+         (kron(identity_component, H) - kron(transpose(H), identity_component))
+end
+
 @testset "rotating-jump physical CK amplitudes are TP through the retained order" begin
   fixture, amplitudes = ck_rotating_normalization_amplitudes(4)
   metric = FloquetExpansions.ck_output_metric_series(
@@ -75,12 +88,51 @@ ck_rotating_normalization_channel_pair(left, right) = kron(conj.(right), left)
     ck_rotating_normalization_metric_pair,
   )
 
-  @test metric.coefficients[1].terms == Dict(0 => fixture.identity_component)
+  @test FloquetExpansions.ck_output_pairing_period_terms(metric.coefficients[1]) ==
+    Dict(0 => fixture.identity_component)
+  @test FloquetExpansions.ck_output_pairing_phase_support(metric.coefficients[1]) == [0]
   @test all(isempty(coefficient.terms) for coefficient in metric.coefficients[2:end])
   @test all(
     !FloquetExpansions.ck_output_pairing_has_negative_power(coefficient) for
     coefficient in metric.coefficients
   )
+end
+
+@testset "new finite-output pairing reproduces #204 rotating-jump phase channel" begin
+  fixture, amplitudes = ck_rotating_normalization_amplitudes(4)
+  zero_superoperator = zeros(CKRotatingNormalizationExact, 4, 4)
+  channel = FloquetExpansions.ck_output_channel_series(
+    amplitudes,
+    4,
+    ck_rotating_normalization_im,
+    zero_superoperator,
+    ck_rotating_normalization_channel_pair,
+  )
+
+  first_channel = channel.coefficients[3]
+  second_channel = channel.coefficients[5]
+  @test FloquetExpansions.ck_output_pairing_phase_support(second_channel) == [-2, -1, 0, 1, 2]
+  @test iszero(FloquetExpansions.ck_output_pairing_coefficient(second_channel, -2, 1))
+  @test iszero(FloquetExpansions.ck_output_pairing_coefficient(second_channel, 2, 1))
+  @test !iszero(FloquetExpansions.ck_output_pairing_coefficient(second_channel, -1, 1))
+  @test !iszero(FloquetExpansions.ck_output_pairing_coefficient(second_channel, 1, 1))
+
+  first_square = FloquetExpansions.ck_output_pairing_product(
+    first_channel, first_channel, zero_superoperator
+  )
+  log_second = FloquetExpansions.CKOutputPairingPolynomial(
+    copy(second_channel.terms), zero_superoperator
+  )
+  FloquetExpansions.ck_output_pairing_add!(
+    log_second,
+    FloquetExpansions.ck_output_pairing_scale(
+      -1 // 2, first_square, zero_superoperator
+    ),
+  )
+
+  @test iszero(FloquetExpansions.ck_output_pairing_coefficient(log_second, 0, 2))
+  expected = ck_rotating_normalization_hamiltonian_super(-(5 // 4) * fixture.sigma_z)
+  @test FloquetExpansions.ck_output_pairing_coefficient(log_second, 0, 1) == expected
 end
 
 @testset "right normalization leaves retained rotating-jump physics unchanged" begin
@@ -96,7 +148,9 @@ end
     metric, 4, fixture.identity_component
   )
 
-  @test normalization.coefficients[1].terms == Dict(0 => fixture.identity_component)
+  @test FloquetExpansions.ck_output_pairing_period_terms(normalization.coefficients[1]) ==
+    Dict(0 => fixture.identity_component)
+  @test FloquetExpansions.ck_output_pairing_phase_support(normalization.coefficients[1]) == [0]
   @test all(isempty(coefficient.terms) for coefficient in normalization.coefficients[2:end])
 
   normalized_amplitudes = FloquetExpansions.ck_output_right_normalize_series(
@@ -127,4 +181,42 @@ end
     ck_rotating_normalization_channel_pair,
   )
   @test normalized_channel.coefficients == raw_channel.coefficients
+end
+
+@testset "CK physical reconstruction is prefix-consistent through normalization" begin
+  fixture3, amplitudes3 = ck_rotating_normalization_amplitudes(3)
+  fixture4, amplitudes4 = ck_rotating_normalization_amplitudes(4)
+  @test amplitudes3 == amplitudes4[1:4]
+
+  metric3 = FloquetExpansions.ck_output_metric_series(
+    amplitudes3,
+    3,
+    ck_rotating_normalization_im,
+    fixture3.zero_component,
+    ck_rotating_normalization_metric_pair,
+  )
+  metric4_prefix = FloquetExpansions.ck_output_metric_series(
+    amplitudes4,
+    3,
+    ck_rotating_normalization_im,
+    fixture4.zero_component,
+    ck_rotating_normalization_metric_pair,
+  )
+  @test metric3.coefficients == metric4_prefix.coefficients
+
+  normalization3 = FloquetExpansions.ck_output_metric_inverse_sqrt_series(
+    metric3, 3, fixture3.identity_component
+  )
+  normalization4_prefix = FloquetExpansions.ck_output_metric_inverse_sqrt_series(
+    metric4_prefix, 3, fixture4.identity_component
+  )
+  @test normalization3.coefficients == normalization4_prefix.coefficients
+
+  normalized3 = FloquetExpansions.ck_output_right_normalize_series(
+    amplitudes3, normalization3, 3, fixture3.zero_component
+  )
+  normalized4_prefix = FloquetExpansions.ck_output_right_normalize_series(
+    amplitudes4, normalization4_prefix, 3, fixture4.zero_component
+  )
+  @test normalized3 == normalized4_prefix
 end
