@@ -24,6 +24,23 @@ function ck_endpoint_output_period_coefficient(values, degree::Int, zero_compone
   return values[degree + 1]
 end
 
+function ck_endpoint_output_time_coefficients(polynomial, output_channels, sidebands)
+  return [
+    begin
+      result = coefficient.zero_component
+      for (key, value) in coefficient.terms
+        key.output_channels == output_channels || continue
+        realization = FloquetExpansions.ck_output_time_realization(key, ck_endpoint_output_im)
+        weight = FloquetExpansions.ck_output_time_fourier_weight(
+          realization, sidebands, ck_endpoint_output_im
+        )
+        result += weight * value
+      end
+      result
+    end for coefficient in polynomial.coefficients
+  ]
+end
+
 @testset "endpoint reconstruction integrates one drift around one physical jump" begin
   zero_component = ck_endpoint_output_zero_matrix()
   identity_component = ck_endpoint_output_identity_matrix()
@@ -97,10 +114,19 @@ end
     [jump_harmonic - 1];
     inverse_weight=ck_endpoint_output_inverse_weight,
   )
+  time_at_jump = ck_endpoint_output_time_coefficients(finite_output, [1], [jump_harmonic])
+  time_at_shifted = ck_endpoint_output_time_coefficients(
+    finite_output, [1], [jump_harmonic + drift_harmonic]
+  )
+  time_outside =
+    ck_endpoint_output_time_coefficients(finite_output, [1], [jump_harmonic - 1])
 
   @test finite_at_jump == at_jump
   @test finite_at_shifted == at_shifted
   @test finite_outside == outside
+  @test time_at_jump == finite_at_jump
+  @test time_at_shifted == finite_at_shifted
+  @test time_outside == finite_outside
   @test ck_endpoint_output_period_coefficient(at_jump, 1, zero_component) ==
     expected_at_jump
   @test ck_endpoint_output_period_coefficient(at_shifted, 1, zero_component) ==
