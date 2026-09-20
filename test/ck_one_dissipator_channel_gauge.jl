@@ -71,6 +71,12 @@ function ck_channel_gauge_query(kernel, output_sideband::Int)
   )
 end
 
+function ck_channel_gauge_zero_output_query(kernel)
+  return FloquetExpansions.ck_endpoint_ordered_sideband_coefficient(
+    kernel, Int[], Int[]; inverse_weight=ck_channel_gauge_inverse_weight
+  )
+end
+
 function ck_channel_gauge_first_kick(hamiltonian, harmonic, zero_component)
   iszero(harmonic) && return copy(zero_component)
   return ck_channel_gauge_im * (1 // harmonic) *
@@ -144,18 +150,74 @@ function ck_channel_gauge_cross_dissipator(left, right)
          (kron(identity_component, norm) + kron(transpose(norm), identity_component))
 end
 
-function ck_channel_gauge_pasted_grade(amplitudes, grade::Int, sidebands)
+ck_channel_gauge_recycling(left, right) = kron(conj.(right), left)
+
+function ck_channel_gauge_pasted_grade(amplitudes, grade::Int, sidebands; pair)
   zero_superoperator = zeros(CKChannelGaugeExact, 4, 4)
   result = copy(zero_superoperator)
   for left_grade in 0:grade
     right_grade = grade - left_grade
     for sideband in sidebands
-      result += ck_channel_gauge_cross_dissipator(
+      result += pair(
         amplitudes[left_grade + 1][sideband], amplitudes[right_grade + 1][sideband]
       )
     end
   end
   return result
+end
+
+function ck_channel_gauge_zero_output_super(amplitude)
+  identity_component = Matrix{CKChannelGaugeExact}(I, 2, 2)
+  return kron(identity_component, amplitude) + kron(conj.(amplitude), identity_component)
+end
+
+function ck_channel_gauge_no_jump_harmonics(jumps, zero_component)
+  result = Dict{Int,Matrix{CKChannelGaugeExact}}()
+  for (left_harmonic, left) in jumps, (right_harmonic, right) in jumps
+    harmonic = left_harmonic - right_harmonic
+    value = get(result, harmonic, zero_component) - (1 // 2) * adjoint(right) * left
+    if iszero(value)
+      haskey(result, harmonic) && delete!(result, harmonic)
+    else
+      result[harmonic] = value
+    end
+  end
+  return result
+end
+
+function ck_channel_gauge_zero_output_B6(fixture, eta::Int)
+  no_jump = ck_channel_gauge_no_jump_harmonics(fixture.jumps, fixture.zero_component)
+  harmonics = union(keys(fixture.hamiltonian), keys(no_jump))
+  components = Dict(
+    FloquetExpansions.ck_drift_vertex(harmonic) =>
+      -ck_channel_gauge_im * get(fixture.hamiltonian, harmonic, fixture.zero_component) +
+      eta * get(no_jump, harmonic, fixture.zero_component) for harmonic in harmonics
+  )
+  A1_zero = FloquetExpansions.ck_kernel_zero(0, fixture.zero_component)
+  A2 = FloquetExpansions.ck_kernel_generator(components, fixture.zero_component)
+  recurrence = FloquetExpansions.evaluate_bloch_order_recurrence(
+    [A1_zero, A2],
+    6,
+    fixture.identity_state,
+    fixture.zero_state,
+    fixture.operations,
+  )
+  canonical = FloquetExpansions.evaluate_ck_canonical_normalization(
+    recurrence.effective,
+    recurrence.wave,
+    6,
+    fixture.identity_state,
+    fixture.zero_state,
+  )
+  return ck_channel_gauge_zero_output_query(canonical.effective[6])
+end
+
+function ck_channel_gauge_linear_zero_output_B6(fixture)
+  plus_one = ck_channel_gauge_zero_output_B6(fixture, 1)
+  minus_one = ck_channel_gauge_zero_output_B6(fixture, -1)
+  plus_two = ck_channel_gauge_zero_output_B6(fixture, 2)
+  minus_two = ck_channel_gauge_zero_output_B6(fixture, -2)
+  return (1 // 12) * (8 * (plus_one - minus_one) - (plus_two - minus_two))
 end
 
 function ck_channel_gauge_hamiltonian_super(hamiltonian)
@@ -239,21 +301,28 @@ end
   @test amplitude_difference
   @test generated_second_order
 
-  canonical_leading = ck_channel_gauge_pasted_grade(canonical, 0, sidebands)
-  cp_leading = ck_channel_gauge_pasted_grade(coherent_cp, 0, sidebands)
-  canonical_first = ck_channel_gauge_pasted_grade(canonical, 1, sidebands)
-  cp_first = ck_channel_gauge_pasted_grade(coherent_cp, 1, sidebands)
-  canonical_second = ck_channel_gauge_pasted_grade(canonical, 2, sidebands)
-  cp_second = ck_channel_gauge_pasted_grade(coherent_cp, 2, sidebands)
-
-  @test canonical_leading == cp_leading
-  @test canonical_first == cp_first
-  @test canonical_second != cp_second
+  canonical_jump_only_second = ck_channel_gauge_pasted_grade(
+    canonical, 2, sidebands; pair=ck_channel_gauge_cross_dissipator
+  )
+  cp_second = ck_channel_gauge_pasted_grade(
+    coherent_cp, 2, sidebands; pair=ck_channel_gauge_cross_dissipator
+  )
+  canonical_recycling_second = ck_channel_gauge_pasted_grade(
+    canonical, 2, sidebands; pair=ck_channel_gauge_recycling
+  )
+  canonical_zero_output_second = ck_channel_gauge_linear_zero_output_B6(fixture)
+  canonical_full_second =
+    canonical_recycling_second +
+    ck_channel_gauge_zero_output_super(canonical_zero_output_second)
 
   B_R, expected_similarity = ck_channel_gauge_static_similarity(
     fixture.hamiltonian, fixture.jumps
   )
   @test !iszero(B_R)
   @test !iszero(expected_similarity)
-  @test canonical_second - cp_second == expected_similarity
+
+  # The jump-amplitude sector alone supplies only one branch of the map-level gauge.
+  @test 2 * (canonical_jump_only_second - cp_second) == expected_similarity
+  # Adding the zero-output/no-jump branch gives the complete one-dissipator channel.
+  @test canonical_full_second - cp_second == expected_similarity
 end
