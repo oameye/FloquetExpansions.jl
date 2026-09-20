@@ -1,0 +1,46 @@
+name: CK Acceptance Diagnostic
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - ck_output_pairing
+          - ck_output_normalization
+          - ck_endpoint_physical_output_reference
+          - ck_mixed_qr_production_reference
+          - ck_gram_factorization_production_reference
+          - ck_rotating_jump_normalization
+          - ck_static_triangle_production_reference
+          - ck_output_kernel
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v3
+      - name: Instantiate
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Run ${{ matrix.test }}
+        id: test
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          julia --project=. -e 'include("test/${{ matrix.test }}.jl")' 2>&1 | tee "${{ matrix.test }}.log"
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ${{ matrix.test }}-log
+          path: ${{ matrix.test }}.log
+      - name: Propagate failure
+        if: steps.test.outcome == 'failure'
+        run: exit 1
