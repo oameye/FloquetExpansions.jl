@@ -106,31 +106,7 @@ function ck_channel_gauge_amplitudes(fixture, jump_scale::Int, order::Int)
   ]
 end
 
-function ck_channel_gauge_connected_order6(fixture, jump_scale::Int)
-  order = 6
-  amplitudes = ck_channel_gauge_amplitudes(fixture, jump_scale, order)
-  metric = FloquetExpansions.ck_output_metric_series(
-    amplitudes,
-    order,
-    ck_channel_gauge_im,
-    fixture.zero_component,
-    ck_channel_gauge_metric_pair,
-  )
-  normalization = FloquetExpansions.ck_output_metric_inverse_sqrt_series(
-    metric, order, fixture.identity_component
-  )
-  normalized = FloquetExpansions.ck_output_right_normalize_series(
-    amplitudes, normalization, order, fixture.zero_component
-  )
-
-  zero_superoperator = zeros(CKChannelGaugeExact, 4, 4)
-  channel = FloquetExpansions.ck_output_channel_series(
-    normalized,
-    order,
-    ck_channel_gauge_im,
-    zero_superoperator,
-    ck_channel_gauge_channel_pair,
-  )
+function ck_channel_gauge_connected_order6(channel, zero_superoperator)
   @test all(isempty(channel.coefficients[index].terms) for index in 2:2:6)
 
   C2 = channel.coefficients[3]
@@ -159,6 +135,45 @@ function ck_channel_gauge_connected_order6(fixture, jump_scale::Int)
   return FloquetExpansions.ck_output_pairing_coefficient(log6, 0, 1)
 end
 
+function ck_channel_gauge_connected_order6(fixture, jump_scale::Int)
+  order = 6
+  amplitudes = ck_channel_gauge_amplitudes(fixture, jump_scale, order)
+  zero_superoperator = zeros(CKChannelGaugeExact, 4, 4)
+  raw_channel = FloquetExpansions.ck_output_channel_series(
+    amplitudes,
+    order,
+    ck_channel_gauge_im,
+    zero_superoperator,
+    ck_channel_gauge_channel_pair,
+  )
+
+  metric = FloquetExpansions.ck_output_metric_series(
+    amplitudes,
+    order,
+    ck_channel_gauge_im,
+    fixture.zero_component,
+    ck_channel_gauge_metric_pair,
+  )
+  normalization = FloquetExpansions.ck_output_metric_inverse_sqrt_series(
+    metric, order, fixture.identity_component
+  )
+  normalized_amplitudes = FloquetExpansions.ck_output_right_normalize_series(
+    amplitudes, normalization, order, fixture.zero_component
+  )
+  normalized_channel = FloquetExpansions.ck_output_channel_series(
+    normalized_amplitudes,
+    order,
+    ck_channel_gauge_im,
+    zero_superoperator,
+    ck_channel_gauge_channel_pair,
+  )
+
+  return (;
+    raw=ck_channel_gauge_connected_order6(raw_channel, zero_superoperator),
+    normalized=ck_channel_gauge_connected_order6(normalized_channel, zero_superoperator),
+  )
+end
+
 function ck_channel_gauge_one_dissipator_ck(fixture)
   value0 = ck_channel_gauge_connected_order6(fixture, 0)
   value1 = ck_channel_gauge_connected_order6(fixture, 1)
@@ -168,10 +183,12 @@ function ck_channel_gauge_one_dissipator_ck(fixture)
   # polynomial in the microscopic jump scale g of degree at most six.  With
   # x=g^2, these are the four interpolation nodes x=0,1,4,9; this combination
   # extracts the coefficient linear in x, i.e. the one-dissipator sector.
-  return (-49 // 36) * value0 +
-         (3 // 2) * value1 -
-         (3 // 20) * value2 +
-         (1 // 90) * value3
+  interpolate(field) =
+    (-49 // 36) * getproperty(value0, field) +
+    (3 // 2) * getproperty(value1, field) -
+    (3 // 20) * getproperty(value2, field) +
+    (1 // 90) * getproperty(value3, field)
+  return (; raw=interpolate(:raw), normalized=interpolate(:normalized))
 end
 
 function ck_channel_gauge_first_kick(hamiltonian, harmonic, zero_component)
@@ -292,7 +309,7 @@ end
 
 @testset "fully pasted CK one-dissipator channel matches #104/#122 gauge bridge" begin
   fixture = ck_channel_gauge_fixture()
-  canonical_ck_second = ck_channel_gauge_one_dissipator_ck(fixture)
+  ck_second = ck_channel_gauge_one_dissipator_ck(fixture)
   coherent_cp_second = ck_channel_gauge_cp_second(fixture)
   B_R, expected_similarity = ck_channel_gauge_static_similarity(
     fixture.hamiltonian, fixture.jumps
@@ -300,6 +317,8 @@ end
 
   @test !iszero(B_R)
   @test !iszero(expected_similarity)
-  @test canonical_ck_second != coherent_cp_second
-  @test canonical_ck_second - coherent_cp_second == expected_similarity
+  @test ck_second.raw != coherent_cp_second
+  @test ck_second.normalized != coherent_cp_second
+  @test ck_second.raw - coherent_cp_second == expected_similarity
+  @test ck_second.normalized - coherent_cp_second == expected_similarity
 end
