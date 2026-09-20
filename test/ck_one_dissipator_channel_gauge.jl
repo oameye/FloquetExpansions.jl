@@ -24,6 +24,7 @@ function ck_channel_gauge_fixture()
   )
 
   zero_component = zeros(CKChannelGaugeExact, 2, 2)
+  identity_component = Matrix{CKChannelGaugeExact}(I, 2, 2)
   A1 = FloquetExpansions.ck_kernel_generator(
     Dict(
       FloquetExpansions.ck_jump_vertex(1, harmonic) => value for (harmonic, value) in jumps
@@ -37,8 +38,25 @@ function ck_channel_gauge_fixture()
     ),
     zero_component,
   )
+  identity_state = FloquetExpansions.ck_kernel_identity(
+    0, identity_component, zero_component
+  )
   zero_state = FloquetExpansions.ck_kernel_zero(0, zero_component)
-  return (; hamiltonian, jumps, A1, A2, zero_component, zero_state)
+  operations = FloquetExpansions.BlochOrderOperations(
+    FloquetExpansions.ck_kernel_product,
+    FloquetExpansions.ck_kernel_project_model,
+    FloquetExpansions.ck_kernel_solve_complement,
+  )
+  return (;
+    hamiltonian,
+    jumps,
+    A1,
+    A2,
+    identity_state,
+    zero_state,
+    operations,
+    zero_component,
+  )
 end
 
 function ck_channel_gauge_inverse_weight(mismatch::Int)
@@ -174,8 +192,19 @@ end
 
 @testset "canonical CK one-dissipator channel matches #104/#122 up to static similarity" begin
   fixture = ck_channel_gauge_fixture()
-  hd = FloquetExpansions.evaluate_ck_hori_deprit(
-    [fixture.A1, fixture.A2], 5, fixture.zero_state
+  recurrence = FloquetExpansions.evaluate_bloch_order_recurrence(
+    [fixture.A1, fixture.A2],
+    5,
+    fixture.identity_state,
+    fixture.zero_state,
+    fixture.operations,
+  )
+  canonical_result = FloquetExpansions.evaluate_ck_canonical_normalization(
+    recurrence.effective,
+    recurrence.wave,
+    5,
+    fixture.identity_state,
+    fixture.zero_state,
   )
   sidebands = collect(-3:3)
 
@@ -185,9 +214,15 @@ end
   generated_second_order = false
 
   for sideband in sidebands
-    canonical[1][sideband] = ck_channel_gauge_query(hd.effective[1], sideband)
-    canonical[2][sideband] = ck_channel_gauge_query(hd.effective[3], sideband)
-    canonical[3][sideband] = ck_channel_gauge_query(hd.effective[5], sideband)
+    canonical[1][sideband] = ck_channel_gauge_query(
+      canonical_result.effective[1], sideband
+    )
+    canonical[2][sideband] = ck_channel_gauge_query(
+      canonical_result.effective[3], sideband
+    )
+    canonical[3][sideband] = ck_channel_gauge_query(
+      canonical_result.effective[5], sideband
+    )
 
     coherent_cp[1][sideband] = get(fixture.jumps, sideband, fixture.zero_component)
     coherent_cp[2][sideband] = ck_channel_gauge_first_transport(
