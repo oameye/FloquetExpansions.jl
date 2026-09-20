@@ -1,16 +1,20 @@
-struct CKOutputPairingSeries{T}
-  coefficients::Vector{CKOutputPairingPolynomial{T}}
+struct CKOutputPairingSeries{H,T}
+  coefficients::Vector{CKOutputPairingPolynomial{H,T}}
+end
+
+function ck_output_pairing_zero(zero_harmonic::H, zero_component::T) where {H,T}
+  return CKOutputPairingPolynomial(Dict{CKOutputPairingGrade{H},T}(), zero_component)
 end
 
 function ck_output_pairing_zero(zero_component::T) where {T}
-  return CKOutputPairingPolynomial(Dict{Int,T}(), zero_component)
+  return ck_output_pairing_zero(0, zero_component)
 end
 
 function ck_output_pairing_add!(
-  target::CKOutputPairingPolynomial{T}, source::CKOutputPairingPolynomial{T}
-) where {T}
-  for (period_power, value) in source.terms
-    ck_output_pairing_accumulate!(target.terms, period_power, value, target.zero_component)
+  target::CKOutputPairingPolynomial{H,T}, source::CKOutputPairingPolynomial{H,T}
+) where {H,T}
+  for (grade, value) in source.terms
+    ck_output_pairing_accumulate!(target.terms, grade, value, target.zero_component)
   end
   return target
 end
@@ -22,9 +26,10 @@ function ck_output_pairing_series(
   zero_component::R,
   gram_weight,
   system_pair,
+  phase_pair,
 ) where {H<:Integer,S,T,R}
   order >= 0 || throw(ArgumentError("pairing order must be nonnegative"))
-  result = [ck_output_pairing_zero(zero_component) for _ in 0:order]
+  result = [ck_output_pairing_zero(zero(H), zero_component) for _ in 0:order]
 
   for total_order in 0:order
     for left_order in 0:total_order
@@ -38,6 +43,7 @@ function ck_output_pairing_series(
         zero_component,
         gram_weight,
         system_pair,
+        phase_pair,
       )
       ck_output_pairing_add!(result[total_order + 1], contribution)
     end
@@ -53,7 +59,13 @@ function ck_output_channel_series(
   channel_pair,
 ) where {H<:Integer,S,T,R}
   return ck_output_pairing_series(
-    amplitudes, order, imaginary, zero_component, identity, channel_pair
+    amplitudes,
+    order,
+    imaginary,
+    zero_component,
+    identity,
+    channel_pair,
+    ck_output_channel_phase,
   )
 end
 
@@ -65,7 +77,13 @@ function ck_output_metric_series(
   metric_pair,
 ) where {H<:Integer,S,T,R}
   return ck_output_pairing_series(
-    amplitudes, order, imaginary, zero_component, conj, metric_pair
+    amplitudes,
+    order,
+    imaginary,
+    zero_component,
+    conj,
+    metric_pair,
+    ck_output_metric_phase,
   )
 end
 
