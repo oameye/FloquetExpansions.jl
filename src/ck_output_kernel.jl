@@ -228,7 +228,7 @@ function ck_output_ordered_sideband_coefficient(
 
   result = state.zero_component
   for (key, value) in state.terms
-    key.output_channels == output_channels || continue
+    isequal(key.output_channels, output_channels) || continue
 
     valid = true
     for constraint in key.model_constraints
