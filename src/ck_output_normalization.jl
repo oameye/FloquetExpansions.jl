@@ -37,8 +37,9 @@ function ck_output_pairing_series_zero(
   order::Int, zero_harmonic::H, zero_component::T
 ) where {H,T}
   order >= 0 || throw(ArgumentError("series order must be nonnegative"))
+  harmonic_type = typeof(zero_harmonic)
   return CKOutputPairingSeries([
-    ck_output_pairing_zero(zero_harmonic, zero_component) for _ in 0:order
+    ck_output_pairing_zero(harmonic_type, zero_component) for _ in 0:order
   ])
 end
 
@@ -89,7 +90,7 @@ function ck_output_metric_inverse_sqrt_residual(
   total_order::Int,
   zero_component::T,
 ) where {H,T}
-  residual = ck_output_pairing_zero(zero(H), zero_component)
+  residual = ck_output_pairing_zero(H, zero_component)
   maximum_metric_order = length(metric.coefficients) - 1
   for left_order in 0:total_order
     upper_metric_order = min(total_order - left_order, maximum_metric_order)
@@ -120,7 +121,7 @@ function ck_output_metric_inverse_sqrt_series(
   ck_output_pairing_is_identity(metric.coefficients[1], identity_grade, identity_component) ||
     throw(ArgumentError("metric series must have unit leading coefficient"))
 
-  coefficients = [ck_output_pairing_zero(zero(H), zero_component) for _ in 0:order]
+  coefficients = [ck_output_pairing_zero(H, zero_component) for _ in 0:order]
   coefficients[1] = ck_output_pairing_identity(zero(H), identity_component)
   normalization = CKOutputPairingSeries(coefficients)
 
