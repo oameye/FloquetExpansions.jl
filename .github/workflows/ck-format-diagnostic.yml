@@ -1,0 +1,27 @@
+name: CK Format Diagnostic
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  format-delta:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Format and capture delta
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace .
+          git diff --binary > ck-format.patch
+          git diff --stat
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ck-format-patch
+          path: ck-format.patch
