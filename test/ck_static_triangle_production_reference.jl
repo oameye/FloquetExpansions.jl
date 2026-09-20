@@ -6,13 +6,12 @@ const ck_static_triangle_im = CKStaticTriangleExact(0 // 1, 1 // 1)
 
 function ck_static_triangle_key(output_number::Int)
   output_number >= 0 || throw(ArgumentError("output number must be nonnegative"))
-  iszero(output_number) &&
-    return FloquetExpansions.CKOutputKernelKey(
-      Int[],
-      FloquetExpansions.CKOutputBlock[],
-      FloquetExpansions.CKOutputConstraint{Int}[],
-      FloquetExpansions.CKOutputConstraint{Int}[],
-    )
+  iszero(output_number) && return FloquetExpansions.CKOutputKernelKey(
+    Int[],
+    FloquetExpansions.CKOutputBlock[],
+    FloquetExpansions.CKOutputConstraint{Int}[],
+    FloquetExpansions.CKOutputConstraint{Int}[],
+  )
 
   return FloquetExpansions.CKOutputKernelKey(
     fill(1, output_number),
@@ -59,7 +58,7 @@ function ck_static_triangle_amplitude_equal(left, right)
   length(left.coefficients) == length(right.coefficients) || return false
   return all(
     left_coefficient.zero_component == right_coefficient.zero_component &&
-    left_coefficient.terms == right_coefficient.terms for
+      left_coefficient.terms == right_coefficient.terms for
     (left_coefficient, right_coefficient) in zip(left.coefficients, right.coefficients)
   )
 end
@@ -79,7 +78,9 @@ end
 
     @test FloquetExpansions.ck_output_pairing_period_terms(metric.coefficients[1]) ==
       Dict(0 => one(CKStaticTriangleExact))
-    @test all(isempty(metric.coefficients[order + 1].terms) for order in 1:(defect_order - 1))
+    @test all(
+      isempty(metric.coefficients[order + 1].terms) for order in 1:(defect_order - 1)
+    )
     @test !isempty(metric.coefficients[defect_order + 1].terms)
     @test FloquetExpansions.ck_output_pairing_phase_support(
       metric.coefficients[defect_order + 1]
@@ -89,8 +90,7 @@ end
       metric, defect_order, one(CKStaticTriangleExact)
     )
     @test all(
-      isempty(normalization.coefficients[order + 1].terms) for
-      order in 1:(defect_order - 1)
+      isempty(normalization.coefficients[order + 1].terms) for order in 1:(defect_order - 1)
     )
     @test !isempty(normalization.coefficients[defect_order + 1].terms)
 
@@ -98,8 +98,8 @@ end
       amplitudes, normalization, defect_order, zero(CKStaticTriangleExact)
     )
     @test all(
-      ck_static_triangle_amplitude_equal(normalized_amplitudes[index], amplitudes[index]) for
-      index in eachindex(amplitudes)
+      ck_static_triangle_amplitude_equal(normalized_amplitudes[index], amplitudes[index])
+      for index in eachindex(amplitudes)
     )
 
     normalized_metric = FloquetExpansions.ck_output_metric_series(
