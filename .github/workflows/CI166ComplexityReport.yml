@@ -1,0 +1,19 @@
+name: CI166 Complexity Report
+
+on:
+  push:
+    branches:
+      - 'ci/166-complexity-report'
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - name: Instantiate CodeRatchet
+        run: julia --project=code_ratchet -e 'using Pkg; Pkg.instantiate()'
+      - name: Print exact complexity methods
+        run: julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' complexity methods
