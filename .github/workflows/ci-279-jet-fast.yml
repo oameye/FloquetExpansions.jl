@@ -15,7 +15,7 @@ jobs:
       - name: Instantiate test environment
         env:
           JULIA_PKG_PRECOMPILE_AUTO: '0'
-        run: julia --project=test -e 'using Pkg; Pkg.instantiate()'
+        run: julia --project=test -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Run JET quality test
         env:
           JULIA_PKG_PRECOMPILE_AUTO: '0'
