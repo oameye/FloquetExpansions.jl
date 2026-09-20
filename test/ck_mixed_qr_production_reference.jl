@@ -13,7 +13,7 @@ end
 
 function ck_mixed_reference_generator(entries, dimension::Int)
   zero_component = zeros(CKMixedReferenceExact, dimension, dimension)
-  terms = Dict{FloquetExpansions.CKVertex{Int},Matrix{CKMixedReferenceExact}}()
+  terms = Dict{FloquetExpansions.CKBranchVertex{Int},Matrix{CKMixedReferenceExact}}()
   for (vertex, value) in entries
     terms[vertex] = get(terms, vertex, zero_component) + value
   end
