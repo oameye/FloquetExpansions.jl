@@ -66,7 +66,8 @@ function ck_output_metric_inverse_sqrt_series(
     length(leading.terms) == 1 &&
     haskey(leading.terms, 0) &&
     isequal(leading.terms[0], identity_component)
-  leading_is_unit || throw(ArgumentError("metric series must have unit leading coefficient"))
+  leading_is_unit ||
+    throw(ArgumentError("metric series must have unit leading coefficient"))
 
   coefficients = [ck_output_pairing_zero(zero_component) for _ in 0:order]
   coefficients[1] = ck_output_pairing_identity(identity_component)
