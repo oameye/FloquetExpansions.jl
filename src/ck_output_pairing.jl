@@ -4,7 +4,8 @@ struct CKOutputPairingPolynomial{T}
 end
 
 function Base.isequal(left::CKOutputPairingPolynomial, right::CKOutputPairingPolynomial)
-  return isequal(left.zero_component, right.zero_component) && isequal(left.terms, right.terms)
+  return isequal(left.zero_component, right.zero_component) &&
+         isequal(left.terms, right.terms)
 end
 
 function Base.:(==)(left::CKOutputPairingPolynomial, right::CKOutputPairingPolynomial)
