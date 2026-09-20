@@ -262,7 +262,7 @@ end
 
 function bloch_is_lyndon_word(word::Tuple)
   isempty(word) && return false
-  return all(isless(word, word[index:end]) for index in 2:length(word))
+  return all(isless(word, word[index:end]) === true for index in 2:length(word))
 end
 
 function bloch_lyndon_standard_factorization(word::Tuple)
@@ -432,6 +432,52 @@ function bloch_static_power_support(plan::BlochConnectedLogPlan{H}) where {H}
   return supports
 end
 
+function bloch_static_exp_ensure_node!(
+  power::Int,
+  n::Int,
+  harmonic::H,
+  supports::Vector{Vector{Set{H}}},
+  nodes::Vector{BlochStaticExpNode{H}},
+  node_ids::Dict{Tuple{Int,Int,H},Int},
+  product_count::Base.RefValue{Int},
+) where {H}
+  state = (power, n, harmonic)
+  haskey(node_ids, state) && return node_ids[state]
+  dependencies = BlochStaticExpDependency{H}[]
+  for k in 1:(n - power + 1)
+    right_order = n - k
+    for left_harmonic in supports[1][k]
+      for right_harmonic in supports[power - 1][right_order]
+        left_harmonic + right_harmonic == harmonic || continue
+        right_node = if power == 2
+          0
+        else
+          bloch_static_exp_ensure_node!(
+            power - 1,
+            right_order,
+            right_harmonic,
+            supports,
+            nodes,
+            node_ids,
+            product_count,
+          )
+        end
+        push!(
+          dependencies,
+          BlochStaticExpDependency(
+            k, left_harmonic, right_order, right_harmonic, right_node
+          ),
+        )
+        product_count[] += 1
+      end
+    end
+  end
+  push!(nodes, BlochStaticExpNode(power, n, harmonic, dependencies))
+  node = length(nodes)
+  node_ids[state] = node
+  return node
+end
+
 function compile_bloch_static_exp_plan(
   log_plan::BlochConnectedLogPlan{H}, zero_harmonic::H
 ) where {H}
@@ -441,36 +487,12 @@ function compile_bloch_static_exp_plan(
   node_ids = Dict{Tuple{Int,Int,H},Int}()
   product_count = Ref(0)
 
-  function ensure_node(power::Int, n::Int, harmonic::H)
-    state = (power, n, harmonic)
-    haskey(node_ids, state) && return node_ids[state]
-    dependencies = BlochStaticExpDependency{H}[]
-    for k in 1:(n - power + 1)
-      right_order = n - k
-      for left_harmonic in supports[1][k]
-        for right_harmonic in supports[power - 1][right_order]
-          left_harmonic + right_harmonic == harmonic || continue
-          right_node = power == 2 ? 0 : ensure_node(power - 1, right_order, right_harmonic)
-          push!(
-            dependencies,
-            BlochStaticExpDependency(
-              k, left_harmonic, right_order, right_harmonic, right_node
-            ),
-          )
-          product_count[] += 1
-        end
-      end
-    end
-    push!(nodes, BlochStaticExpNode(power, n, harmonic, dependencies))
-    node = length(nodes)
-    node_ids[state] = node
-    return node
-  end
-
   targets = [zeros(Int, order) for _ in 1:order]
   for n in 2:order, power in 2:n
     zero_harmonic in supports[power][n] || continue
-    targets[n][power] = ensure_node(power, n, zero_harmonic)
+    targets[n][power] = bloch_static_exp_ensure_node!(
+      power, n, zero_harmonic, supports, nodes, node_ids, product_count
+    )
   end
   return BlochStaticExpPlan(zero_harmonic, nodes, targets, product_count[])
 end
