@@ -55,6 +55,15 @@ end
 
 ck_static_triangle_metric_pair(left, right) = conj(left) * right
 
+function ck_static_triangle_amplitude_equal(left, right)
+  length(left.coefficients) == length(right.coefficients) || return false
+  return all(
+    left_coefficient.zero_component == right_coefficient.zero_component &&
+    left_coefficient.terms == right_coefficient.terms for
+    (left_coefficient, right_coefficient) in zip(left.coefficients, right.coefficients)
+  )
+end
+
 @testset "production CK static triangle has the #201 TP defect order" begin
   for generator_order in 0:2
     depth = generator_order + 1
@@ -88,7 +97,10 @@ ck_static_triangle_metric_pair(left, right) = conj(left) * right
     normalized_amplitudes = FloquetExpansions.ck_output_right_normalize_series(
       amplitudes, normalization, defect_order, zero(CKStaticTriangleExact)
     )
-    @test normalized_amplitudes[1:length(amplitudes)] == amplitudes
+    @test all(
+      ck_static_triangle_amplitude_equal(normalized_amplitudes[index], amplitudes[index]) for
+      index in eachindex(amplitudes)
+    )
 
     normalized_metric = FloquetExpansions.ck_output_metric_series(
       normalized_amplitudes,
