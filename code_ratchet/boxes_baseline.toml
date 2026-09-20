@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "2529e98"
+commit = "31917c2"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -17,6 +17,9 @@ boxes = 0
 boxes = 0
 
 [files."src/ck_canonical_normalization.jl"]
+boxes = 0
+
+[files."src/ck_hori_deprit.jl"]
 boxes = 0
 
 [files."src/ck_output_kernel.jl"]
