@@ -4,8 +4,11 @@ struct CKCanonicalNormalizationCounts
   similarity_products::Int
 end
 
-ck_canonical_total_products(counts::CKCanonicalNormalizationCounts) =
-  counts.normalization_products + counts.inverse_products + counts.similarity_products
+function ck_canonical_total_products(counts::CKCanonicalNormalizationCounts)
+  return counts.normalization_products +
+         counts.inverse_products +
+         counts.similarity_products
+end
 
 struct CKCanonicalNormalizationResult{K}
   static_factor::Vector{K}
@@ -48,6 +51,89 @@ function ck_endpoint_project_model(state::CKEndpointKernel{H,T}) where {H,T}
   return CKEndpointKernel(result, state.zero_component)
 end
 
+function ck_endpoint_canonical_factor(
+  wave::AbstractVector{K}, canonical_order::Int, zero_state::K
+) where {K<:CKEndpointKernel}
+  static_factor = K[zero_state for _ in 1:canonical_order]
+  normalized_wave = K[zero_state for _ in 1:canonical_order]
+  log_embedding = K[zero_state for _ in 1:canonical_order]
+  powers = [K[zero_state for _ in 1:canonical_order] for _ in 1:canonical_order]
+
+  products = 0
+  for n in 1:canonical_order
+    prefactor = wave[n]
+    for j in 1:(n - 1)
+      prefactor += ck_endpoint_product(wave[j], static_factor[n - j])
+      products += 1
+    end
+
+    nonlinear_log = zero_state
+    for power in 2:n
+      coefficient = zero_state
+      for k in 1:(n - power + 1)
+        coefficient += ck_endpoint_product(normalized_wave[k], powers[power - 1][n - k])
+        products += 1
+      end
+      powers[power][n] = coefficient
+      nonlinear_log += ck_endpoint_scale(coefficient, (-1)^(power + 1) // power)
+    end
+
+    candidate = prefactor + nonlinear_log
+    static_factor[n] = ck_endpoint_scale(ck_endpoint_project_model(candidate), -1)
+    normalized_wave[n] = prefactor + static_factor[n]
+    powers[1][n] = normalized_wave[n]
+    log_embedding[n] = normalized_wave[n] + nonlinear_log
+  end
+  return static_factor, normalized_wave, log_embedding, products
+end
+
+function ck_endpoint_inverse_static_factor(
+  static_factor::AbstractVector{K}, zero_state::K
+) where {K<:CKEndpointKernel}
+  inverse_static_factor = K[zero_state for _ in eachindex(static_factor)]
+  products = 0
+  for n in eachindex(static_factor)
+    coefficient = static_factor[n]
+    for j in 1:(n - 1)
+      coefficient += ck_endpoint_product(static_factor[j], inverse_static_factor[n - j])
+      products += 1
+    end
+    inverse_static_factor[n] = ck_endpoint_scale(coefficient, -1)
+  end
+  return inverse_static_factor, products
+end
+
+function ck_endpoint_canonical_similarity(
+  effective::AbstractVector{K},
+  static_factor::AbstractVector{K},
+  inverse_static_factor::AbstractVector{K},
+  order::Int,
+  zero_state::K,
+) where {K<:CKEndpointKernel}
+  right_transformed = K[zero_state for _ in 1:order]
+  canonical_effective = K[zero_state for _ in 1:order]
+  products = 0
+
+  for n in 1:order
+    coefficient = effective[n]
+    for j in 1:(n - 1)
+      coefficient += ck_endpoint_product(effective[j], static_factor[n - j])
+      products += 1
+    end
+    right_transformed[n] = coefficient
+  end
+
+  for n in 1:order
+    coefficient = right_transformed[n]
+    for j in 1:(n - 1)
+      coefficient += ck_endpoint_product(inverse_static_factor[j], right_transformed[n - j])
+      products += 1
+    end
+    canonical_effective[n] = coefficient
+  end
+  return canonical_effective, products
+end
+
 function evaluate_ck_endpoint_canonical_normalization(
   effective::AbstractVector{K},
   wave::AbstractVector{K},
@@ -60,75 +146,17 @@ function evaluate_ck_endpoint_canonical_normalization(
     throw(ArgumentError("effective series does not contain the requested order"))
   length(wave) >= order - 1 ||
     throw(ArgumentError("wave series does not contain the required canonical orders"))
-  identity_state.zero_component == zero_state.zero_component ||
+  isequal(identity_state.zero_component, zero_state.zero_component) ||
     throw(ArgumentError("identity and zero endpoint states must share one component type"))
 
   canonical_order = order - 1
-  static_factor = K[zero_state for _ in 1:canonical_order]
-  inverse_static_factor = K[zero_state for _ in 1:canonical_order]
-  normalized_wave = K[zero_state for _ in 1:canonical_order]
-  log_embedding = K[zero_state for _ in 1:canonical_order]
-  powers = [K[zero_state for _ in 1:canonical_order] for _ in 1:canonical_order]
-
-  normalization_products = 0
-  for n in 1:canonical_order
-    prefactor = wave[n]
-    for j in 1:(n - 1)
-      prefactor += ck_endpoint_product(wave[j], static_factor[n - j])
-      normalization_products += 1
-    end
-
-    nonlinear_log = zero_state
-    for power in 2:n
-      coefficient = zero_state
-      for k in 1:(n - power + 1)
-        coefficient += ck_endpoint_product(normalized_wave[k], powers[power - 1][n - k])
-        normalization_products += 1
-      end
-      powers[power][n] = coefficient
-      weight = (-1)^(power + 1) // power
-      nonlinear_log += ck_endpoint_scale(coefficient, weight)
-    end
-
-    candidate = prefactor + nonlinear_log
-    static_factor[n] = ck_endpoint_scale(ck_endpoint_project_model(candidate), -1)
-    normalized_wave[n] = prefactor + static_factor[n]
-    powers[1][n] = normalized_wave[n]
-    log_embedding[n] = normalized_wave[n] + nonlinear_log
-  end
-
-  inverse_products = 0
-  for n in 1:canonical_order
-    coefficient = static_factor[n]
-    for j in 1:(n - 1)
-      coefficient += ck_endpoint_product(static_factor[j], inverse_static_factor[n - j])
-      inverse_products += 1
-    end
-    inverse_static_factor[n] = ck_endpoint_scale(coefficient, -1)
-  end
-
-  right_transformed = K[zero_state for _ in 1:order]
-  canonical_effective = K[zero_state for _ in 1:order]
-  similarity_products = 0
-  for n in 1:order
-    coefficient = effective[n]
-    for j in 1:(n - 1)
-      coefficient += ck_endpoint_product(effective[j], static_factor[n - j])
-      similarity_products += 1
-    end
-    right_transformed[n] = coefficient
-  end
-
-  for n in 1:order
-    coefficient = right_transformed[n]
-    for j in 1:(n - 1)
-      coefficient += ck_endpoint_product(
-        inverse_static_factor[j], right_transformed[n - j]
-      )
-      similarity_products += 1
-    end
-    canonical_effective[n] = coefficient
-  end
+  static_factor, normalized_wave, log_embedding, normalization_products =
+    ck_endpoint_canonical_factor(wave, canonical_order, zero_state)
+  inverse_static_factor, inverse_products =
+    ck_endpoint_inverse_static_factor(static_factor, zero_state)
+  canonical_effective, similarity_products = ck_endpoint_canonical_similarity(
+    effective, static_factor, inverse_static_factor, order, zero_state
+  )
 
   counts = CKCanonicalNormalizationCounts(
     normalization_products, inverse_products, similarity_products
