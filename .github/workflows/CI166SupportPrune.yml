@@ -1,0 +1,64 @@
+name: CI166 Support Prune
+
+on:
+  push:
+    branches:
+      - 'ci/166-support-prune-work'
+
+permissions:
+  contents: write
+
+env:
+  JULIA_NUM_THREADS: 2
+
+jobs:
+  patch-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/166-support-prune-work
+      - name: Prune empty connected-log support
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path('src/bloch_connected_van_vleck.jl')
+          text = source.read_text()
+          old = '''    for (harmonic, word_terms) in embedding\n      terms = BlochLyndonOutputTerm{C}[]\n'''
+          new = '''    for (harmonic, word_terms) in embedding\n      isempty(word_terms) && continue\n      terms = BlochLyndonOutputTerm{C}[]\n'''
+          if old in text:
+              text = text.replace(old, new, 1)
+              source.write_text(text)
+          elif new not in text:
+              raise SystemExit('source patch anchor not found')
+
+          test = Path('test/bloch_connected_van_vleck.jl')
+          text = test.read_text()
+          anchor = '''  connected_plan = FE_BCVV.compile_bloch_connected_van_vleck_plan(projection_plan)\n  connected = FE_BCVV.evaluate_bloch_connected_van_vleck(\n'''
+          replacement = '''  connected_plan = FE_BCVV.compile_bloch_connected_van_vleck_plan(projection_plan)\n  @test all(\n    all(terms -> !isempty(terms), values(output)) for output in connected_plan.log.outputs\n  )\n  connected = FE_BCVV.evaluate_bloch_connected_van_vleck(\n'''
+          if anchor in text:
+              text = text.replace(anchor, replacement, 1)
+              test.write_text(text)
+          elif replacement not in text:
+              raise SystemExit('test patch anchor not found')
+          PY
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.10'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Format source and test
+        run: ${HOME}/.julia/bin/jlfmt --inplace src/bloch_connected_van_vleck.jl test/bloch_connected_van_vleck.jl
+      - name: Commit exact patch
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/bloch_connected_van_vleck.jl test/bloch_connected_van_vleck.jl
+          git commit -m 'fix: prune empty connected-log support'
+          git push origin HEAD:ci/166-support-prune-work
+      - name: Run connected Van Vleck regression
+        run: julia --project=. -e 'using Pkg; Pkg.test(; test_args=["bloch_connected_van_vleck"])'
