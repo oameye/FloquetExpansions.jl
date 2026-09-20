@@ -54,9 +54,7 @@ end
 @testset "drift-only homological cuts become scalar output constraints" begin
   zero_component = zero(CKOutputExact)
   value = one(CKOutputExact)
-  vertices = [
-    FloquetExpansions.ck_drift_vertex(2), FloquetExpansions.ck_jump_vertex(1, -1)
-  ]
+  vertices = [FloquetExpansions.ck_drift_vertex(2), FloquetExpansions.ck_jump_vertex(1, -1)]
   endpoint_key = FloquetExpansions.CKEndpointKey(
     vertices,
     [FloquetExpansions.CKEndpointConstraint(0, 2)],
@@ -99,8 +97,7 @@ end
   output_key = only(keys(output.terms))
 
   @test output_key.blocks == [
-    FloquetExpansions.CKOutputBlock(0, 1, 0, 1),
-    FloquetExpansions.CKOutputBlock(1, 2, 1, 2),
+    FloquetExpansions.CKOutputBlock(0, 1, 0, 1), FloquetExpansions.CKOutputBlock(1, 2, 1, 2)
   ]
   @test output_key.model_constraints == [
     FloquetExpansions.CKOutputConstraint(1, 1, 1),
