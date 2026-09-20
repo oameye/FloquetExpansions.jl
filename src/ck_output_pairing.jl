@@ -3,12 +3,12 @@ struct CKOutputPairingPolynomial{T}
   zero_component::T
 end
 
-function Base.:(==)(left::CKOutputPairingPolynomial, right::CKOutputPairingPolynomial)
-  return left.zero_component == right.zero_component && left.terms == right.terms
+function Base.isequal(left::CKOutputPairingPolynomial, right::CKOutputPairingPolynomial)
+  return isequal(left.zero_component, right.zero_component) && isequal(left.terms, right.terms)
 end
 
-function Base.isequal(left::CKOutputPairingPolynomial, right::CKOutputPairingPolynomial)
-  return left == right
+function Base.:(==)(left::CKOutputPairingPolynomial, right::CKOutputPairingPolynomial)
+  return isequal(left, right)
 end
 
 function ck_output_pairing_accumulate!(
