@@ -101,18 +101,10 @@ end
   right = ck_output_pairing_period_polynomial(2, [right_key => one(CKOutputPairingExact)])
 
   channel = FloquetExpansions.ck_output_channel_pairing(
-    left,
-    right,
-    ck_output_pairing_im,
-    zero(CKOutputPairingExact),
-    ck_output_pairing_channel,
+    left, right, ck_output_pairing_im, zero(CKOutputPairingExact), ck_output_pairing_channel
   )
   metric = FloquetExpansions.ck_output_metric_pairing(
-    left,
-    right,
-    ck_output_pairing_im,
-    zero(CKOutputPairingExact),
-    ck_output_pairing_metric,
+    left, right, ck_output_pairing_im, zero(CKOutputPairingExact), ck_output_pairing_metric
   )
 
   @test channel.terms == Dict(1 => ck_output_pairing_im)
@@ -130,18 +122,10 @@ end
   right = ck_output_pairing_period_polynomial(2, [right_key => right_value])
 
   channel = FloquetExpansions.ck_output_channel_pairing(
-    left,
-    right,
-    ck_output_pairing_im,
-    zero(CKOutputPairingExact),
-    ck_output_pairing_channel,
+    left, right, ck_output_pairing_im, zero(CKOutputPairingExact), ck_output_pairing_channel
   )
   metric = FloquetExpansions.ck_output_metric_pairing(
-    left,
-    right,
-    ck_output_pairing_im,
-    zero(CKOutputPairingExact),
-    ck_output_pairing_metric,
+    left, right, ck_output_pairing_im, zero(CKOutputPairingExact), ck_output_pairing_metric
   )
 
   gram_rl = ck_output_pairing_im
