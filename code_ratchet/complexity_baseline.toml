@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "2529e98"
+commit = "31917c2"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -41,6 +41,17 @@ arg_over = 0
 cyc_sum = 34
 cog_sum = 32
 arg_sum = 30
+
+[files."src/ck_hori_deprit.jl"]
+cyc = 5
+cog = 4
+arg = 5
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 18
+cog_sum = 13
+arg_sum = 16
 
 [files."src/ck_output_kernel.jl"]
 cyc = 10
