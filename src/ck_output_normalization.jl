@@ -3,9 +3,7 @@ function ck_output_pairing_identity(identity_component::T) where {T}
 end
 
 function ck_output_pairing_product(
-  left::CKOutputPairingPolynomial{T},
-  right::CKOutputPairingPolynomial{T},
-  zero_component::T,
+  left::CKOutputPairingPolynomial{T}, right::CKOutputPairingPolynomial{T}, zero_component::T
 ) where {T}
   result = Dict{Int,T}()
   for (left_power, left_value) in left.terms, (right_power, right_value) in right.terms
@@ -28,9 +26,7 @@ end
 
 function ck_output_pairing_series_zero(order::Int, zero_component::T) where {T}
   order >= 0 || throw(ArgumentError("series order must be nonnegative"))
-  return CKOutputPairingSeries([
-    ck_output_pairing_zero(zero_component) for _ in 0:order
-  ])
+  return CKOutputPairingSeries([ck_output_pairing_zero(zero_component) for _ in 0:order])
 end
 
 function ck_output_pairing_series_product(
@@ -48,7 +44,9 @@ function ck_output_pairing_series_product(
       right_order = total_order - left_order
       right_order + 1 <= length(right.coefficients) || continue
       term = ck_output_pairing_product(
-        left.coefficients[left_order + 1], right.coefficients[right_order + 1], zero_component
+        left.coefficients[left_order + 1],
+        right.coefficients[right_order + 1],
+        zero_component,
       )
       ck_output_pairing_add!(target, term)
     end
@@ -60,7 +58,8 @@ function ck_output_metric_inverse_sqrt_series(
   metric::CKOutputPairingSeries{T}, order::Int, identity_component::T
 ) where {T}
   order >= 0 || throw(ArgumentError("normalization order must be nonnegative"))
-  isempty(metric.coefficients) && throw(ArgumentError("metric series must contain a leading coefficient"))
+  isempty(metric.coefficients) &&
+    throw(ArgumentError("metric series must contain a leading coefficient"))
   zero_component = zero(identity_component)
   leading = metric.coefficients[1]
   leading.terms == Dict(0 => identity_component) ||
