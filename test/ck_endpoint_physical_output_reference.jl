@@ -56,6 +56,12 @@ end
     recurrence.effective, recurrence.wave, 3, identity_state, zero_state
   )
   one_output = reconstruction.amplitude[4]
+  finite_output = FloquetExpansions.ck_output_kernel(one_output)
+
+  @test all(
+    FloquetExpansions.ck_output_kernel_complete(key) for
+    coefficient in finite_output.coefficients for key in keys(coefficient.terms)
+  )
 
   before = jump_value * drift_value
   after = drift_value * jump_value
@@ -76,7 +82,22 @@ end
   outside = FloquetExpansions.ck_period_ordered_sideband_coefficients(
     one_output, [1], [jump_harmonic - 1]; inverse_weight=ck_endpoint_output_inverse_weight
   )
+  finite_at_jump = FloquetExpansions.ck_output_ordered_sideband_coefficients(
+    finite_output, [1], [jump_harmonic]; inverse_weight=ck_endpoint_output_inverse_weight
+  )
+  finite_at_shifted = FloquetExpansions.ck_output_ordered_sideband_coefficients(
+    finite_output,
+    [1],
+    [jump_harmonic + drift_harmonic];
+    inverse_weight=ck_endpoint_output_inverse_weight,
+  )
+  finite_outside = FloquetExpansions.ck_output_ordered_sideband_coefficients(
+    finite_output, [1], [jump_harmonic - 1]; inverse_weight=ck_endpoint_output_inverse_weight
+  )
 
+  @test finite_at_jump == at_jump
+  @test finite_at_shifted == at_shifted
+  @test finite_outside == outside
   @test ck_endpoint_output_period_coefficient(at_jump, 1, zero_component) ==
     expected_at_jump
   @test ck_endpoint_output_period_coefficient(at_shifted, 1, zero_component) ==
