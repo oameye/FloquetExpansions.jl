@@ -1,0 +1,40 @@
+name: CK271 Format Apply Diagnostic
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ci/271-format-apply
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Repair fixture, format exact branch, and commit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("test/ck_canonical_normalization.jl")
+          text = path.read_text()
+          old = "return (; A1, A2, identity_state, zero_state, zero_component)"
+          new = "return (; A1, A2, identity_state, zero_state, zero_component, operations)"
+          if old not in text:
+              raise SystemExit("fixture return pattern not found")
+          path.write_text(text.replace(old, new, 1))
+          PY
+          ${HOME}/.julia/bin/jlfmt --inplace src/ck_canonical_normalization.jl test/ck_canonical_normalization.jl
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/ck_canonical_normalization.jl test/ck_canonical_normalization.jl
+          if ! git diff --cached --quiet; then
+            git commit -m 'test: repair and format CK canonical normalization'
+            git push origin HEAD:ci/271-format-apply
+          fi
