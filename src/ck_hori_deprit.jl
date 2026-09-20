@@ -58,6 +58,7 @@ function ck_endpoint_hori_deprit_source(
   ad_amplitude = K[amplitude[index] for index in 1:n]
   for power in 0:(n - 1)
     source += ck_endpoint_scale(ad_amplitude[n], (-1)^power // factorial(power))
+    power == n - 1 && break
     ad_amplitude, count = ck_endpoint_series_ad(generator, ad_amplitude, n, zero_state)
     products += count
   end
@@ -66,6 +67,7 @@ function ck_endpoint_hori_deprit_source(
   for power in 0:(n - 1)
     weight = (-1)^(power + 1) // factorial(power + 1)
     source += ck_endpoint_scale(ad_derivative[n], weight)
+    power == n - 1 && break
     ad_derivative, count = ck_endpoint_series_ad(generator, ad_derivative, n, zero_state)
     products += count
   end
