@@ -1,0 +1,22 @@
+name: CK294 Channel Gauge Targeted V2
+
+on:
+  pull_request:
+
+jobs:
+  channel-gauge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - name: Instantiate test environment
+        env:
+          JULIA_PKG_PRECOMPILE_AUTO: '0'
+        run: julia --project=test -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+      - name: Run one-dissipator gauge bridge test
+        env:
+          JULIA_PKG_PRECOMPILE_AUTO: '0'
+        run: julia --project=test test/ck_channel_gauge_bridge.jl
