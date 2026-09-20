@@ -1,6 +1,6 @@
 using Test
 using FloquetExpansions
-using LinearAlgebra: I
+using LinearAlgebra: I, kron
 
 const CKNormalizationExact = Complex{Rational{Int}}
 const ck_normalization_im = CKNormalizationExact(0 // 1, 1 // 1)
@@ -24,6 +24,15 @@ function ck_normalization_vacuum_key()
     FloquetExpansions.CKOutputBlock[],
     FloquetExpansions.CKOutputConstraint{Int}[],
     FloquetExpansions.CKOutputConstraint{Int}[],
+  )
+end
+
+function ck_normalization_scalar_resolvent_key(harmonic::Int)
+  return FloquetExpansions.CKOutputKernelKey(
+    Int[],
+    [FloquetExpansions.CKOutputBlock(0, 0, 0, 0)],
+    FloquetExpansions.CKOutputConstraint{Int}[],
+    [FloquetExpansions.CKOutputConstraint(1, 0, harmonic)],
   )
 end
 
@@ -52,6 +61,7 @@ function ck_normalization_amplitude(period_power::Int, terms...)
 end
 
 ck_normalization_metric_pair(left, right) = adjoint(left) * right
+ck_normalization_channel_pair(left, right) = kron(conj.(right), left)
 
 @testset "noncommutative CK right-normalization solves S M S = I coefficientwise" begin
   identity_component = ck_normalization_identity()
@@ -155,6 +165,71 @@ end
     kernel in coefficient.coefficients for
     key in keys(kernel.terms) if !isempty(key.output_channels)
   )
+end
+
+@testset "singular physical Gram normalizes without Gram inversion" begin
+  identity_component = ck_normalization_identity()
+  zero_component = zero(identity_component)
+  zero_superoperator = zeros(CKNormalizationExact, 4, 4)
+  identity_superoperator = Matrix{CKNormalizationExact}(I, 4, 4)
+  vacuum = ck_normalization_vacuum_key()
+  phase = ck_normalization_scalar_resolvent_key(1)
+
+  keys = [vacuum, phase]
+  gram_right_left = CKNormalizationExact[
+    FloquetExpansions.ck_output_overlap_coefficient(
+      FloquetExpansions.ck_output_time_overlap(left, right, ck_normalization_im), 0
+    ) for left in keys, right in keys
+  ]
+  @test gram_right_left == CKNormalizationExact[1 -ck_normalization_im; ck_normalization_im 1]
+  @test gram_right_left[1, 1] * gram_right_left[2, 2] ==
+    gram_right_left[1, 2] * gram_right_left[2, 1]
+
+  amplitude = ck_normalization_amplitude(
+    0, vacuum => identity_component, phase => -ck_normalization_im * identity_component
+  )
+  raw_metric = FloquetExpansions.ck_output_metric_pairing(
+    amplitude,
+    amplitude,
+    ck_normalization_im,
+    zero_component,
+    ck_normalization_metric_pair,
+  )
+  raw_channel = FloquetExpansions.ck_output_channel_pairing(
+    amplitude,
+    amplitude,
+    ck_normalization_im,
+    zero_superoperator,
+    ck_normalization_channel_pair,
+  )
+  @test raw_metric.terms == Dict(0 => 4 * identity_component)
+  @test raw_channel.terms == Dict(0 => 4 * identity_superoperator)
+
+  half_identity = (1 // 2) * identity_component
+  normalization = FloquetExpansions.CKOutputPairingSeries([
+    FloquetExpansions.CKOutputPairingPolynomial(Dict(0 => half_identity), zero_component)
+  ])
+  normalized_amplitude = only(
+    FloquetExpansions.ck_output_right_normalize_series(
+      [amplitude], normalization, 0, zero_component
+    )
+  )
+  normalized_metric = FloquetExpansions.ck_output_metric_pairing(
+    normalized_amplitude,
+    normalized_amplitude,
+    ck_normalization_im,
+    zero_component,
+    ck_normalization_metric_pair,
+  )
+  normalized_channel = FloquetExpansions.ck_output_channel_pairing(
+    normalized_amplitude,
+    normalized_amplitude,
+    ck_normalization_im,
+    zero_superoperator,
+    ck_normalization_channel_pair,
+  )
+  @test normalized_metric.terms == Dict(0 => identity_component)
+  @test normalized_channel.terms == Dict(0 => identity_superoperator)
 end
 
 @testset "CK normalization requires a unit leading metric" begin
