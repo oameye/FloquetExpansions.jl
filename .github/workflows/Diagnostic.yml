@@ -1,0 +1,33 @@
+name: CK276 Diagnostic
+
+on:
+  push:
+    branches:
+      - 'ci/276-order6-diagnostic'
+    paths:
+      - '.github/workflows/Diagnostic.yml'
+      - 'src/**'
+      - 'test/ck_one_dissipator_channel_gauge.jl'
+      - 'test/ck_one_dissipator_order6_diagnostic.jl'
+      - 'Project.toml'
+
+env:
+  JULIA_NUM_THREADS: 2
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.10'
+          arch: x64
+      - uses: julia-actions/cache@v3
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Run #276 bridge regression
+        run: julia --project=. -e 'using Pkg; Pkg.test(; test_args=["ck_one_dissipator_channel_gauge"] )'
+      - name: Run CK order-six gauge boundary
+        run: julia --project=. -e 'using Pkg; Pkg.test(; test_args=["ck_one_dissipator_order6_diagnostic"] )'
