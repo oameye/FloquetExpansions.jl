@@ -23,11 +23,7 @@ function ck_hd_physical_b3_fixture()
   H1 = CKHDPhysicalExact[1 2 - ck_hd_physical_im; -1 1 + ck_hd_physical_im]
   H2 = CKHDPhysicalExact[ck_hd_physical_im 1; 2 -1]
   hamiltonian = Dict(
-    0 => H0,
-    1 => H1,
-    -1 => Matrix(adjoint(H1)),
-    2 => H2,
-    -2 => Matrix(adjoint(H2)),
+    0 => H0, 1 => H1, -1 => Matrix(adjoint(H1)), 2 => H2, -2 => Matrix(adjoint(H2))
   )
   jumps = Dict(
     -1 => CKHDPhysicalExact[1 0; 2 ck_hd_physical_im],
@@ -115,7 +111,7 @@ end
   expected_B2 = FloquetExpansions.ck_endpoint_project_model(
     FloquetExpansions.ck_endpoint_product(
       endpoint_A1, FloquetExpansions.ck_endpoint_solve_homological(endpoint_A1)
-    )
+    ),
   )
 
   nonzero = false
@@ -128,6 +124,7 @@ end
   end
   @test nonzero
   @test all(
-    FloquetExpansions.ck_endpoint_output_number(key) == 2 for key in keys(hd.effective[2].terms)
+    FloquetExpansions.ck_endpoint_output_number(key) == 2 for
+    key in keys(hd.effective[2].terms)
   )
 end
