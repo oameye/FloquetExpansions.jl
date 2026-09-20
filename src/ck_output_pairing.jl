@@ -3,6 +3,12 @@ struct CKOutputPairingPolynomial{T}
   zero_component::T
 end
 
+function Base.:(==)(left::CKOutputPairingPolynomial, right::CKOutputPairingPolynomial)
+  return left.zero_component == right.zero_component && left.terms == right.terms
+end
+
+Base.isequal(left::CKOutputPairingPolynomial, right::CKOutputPairingPolynomial) = left == right
+
 function ck_output_pairing_accumulate!(
   terms::Dict{Int,T}, period_power::Int, value::T, zero_component::T
 ) where {T}
