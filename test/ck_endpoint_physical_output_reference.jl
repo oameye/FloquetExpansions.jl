@@ -92,7 +92,10 @@ end
     inverse_weight=ck_endpoint_output_inverse_weight,
   )
   finite_outside = FloquetExpansions.ck_output_ordered_sideband_coefficients(
-    finite_output, [1], [jump_harmonic - 1]; inverse_weight=ck_endpoint_output_inverse_weight
+    finite_output,
+    [1],
+    [jump_harmonic - 1];
+    inverse_weight=ck_endpoint_output_inverse_weight,
   )
 
   @test finite_at_jump == at_jump
