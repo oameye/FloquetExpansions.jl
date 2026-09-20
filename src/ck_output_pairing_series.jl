@@ -24,9 +24,7 @@ function ck_output_pairing_series(
   order::Int,
   imaginary::T,
   zero_component::R,
-  gram_weight,
-  system_pair,
-  phase_pair,
+  operations::CKOutputPairingOperations,
 ) where {H<:Integer,S,T,R}
   order >= 0 || throw(ArgumentError("pairing order must be nonnegative"))
   result = [ck_output_pairing_zero(zero(H), zero_component) for _ in 0:order]
@@ -41,9 +39,7 @@ function ck_output_pairing_series(
         amplitudes[right_order + 1],
         imaginary,
         zero_component,
-        gram_weight,
-        system_pair,
-        phase_pair,
+        operations,
       )
       ck_output_pairing_add!(result[total_order + 1], contribution)
     end
@@ -58,15 +54,8 @@ function ck_output_channel_series(
   zero_component::R,
   channel_pair,
 ) where {H<:Integer,S,T,R}
-  return ck_output_pairing_series(
-    amplitudes,
-    order,
-    imaginary,
-    zero_component,
-    identity,
-    channel_pair,
-    ck_output_channel_phase,
-  )
+  operations = CKOutputPairingOperations(identity, channel_pair, ck_output_channel_phase)
+  return ck_output_pairing_series(amplitudes, order, imaginary, zero_component, operations)
 end
 
 function ck_output_metric_series(
@@ -76,15 +65,8 @@ function ck_output_metric_series(
   zero_component::R,
   metric_pair,
 ) where {H<:Integer,S,T,R}
-  return ck_output_pairing_series(
-    amplitudes,
-    order,
-    imaginary,
-    zero_component,
-    conj,
-    metric_pair,
-    ck_output_metric_phase,
-  )
+  operations = CKOutputPairingOperations(conj, metric_pair, ck_output_metric_phase)
+  return ck_output_pairing_series(amplitudes, order, imaginary, zero_component, operations)
 end
 
 function ck_output_pairing_series_coefficient(
