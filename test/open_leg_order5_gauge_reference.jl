@@ -167,7 +167,9 @@ function gauge_series_ad(generator::Vector{P}, values::Vector{P}) where {P<:Gaug
   return result
 end
 
-function gauge_hori_deprit_reference(amplitude_orders::Vector{P}, order::Int) where {P<:GaugeOpenLeg}
+function gauge_hori_deprit_reference(
+  amplitude_orders::Vector{P}, order::Int
+) where {P<:GaugeOpenLeg}
   template = first(amplitude_orders)
   amplitude = [zero(template) for _ in 1:order]
   for r in 1:min(order, length(amplitude_orders))
@@ -201,7 +203,9 @@ function gauge_hori_deprit_reference(amplitude_orders::Vector{P}, order::Int) wh
   return GaugeHoriDepritReference(generator, effective)
 end
 
-function gauge_positive_series_product(left::Vector{P}, right::Vector{P}) where {P<:GaugeOpenLeg}
+function gauge_positive_series_product(
+  left::Vector{P}, right::Vector{P}
+) where {P<:GaugeOpenLeg}
   order = length(left)
   result = [zero(first(left)) for _ in 1:order]
   for n in 1:order
@@ -307,9 +311,7 @@ function gauge_fixture()
     Dict((harmonic, 1) => value for (harmonic, value) in jumps), zero_component
   )
   A2 = gauge_open_leg(
-    Dict(
-      (harmonic, 0) => -gauge_im * value for (harmonic, value) in hamiltonian
-    ),
+    Dict((harmonic, 0) => -gauge_im * value for (harmonic, value) in hamiltonian),
     zero_component,
   )
   return (; A1, A2, identity_component, zero_component)
