@@ -66,7 +66,8 @@ ck_pairing_series_metric(left, right) = conj(left) * right
   )
 
   @test length(metric.coefficients) == 3
-  @test metric.coefficients[1].terms == Dict(0 => one(CKPairingSeriesExact))
+  @test FloquetExpansions.ck_output_pairing_period_terms(metric.coefficients[1]) ==
+    Dict(0 => one(CKPairingSeriesExact))
   @test isempty(metric.coefficients[2].terms)
   @test isempty(metric.coefficients[3].terms)
   @test channel.coefficients == metric.coefficients
@@ -95,5 +96,6 @@ end
   @test isempty(metric.coefficients[2].terms)
   @test isempty(metric.coefficients[3].terms)
   @test isempty(metric.coefficients[4].terms)
-  @test metric.coefficients[5].terms == Dict(2 => CKPairingSeriesExact(1 // 4))
+  @test FloquetExpansions.ck_output_pairing_period_terms(metric.coefficients[5]) ==
+    Dict(2 => CKPairingSeriesExact(1 // 4))
 end
