@@ -30,7 +30,7 @@ end
 function Base.:(==)(left::CKOutputConstraint, right::CKOutputConstraint)
   return left.block == right.block &&
          left.output_stop == right.output_stop &&
-         left.harmonic == right.harmonic
+         isequal(left.harmonic, right.harmonic)
 end
 
 Base.isequal(left::CKOutputConstraint, right::CKOutputConstraint) = left == right
@@ -49,10 +49,10 @@ struct CKOutputKernelKey{H}
 end
 
 function Base.:(==)(left::CKOutputKernelKey, right::CKOutputKernelKey)
-  return left.output_channels == right.output_channels &&
-         left.blocks == right.blocks &&
-         left.model_constraints == right.model_constraints &&
-         left.resolvent_constraints == right.resolvent_constraints
+  return isequal(left.output_channels, right.output_channels) &&
+         isequal(left.blocks, right.blocks) &&
+         isequal(left.model_constraints, right.model_constraints) &&
+         isequal(left.resolvent_constraints, right.resolvent_constraints)
 end
 
 Base.isequal(left::CKOutputKernelKey, right::CKOutputKernelKey) = left == right
@@ -135,11 +135,11 @@ function ck_output_blocks(key::CKEndpointKey, output_prefix::Vector{Int})
 
   for (block_index, start) in enumerate(starts)
     stop = ck_output_block_stop(key, start)
-    block_index > 1 && start < previous_stop &&
+    block_index > 1 &&
+      start < previous_stop &&
       throw(ArgumentError("endpoint constraints are not block-local prefix chains"))
     push!(
-      blocks,
-      CKOutputBlock(start, stop, output_prefix[start + 1], output_prefix[stop + 1]),
+      blocks, CKOutputBlock(start, stop, output_prefix[start + 1], output_prefix[stop + 1])
     )
     start_to_block[start] = block_index
     previous_stop = stop
@@ -162,18 +162,12 @@ function ck_output_kernel_key(key::CKEndpointKey{H}) where {H}
   blocks, start_to_block = ck_output_blocks(key, prefix.output_prefix)
   model_constraints = CKOutputConstraint{H}[
     ck_output_constraint(
-      interval,
-      start_to_block[interval.start],
-      prefix.output_prefix,
-      prefix.harmonic_prefix,
+      interval, start_to_block[interval.start], prefix.output_prefix, prefix.harmonic_prefix
     ) for interval in key.model_intervals
   ]
   resolvent_constraints = CKOutputConstraint{H}[
     ck_output_constraint(
-      interval,
-      start_to_block[interval.start],
-      prefix.output_prefix,
-      prefix.harmonic_prefix,
+      interval, start_to_block[interval.start], prefix.output_prefix, prefix.harmonic_prefix
     ) for interval in key.resolvent_intervals
   ]
   return CKOutputKernelKey(
@@ -182,7 +176,10 @@ function ck_output_kernel_key(key::CKEndpointKey{H}) where {H}
 end
 
 function ck_output_accumulate!(
-  terms::Dict{CKOutputKernelKey{H},T}, key::CKOutputKernelKey{H}, value::T, zero_component::T
+  terms::Dict{CKOutputKernelKey{H},T},
+  key::CKOutputKernelKey{H},
+  value::T,
+  zero_component::T,
 ) where {H,T}
   updated = get(terms, key, zero_component) + value
   if ck_kernel_iszero(updated)
@@ -202,15 +199,15 @@ function ck_output_kernel(state::CKEndpointKernel{H,T}) where {H,T}
 end
 
 function ck_output_kernel(polynomial::CKPeriodPolynomial{H,T}) where {H,T}
-  return CKOutputPeriodPolynomial(CKOutputKernel{H,T}[
-    ck_output_kernel(coefficient) for coefficient in polynomial.coefficients
-  ])
+  return CKOutputPeriodPolynomial(
+    CKOutputKernel{H,T}[
+      ck_output_kernel(coefficient) for coefficient in polynomial.coefficients
+    ],
+  )
 end
 
 function ck_output_constraint_mismatch(
-  key::CKOutputKernelKey{H},
-  constraint::CKOutputConstraint{H},
-  sidebands::AbstractVector{H},
+  key::CKOutputKernelKey{H}, constraint::CKOutputConstraint{H}, sidebands::AbstractVector{H}
 ) where {H}
   block = key.blocks[constraint.block]
   mismatch = constraint.harmonic
