@@ -150,7 +150,7 @@ end
   @test all(isempty(coefficient.terms) for coefficient in paired_normalized.coefficients[2:end])
   @test all(
     key.output_channels == [1] for coefficient in normalized_amplitudes for
-    key in keys(coefficient.coefficients[min(end, 2)].terms) if !isempty(key.output_channels)
+    kernel in coefficient.coefficients for key in keys(kernel.terms) if !isempty(key.output_channels)
   )
 end
 
