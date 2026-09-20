@@ -17,8 +17,7 @@ Base.isequal(left::CKOutputBlock, right::CKOutputBlock) = left == right
 function Base.hash(block::CKOutputBlock, seed::UInt)
   result = hash(block.vertex_start, seed)
   result = hash(block.vertex_stop, result)
-  result = hash(block.output_start, result)
-  return hash(block.output_stop, result)
+  return hash(block.output_stop, hash(block.output_start, result))
 end
 
 struct CKOutputConstraint{H}
@@ -46,13 +45,26 @@ struct CKOutputKernelKey{H}
   blocks::Vector{CKOutputBlock}
   model_constraints::Vector{CKOutputConstraint{H}}
   resolvent_constraints::Vector{CKOutputConstraint{H}}
+  phase_harmonic::H
+end
+
+function CKOutputKernelKey(
+  output_channels::Vector{Int},
+  blocks::Vector{CKOutputBlock},
+  model_constraints::Vector{CKOutputConstraint{H}},
+  resolvent_constraints::Vector{CKOutputConstraint{H}},
+) where {H}
+  return CKOutputKernelKey(
+    output_channels, blocks, model_constraints, resolvent_constraints, zero(H)
+  )
 end
 
 function Base.:(==)(left::CKOutputKernelKey, right::CKOutputKernelKey)
   return isequal(left.output_channels, right.output_channels) &&
          isequal(left.blocks, right.blocks) &&
          isequal(left.model_constraints, right.model_constraints) &&
-         isequal(left.resolvent_constraints, right.resolvent_constraints)
+         isequal(left.resolvent_constraints, right.resolvent_constraints) &&
+         isequal(left.phase_harmonic, right.phase_harmonic)
 end
 
 Base.isequal(left::CKOutputKernelKey, right::CKOutputKernelKey) = left == right
@@ -74,7 +86,18 @@ function Base.hash(key::CKOutputKernelKey, seed::UInt)
   for constraint in key.resolvent_constraints
     result = hash(constraint, result)
   end
-  return result
+  return hash(key.phase_harmonic, result)
+end
+
+function ck_output_key_phase_shift(key::CKOutputKernelKey{H}, phase_harmonic::H) where {H}
+  iszero(phase_harmonic) && return key
+  return CKOutputKernelKey(
+    key.output_channels,
+    key.blocks,
+    key.model_constraints,
+    key.resolvent_constraints,
+    key.phase_harmonic + phase_harmonic,
+  )
 end
 
 struct CKOutputKernel{H,T}
@@ -171,7 +194,11 @@ function ck_output_kernel_key(key::CKEndpointKey{H}) where {H}
     ) for interval in key.resolvent_intervals
   ]
   return CKOutputKernelKey(
-    prefix.output_channels, blocks, model_constraints, resolvent_constraints
+    prefix.output_channels,
+    blocks,
+    model_constraints,
+    resolvent_constraints,
+    last(prefix.harmonic_prefix),
   )
 end
 
