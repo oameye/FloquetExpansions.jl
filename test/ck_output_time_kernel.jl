@@ -14,12 +14,7 @@ end
     Dict((0, 1) => 1 // 1, (1, 0) => -1 // 2),
     Dict((0, 2) => -1 // 2, (1, 1) => 1 // 2, (2, 0) => -1 // 12),
     Dict((0, 3) => 1 // 6, (1, 2) => -1 // 4, (2, 1) => 1 // 12),
-    Dict(
-      (0, 4) => -1 // 24,
-      (1, 3) => 1 // 12,
-      (2, 2) => -1 // 24,
-      (4, 0) => 1 // 720,
-    ),
+    Dict((0, 4) => -1 // 24, (1, 3) => 1 // 12, (2, 2) => -1 // 24, (4, 0) => 1 // 720),
   ]
 
   kernels = [FloquetExpansions.ck_homological_kernel(order, one_rational) for order in 1:4]
@@ -83,9 +78,8 @@ end
 
   repeated = [3, 3, 3, 3]
   repeated_kernel = FloquetExpansions.ck_resolvent_time_kernel(repeated, ck_output_time_im)
-  @test repeated_kernel.homological == [
-    FloquetExpansions.CKHomologicalComponent(3, 4, one(CKOutputTimeExact))
-  ]
+  @test repeated_kernel.homological ==
+    [FloquetExpansions.CKHomologicalComponent(3, 4, one(CKOutputTimeExact))]
   @test isempty(repeated_kernel.phases)
   for sideband in -8:8
     @test FloquetExpansions.ck_resolvent_time_fourier_coefficient(
