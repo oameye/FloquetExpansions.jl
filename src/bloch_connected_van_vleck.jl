@@ -262,7 +262,7 @@ end
 
 function bloch_is_lyndon_word(word::Tuple)
   isempty(word) && return false
-  return all(isless(word, word[index:end]) for index in 2:length(word))
+  return all(isless(word, word[index:end]) === true for index in 2:length(word))
 end
 
 function bloch_lyndon_standard_factorization(word::Tuple)
@@ -453,8 +453,14 @@ function bloch_static_exp_ensure_node!(
           0
         else
           bloch_static_exp_ensure_node!(
-          power - 1, right_order, right_harmonic, supports, nodes, node_ids, product_count
-        )
+            power - 1,
+            right_order,
+            right_harmonic,
+            supports,
+            nodes,
+            node_ids,
+            product_count,
+          )
         end
         push!(
           dependencies,
