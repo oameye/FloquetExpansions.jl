@@ -60,6 +60,13 @@ end
   JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.ck_period_ordered_sideband_coefficients(
     reconstruction.amplitude[3], [1, 1], [-1, 1]; inverse_weight=inv
   )
+
+  recurrence5 = FloquetExpansions.evaluate_bloch_order_recurrence(
+    [A1, A2], 5, identity_state, zero_state, operations
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.evaluate_ck_canonical_normalization(
+    recurrence5.effective, recurrence5.wave, 5, identity_state, zero_state
+  )
 end
 
 @testset "physical CK normalization optimizer stability" begin
