@@ -20,10 +20,8 @@ function ck_rotating_normalization_fixture()
   A1 = FloquetExpansions.ck_kernel_generator(
     Dict(
       FloquetExpansions.ck_jump_vertex(1, 0) => sigma_z,
-      FloquetExpansions.ck_jump_vertex(1, 1) =>
-        ck_rotating_normalization_im * sigma_minus,
-      FloquetExpansions.ck_jump_vertex(1, -1) =>
-        -ck_rotating_normalization_im * sigma_plus,
+      FloquetExpansions.ck_jump_vertex(1, 1) => ck_rotating_normalization_im * sigma_minus,
+      FloquetExpansions.ck_jump_vertex(1, -1) => -ck_rotating_normalization_im * sigma_plus,
     ),
     zero_component,
   )
@@ -41,7 +39,9 @@ function ck_rotating_normalization_fixture()
     FloquetExpansions.ck_kernel_project_model,
     FloquetExpansions.ck_kernel_solve_complement,
   )
-  return (; A1, A2, identity_state, zero_state, operations, identity_component, zero_component)
+  return (;
+    A1, A2, identity_state, zero_state, operations, identity_component, zero_component
+  )
 end
 
 function ck_rotating_normalization_amplitudes(order::Int)
@@ -54,11 +54,7 @@ function ck_rotating_normalization_amplitudes(order::Int)
     fixture.operations,
   )
   reconstruction = FloquetExpansions.evaluate_ck_period_amplitude(
-    recurrence.effective,
-    recurrence.wave,
-    order,
-    fixture.identity_state,
-    fixture.zero_state,
+    recurrence.effective, recurrence.wave, order, fixture.identity_state, fixture.zero_state
   )
   amplitudes = [
     FloquetExpansions.ck_output_kernel(amplitude) for amplitude in reconstruction.amplitude
