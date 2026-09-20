@@ -42,8 +42,9 @@ function ck_output_scalar_constraint_weight(
   model_harmonics::Vector{H}, resolvent_harmonics::Vector{H}, imaginary::T
 ) where {H<:Integer,T}
   zero_coefficient = zero(imaginary)
-  model_harmonic, model_present, model_consistent =
-    ck_output_unique_model_harmonic(model_harmonics)
+  model_harmonic, model_present, model_consistent = ck_output_unique_model_harmonic(
+    model_harmonics
+  )
   model_consistent || return zero_coefficient, false
   model_present && !iszero(model_harmonic) && return zero_coefficient, false
 
@@ -60,8 +61,9 @@ function ck_output_variable_constraint_kernel(
 ) where {H<:Integer,T}
   zero_coefficient = zero(imaginary)
   one_coefficient = one(imaginary)
-  model_harmonic, model_present, model_consistent =
-    ck_output_unique_model_harmonic(model_harmonics)
+  model_harmonic, model_present, model_consistent = ck_output_unique_model_harmonic(
+    model_harmonics
+  )
   model_consistent ||
     return ck_phase_time_kernel(zero(H), zero_coefficient), zero_coefficient, false
 
@@ -69,8 +71,9 @@ function ck_output_variable_constraint_kernel(
     scalar = one_coefficient
     for harmonic in resolvent_harmonics
       mismatch = harmonic - model_harmonic
-      iszero(mismatch) &&
-        return ck_phase_time_kernel(model_harmonic, zero_coefficient), zero_coefficient, false
+      iszero(mismatch) && return ck_phase_time_kernel(model_harmonic, zero_coefficient),
+      zero_coefficient,
+      false
       scalar *= imaginary / mismatch
     end
     return ck_phase_time_kernel(model_harmonic, one_coefficient), scalar, true
@@ -108,12 +111,15 @@ function ck_output_time_realization(
       resolvent_harmonics = ck_output_constraint_harmonics(
         key.resolvent_constraints, block_index, output_stop
       )
-      coordinate_kernel, coordinate_scalar, coordinate_valid =
-        ck_output_variable_constraint_kernel(model_harmonics, resolvent_harmonics, imaginary)
+      coordinate_kernel, coordinate_scalar, coordinate_valid = ck_output_variable_constraint_kernel(
+        model_harmonics, resolvent_harmonics, imaginary
+      )
       coordinate_valid ||
         return CKOutputTimeRealization(key.blocks, coordinates, zero(imaginary), false)
       scalar *= coordinate_scalar
-      push!(coordinates, CKOutputTimeCoordinate(block_index, output_stop, coordinate_kernel))
+      push!(
+        coordinates, CKOutputTimeCoordinate(block_index, output_stop, coordinate_kernel)
+      )
     end
   end
 
