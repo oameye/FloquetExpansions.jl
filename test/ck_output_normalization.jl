@@ -3,6 +3,7 @@ using FloquetExpansions
 using LinearAlgebra: I
 
 const CKNormalizationExact = Complex{Rational{Int}}
+const ck_normalization_im = CKNormalizationExact(0 // 1, 1 // 1)
 
 function ck_normalization_identity()
   return Matrix{CKNormalizationExact}(I, 2, 2)
@@ -16,6 +17,41 @@ end
 function ck_normalization_series(coefficients...)
   return FloquetExpansions.CKOutputPairingSeries(collect(coefficients))
 end
+
+function ck_normalization_vacuum_key()
+  return FloquetExpansions.CKOutputKernelKey(
+    Int[],
+    FloquetExpansions.CKOutputBlock[],
+    FloquetExpansions.CKOutputConstraint{Int}[],
+    FloquetExpansions.CKOutputConstraint{Int}[],
+  )
+end
+
+function ck_normalization_jump_key(harmonic::Int)
+  return FloquetExpansions.CKOutputKernelKey(
+    [1],
+    [FloquetExpansions.CKOutputBlock(0, 1, 0, 1)],
+    [FloquetExpansions.CKOutputConstraint(1, 1, harmonic)],
+    FloquetExpansions.CKOutputConstraint{Int}[],
+  )
+end
+
+function ck_normalization_amplitude(period_power::Int, terms...)
+  zero_component = zeros(CKNormalizationExact, 2, 2)
+  coefficients = FloquetExpansions.CKOutputKernel{Int,Matrix{CKNormalizationExact}}[
+    FloquetExpansions.CKOutputKernel(
+      Dict{FloquetExpansions.CKOutputKernelKey{Int},Matrix{CKNormalizationExact}}(),
+      zero_component,
+    ) for _ in 0:period_power
+  ]
+  coefficients[period_power + 1] = FloquetExpansions.CKOutputKernel(
+    Dict{FloquetExpansions.CKOutputKernelKey{Int},Matrix{CKNormalizationExact}}(terms),
+    zero_component,
+  )
+  return FloquetExpansions.CKOutputPeriodPolynomial(coefficients)
+end
+
+ck_normalization_metric_pair(left, right) = adjoint(left) * right
 
 @testset "noncommutative CK right-normalization solves S M S = I coefficientwise" begin
   identity_component = ck_normalization_identity()
@@ -75,6 +111,47 @@ end
   @test haskey(normalization.coefficients[4].terms, 9)
   @test normalized.coefficients[1].terms == Dict(0 => identity_component)
   @test all(isempty(coefficient.terms) for coefficient in normalized.coefficients[2:end])
+end
+
+@testset "right-normalized physical amplitudes reproduce S M S exactly" begin
+  identity_component = ck_normalization_identity()
+  zero_component = zero(identity_component)
+  vacuum = ck_normalization_vacuum_key()
+  jump = ck_normalization_jump_key(2)
+  drift_value = CKNormalizationExact[0 1; 0 0]
+  jump_value = CKNormalizationExact[1 0; 1 1]
+
+  amplitudes = [
+    ck_normalization_amplitude(0, vacuum => identity_component),
+    ck_normalization_amplitude(1, vacuum => drift_value, jump => jump_value),
+  ]
+  metric = FloquetExpansions.ck_output_metric_series(
+    amplitudes, 4, ck_normalization_im, zero_component, ck_normalization_metric_pair
+  )
+  normalization = FloquetExpansions.ck_output_metric_inverse_sqrt_series(
+    metric, 4, identity_component
+  )
+  normalized_amplitudes = FloquetExpansions.ck_output_right_normalize_series(
+    amplitudes, normalization, 4, zero_component
+  )
+  paired_normalized = FloquetExpansions.ck_output_metric_series(
+    normalized_amplitudes,
+    4,
+    ck_normalization_im,
+    zero_component,
+    ck_normalization_metric_pair,
+  )
+  direct_normalized = FloquetExpansions.ck_output_normalized_metric_series(
+    metric, normalization, 4, zero_component
+  )
+
+  @test paired_normalized.coefficients == direct_normalized.coefficients
+  @test paired_normalized.coefficients[1].terms == Dict(0 => identity_component)
+  @test all(isempty(coefficient.terms) for coefficient in paired_normalized.coefficients[2:end])
+  @test all(
+    key.output_channels == [1] for coefficient in normalized_amplitudes for
+    key in keys(coefficient.coefficients[min(end, 2)].terms) if !isempty(key.output_channels)
+  )
 end
 
 @testset "CK normalization requires a unit leading metric" begin
