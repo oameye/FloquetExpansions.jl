@@ -159,6 +159,19 @@ function ck_output_pairing_coefficient(
   return result
 end
 
+function ck_output_pairing_period_terms(polynomial::CKOutputPairingPolynomial{H,T}) where {H,T}
+  result = Dict{Int,T}()
+  for (grade, value) in polynomial.terms
+    updated = get(result, grade.period_power, polynomial.zero_component) + value
+    if ck_kernel_iszero(updated)
+      haskey(result, grade.period_power) && delete!(result, grade.period_power)
+    else
+      result[grade.period_power] = updated
+    end
+  end
+  return result
+end
+
 function ck_output_pairing_phase_support(polynomial::CKOutputPairingPolynomial{H}) where {H}
   phases = H[]
   for grade in keys(polynomial.terms)
