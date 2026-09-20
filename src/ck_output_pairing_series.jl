@@ -2,12 +2,12 @@ struct CKOutputPairingSeries{H,T}
   coefficients::Vector{CKOutputPairingPolynomial{H,T}}
 end
 
-function ck_output_pairing_zero(zero_harmonic::H, zero_component::T) where {H,T}
+function ck_output_pairing_zero(::Type{H}, zero_component::T) where {H,T}
   return CKOutputPairingPolynomial(Dict{CKOutputPairingGrade{H},T}(), zero_component)
 end
 
 function ck_output_pairing_zero(zero_component::T) where {T}
-  return ck_output_pairing_zero(0, zero_component)
+  return ck_output_pairing_zero(Int, zero_component)
 end
 
 function ck_output_pairing_add!(
@@ -27,7 +27,7 @@ function ck_output_pairing_series(
   operations::CKOutputPairingOperations,
 ) where {H<:Integer,S,T,R}
   order >= 0 || throw(ArgumentError("pairing order must be nonnegative"))
-  result = [ck_output_pairing_zero(zero(H), zero_component) for _ in 0:order]
+  result = [ck_output_pairing_zero(H, zero_component) for _ in 0:order]
 
   for total_order in 0:order
     for left_order in 0:total_order
