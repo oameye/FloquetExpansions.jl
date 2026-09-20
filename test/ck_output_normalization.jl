@@ -16,9 +16,7 @@ end
 
 function ck_normalization_graded_polynomial(terms...)
   zero_component = zeros(CKNormalizationExact, 2, 2)
-  graded = Dict{
-    FloquetExpansions.CKOutputPairingGrade{Int},Matrix{CKNormalizationExact}
-  }()
+  graded = Dict{FloquetExpansions.CKOutputPairingGrade{Int},Matrix{CKNormalizationExact}}()
   for ((phase_harmonic, period_power), value) in terms
     graded[FloquetExpansions.CKOutputPairingGrade(phase_harmonic, period_power)] = value
   end
@@ -137,7 +135,9 @@ end
   ) == (-1 // 2) * m_minus
   @test adjoint(
     FloquetExpansions.ck_output_pairing_coefficient(normalization.coefficients[2], 1, 0)
-  ) == FloquetExpansions.ck_output_pairing_coefficient(normalization.coefficients[2], -1, 0)
+  ) == FloquetExpansions.ck_output_pairing_coefficient(
+    normalization.coefficients[2], -1, 0
+  )
   @test all(isempty(coefficient.terms) for coefficient in normalized.coefficients[2:end])
 
   vacuum = ck_normalization_vacuum_key()
@@ -145,9 +145,9 @@ end
   normalized_amplitudes = FloquetExpansions.ck_output_right_normalize_series(
     [amplitude], normalization, 1, zero_component
   )
-  phase_support = sort!(Int[
-    key.phase_harmonic for key in keys(normalized_amplitudes[2].coefficients[1].terms)
-  ])
+  phase_support = sort!(
+    Int[key.phase_harmonic for key in keys(normalized_amplitudes[2].coefficients[1].terms)]
+  )
   @test phase_support == [-1, 1]
 end
 
@@ -213,8 +213,9 @@ end
   )
 
   @test paired_normalized.coefficients == direct_normalized.coefficients
-  @test FloquetExpansions.ck_output_pairing_period_terms(paired_normalized.coefficients[1]) ==
-    Dict(0 => identity_component)
+  @test FloquetExpansions.ck_output_pairing_period_terms(
+    paired_normalized.coefficients[1]
+  ) == Dict(0 => identity_component)
   @test all(
     isempty(coefficient.terms) for coefficient in paired_normalized.coefficients[2:end]
   )
