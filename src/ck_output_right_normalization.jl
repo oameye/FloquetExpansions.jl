@@ -24,13 +24,13 @@ end
 
 function ck_output_period_right_product(
   amplitude::CKOutputPeriodPolynomial{H,T},
-  factor::CKOutputPairingPolynomial{T},
+  factor::CKOutputPairingPolynomial{H,T},
   zero_component::T,
 ) where {H,T}
   isempty(amplitude.coefficients) &&
     throw(ArgumentError("amplitude polynomial must not be empty"))
   isempty(factor.terms) && return ck_output_period_zero(zero(H), zero_component)
-  max_factor_power = maximum(keys(factor.terms))
+  max_factor_power = maximum(grade.period_power for grade in keys(factor.terms))
   max_factor_power >= 0 ||
     throw(ArgumentError("normalization contains a negative period power"))
   max_period_power = length(amplitude.coefficients) - 1 + max_factor_power
@@ -42,13 +42,14 @@ function ck_output_period_right_product(
   for (amplitude_index, amplitude_kernel) in enumerate(amplitude.coefficients)
     amplitude_power = amplitude_index - 1
     for (key, amplitude_value) in amplitude_kernel.terms,
-      (factor_power, factor_value) in factor.terms
+      (grade, factor_value) in factor.terms
 
-      factor_power >= 0 ||
+      grade.period_power >= 0 ||
         throw(ArgumentError("normalization contains a negative period power"))
-      target = coefficients[amplitude_power + factor_power + 1]
+      target = coefficients[amplitude_power + grade.period_power + 1]
+      shifted_key = ck_output_key_phase_shift(key, grade.phase_harmonic)
       ck_output_accumulate!(
-        target.terms, key, amplitude_value * factor_value, zero_component
+        target.terms, shifted_key, amplitude_value * factor_value, zero_component
       )
     end
   end
@@ -57,7 +58,7 @@ end
 
 function ck_output_right_normalize_series(
   amplitudes::Vector{CKOutputPeriodPolynomial{H,T}},
-  normalization::CKOutputPairingSeries{T},
+  normalization::CKOutputPairingSeries{H,T},
   order::Int,
   zero_component::T,
 ) where {H,T}
