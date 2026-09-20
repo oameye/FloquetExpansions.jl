@@ -81,8 +81,9 @@ end
     [FloquetExpansions.CKOutputConstraint(1, 1, 5)],
     [FloquetExpansions.CKOutputConstraint(1, 1, 5)],
   )
-  collision_realization =
-    FloquetExpansions.ck_output_time_realization(collision, ck_output_realization_im)
+  collision_realization = FloquetExpansions.ck_output_time_realization(
+    collision, ck_output_realization_im
+  )
   @test !collision_realization.valid
 
   inconsistent = FloquetExpansions.CKOutputKernelKey(
@@ -94,8 +95,9 @@ end
     ],
     FloquetExpansions.CKOutputConstraint{Int}[],
   )
-  inconsistent_realization =
-    FloquetExpansions.ck_output_time_realization(inconsistent, ck_output_realization_im)
+  inconsistent_realization = FloquetExpansions.ck_output_time_realization(
+    inconsistent, ck_output_realization_im
+  )
   @test !inconsistent_realization.valid
 
   for sideband in -4:8
@@ -115,8 +117,9 @@ end
     [FloquetExpansions.CKOutputConstraint(1, 1, 0)],
     [FloquetExpansions.CKOutputConstraint(1, 0, 2)],
   )
-  realization =
-    FloquetExpansions.ck_output_time_realization(scalar_resolvent, ck_output_realization_im)
+  realization = FloquetExpansions.ck_output_time_realization(
+    scalar_resolvent, ck_output_realization_im
+  )
   @test realization.valid
   @test realization.scalar == ck_output_realization_im / 2
 
