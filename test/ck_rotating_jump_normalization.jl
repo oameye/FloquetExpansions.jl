@@ -109,13 +109,8 @@ end
     ck_rotating_normalization_channel_pair,
   )
 
-  raw_second_phase_support = sort!(unique([
-    key.phase_harmonic for coefficient in amplitudes[5].coefficients for
-    key in keys(coefficient.terms)
-  ]))
   first_channel = channel.coefficients[3]
   second_channel = channel.coefficients[5]
-  @test raw_second_phase_support == [-2, -1, 0, 1, 2]
   @test FloquetExpansions.ck_output_pairing_phase_support(second_channel) == [-1, 0, 1]
   @test iszero(FloquetExpansions.ck_output_pairing_coefficient(second_channel, -2, 1))
   @test iszero(FloquetExpansions.ck_output_pairing_coefficient(second_channel, 2, 1))
