@@ -125,9 +125,7 @@ end
   )
   FloquetExpansions.ck_output_pairing_add!(
     log_second,
-    FloquetExpansions.ck_output_pairing_scale(
-      -1 // 2, first_square, zero_superoperator
-    ),
+    FloquetExpansions.ck_output_pairing_scale(-1 // 2, first_square, zero_superoperator),
   )
 
   @test iszero(FloquetExpansions.ck_output_pairing_coefficient(log_second, 0, 2))
@@ -150,7 +148,8 @@ end
 
   @test FloquetExpansions.ck_output_pairing_period_terms(normalization.coefficients[1]) ==
     Dict(0 => fixture.identity_component)
-  @test FloquetExpansions.ck_output_pairing_phase_support(normalization.coefficients[1]) == [0]
+  @test FloquetExpansions.ck_output_pairing_phase_support(normalization.coefficients[1]) ==
+    [0]
   @test all(isempty(coefficient.terms) for coefficient in normalization.coefficients[2:end])
 
   normalized_amplitudes = FloquetExpansions.ck_output_right_normalize_series(
