@@ -67,6 +67,10 @@ end
   JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.evaluate_ck_canonical_normalization(
     recurrence5.effective, recurrence5.wave, 5, identity_state, zero_state
   )
+
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.evaluate_ck_hori_deprit(
+    [A1, A2], 3, zero_state
+  )
 end
 
 @testset "physical CK normalization optimizer stability" begin
