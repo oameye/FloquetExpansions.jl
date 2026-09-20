@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "bdfdd6b"
+commit = "c36bf60"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -13,6 +13,38 @@ undocumented = 0
 public = 0
 
 [files."src/bloch_projection.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_kernel.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_normalization.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_overlap.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_pairing.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_pairing_series.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_right_normalization.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_time_kernel.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_time_realization.jl"]
 undocumented = 0
 public = 0
 
