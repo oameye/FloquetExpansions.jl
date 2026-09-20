@@ -49,15 +49,14 @@ function ck_channel_gauge_fixture()
   return (; hamiltonian, jumps, A1, A2, identity_state, zero_state, operations)
 end
 
-function ck_channel_gauge_hd_slow_amplitudes(hd, identity_state, zero_state, order::Int)
+function ck_channel_gauge_slow_amplitudes(effective, identity_state, zero_state, order::Int)
   zero_endpoint = FloquetExpansions.ck_endpoint_kernel(zero_state)
   identity_endpoint = FloquetExpansions.ck_endpoint_kernel(identity_state)
   zero_period = FloquetExpansions.ck_period_zero(zero_endpoint)
   identity_period = FloquetExpansions.ck_period_constant(identity_endpoint)
-
   slow_generator = [zero_period for _ in 0:order]
   for n in 1:order
-    slow_generator[n + 1] = FloquetExpansions.ck_period_monomial(hd.effective[n], 1)
+    slow_generator[n + 1] = FloquetExpansions.ck_period_monomial(effective[n], 1)
   end
   return FloquetExpansions.ck_zero_constant_series_exponential(
     slow_generator, order, identity_period, zero_period
@@ -113,22 +112,17 @@ end
     fixture.identity_state,
     fixture.zero_state,
   )
-  bf_period = FloquetExpansions.evaluate_ck_period_amplitude(
-    canonical.effective,
-    canonical.wave,
-    amplitude_order,
-    fixture.identity_state,
-    fixture.zero_state,
-  )
-
   hd = FloquetExpansions.evaluate_ck_hori_deprit(
     [fixture.A1, fixture.A2], amplitude_order, fixture.zero_state
   )
-  hd_slow = ck_channel_gauge_hd_slow_amplitudes(
-    hd, fixture.identity_state, fixture.zero_state, amplitude_order
-  )
 
-  bf_channel = ck_channel_gauge_channel_series(bf_period.slow_propagator, channel_order)
+  bf_slow = ck_channel_gauge_slow_amplitudes(
+    canonical.effective, fixture.identity_state, fixture.zero_state, amplitude_order
+  )
+  hd_slow = ck_channel_gauge_slow_amplitudes(
+    hd.effective, fixture.identity_state, fixture.zero_state, amplitude_order
+  )
+  bf_channel = ck_channel_gauge_channel_series(bf_slow, channel_order)
   hd_channel = ck_channel_gauge_channel_series(hd_slow, channel_order)
 
   @test bf_channel.coefficients == hd_channel.coefficients
