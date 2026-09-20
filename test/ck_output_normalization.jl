@@ -147,10 +147,13 @@ end
 
   @test paired_normalized.coefficients == direct_normalized.coefficients
   @test paired_normalized.coefficients[1].terms == Dict(0 => identity_component)
-  @test all(isempty(coefficient.terms) for coefficient in paired_normalized.coefficients[2:end])
+  @test all(
+    isempty(coefficient.terms) for coefficient in paired_normalized.coefficients[2:end]
+  )
   @test all(
     key.output_channels == [1] for coefficient in normalized_amplitudes for
-    kernel in coefficient.coefficients for key in keys(kernel.terms) if !isempty(key.output_channels)
+    kernel in coefficient.coefficients for
+    key in keys(kernel.terms) if !isempty(key.output_channels)
   )
 end
 
