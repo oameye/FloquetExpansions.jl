@@ -62,6 +62,30 @@ end
   )
 end
 
+@testset "physical CK normalization optimizer stability" begin
+  metric = FloquetExpansions.CKOutputPairingSeries([
+    FloquetExpansions.CKOutputPairingPolynomial(Dict(0 => 1.0), 0.0),
+    FloquetExpansions.CKOutputPairingPolynomial(Dict(1 => 0.25), 0.0),
+  ])
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.ck_output_metric_inverse_sqrt_series(
+    metric, 4, 1.0
+  )
+
+  normalization = FloquetExpansions.ck_output_metric_inverse_sqrt_series(metric, 4, 1.0)
+  vacuum = FloquetExpansions.CKOutputKernelKey(
+    Int[],
+    FloquetExpansions.CKOutputBlock[],
+    FloquetExpansions.CKOutputConstraint{Int}[],
+    FloquetExpansions.CKOutputConstraint{Int}[],
+  )
+  amplitude = FloquetExpansions.CKOutputPeriodPolynomial([
+    FloquetExpansions.CKOutputKernel(Dict(vacuum => 1.0), 0.0)
+  ])
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.ck_output_right_normalize_series(
+    [amplitude], normalization, 4, 0.0
+  )
+end
+
 @testset "completion optimizer stability" begin
   fock = FockSpace(:jet_completion_fock)
   a = Destroy(fock, :a)
