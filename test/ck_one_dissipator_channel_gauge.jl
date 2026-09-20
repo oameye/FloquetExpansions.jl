@@ -1,0 +1,337 @@
+using Test
+using FloquetExpansions
+using LinearAlgebra: I, kron
+
+const CKChannelGaugeExact = Complex{Rational{Int}}
+const ck_channel_gauge_im = CKChannelGaugeExact(0 // 1, 1 // 1)
+
+ck_channel_gauge_commutator(left, right) = left * right - right * left
+ck_channel_gauge_metric_pair(left, right) = adjoint(left) * right
+ck_channel_gauge_channel_pair(left, right) = kron(conj.(right), left)
+
+function ck_channel_gauge_fixture()
+  sigma_x = CKChannelGaugeExact[0 1; 1 0]
+  sigma_z = CKChannelGaugeExact[1 0; 0 -1]
+  identity_component = Matrix{CKChannelGaugeExact}(I, 2, 2)
+  zero_component = zero(identity_component)
+
+  hamiltonian = Dict(0 => sigma_z, 1 => (1 // 2) * sigma_x, -1 => (1 // 2) * sigma_x)
+  jumps = Dict(0 => sigma_z, 1 => CKChannelGaugeExact[0 0; 1 0])
+  identity_state = FloquetExpansions.ck_kernel_identity(
+    0, identity_component, zero_component
+  )
+  zero_state = FloquetExpansions.ck_kernel_zero(0, zero_component)
+  operations = FloquetExpansions.BlochOrderOperations(
+    FloquetExpansions.ck_kernel_product,
+    FloquetExpansions.ck_kernel_project_model,
+    FloquetExpansions.ck_kernel_solve_complement,
+  )
+  return (;
+    hamiltonian,
+    jumps,
+    identity_component,
+    zero_component,
+    identity_state,
+    zero_state,
+    operations,
+  )
+end
+
+function ck_channel_gauge_no_jump_harmonics(jumps, zero_component)
+  result = Dict{Int,Matrix{CKChannelGaugeExact}}()
+  for (left_harmonic, left) in jumps, (right_harmonic, right) in jumps
+    harmonic = left_harmonic - right_harmonic
+    value = get(result, harmonic, zero_component) - (1 // 2) * adjoint(right) * left
+    if iszero(value)
+      haskey(result, harmonic) && delete!(result, harmonic)
+    else
+      result[harmonic] = value
+    end
+  end
+  return result
+end
+
+function ck_channel_gauge_amplitudes(fixture, jump_scale::Int, order::Int)
+  no_jump = ck_channel_gauge_no_jump_harmonics(fixture.jumps, fixture.zero_component)
+  A1 = FloquetExpansions.ck_kernel_generator(
+    Dict(
+      FloquetExpansions.ck_jump_vertex(1, harmonic) => jump_scale * value for
+      (harmonic, value) in fixture.jumps
+    ),
+    fixture.zero_component,
+  )
+  harmonics = union(keys(fixture.hamiltonian), keys(no_jump))
+  A2 = FloquetExpansions.ck_kernel_generator(
+    Dict(
+      FloquetExpansions.ck_drift_vertex(harmonic) =>
+        -ck_channel_gauge_im * get(fixture.hamiltonian, harmonic, fixture.zero_component) +
+        jump_scale^2 * get(no_jump, harmonic, fixture.zero_component) for
+      harmonic in harmonics
+    ),
+    fixture.zero_component,
+  )
+  recurrence = FloquetExpansions.evaluate_bloch_order_recurrence(
+    [A1, A2], order, fixture.identity_state, fixture.zero_state, fixture.operations
+  )
+  canonical = FloquetExpansions.evaluate_ck_canonical_normalization(
+    recurrence.effective, recurrence.wave, order, fixture.identity_state, fixture.zero_state
+  )
+  identity_endpoint = FloquetExpansions.ck_endpoint_kernel(fixture.identity_state)
+  zero_endpoint = FloquetExpansions.ck_endpoint_kernel(fixture.zero_state)
+  reconstruction = FloquetExpansions.evaluate_ck_period_amplitude(
+    canonical.effective, canonical.wave, order, identity_endpoint, zero_endpoint
+  )
+  return [
+    FloquetExpansions.ck_output_kernel(amplitude) for amplitude in reconstruction.amplitude
+  ]
+end
+
+function ck_channel_gauge_connected_order6(channel, zero_superoperator)
+  @test all(isempty(channel.coefficients[index].terms) for index in 2:2:6)
+
+  C2 = channel.coefficients[3]
+  C4 = channel.coefficients[5]
+  C6 = channel.coefficients[7]
+  C2C4 = FloquetExpansions.ck_output_pairing_product(C2, C4, zero_superoperator)
+  C4C2 = FloquetExpansions.ck_output_pairing_product(C4, C2, zero_superoperator)
+  C2C2 = FloquetExpansions.ck_output_pairing_product(C2, C2, zero_superoperator)
+  C2C2C2 = FloquetExpansions.ck_output_pairing_product(C2, C2C2, zero_superoperator)
+  C2C4plusC4C2 = FloquetExpansions.CKOutputPairingPolynomial(
+    copy(C2C4.terms), zero_superoperator
+  )
+  FloquetExpansions.ck_output_pairing_add!(C2C4plusC4C2, C4C2)
+
+  log6 = FloquetExpansions.CKOutputPairingPolynomial(copy(C6.terms), zero_superoperator)
+  FloquetExpansions.ck_output_pairing_add!(
+    log6,
+    FloquetExpansions.ck_output_pairing_scale(-1 // 2, C2C4plusC4C2, zero_superoperator),
+  )
+  FloquetExpansions.ck_output_pairing_add!(
+    log6, FloquetExpansions.ck_output_pairing_scale(1 // 3, C2C2C2, zero_superoperator)
+  )
+  return FloquetExpansions.ck_output_pairing_coefficient(log6, 0, 1)
+end
+
+function ck_channel_gauge_connected_order6(fixture, jump_scale::Int)
+  order = 6
+  amplitudes = ck_channel_gauge_amplitudes(fixture, jump_scale, order)
+  zero_superoperator = zeros(CKChannelGaugeExact, 4, 4)
+  raw_channel = FloquetExpansions.ck_output_channel_series(
+    amplitudes,
+    order,
+    ck_channel_gauge_im,
+    zero_superoperator,
+    ck_channel_gauge_channel_pair,
+  )
+
+  metric = FloquetExpansions.ck_output_metric_series(
+    amplitudes,
+    order,
+    ck_channel_gauge_im,
+    fixture.zero_component,
+    ck_channel_gauge_metric_pair,
+  )
+  normalization = FloquetExpansions.ck_output_metric_inverse_sqrt_series(
+    metric, order, fixture.identity_component
+  )
+  normalized_amplitudes = FloquetExpansions.ck_output_right_normalize_series(
+    amplitudes, normalization, order, fixture.zero_component
+  )
+  normalized_channel = FloquetExpansions.ck_output_channel_series(
+    normalized_amplitudes,
+    order,
+    ck_channel_gauge_im,
+    zero_superoperator,
+    ck_channel_gauge_channel_pair,
+  )
+
+  return (;
+    raw=ck_channel_gauge_connected_order6(raw_channel, zero_superoperator),
+    normalized=ck_channel_gauge_connected_order6(normalized_channel, zero_superoperator),
+  )
+end
+
+function ck_channel_gauge_one_dissipator_ck(fixture)
+  value0 = ck_channel_gauge_connected_order6(fixture, 0)
+  value1 = ck_channel_gauge_connected_order6(fixture, 1)
+  value2 = ck_channel_gauge_connected_order6(fixture, 2)
+  value3 = ck_channel_gauge_connected_order6(fixture, 3)
+  # At perturbative order six the connected physical generator is an even
+  # polynomial in the microscopic jump scale g of degree at most six.  With
+  # x=g^2, these are the four interpolation nodes x=0,1,4,9; this combination
+  # extracts the coefficient linear in x, i.e. the one-dissipator sector.
+  interpolate(field) =
+    (-49 // 36) * getproperty(value0, field) + (3 // 2) * getproperty(value1, field) -
+    (3 // 20) * getproperty(value2, field) + (1 // 90) * getproperty(value3, field)
+  return (; raw=interpolate(:raw), normalized=interpolate(:normalized))
+end
+
+function ck_channel_gauge_first_kick(hamiltonian, harmonic, zero_component)
+  iszero(harmonic) && return copy(zero_component)
+  return ck_channel_gauge_im * (1 // harmonic) * get(hamiltonian, harmonic, zero_component)
+end
+
+function ck_channel_gauge_second_kick(hamiltonian, harmonic, zero_component)
+  iszero(harmonic) && return copy(zero_component)
+  Hh = get(hamiltonian, harmonic, zero_component)
+  H0 = get(hamiltonian, 0, zero_component)
+  result = -ck_channel_gauge_im * (1 // harmonic^2) * ck_channel_gauge_commutator(Hh, H0)
+  for (inner_harmonic, Hinner) in hamiltonian
+    (iszero(inner_harmonic) || inner_harmonic == harmonic) && continue
+    Hrest = get(hamiltonian, harmonic - inner_harmonic, zero_component)
+    result +=
+      -ck_channel_gauge_im *
+      (1 // (2 * harmonic * inner_harmonic)) *
+      ck_channel_gauge_commutator(Hinner, Hrest)
+  end
+  return result
+end
+
+function ck_channel_gauge_first_transport(
+  hamiltonian, jumps, output_sideband, zero_component
+)
+  result = copy(zero_component)
+  for harmonic in keys(hamiltonian)
+    iszero(harmonic) && continue
+    jump = get(jumps, output_sideband - harmonic, zero_component)
+    kick = ck_channel_gauge_first_kick(hamiltonian, harmonic, zero_component)
+    result += ck_channel_gauge_im * ck_channel_gauge_commutator(kick, jump)
+  end
+  return result
+end
+
+function ck_channel_gauge_second_transport(
+  hamiltonian, jumps, output_sideband, zero_component
+)
+  result = copy(zero_component)
+  for harmonic in -3:3
+    iszero(harmonic) && continue
+    jump = get(jumps, output_sideband - harmonic, zero_component)
+    kick = ck_channel_gauge_second_kick(hamiltonian, harmonic, zero_component)
+    result += ck_channel_gauge_im * ck_channel_gauge_commutator(kick, jump)
+  end
+  for left_harmonic in keys(hamiltonian), right_harmonic in keys(hamiltonian)
+    (iszero(left_harmonic) || iszero(right_harmonic)) && continue
+    jump = get(jumps, output_sideband - left_harmonic - right_harmonic, zero_component)
+    left_kick = ck_channel_gauge_first_kick(hamiltonian, left_harmonic, zero_component)
+    right_kick = ck_channel_gauge_first_kick(hamiltonian, right_harmonic, zero_component)
+    nested = ck_channel_gauge_commutator(
+      left_kick, ck_channel_gauge_commutator(right_kick, jump)
+    )
+    result -= (1 // 2) * nested
+  end
+  return result
+end
+
+function ck_channel_gauge_cross_dissipator(left, right)
+  identity_component = Matrix{CKChannelGaugeExact}(I, 2, 2)
+  norm = adjoint(right) * left
+  return kron(conj.(right), left) -
+         (1 // 2) *
+         (kron(identity_component, norm) + kron(transpose(norm), identity_component))
+end
+
+function ck_channel_gauge_cp_second(fixture)
+  result = zeros(CKChannelGaugeExact, 4, 4)
+  for sideband in -2:3
+    leading = get(fixture.jumps, sideband, fixture.zero_component)
+    first = ck_channel_gauge_first_transport(
+      fixture.hamiltonian, fixture.jumps, sideband, fixture.zero_component
+    )
+    second = ck_channel_gauge_second_transport(
+      fixture.hamiltonian, fixture.jumps, sideband, fixture.zero_component
+    )
+    result += ck_channel_gauge_cross_dissipator(second, leading)
+    result += ck_channel_gauge_cross_dissipator(leading, second)
+    result += ck_channel_gauge_cross_dissipator(first, first)
+  end
+  return result
+end
+
+function ck_channel_gauge_hamiltonian_super(hamiltonian)
+  identity_component = Matrix{CKChannelGaugeExact}(I, 2, 2)
+  return -ck_channel_gauge_im * (
+    kron(identity_component, hamiltonian) - kron(transpose(hamiltonian), identity_component)
+  )
+end
+
+function ck_channel_gauge_bare_dissipator_harmonic(jumps, harmonic)
+  result = zeros(CKChannelGaugeExact, 4, 4)
+  for (left_harmonic, left) in jumps, (right_harmonic, right) in jumps
+    left_harmonic - right_harmonic == harmonic || continue
+    result += ck_channel_gauge_cross_dissipator(left, right)
+  end
+  return result
+end
+
+function ck_channel_gauge_static_similarity(hamiltonian, jumps)
+  B_R = zeros(CKChannelGaugeExact, 4, 4)
+  for (harmonic, Hh) in hamiltonian
+    iszero(harmonic) && continue
+    Hmap = ck_channel_gauge_hamiltonian_super(Hh)
+    Rminus = ck_channel_gauge_bare_dissipator_harmonic(jumps, -harmonic)
+    B_R += (1 // (2 * harmonic^2)) * ck_channel_gauge_commutator(Hmap, Rminus)
+  end
+  H0 = ck_channel_gauge_hamiltonian_super(hamiltonian[0])
+  return B_R, ck_channel_gauge_commutator(B_R, H0)
+end
+
+function ck_channel_gauge_stroboscopic_correction(fixture)
+  H0 = ck_channel_gauge_hamiltonian_super(fixture.hamiltonian[0])
+  R0 = ck_channel_gauge_bare_dissipator_harmonic(fixture.jumps, 0)
+  result = zero(H0)
+  jump_support = collect(keys(fixture.jumps))
+  dissipator_support = unique(
+    left_harmonic - right_harmonic for left_harmonic in jump_support for
+    right_harmonic in jump_support
+  )
+  support = union(collect(keys(fixture.hamiltonian)), dissipator_support)
+
+  for harmonic in support
+    iszero(harmonic) && continue
+    Hm = ck_channel_gauge_hamiltonian_super(
+      get(fixture.hamiltonian, harmonic, fixture.zero_component)
+    )
+    Hminus = ck_channel_gauge_hamiltonian_super(
+      get(fixture.hamiltonian, -harmonic, fixture.zero_component)
+    )
+    Rm = ck_channel_gauge_bare_dissipator_harmonic(fixture.jumps, harmonic)
+    Rminus = ck_channel_gauge_bare_dissipator_harmonic(fixture.jumps, -harmonic)
+    GHm = (ck_channel_gauge_im * (1 // harmonic)) * Hm
+    GHminus = (-ck_channel_gauge_im * (1 // harmonic)) * Hminus
+    GRm = (ck_channel_gauge_im * (1 // harmonic)) * Rm
+    GRminus = (-ck_channel_gauge_im * (1 // harmonic)) * Rminus
+
+    result +=
+      (1 // 2) * (
+        ck_channel_gauge_commutator(GHm, ck_channel_gauge_commutator(GHminus, R0)) +
+        ck_channel_gauge_commutator(GHm, ck_channel_gauge_commutator(GRminus, H0)) +
+        ck_channel_gauge_commutator(GRm, ck_channel_gauge_commutator(GHminus, H0))
+      )
+  end
+  return result
+end
+
+@testset "phase-zero CK channel maps to the #104/#122 Van Vleck gauge bridge" begin
+  fixture = ck_channel_gauge_fixture()
+  ck_stroboscopic_second = ck_channel_gauge_one_dissipator_ck(fixture)
+  coherent_cp_second = ck_channel_gauge_cp_second(fixture)
+  B_R, expected_similarity = ck_channel_gauge_static_similarity(
+    fixture.hamiltonian, fixture.jumps
+  )
+  stroboscopic_correction = ck_channel_gauge_stroboscopic_correction(fixture)
+
+  @test !iszero(B_R)
+  @test !iszero(expected_similarity)
+  @test !iszero(stroboscopic_correction)
+  @test ck_stroboscopic_second.raw == ck_stroboscopic_second.normalized
+  @test ck_stroboscopic_second.raw != coherent_cp_second
+
+  # The connected logarithm of the one-period channel is the stroboscopic
+  # Floquet representative.  Remove the standard endpoint-micromotion
+  # similarity before applying the canonical Van Vleck theorem from #104.
+  @test ck_stroboscopic_second.raw - stroboscopic_correction - coherent_cp_second ==
+    expected_similarity
+  @test ck_stroboscopic_second.normalized - stroboscopic_correction - coherent_cp_second ==
+    expected_similarity
+end
