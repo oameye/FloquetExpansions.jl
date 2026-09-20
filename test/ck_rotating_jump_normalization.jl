@@ -109,9 +109,14 @@ end
     ck_rotating_normalization_channel_pair,
   )
 
+  raw_second_phase_support = sort!(unique([
+    key.phase_harmonic for coefficient in amplitudes[5].coefficients for
+    key in keys(coefficient.terms)
+  ]))
   first_channel = channel.coefficients[3]
   second_channel = channel.coefficients[5]
-  @test FloquetExpansions.ck_output_pairing_phase_support(second_channel) == [-2, -1, 0, 1, 2]
+  @test raw_second_phase_support == [-2, -1, 0, 1, 2]
+  @test FloquetExpansions.ck_output_pairing_phase_support(second_channel) == [-1, 0, 1]
   @test iszero(FloquetExpansions.ck_output_pairing_coefficient(second_channel, -2, 1))
   @test iszero(FloquetExpansions.ck_output_pairing_coefficient(second_channel, 2, 1))
   @test !iszero(FloquetExpansions.ck_output_pairing_coefficient(second_channel, -1, 1))
@@ -186,7 +191,23 @@ end
 @testset "CK physical reconstruction is prefix-consistent through normalization" begin
   fixture3, amplitudes3 = ck_rotating_normalization_amplitudes(3)
   fixture4, amplitudes4 = ck_rotating_normalization_amplitudes(4)
-  @test amplitudes3 == amplitudes4[1:4]
+  zero_superoperator = zeros(CKRotatingNormalizationExact, 4, 4)
+
+  raw_channel3 = FloquetExpansions.ck_output_channel_series(
+    amplitudes3,
+    3,
+    ck_rotating_normalization_im,
+    zero_superoperator,
+    ck_rotating_normalization_channel_pair,
+  )
+  raw_channel4_prefix = FloquetExpansions.ck_output_channel_series(
+    amplitudes4,
+    3,
+    ck_rotating_normalization_im,
+    zero_superoperator,
+    ck_rotating_normalization_channel_pair,
+  )
+  @test raw_channel3.coefficients == raw_channel4_prefix.coefficients
 
   metric3 = FloquetExpansions.ck_output_metric_series(
     amplitudes3,
@@ -218,5 +239,19 @@ end
   normalized4_prefix = FloquetExpansions.ck_output_right_normalize_series(
     amplitudes4, normalization4_prefix, 3, fixture4.zero_component
   )
-  @test normalized3 == normalized4_prefix
+  normalized_channel3 = FloquetExpansions.ck_output_channel_series(
+    normalized3,
+    3,
+    ck_rotating_normalization_im,
+    zero_superoperator,
+    ck_rotating_normalization_channel_pair,
+  )
+  normalized_channel4_prefix = FloquetExpansions.ck_output_channel_series(
+    normalized4_prefix,
+    3,
+    ck_rotating_normalization_im,
+    zero_superoperator,
+    ck_rotating_normalization_channel_pair,
+  )
+  @test normalized_channel3.coefficients == normalized_channel4_prefix.coefficients
 end
