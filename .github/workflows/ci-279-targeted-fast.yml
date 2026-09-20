@@ -1,0 +1,22 @@
+name: CK279 Fast Targeted
+
+on:
+  pull_request:
+
+jobs:
+  ck-hori-deprit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - name: Instantiate package environment
+        env:
+          JULIA_PKG_PRECOMPILE_AUTO: '0'
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Run CK Hori-Deprit test
+        env:
+          JULIA_PKG_PRECOMPILE_AUTO: '0'
+        run: julia --project=. test/ck_hori_deprit.jl
