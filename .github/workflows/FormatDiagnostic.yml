@@ -1,0 +1,24 @@
+name: CK276 Format
+
+on:
+  push:
+    branches:
+      - 'ci/276-order6-diagnostic'
+    paths:
+      - '.github/workflows/FormatDiagnostic.yml'
+      - 'test/ck_one_dissipator_channel_gauge.jl'
+      - 'test/ck_one_dissipator_order6_diagnostic.jl'
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+      - uses: julia-actions/cache@v3
+      - name: Install JuliaFormatter
+        run: |
+          julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Check formatting
+        run: |
+          ${HOME}/.julia/bin/jlfmt --check --verbose .
