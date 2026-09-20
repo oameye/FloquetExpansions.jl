@@ -12,9 +12,9 @@ function ck_b3_reduction_fixture()
   hamiltonian = Dict(
     0 => H0,
     1 => H1,
-    -1 => adjoint(H1),
+    -1 => Matrix(adjoint(H1)),
     2 => H2,
-    -2 => adjoint(H2),
+    -2 => Matrix(adjoint(H2)),
   )
 
   jumps = Dict(
