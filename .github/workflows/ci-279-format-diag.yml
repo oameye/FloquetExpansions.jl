@@ -1,0 +1,24 @@
+name: CK279 Format Diagnostic
+
+on:
+  pull_request:
+
+jobs:
+  format-diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Format HD tests and capture patch
+        run: |
+          ${HOME}/.julia/bin/jlfmt --inplace test/ck_hori_deprit.jl test/ck_hori_deprit_physical.jl
+          git diff -- test/ck_hori_deprit.jl test/ck_hori_deprit_physical.jl > ck279-format.patch
+          cat ck279-format.patch
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ck279-format-patch
+          path: ck279-format.patch
