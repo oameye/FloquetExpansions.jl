@@ -1,0 +1,22 @@
+name: CK291 Gauge Fast
+
+on:
+  pull_request:
+
+jobs:
+  ck-one-dissipator-channel-gauge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - name: Instantiate package environment
+        env:
+          JULIA_PKG_PRECOMPILE_AUTO: '0'
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Run #276 pasted-channel gauge regression
+        env:
+          JULIA_PKG_PRECOMPILE_AUTO: '0'
+        run: julia --project=. test/ck_one_dissipator_channel_gauge.jl
