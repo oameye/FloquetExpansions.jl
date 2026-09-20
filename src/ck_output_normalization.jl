@@ -18,9 +18,7 @@ function ck_output_pairing_product(
       left_grade.phase_harmonic + right_grade.phase_harmonic,
       left_grade.period_power + right_grade.period_power,
     )
-    ck_output_pairing_accumulate!(
-      result, grade, left_value * right_value, zero_component
-    )
+    ck_output_pairing_accumulate!(result, grade, left_value * right_value, zero_component)
   end
   return CKOutputPairingPolynomial(result, zero_component)
 end
@@ -73,6 +71,44 @@ function ck_output_pairing_series_product(
   return result
 end
 
+function ck_output_pairing_is_identity(
+  polynomial::CKOutputPairingPolynomial,
+  grade::CKOutputPairingGrade,
+  identity_component,
+)
+  length(polynomial.terms) == 1 || return false
+  for (key, value) in polynomial.terms
+    return isequal(key, grade) && isequal(value, identity_component)
+  end
+  return false
+end
+
+function ck_output_metric_inverse_sqrt_residual(
+  metric::CKOutputPairingSeries{H,T},
+  normalization::CKOutputPairingSeries{H,T},
+  total_order::Int,
+  zero_component::T,
+) where {H,T}
+  residual = ck_output_pairing_zero(zero(H), zero_component)
+  maximum_metric_order = length(metric.coefficients) - 1
+  for left_order in 0:total_order
+    upper_metric_order = min(total_order - left_order, maximum_metric_order)
+    for metric_order in 0:upper_metric_order
+      right_order = total_order - left_order - metric_order
+      left_metric = ck_output_pairing_product(
+        normalization.coefficients[left_order + 1],
+        metric.coefficients[metric_order + 1],
+        zero_component,
+      )
+      term = ck_output_pairing_product(
+        left_metric, normalization.coefficients[right_order + 1], zero_component
+      )
+      ck_output_pairing_add!(residual, term)
+    end
+  end
+  return residual
+end
+
 function ck_output_metric_inverse_sqrt_series(
   metric::CKOutputPairingSeries{H,T}, order::Int, identity_component::T
 ) where {H,T}
@@ -80,13 +116,8 @@ function ck_output_metric_inverse_sqrt_series(
   isempty(metric.coefficients) &&
     throw(ArgumentError("metric series must contain a leading coefficient"))
   zero_component = zero(identity_component)
-  leading = metric.coefficients[1]
   identity_grade = CKOutputPairingGrade(zero(H), 0)
-  leading_is_unit =
-    length(leading.terms) == 1 &&
-    haskey(leading.terms, identity_grade) &&
-    isequal(leading.terms[identity_grade], identity_component)
-  leading_is_unit ||
+  ck_output_pairing_is_identity(metric.coefficients[1], identity_grade, identity_component) ||
     throw(ArgumentError("metric series must have unit leading coefficient"))
 
   coefficients = [ck_output_pairing_zero(zero(H), zero_component) for _ in 0:order]
@@ -94,24 +125,9 @@ function ck_output_metric_inverse_sqrt_series(
   normalization = CKOutputPairingSeries(coefficients)
 
   for total_order in 1:order
-    residual = ck_output_pairing_zero(zero(H), zero_component)
-    for left_order in 0:total_order
-      left_order + 1 <= length(normalization.coefficients) || continue
-      for metric_order in 0:(total_order - left_order)
-        metric_order + 1 <= length(metric.coefficients) || continue
-        right_order = total_order - left_order - metric_order
-        right_order + 1 <= length(normalization.coefficients) || continue
-        left_metric = ck_output_pairing_product(
-          normalization.coefficients[left_order + 1],
-          metric.coefficients[metric_order + 1],
-          zero_component,
-        )
-        term = ck_output_pairing_product(
-          left_metric, normalization.coefficients[right_order + 1], zero_component
-        )
-        ck_output_pairing_add!(residual, term)
-      end
-    end
+    residual = ck_output_metric_inverse_sqrt_residual(
+      metric, normalization, total_order, zero_component
+    )
     normalization.coefficients[total_order + 1] = ck_output_pairing_scale(
       -1 // 2, residual, zero_component
     )
