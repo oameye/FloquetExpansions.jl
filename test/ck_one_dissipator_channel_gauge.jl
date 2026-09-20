@@ -140,14 +140,16 @@ function ck_channel_gauge_connected_order6(fixture, jump_scale::Int)
   C4C2 = FloquetExpansions.ck_output_pairing_product(C4, C2, zero_superoperator)
   C2C2 = FloquetExpansions.ck_output_pairing_product(C2, C2, zero_superoperator)
   C2C2C2 = FloquetExpansions.ck_output_pairing_product(C2, C2C2, zero_superoperator)
+  C2C4plusC4C2 = FloquetExpansions.CKOutputPairingPolynomial(
+    copy(C2C4.terms), zero_superoperator
+  )
+  FloquetExpansions.ck_output_pairing_add!(C2C4plusC4C2, C4C2)
 
   log6 = FloquetExpansions.CKOutputPairingPolynomial(copy(C6.terms), zero_superoperator)
   FloquetExpansions.ck_output_pairing_add!(
     log6,
     FloquetExpansions.ck_output_pairing_scale(
-      -1 // 2,
-      FloquetExpansions.ck_output_pairing_add(C2C4, C4C2, zero_superoperator),
-      zero_superoperator,
+      -1 // 2, C2C4plusC4C2, zero_superoperator
     ),
   )
   FloquetExpansions.ck_output_pairing_add!(
