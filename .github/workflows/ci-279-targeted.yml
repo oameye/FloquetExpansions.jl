@@ -1,0 +1,18 @@
+name: CK279 Targeted
+
+on:
+  pull_request:
+
+jobs:
+  ck-hori-deprit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - name: Instantiate test environment
+        run: julia --project=test -e 'using Pkg; Pkg.develop(path=pwd()); Pkg.instantiate()'
+      - name: Run CK Hori-Deprit test
+        run: julia --project=test test/ck_hori_deprit.jl
