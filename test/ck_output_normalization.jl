@@ -14,6 +14,17 @@ function ck_normalization_polynomial(terms::Pair{Int,Matrix{CKNormalizationExact
   return FloquetExpansions.CKOutputPairingPolynomial(Dict(terms), zero_component)
 end
 
+function ck_normalization_graded_polynomial(terms...)
+  zero_component = zeros(CKNormalizationExact, 2, 2)
+  graded = Dict{
+    FloquetExpansions.CKOutputPairingGrade{Int},Matrix{CKNormalizationExact}
+  }()
+  for ((phase_harmonic, period_power), value) in terms
+    graded[FloquetExpansions.CKOutputPairingGrade(phase_harmonic, period_power)] = value
+  end
+  return FloquetExpansions.CKOutputPairingPolynomial(graded, zero_component)
+end
+
 function ck_normalization_series(coefficients...)
   return FloquetExpansions.CKOutputPairingSeries(collect(coefficients))
 end
@@ -87,7 +98,8 @@ ck_normalization_channel_pair(left, right) = kron(conj.(right), left)
     metric, normalization, 4, zero_component
   )
 
-  @test normalized.coefficients[1].terms == Dict(0 => identity_component)
+  @test FloquetExpansions.ck_output_pairing_period_terms(normalized.coefficients[1]) ==
+    Dict(0 => identity_component)
   @test all(isempty(coefficient.terms) for coefficient in normalized.coefficients[2:end])
 
   expected_s1 = ck_normalization_polynomial(
@@ -98,6 +110,45 @@ ck_normalization_channel_pair(left, right) = kron(conj.(right), left)
   for coefficient in normalization.coefficients, matrix in values(coefficient.terms)
     @test matrix == adjoint(matrix)
   end
+end
+
+@testset "phase-resolved CK normalization convolves Floquet grades" begin
+  identity_component = ck_normalization_identity()
+  zero_component = zero(identity_component)
+  m_plus = CKNormalizationExact[0 1 + ck_normalization_im; 0 0]
+  m_minus = adjoint(m_plus)
+
+  metric = ck_normalization_series(
+    ck_normalization_polynomial(0 => identity_component),
+    ck_normalization_graded_polynomial((1, 0) => m_plus, (-1, 0) => m_minus),
+  )
+  normalization = FloquetExpansions.ck_output_metric_inverse_sqrt_series(
+    metric, 2, identity_component
+  )
+  normalized = FloquetExpansions.ck_output_normalized_metric_series(
+    metric, normalization, 2, zero_component
+  )
+
+  @test FloquetExpansions.ck_output_pairing_coefficient(
+    normalization.coefficients[2], 1, 0
+  ) == (-1 // 2) * m_plus
+  @test FloquetExpansions.ck_output_pairing_coefficient(
+    normalization.coefficients[2], -1, 0
+  ) == (-1 // 2) * m_minus
+  @test adjoint(
+    FloquetExpansions.ck_output_pairing_coefficient(normalization.coefficients[2], 1, 0)
+  ) == FloquetExpansions.ck_output_pairing_coefficient(normalization.coefficients[2], -1, 0)
+  @test all(isempty(coefficient.terms) for coefficient in normalized.coefficients[2:end])
+
+  vacuum = ck_normalization_vacuum_key()
+  amplitude = ck_normalization_amplitude(0, vacuum => identity_component)
+  normalized_amplitudes = FloquetExpansions.ck_output_right_normalize_series(
+    [amplitude], normalization, 1, zero_component
+  )
+  phase_support = sort!(Int[
+    key.phase_harmonic for key in keys(normalized_amplitudes[2].coefficients[1].terms)
+  ])
+  @test phase_support == [-1, 1]
 end
 
 @testset "CK normalization includes higher period powers without diagonalization" begin
@@ -116,10 +167,16 @@ end
     metric, normalization, 3, zero_component
   )
 
-  @test normalization.coefficients[2].terms == Dict(3 => (-1 // 2) * m1)
-  @test haskey(normalization.coefficients[3].terms, 6)
-  @test haskey(normalization.coefficients[4].terms, 9)
-  @test normalized.coefficients[1].terms == Dict(0 => identity_component)
+  @test FloquetExpansions.ck_output_pairing_period_terms(normalization.coefficients[2]) ==
+    Dict(3 => (-1 // 2) * m1)
+  @test !iszero(
+    FloquetExpansions.ck_output_pairing_coefficient(normalization.coefficients[3], 0, 6)
+  )
+  @test !iszero(
+    FloquetExpansions.ck_output_pairing_coefficient(normalization.coefficients[4], 0, 9)
+  )
+  @test FloquetExpansions.ck_output_pairing_period_terms(normalized.coefficients[1]) ==
+    Dict(0 => identity_component)
   @test all(isempty(coefficient.terms) for coefficient in normalized.coefficients[2:end])
 end
 
@@ -156,7 +213,8 @@ end
   )
 
   @test paired_normalized.coefficients == direct_normalized.coefficients
-  @test paired_normalized.coefficients[1].terms == Dict(0 => identity_component)
+  @test FloquetExpansions.ck_output_pairing_period_terms(paired_normalized.coefficients[1]) ==
+    Dict(0 => identity_component)
   @test all(
     isempty(coefficient.terms) for coefficient in paired_normalized.coefficients[2:end]
   )
@@ -199,8 +257,10 @@ end
     zero_superoperator,
     ck_normalization_channel_pair,
   )
-  @test raw_metric.terms == Dict(0 => 4 * identity_component)
-  @test raw_channel.terms == Dict(0 => 4 * identity_superoperator)
+  @test FloquetExpansions.ck_output_pairing_period_terms(raw_metric) ==
+    Dict(0 => 4 * identity_component)
+  @test FloquetExpansions.ck_output_pairing_period_terms(raw_channel) ==
+    Dict(0 => 4 * identity_superoperator)
 
   half_identity = (1 // 2) * identity_component
   normalization = FloquetExpansions.CKOutputPairingSeries([
@@ -225,8 +285,10 @@ end
     zero_superoperator,
     ck_normalization_channel_pair,
   )
-  @test normalized_metric.terms == Dict(0 => identity_component)
-  @test normalized_channel.terms == Dict(0 => identity_superoperator)
+  @test FloquetExpansions.ck_output_pairing_period_terms(normalized_metric) ==
+    Dict(0 => identity_component)
+  @test FloquetExpansions.ck_output_pairing_period_terms(normalized_channel) ==
+    Dict(0 => identity_superoperator)
 end
 
 @testset "CK normalization requires a unit leading metric" begin
