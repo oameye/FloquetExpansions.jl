@@ -16,6 +16,10 @@ public = 0
 undocumented = 0
 public = 0
 
+[files."src/ck_period_amplitude.jl"]
+undocumented = 0
+public = 0
+
 [files."src/ck_physical_kernel.jl"]
 undocumented = 0
 public = 0

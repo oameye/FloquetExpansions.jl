@@ -31,6 +31,17 @@ cyc_sum = 34
 cog_sum = 51
 arg_sum = 22
 
+[files."src/ck_period_amplitude.jl"]
+cyc = 14
+cog = 25
+arg = 5
+cyc_over = 1
+cog_over = 1
+arg_over = 0
+cyc_sum = 88
+cog_sum = 83
+arg_sum = 67
+
 [files."src/ck_physical_kernel.jl"]
 cyc = 20
 cog = 33

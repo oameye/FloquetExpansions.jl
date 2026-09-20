@@ -20,6 +20,10 @@ reviewed = 0
 raw = 0
 reviewed = 0
 
+[files."src/ck_period_amplitude.jl"]
+raw = 0
+reviewed = 0
+
 [files."src/ck_physical_kernel.jl"]
 raw = 0
 reviewed = 0

@@ -16,6 +16,10 @@ implicit_kwarg = 0
 underscore_name = 0
 implicit_kwarg = 0
 
+[files."src/ck_period_amplitude.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
 [files."src/ck_physical_kernel.jl"]
 underscore_name = 0
 implicit_kwarg = 0

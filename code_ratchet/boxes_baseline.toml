@@ -16,6 +16,9 @@ boxes = 0
 [files."src/bloch_projection.jl"]
 boxes = 0
 
+[files."src/ck_period_amplitude.jl"]
+boxes = 0
+
 [files."src/ck_physical_kernel.jl"]
 boxes = 0
 
