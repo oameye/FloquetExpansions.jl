@@ -307,18 +307,67 @@ function ck_channel_gauge_static_similarity(hamiltonian, jumps)
   return B_R, ck_channel_gauge_commutator(B_R, H0)
 end
 
-@testset "fully pasted CK one-dissipator channel matches #104/#122 gauge bridge" begin
+function ck_channel_gauge_stroboscopic_correction(fixture)
+  H0 = ck_channel_gauge_hamiltonian_super(fixture.hamiltonian[0])
+  R0 = ck_channel_gauge_bare_dissipator_harmonic(fixture.jumps, 0)
+  result = zero(H0)
+  jump_support = collect(keys(fixture.jumps))
+  dissipator_support = unique(
+    left_harmonic - right_harmonic for left_harmonic in jump_support for
+    right_harmonic in jump_support
+  )
+  support = union(collect(keys(fixture.hamiltonian)), dissipator_support)
+
+  for harmonic in support
+    iszero(harmonic) && continue
+    Hm = ck_channel_gauge_hamiltonian_super(
+      get(fixture.hamiltonian, harmonic, fixture.zero_component)
+    )
+    Hminus = ck_channel_gauge_hamiltonian_super(
+      get(fixture.hamiltonian, -harmonic, fixture.zero_component)
+    )
+    Rm = ck_channel_gauge_bare_dissipator_harmonic(fixture.jumps, harmonic)
+    Rminus = ck_channel_gauge_bare_dissipator_harmonic(fixture.jumps, -harmonic)
+    GHm = (ck_channel_gauge_im * (1 // harmonic)) * Hm
+    GHminus = (-ck_channel_gauge_im * (1 // harmonic)) * Hminus
+    GRm = (ck_channel_gauge_im * (1 // harmonic)) * Rm
+    GRminus = (-ck_channel_gauge_im * (1 // harmonic)) * Rminus
+
+    result += (1 // 2) * (
+      ck_channel_gauge_commutator(
+        GHm, ck_channel_gauge_commutator(GHminus, R0)
+      ) +
+      ck_channel_gauge_commutator(
+        GHm, ck_channel_gauge_commutator(GRminus, H0)
+      ) +
+      ck_channel_gauge_commutator(
+        GRm, ck_channel_gauge_commutator(GHminus, H0)
+      )
+    )
+  end
+  return result
+end
+
+@testset "phase-zero CK channel maps to the #104/#122 Van Vleck gauge bridge" begin
   fixture = ck_channel_gauge_fixture()
-  ck_second = ck_channel_gauge_one_dissipator_ck(fixture)
+  ck_stroboscopic_second = ck_channel_gauge_one_dissipator_ck(fixture)
   coherent_cp_second = ck_channel_gauge_cp_second(fixture)
   B_R, expected_similarity = ck_channel_gauge_static_similarity(
     fixture.hamiltonian, fixture.jumps
   )
+  stroboscopic_correction = ck_channel_gauge_stroboscopic_correction(fixture)
 
   @test !iszero(B_R)
   @test !iszero(expected_similarity)
-  @test ck_second.raw != coherent_cp_second
-  @test ck_second.normalized != coherent_cp_second
-  @test ck_second.raw - coherent_cp_second == expected_similarity
-  @test ck_second.normalized - coherent_cp_second == expected_similarity
+  @test !iszero(stroboscopic_correction)
+  @test ck_stroboscopic_second.raw == ck_stroboscopic_second.normalized
+  @test ck_stroboscopic_second.raw != coherent_cp_second
+
+  # The connected logarithm of the one-period channel is the stroboscopic
+  # Floquet representative.  Remove the standard endpoint-micromotion
+  # similarity before applying the canonical Van Vleck theorem from #104.
+  @test ck_stroboscopic_second.raw - stroboscopic_correction - coherent_cp_second ==
+    expected_similarity
+  @test ck_stroboscopic_second.normalized - stroboscopic_correction -
+        coherent_cp_second == expected_similarity
 end
