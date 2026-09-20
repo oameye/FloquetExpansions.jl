@@ -27,10 +27,9 @@ function ck_homological_polynomial(
   for ((period_power, coordinate_power), value) in terms
     period_power >= 0 || throw(ArgumentError("period power must be nonnegative"))
     coordinate_power >= 0 || throw(ArgumentError("coordinate power must be nonnegative"))
-    iszero(value) ||
-      ck_time_polynomial_accumulate!(
-        result, period_power, coordinate_power, value, zero_coefficient
-      )
+    iszero(value) || ck_time_polynomial_accumulate!(
+      result, period_power, coordinate_power, value, zero_coefficient
+    )
   end
   return CKHomologicalPolynomial(result, zero_coefficient)
 end
@@ -39,8 +38,8 @@ function ck_homological_average(polynomial::CKHomologicalPolynomial{T}) where {T
   result = Dict{Int,T}()
   for ((period_power, coordinate_power), value) in polynomial.terms
     total_power = period_power + coordinate_power
-    updated = get(result, total_power, polynomial.zero_coefficient) +
-              value / (coordinate_power + 1)
+    updated =
+      get(result, total_power, polynomial.zero_coefficient) + value / (coordinate_power + 1)
     if iszero(updated)
       haskey(result, total_power) && delete!(result, total_power)
     else
@@ -74,10 +73,7 @@ end
 function ck_homological_kernel(order::Int, one_coefficient::T) where {T}
   order >= 1 || throw(ArgumentError("homological order must be positive"))
   zero_coefficient = zero(one_coefficient)
-  terms = Dict{Tuple{Int,Int},T}(
-    (0, 1) => one_coefficient,
-    (1, 0) => -one_coefficient / 2,
-  )
+  terms = Dict{Tuple{Int,Int},T}((0, 1) => one_coefficient, (1, 0) => -one_coefficient / 2)
   result = ck_homological_polynomial(terms, zero_coefficient)
   for _ in 2:order
     result = ck_homological_next(result)
@@ -104,11 +100,7 @@ function ck_homological_scale(polynomial::CKHomologicalPolynomial{T}, scale::T) 
   terms = Dict{Tuple{Int,Int},T}()
   for ((period_power, coordinate_power), value) in polynomial.terms
     ck_time_polynomial_accumulate!(
-      terms,
-      period_power,
-      coordinate_power,
-      scale * value,
-      polynomial.zero_coefficient,
+      terms, period_power, coordinate_power, scale * value, polynomial.zero_coefficient
     )
   end
   return ck_homological_polynomial(terms, polynomial.zero_coefficient)
@@ -186,10 +178,7 @@ function ck_resolvent_time_kernel(
     for other_center in centers
       other_center == center && continue
       factor = ck_resolvent_taylor_factor(
-        other_center - center,
-        multiplicities[other_center],
-        max_degree,
-        one_coefficient,
+        other_center - center, multiplicities[other_center], max_degree, one_coefficient
       )
       series = ck_resolvent_series_product(series, factor, zero_coefficient)
     end
