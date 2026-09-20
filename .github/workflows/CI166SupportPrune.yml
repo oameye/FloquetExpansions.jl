@@ -46,10 +46,9 @@ jobs:
       - uses: julia-actions/setup-julia@v3
         with:
           version: '1.10'
-      - name: Install JuliaFormatter
-        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
       - name: Format source and test
-        run: ${HOME}/.julia/bin/jlfmt --inplace src/bloch_connected_van_vleck.jl test/bloch_connected_van_vleck.jl
+        run: |
+          julia -e 'using Pkg; Pkg.add("JuliaFormatter"); using JuliaFormatter; format_file("src/bloch_connected_van_vleck.jl"); format_file("test/bloch_connected_van_vleck.jl")'
       - name: Commit exact patch
         run: |
           if git diff --quiet; then
