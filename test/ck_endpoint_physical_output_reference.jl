@@ -43,6 +43,21 @@ function ck_endpoint_output_time_coefficients(polynomial, output_channels, sideb
   ]
 end
 
+function ck_endpoint_output_select_channels(polynomial, output_channels)
+  coefficients = [
+    FloquetExpansions.CKOutputKernel(
+      Dict(
+        key => value for (key, value) in coefficient.terms if
+        key.output_channels == output_channels
+      ),
+      coefficient.zero_component,
+    ) for coefficient in polynomial.coefficients
+  ]
+  return FloquetExpansions.CKOutputPeriodPolynomial(coefficients)
+end
+
+ck_endpoint_output_metric_pair(left, right) = adjoint(left) * right
+
 @testset "endpoint reconstruction integrates one drift around one physical jump" begin
   zero_component = ck_endpoint_output_zero_matrix()
   identity_component = ck_endpoint_output_identity_matrix()
@@ -137,6 +152,18 @@ end
   @test all(iszero, ck_endpoint_output_period_coefficient(at_jump, 0, zero_component))
   @test all(iszero, ck_endpoint_output_period_coefficient(at_shifted, 0, zero_component))
   @test all(all(iszero, coefficient) for coefficient in outside)
+
+  physical_one_output = ck_endpoint_output_select_channels(finite_output, [1])
+  metric = FloquetExpansions.ck_output_metric_pairing(
+    physical_one_output,
+    physical_one_output,
+    ck_endpoint_output_im,
+    zero_component,
+    ck_endpoint_output_metric_pair,
+  )
+  expected_metric = (2 // drift_harmonic^2) * identity_component
+  @test metric.terms == Dict(1 => expected_metric)
+  @test !FloquetExpansions.ck_output_pairing_has_negative_power(metric)
 
   # The two matrix orderings isolate the raw-Dyson drift-before and drift-after
   # wavepackets from #197 without reintroducing their drift integration times.
