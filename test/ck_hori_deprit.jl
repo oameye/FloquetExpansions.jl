@@ -39,7 +39,7 @@ function ck_hd_fixture()
     FloquetExpansions.ck_kernel_project_model,
     FloquetExpansions.ck_kernel_solve_complement,
   )
-  return (; A1, A2, identity_state, zero_state, zero_component, operations)
+  return (; A1, A2, hamiltonian, jumps, identity_state, zero_state, zero_component, operations)
 end
 
 function ck_hd_inverse_weight(mismatch::Int)
@@ -65,8 +65,41 @@ function ck_hd_sideband_samples(outputs::Int)
   outputs == 0 && return [Int[]]
   outputs == 1 && return [[sideband] for sideband in -3:3]
   outputs == 2 && return [[left, right] for left in -2:2 for right in -2:2]
-  outputs == 3 && return [[left, middle, right] for left in -1:1 for middle in -1:1 for right in -1:1]
+  outputs == 3 && return [
+    [left, middle, right] for left in -1:1 for middle in -1:1 for right in -1:1
+  ]
   return [zeros(Int, outputs)]
+end
+
+function ck_hd_first_transport_reference(hamiltonian, jumps, output_sideband, zero_component)
+  result = copy(zero_component)
+  for (harmonic, Hh) in hamiltonian
+    iszero(harmonic) && continue
+    jump = get(jumps, output_sideband - harmonic, zero_component)
+    all(iszero, jump) && continue
+    kick = ck_hd_im * (1 // harmonic) * Hh
+    result += ck_hd_im * (kick * jump - jump * kick)
+  end
+  return result
+end
+
+function ck_hd_rotating_jump_fixture()
+  sigma_x = CKHDExact[0 1; 1 0]
+  sigma_y = CKHDExact[0 -ck_hd_im; ck_hd_im 0]
+  sigma_z = CKHDExact[1 0; 0 -1]
+  sigma_minus = (1 // 2) * (sigma_x - ck_hd_im * sigma_y)
+  sigma_plus = (1 // 2) * (sigma_x + ck_hd_im * sigma_y)
+  amplitudes = Dict(0 => sigma_z, 1 => ck_hd_im * sigma_minus, -1 => -ck_hd_im * sigma_plus)
+  zero_component = zeros(CKHDExact, 2, 2)
+  A1 = FloquetExpansions.ck_kernel_generator(
+    Dict(
+      FloquetExpansions.ck_jump_vertex(1, harmonic) => value for
+      (harmonic, value) in amplitudes
+    ),
+    zero_component,
+  )
+  zero_state = FloquetExpansions.ck_kernel_zero(0, zero_component)
+  return (; A1, zero_state)
 end
 
 @testset "direct CK Hori-Deprit reproduces the endpoint homological recurrence" begin
@@ -132,6 +165,50 @@ end
 
   raw_B5 = FloquetExpansions.ck_endpoint_kernel(recurrence.effective[5])
   @test ck_hd_query(raw_B5, [0]) != ck_hd_query(hd.effective[5], [0])
+end
+
+@testset "direct CK Hori-Deprit reproduces the #263 B3 one-output transport" begin
+  fixture = ck_hd_fixture()
+  hd = FloquetExpansions.evaluate_ck_hori_deprit(
+    [fixture.A1, fixture.A2], 3, fixture.zero_state
+  )
+
+  generated_nonzero = false
+  for sideband in -4:4
+    expected = ck_hd_first_transport_reference(
+      fixture.hamiltonian, fixture.jumps, sideband, fixture.zero_component
+    )
+    actual = ck_hd_query(hd.effective[3], [sideband])
+    @test actual == expected
+    generated_nonzero |= !haskey(fixture.jumps, sideband) && !iszero(expected)
+  end
+  @test generated_nonzero
+end
+
+@testset "direct CK Hori-Deprit reproduces rotating-jump B2 two-output kernel" begin
+  fixture = ck_hd_rotating_jump_fixture()
+  endpoint_A1 = FloquetExpansions.ck_endpoint_kernel(fixture.A1)
+  zero_endpoint = FloquetExpansions.ck_endpoint_kernel(fixture.zero_state)
+  hd = FloquetExpansions.evaluate_ck_endpoint_hori_deprit([endpoint_A1], 2, zero_endpoint)
+
+  expected_B2 = FloquetExpansions.ck_endpoint_project_model(
+    FloquetExpansions.ck_endpoint_product(
+      endpoint_A1, FloquetExpansions.ck_endpoint_solve_homological(endpoint_A1)
+    )
+  )
+
+  nonzero = false
+  for left_sideband in -2:2, right_sideband in -2:2
+    sidebands = [left_sideband, right_sideband]
+    expected = ck_hd_query(expected_B2, sidebands)
+    actual = ck_hd_query(hd.effective[2], sidebands)
+    @test actual == expected
+    nonzero |= !iszero(expected)
+  end
+  @test nonzero
+  @test all(
+    FloquetExpansions.ck_endpoint_output_number(key) == 2 for key in keys(hd.effective[2].terms)
+  )
 end
 
 @testset "direct CK Hori-Deprit preserves retained prefixes" begin
