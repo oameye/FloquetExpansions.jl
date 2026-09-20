@@ -74,6 +74,10 @@ ck_factor_reference_channel_pair(left, right) = kron(conj.(right), left)
   )
 
   kraus = first + ck_factor_reference_im * second
-  @test production_metric.terms == Dict(0 => adjoint(kraus) * kraus)
-  @test production_channel.terms == Dict(0 => kron(conj.(kraus), kraus))
+  @test FloquetExpansions.ck_output_pairing_period_terms(production_metric) ==
+    Dict(0 => adjoint(kraus) * kraus)
+  @test FloquetExpansions.ck_output_pairing_period_terms(production_channel) ==
+    Dict(0 => kron(conj.(kraus), kraus))
+  @test FloquetExpansions.ck_output_pairing_phase_support(production_metric) == [0]
+  @test FloquetExpansions.ck_output_pairing_phase_support(production_channel) == [0]
 end
