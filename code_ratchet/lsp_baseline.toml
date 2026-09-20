@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "bdfdd6b"
+commit = "c36bf60"
 entry = ["src/FloquetExpansions.jl"]
 full_analysis = true
 metric = "lsp"
@@ -17,6 +17,38 @@ raw = 0
 reviewed = 0
 
 [files."src/bloch_projection.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/ck_output_kernel.jl"]
+raw = 1
+reviewed = 1
+
+[files."src/ck_output_normalization.jl"]
+raw = 1
+reviewed = 1
+
+[files."src/ck_output_overlap.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/ck_output_pairing.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/ck_output_pairing_series.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/ck_output_right_normalization.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/ck_output_time_kernel.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/ck_output_time_realization.jl"]
 raw = 0
 reviewed = 0
 
