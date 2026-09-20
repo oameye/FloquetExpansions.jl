@@ -15,15 +15,8 @@ function ck_channel_gauge_fixture()
   identity_component = Matrix{CKChannelGaugeExact}(I, 2, 2)
   zero_component = zero(identity_component)
 
-  hamiltonian = Dict(
-    0 => sigma_z,
-    1 => (1 // 2) * sigma_x,
-    -1 => (1 // 2) * sigma_x,
-  )
-  jumps = Dict(
-    0 => sigma_z,
-    1 => CKChannelGaugeExact[0 0; 1 0],
-  )
+  hamiltonian = Dict(0 => sigma_z, 1 => (1 // 2) * sigma_x, -1 => (1 // 2) * sigma_x)
+  jumps = Dict(0 => sigma_z, 1 => CKChannelGaugeExact[0 0; 1 0])
   identity_state = FloquetExpansions.ck_kernel_identity(
     0, identity_component, zero_component
   )
@@ -71,35 +64,22 @@ function ck_channel_gauge_amplitudes(fixture, jump_scale::Int, order::Int)
   A2 = FloquetExpansions.ck_kernel_generator(
     Dict(
       FloquetExpansions.ck_drift_vertex(harmonic) =>
-        -ck_channel_gauge_im *
-        get(fixture.hamiltonian, harmonic, fixture.zero_component) +
+        -ck_channel_gauge_im * get(fixture.hamiltonian, harmonic, fixture.zero_component) +
         jump_scale^2 * get(no_jump, harmonic, fixture.zero_component) for
       harmonic in harmonics
     ),
     fixture.zero_component,
   )
   recurrence = FloquetExpansions.evaluate_bloch_order_recurrence(
-    [A1, A2],
-    order,
-    fixture.identity_state,
-    fixture.zero_state,
-    fixture.operations,
+    [A1, A2], order, fixture.identity_state, fixture.zero_state, fixture.operations
   )
   canonical = FloquetExpansions.evaluate_ck_canonical_normalization(
-    recurrence.effective,
-    recurrence.wave,
-    order,
-    fixture.identity_state,
-    fixture.zero_state,
+    recurrence.effective, recurrence.wave, order, fixture.identity_state, fixture.zero_state
   )
   identity_endpoint = FloquetExpansions.ck_endpoint_kernel(fixture.identity_state)
   zero_endpoint = FloquetExpansions.ck_endpoint_kernel(fixture.zero_state)
   reconstruction = FloquetExpansions.evaluate_ck_period_amplitude(
-    canonical.effective,
-    canonical.wave,
-    order,
-    identity_endpoint,
-    zero_endpoint,
+    canonical.effective, canonical.wave, order, identity_endpoint, zero_endpoint
   )
   return [
     FloquetExpansions.ck_output_kernel(amplitude) for amplitude in reconstruction.amplitude
@@ -124,13 +104,10 @@ function ck_channel_gauge_connected_order6(channel, zero_superoperator)
   log6 = FloquetExpansions.CKOutputPairingPolynomial(copy(C6.terms), zero_superoperator)
   FloquetExpansions.ck_output_pairing_add!(
     log6,
-    FloquetExpansions.ck_output_pairing_scale(
-      -1 // 2, C2C4plusC4C2, zero_superoperator
-    ),
+    FloquetExpansions.ck_output_pairing_scale(-1 // 2, C2C4plusC4C2, zero_superoperator),
   )
   FloquetExpansions.ck_output_pairing_add!(
-    log6,
-    FloquetExpansions.ck_output_pairing_scale(1 // 3, C2C2C2, zero_superoperator),
+    log6, FloquetExpansions.ck_output_pairing_scale(1 // 3, C2C2C2, zero_superoperator)
   )
   return FloquetExpansions.ck_output_pairing_coefficient(log6, 0, 1)
 end
@@ -184,30 +161,28 @@ function ck_channel_gauge_one_dissipator_ck(fixture)
   # x=g^2, these are the four interpolation nodes x=0,1,4,9; this combination
   # extracts the coefficient linear in x, i.e. the one-dissipator sector.
   interpolate(field) =
-    (-49 // 36) * getproperty(value0, field) +
-    (3 // 2) * getproperty(value1, field) -
-    (3 // 20) * getproperty(value2, field) +
-    (1 // 90) * getproperty(value3, field)
+    (-49 // 36) * getproperty(value0, field) + (3 // 2) * getproperty(value1, field) -
+    (3 // 20) * getproperty(value2, field) + (1 // 90) * getproperty(value3, field)
   return (; raw=interpolate(:raw), normalized=interpolate(:normalized))
 end
 
 function ck_channel_gauge_first_kick(hamiltonian, harmonic, zero_component)
   iszero(harmonic) && return copy(zero_component)
-  return ck_channel_gauge_im * (1 // harmonic) *
-         get(hamiltonian, harmonic, zero_component)
+  return ck_channel_gauge_im * (1 // harmonic) * get(hamiltonian, harmonic, zero_component)
 end
 
 function ck_channel_gauge_second_kick(hamiltonian, harmonic, zero_component)
   iszero(harmonic) && return copy(zero_component)
   Hh = get(hamiltonian, harmonic, zero_component)
   H0 = get(hamiltonian, 0, zero_component)
-  result = -ck_channel_gauge_im * (1 // harmonic^2) *
-           ck_channel_gauge_commutator(Hh, H0)
+  result = -ck_channel_gauge_im * (1 // harmonic^2) * ck_channel_gauge_commutator(Hh, H0)
   for (inner_harmonic, Hinner) in hamiltonian
     (iszero(inner_harmonic) || inner_harmonic == harmonic) && continue
     Hrest = get(hamiltonian, harmonic - inner_harmonic, zero_component)
-    result += -ck_channel_gauge_im * (1 // (2 * harmonic * inner_harmonic)) *
-              ck_channel_gauge_commutator(Hinner, Hrest)
+    result +=
+      -ck_channel_gauge_im *
+      (1 // (2 * harmonic * inner_harmonic)) *
+      ck_channel_gauge_commutator(Hinner, Hrest)
   end
   return result
 end
@@ -237,15 +212,9 @@ function ck_channel_gauge_second_transport(
   end
   for left_harmonic in keys(hamiltonian), right_harmonic in keys(hamiltonian)
     (iszero(left_harmonic) || iszero(right_harmonic)) && continue
-    jump = get(
-      jumps, output_sideband - left_harmonic - right_harmonic, zero_component
-    )
-    left_kick = ck_channel_gauge_first_kick(
-      hamiltonian, left_harmonic, zero_component
-    )
-    right_kick = ck_channel_gauge_first_kick(
-      hamiltonian, right_harmonic, zero_component
-    )
+    jump = get(jumps, output_sideband - left_harmonic - right_harmonic, zero_component)
+    left_kick = ck_channel_gauge_first_kick(hamiltonian, left_harmonic, zero_component)
+    right_kick = ck_channel_gauge_first_kick(hamiltonian, right_harmonic, zero_component)
     nested = ck_channel_gauge_commutator(
       left_kick, ck_channel_gauge_commutator(right_kick, jump)
     )
@@ -281,9 +250,9 @@ end
 
 function ck_channel_gauge_hamiltonian_super(hamiltonian)
   identity_component = Matrix{CKChannelGaugeExact}(I, 2, 2)
-  return -ck_channel_gauge_im *
-         (kron(identity_component, hamiltonian) -
-          kron(transpose(hamiltonian), identity_component))
+  return -ck_channel_gauge_im * (
+    kron(identity_component, hamiltonian) - kron(transpose(hamiltonian), identity_component)
+  )
 end
 
 function ck_channel_gauge_bare_dissipator_harmonic(jumps, harmonic)
@@ -333,17 +302,12 @@ function ck_channel_gauge_stroboscopic_correction(fixture)
     GRm = (ck_channel_gauge_im * (1 // harmonic)) * Rm
     GRminus = (-ck_channel_gauge_im * (1 // harmonic)) * Rminus
 
-    result += (1 // 2) * (
-      ck_channel_gauge_commutator(
-        GHm, ck_channel_gauge_commutator(GHminus, R0)
-      ) +
-      ck_channel_gauge_commutator(
-        GHm, ck_channel_gauge_commutator(GRminus, H0)
-      ) +
-      ck_channel_gauge_commutator(
-        GRm, ck_channel_gauge_commutator(GHminus, H0)
+    result +=
+      (1 // 2) * (
+        ck_channel_gauge_commutator(GHm, ck_channel_gauge_commutator(GHminus, R0)) +
+        ck_channel_gauge_commutator(GHm, ck_channel_gauge_commutator(GRminus, H0)) +
+        ck_channel_gauge_commutator(GRm, ck_channel_gauge_commutator(GHminus, H0))
       )
-    )
   end
   return result
 end
@@ -368,6 +332,6 @@ end
   # similarity before applying the canonical Van Vleck theorem from #104.
   @test ck_stroboscopic_second.raw - stroboscopic_correction - coherent_cp_second ==
     expected_similarity
-  @test ck_stroboscopic_second.normalized - stroboscopic_correction -
-        coherent_cp_second == expected_similarity
+  @test ck_stroboscopic_second.normalized - stroboscopic_correction - coherent_cp_second ==
+    expected_similarity
 end

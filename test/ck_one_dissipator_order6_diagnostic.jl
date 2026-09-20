@@ -10,15 +10,8 @@ function ck_order6_fixture()
   sigma_z = CKOrder6Exact[1 0; 0 -1]
   identity_component = Matrix{CKOrder6Exact}(I, 2, 2)
   zero_component = zero(identity_component)
-  hamiltonian = Dict(
-    0 => sigma_z,
-    1 => (1 // 2) * sigma_x,
-    -1 => (1 // 2) * sigma_x,
-  )
-  jumps = Dict(
-    0 => sigma_z,
-    1 => CKOrder6Exact[0 0; 1 0],
-  )
+  hamiltonian = Dict(0 => sigma_z, 1 => (1 // 2) * sigma_x, -1 => (1 // 2) * sigma_x)
+  jumps = Dict(0 => sigma_z, 1 => CKOrder6Exact[0 0; 1 0])
 
   no_jump = Dict{Int,Matrix{CKOrder6Exact}}()
   for (left_harmonic, left) in jumps, (right_harmonic, right) in jumps
@@ -33,8 +26,7 @@ function ck_order6_fixture()
 
   A1 = FloquetExpansions.ck_kernel_generator(
     Dict(
-      FloquetExpansions.ck_jump_vertex(1, harmonic) => value for
-      (harmonic, value) in jumps
+      FloquetExpansions.ck_jump_vertex(1, harmonic) => value for (harmonic, value) in jumps
     ),
     zero_component,
   )
@@ -99,11 +91,7 @@ end
     fixture.operations,
   )
   canonical = FloquetExpansions.evaluate_ck_canonical_normalization(
-    recurrence.effective,
-    recurrence.wave,
-    order,
-    fixture.identity_state,
-    fixture.zero_state,
+    recurrence.effective, recurrence.wave, order, fixture.identity_state, fixture.zero_state
   )
   hd = FloquetExpansions.evaluate_ck_hori_deprit(
     [fixture.A1, fixture.A2], order, fixture.zero_state
@@ -117,8 +105,9 @@ end
     for outputs in 0:perturbative_order
       outputs % 2 == perturbative_order % 2 || continue
       for sidebands in ck_order6_sideband_samples(outputs)
-        @test ck_order6_endpoint_query(canonical.log_embedding[perturbative_order], sidebands) ==
-          ck_order6_endpoint_query(hd.generator[perturbative_order], sidebands)
+        @test ck_order6_endpoint_query(
+          canonical.log_embedding[perturbative_order], sidebands
+        ) == ck_order6_endpoint_query(hd.generator[perturbative_order], sidebands)
       end
     end
   end
@@ -127,8 +116,9 @@ end
     for outputs in 0:perturbative_order
       outputs % 2 == perturbative_order % 2 || continue
       for sidebands in ck_order6_sideband_samples(outputs)
-        @test ck_order6_endpoint_query(canonical.effective[perturbative_order], sidebands) ==
-          ck_order6_endpoint_query(hd.effective[perturbative_order], sidebands)
+        @test ck_order6_endpoint_query(
+          canonical.effective[perturbative_order], sidebands
+        ) == ck_order6_endpoint_query(hd.effective[perturbative_order], sidebands)
       end
     end
   end
@@ -143,11 +133,7 @@ end
     zero_endpoint,
   )
   canonical_period = FloquetExpansions.evaluate_ck_period_amplitude(
-    canonical.effective,
-    canonical.wave,
-    order,
-    identity_endpoint,
-    zero_endpoint,
+    canonical.effective, canonical.wave, order, identity_endpoint, zero_endpoint
   )
   raw_output = [FloquetExpansions.ck_output_kernel(value) for value in raw_period.amplitude]
   canonical_output = [
