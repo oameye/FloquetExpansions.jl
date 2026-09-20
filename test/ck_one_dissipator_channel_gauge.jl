@@ -92,12 +92,14 @@ function ck_channel_gauge_amplitudes(fixture, jump_scale::Int, order::Int)
     fixture.identity_state,
     fixture.zero_state,
   )
+  identity_endpoint = FloquetExpansions.ck_endpoint_kernel(fixture.identity_state)
+  zero_endpoint = FloquetExpansions.ck_endpoint_kernel(fixture.zero_state)
   reconstruction = FloquetExpansions.evaluate_ck_period_amplitude(
     canonical.effective,
     canonical.wave,
     order,
-    fixture.identity_state,
-    fixture.zero_state,
+    identity_endpoint,
+    zero_endpoint,
   )
   return [
     FloquetExpansions.ck_output_kernel(amplitude) for amplitude in reconstruction.amplitude
