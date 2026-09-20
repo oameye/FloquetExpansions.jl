@@ -30,7 +30,9 @@ function ck_endpoint_output_time_coefficients(polynomial, output_channels, sideb
       result = coefficient.zero_component
       for (key, value) in coefficient.terms
         key.output_channels == output_channels || continue
-        realization = FloquetExpansions.ck_output_time_realization(key, ck_endpoint_output_im)
+        realization = FloquetExpansions.ck_output_time_realization(
+          key, ck_endpoint_output_im
+        )
         weight = FloquetExpansions.ck_output_time_fourier_weight(
           realization, sidebands, ck_endpoint_output_im
         )
@@ -118,8 +120,9 @@ end
   time_at_shifted = ck_endpoint_output_time_coefficients(
     finite_output, [1], [jump_harmonic + drift_harmonic]
   )
-  time_outside =
-    ck_endpoint_output_time_coefficients(finite_output, [1], [jump_harmonic - 1])
+  time_outside = ck_endpoint_output_time_coefficients(
+    finite_output, [1], [jump_harmonic - 1]
+  )
 
   @test finite_at_jump == at_jump
   @test finite_at_shifted == at_shifted
