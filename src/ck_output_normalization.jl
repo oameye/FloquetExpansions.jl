@@ -1,6 +1,8 @@
 function ck_output_pairing_identity(zero_harmonic::H, identity_component::T) where {H,T}
   grade = CKOutputPairingGrade(zero_harmonic, 0)
-  return CKOutputPairingPolynomial(Dict(grade => identity_component), zero(identity_component))
+  return CKOutputPairingPolynomial(
+    Dict(grade => identity_component), zero(identity_component)
+  )
 end
 
 function ck_output_pairing_identity(identity_component::T) where {T}
@@ -73,9 +75,7 @@ function ck_output_pairing_series_product(
 end
 
 function ck_output_pairing_is_identity(
-  polynomial::CKOutputPairingPolynomial,
-  grade::CKOutputPairingGrade,
-  identity_component,
+  polynomial::CKOutputPairingPolynomial, grade::CKOutputPairingGrade, identity_component
 )
   length(polynomial.terms) == 1 || return false
   for (key, value) in polynomial.terms
@@ -118,8 +118,9 @@ function ck_output_metric_inverse_sqrt_series(
     throw(ArgumentError("metric series must contain a leading coefficient"))
   zero_component = zero(identity_component)
   identity_grade = CKOutputPairingGrade(zero(H), 0)
-  ck_output_pairing_is_identity(metric.coefficients[1], identity_grade, identity_component) ||
-    throw(ArgumentError("metric series must have unit leading coefficient"))
+  ck_output_pairing_is_identity(
+    metric.coefficients[1], identity_grade, identity_component
+  ) || throw(ArgumentError("metric series must have unit leading coefficient"))
 
   coefficients = [ck_output_pairing_zero(H, zero_component) for _ in 0:order]
   coefficients[1] = ck_output_pairing_identity(zero(H), identity_component)

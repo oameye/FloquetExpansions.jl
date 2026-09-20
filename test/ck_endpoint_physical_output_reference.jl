@@ -167,7 +167,8 @@ ck_endpoint_output_metric_pair(left, right) = adjoint(left) * right
     ck_endpoint_output_metric_pair,
   )
   expected_metric = (2 // drift_harmonic^2) * identity_component
-  @test FloquetExpansions.ck_output_pairing_period_terms(metric) == Dict(1 => expected_metric)
+  @test FloquetExpansions.ck_output_pairing_period_terms(metric) ==
+    Dict(1 => expected_metric)
   @test FloquetExpansions.ck_output_pairing_phase_support(metric) == [0]
   @test !FloquetExpansions.ck_output_pairing_has_negative_power(metric)
 

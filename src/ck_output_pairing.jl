@@ -151,7 +151,9 @@ function ck_output_pairing_coefficient(
   return result
 end
 
-function ck_output_pairing_period_terms(polynomial::CKOutputPairingPolynomial{H,T}) where {H,T}
+function ck_output_pairing_period_terms(
+  polynomial::CKOutputPairingPolynomial{H,T}
+) where {H,T}
   result = Dict{Int,T}()
   for (grade, value) in polynomial.terms
     updated = get(result, grade.period_power, polynomial.zero_component) + value

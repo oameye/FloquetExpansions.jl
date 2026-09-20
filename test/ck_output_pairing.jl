@@ -136,8 +136,10 @@ end
 
   @test FloquetExpansions.ck_output_pairing_phase_support(channel) == [3]
   @test FloquetExpansions.ck_output_pairing_phase_support(metric) == [-3]
-  @test FloquetExpansions.ck_output_pairing_coefficient(channel, 3, 1) == ck_output_pairing_im
-  @test FloquetExpansions.ck_output_pairing_coefficient(metric, -3, 1) == -ck_output_pairing_im
+  @test FloquetExpansions.ck_output_pairing_coefficient(channel, 3, 1) ==
+    ck_output_pairing_im
+  @test FloquetExpansions.ck_output_pairing_coefficient(metric, -3, 1) ==
+    -ck_output_pairing_im
 end
 
 @testset "system factors follow the authoritative #204 conjugation convention" begin

@@ -49,7 +49,9 @@ function ck_mixed_reference_scalarize(polynomial, row::Int, column::Int)
       coefficient = value[row, column]
       iszero(coefficient) || (terms[key] = coefficient)
     end
-    push!(coefficients, FloquetExpansions.CKOutputKernel(terms, zero(CKMixedReferenceExact)))
+    push!(
+      coefficients, FloquetExpansions.CKOutputKernel(terms, zero(CKMixedReferenceExact))
+    )
   end
   return FloquetExpansions.CKOutputPeriodPolynomial(coefficients)
 end
