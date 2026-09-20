@@ -70,10 +70,7 @@ function ck_output_gap_polynomial_terms(
   if output_stop == block.output_stop
     degrees = zeros(Int, output_number)
     degrees[output_stop] = coordinate_power
-    push!(
-      result,
-      CKOutputTimeMonomial(frequencies, degrees, period_power, coefficient),
-    )
+    push!(result, CKOutputTimeMonomial(frequencies, degrees, period_power, coefficient))
     return result
   end
 
@@ -102,9 +99,7 @@ function ck_output_gap_polynomial_terms(
 end
 
 function ck_output_coordinate_time_terms(
-  coordinate::CKOutputTimeCoordinate{H,T},
-  block::CKOutputBlock,
-  output_number::Int,
+  coordinate::CKOutputTimeCoordinate{H,T}, block::CKOutputBlock, output_number::Int
 ) where {H<:Integer,T}
   result = CKOutputTimeMonomial{H,T}[]
 
@@ -114,9 +109,7 @@ function ck_output_coordinate_time_terms(
     )
     push!(
       result,
-      CKOutputTimeMonomial(
-        frequencies, zeros(Int, output_number), 0, phase.coefficient
-      ),
+      CKOutputTimeMonomial(frequencies, zeros(Int, output_number), 0, phase.coefficient),
     )
   end
 
@@ -146,11 +139,9 @@ function ck_output_time_monomials(
 ) where {H<:Integer,T}
   realization.valid || return CKOutputTimeMonomial{H,T}[]
   output_number = length(key.output_channels)
-  terms = CKOutputTimeMonomial{H,T}[
-    CKOutputTimeMonomial(
-      fill(zero(H), output_number), zeros(Int, output_number), 0, realization.scalar
-    ),
-  ]
+  terms = CKOutputTimeMonomial{H,T}[CKOutputTimeMonomial(
+    fill(zero(H), output_number), zeros(Int, output_number), 0, realization.scalar
+  ),]
 
   for coordinate in realization.coordinates
     block = realization.blocks[coordinate.block]
@@ -165,11 +156,7 @@ function ck_output_time_monomials(
 end
 
 function ck_output_simplex_state_accumulate!(
-  state::Dict{H,Vector{T}},
-  frequency::H,
-  degree::Int,
-  value::T,
-  zero_coefficient::T,
+  state::Dict{H,Vector{T}}, frequency::H, degree::Int, value::T, zero_coefficient::T
 ) where {H<:Integer,T}
   coefficients = get!(state, frequency) do
     return T[]
@@ -182,10 +169,7 @@ function ck_output_simplex_state_accumulate!(
 end
 
 function ck_output_simplex_state_scale_add!(
-  target::Dict{H,Vector{T}},
-  source::Dict{H,Vector{T}},
-  scale::T,
-  zero_coefficient::T,
+  target::Dict{H,Vector{T}}, source::Dict{H,Vector{T}}, scale::T, zero_coefficient::T
 ) where {H<:Integer,T}
   for (frequency, coefficients) in source
     for (degree_index, coefficient) in enumerate(coefficients)
@@ -206,11 +190,7 @@ function ck_output_simplex_monomial_primitive(
 
   if iszero(frequency)
     ck_output_simplex_state_accumulate!(
-      result,
-      zero(H),
-      degree + 1,
-      one(imaginary) / (degree + 1),
-      zero_coefficient,
+      result, zero(H), degree + 1, one(imaginary) / (degree + 1), zero_coefficient
     )
     return result
   end
@@ -237,10 +217,7 @@ function ck_output_simplex_monomial_primitive(
 end
 
 function ck_output_simplex_shift_state(
-  state::Dict{H,Vector{T}},
-  frequency::H,
-  degree::Int,
-  zero_coefficient::T,
+  state::Dict{H,Vector{T}}, frequency::H, degree::Int, zero_coefficient::T
 ) where {H<:Integer,T}
   result = Dict{H,Vector{T}}()
   for (state_frequency, coefficients) in state
@@ -267,9 +244,7 @@ function ck_output_simplex_integrate_state(
       primitive = ck_output_simplex_monomial_primitive(
         frequency, degree_index - 1, imaginary
       )
-      ck_output_simplex_state_scale_add!(
-        result, primitive, coefficient, zero_coefficient
-      )
+      ck_output_simplex_state_scale_add!(result, primitive, coefficient, zero_coefficient)
     end
   end
   return result
@@ -293,9 +268,7 @@ function ck_output_simplex_monomial_integral(
   terms = Dict{Int,T}()
   for coefficients in values(state)
     for (degree_index, coefficient) in enumerate(coefficients)
-      ck_output_overlap_accumulate!(
-        terms, degree_index - 1, coefficient, zero_coefficient
-      )
+      ck_output_overlap_accumulate!(terms, degree_index - 1, coefficient, zero_coefficient)
     end
   end
   return CKOutputOverlapPolynomial(terms, zero_coefficient)
@@ -331,10 +304,7 @@ function ck_output_time_overlap(
     period_shift = left_term.period_power + right_term.period_power
     for (period_power, coefficient) in simplex.terms
       ck_output_overlap_accumulate!(
-        overlap_terms,
-        period_shift + period_power,
-        scale * coefficient,
-        zero_coefficient,
+        overlap_terms, period_shift + period_power, scale * coefficient, zero_coefficient
       )
     end
   end
