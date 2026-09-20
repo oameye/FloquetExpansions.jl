@@ -59,7 +59,36 @@ function ck_order6_fixture()
   return (; A1, A2, identity_state, zero_state, operations)
 end
 
-@testset "one-dissipator CK order-six diagnostic" begin
+function ck_order6_inverse_weight(mismatch::Int)
+  iszero(mismatch) && throw(ArgumentError("homological inverse requires nonzero mismatch"))
+  return ck_order6_im * (1 // mismatch)
+end
+
+function ck_order6_endpoint_query(kernel, sidebands::Vector{Int})
+  return FloquetExpansions.ck_endpoint_ordered_sideband_coefficient(
+    kernel, fill(1, length(sidebands)), sidebands; inverse_weight=ck_order6_inverse_weight
+  )
+end
+
+function ck_order6_output_query(polynomial, sidebands::Vector{Int})
+  return FloquetExpansions.ck_output_ordered_sideband_coefficients(
+    polynomial,
+    fill(1, length(sidebands)),
+    sidebands;
+    inverse_weight=ck_order6_inverse_weight,
+  )
+end
+
+function ck_order6_sideband_samples(outputs::Int)
+  outputs == 0 && return [Int[]]
+  outputs == 1 && return [[sideband] for sideband in -3:3]
+  outputs == 2 && return [[left, right] for left in -2:2 for right in -2:2]
+  outputs == 3 &&
+    return [[left, middle, right] for left in -1:1 for middle in -1:1 for right in -1:1]
+  return [zeros(Int, outputs)]
+end
+
+@testset "one-dissipator CK order-six physical gauge boundary" begin
   fixture = ck_order6_fixture()
   order = 6
   recurrence = FloquetExpansions.evaluate_bloch_order_recurrence(
@@ -80,12 +109,29 @@ end
     [fixture.A1, fixture.A2], order, fixture.zero_state
   )
 
-  # #281 certifies these identities only through order five.  The channel
-  # theorem needs the order-six effective coefficient as well as the first
-  # five embedding coefficients, so pin the missing boundary explicitly.
-  @test canonical.log_embedding == hd.generator[1:5]
-  @test canonical.effective[1:5] == hd.effective[1:5]
-  @test canonical.effective[6] == hd.effective[6]
+  # #281 certifies canonical Bloch/Feshbach = direct Hori-Deprit only through
+  # order five.  The connected channel theorem consumes the order-six slow
+  # coefficient as well as the first five embedding coefficients.  Compare
+  # physical ordered-sideband semantics rather than private kernel encoding.
+  for perturbative_order in 1:5
+    for outputs in 0:perturbative_order
+      outputs % 2 == perturbative_order % 2 || continue
+      for sidebands in ck_order6_sideband_samples(outputs)
+        @test ck_order6_endpoint_query(canonical.log_embedding[perturbative_order], sidebands) ==
+          ck_order6_endpoint_query(hd.generator[perturbative_order], sidebands)
+      end
+    end
+  end
+
+  for perturbative_order in 1:6
+    for outputs in 0:perturbative_order
+      outputs % 2 == perturbative_order % 2 || continue
+      for sidebands in ck_order6_sideband_samples(outputs)
+        @test ck_order6_endpoint_query(canonical.effective[perturbative_order], sidebands) ==
+          ck_order6_endpoint_query(hd.effective[perturbative_order], sidebands)
+      end
+    end
+  end
 
   identity_endpoint = FloquetExpansions.ck_endpoint_kernel(fixture.identity_state)
   zero_endpoint = FloquetExpansions.ck_endpoint_kernel(fixture.zero_state)
@@ -103,13 +149,21 @@ end
     identity_endpoint,
     zero_endpoint,
   )
-
-  # A static model-space similarity changes the Floquet representative but
-  # not the reconstructed one-period amplitude when wave and effective
-  # pieces are transformed consistently.
   raw_output = [FloquetExpansions.ck_output_kernel(value) for value in raw_period.amplitude]
   canonical_output = [
     FloquetExpansions.ck_output_kernel(value) for value in canonical_period.amplitude
   ]
-  @test raw_output == canonical_output
+
+  # The static canonical model-space similarity changes the internal endpoint
+  # representation but not the physical one-period amplitude when the wave
+  # and slow generator are transformed together.
+  for perturbative_order in 0:order
+    for outputs in 0:perturbative_order
+      outputs % 2 == perturbative_order % 2 || continue
+      for sidebands in ck_order6_sideband_samples(outputs)
+        @test ck_order6_output_query(raw_output[perturbative_order + 1], sidebands) ==
+          ck_order6_output_query(canonical_output[perturbative_order + 1], sidebands)
+      end
+    end
+  end
 end
