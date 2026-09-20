@@ -31,20 +31,21 @@ function ck_output_constraint_harmonics(
   return result
 end
 
-function ck_output_unique_model_harmonic(model_harmonics::Vector{H}) where {H}
-  isempty(model_harmonics) && return nothing, true
+function ck_output_unique_model_harmonic(model_harmonics::Vector{H}) where {H<:Integer}
+  isempty(model_harmonics) && return zero(H), false, true
   harmonic = first(model_harmonics)
-  all(candidate -> isequal(candidate, harmonic), model_harmonics) || return harmonic, false
-  return harmonic, true
+  consistent = all(candidate -> isequal(candidate, harmonic), model_harmonics)
+  return harmonic, true, consistent
 end
 
 function ck_output_scalar_constraint_weight(
   model_harmonics::Vector{H}, resolvent_harmonics::Vector{H}, imaginary::T
 ) where {H<:Integer,T}
   zero_coefficient = zero(imaginary)
-  model_harmonic, model_consistent = ck_output_unique_model_harmonic(model_harmonics)
+  model_harmonic, model_present, model_consistent =
+    ck_output_unique_model_harmonic(model_harmonics)
   model_consistent || return zero_coefficient, false
-  isnothing(model_harmonic) || iszero(model_harmonic) || return zero_coefficient, false
+  model_present && !iszero(model_harmonic) && return zero_coefficient, false
 
   weight = one(imaginary)
   for harmonic in resolvent_harmonics
@@ -59,10 +60,12 @@ function ck_output_variable_constraint_kernel(
 ) where {H<:Integer,T}
   zero_coefficient = zero(imaginary)
   one_coefficient = one(imaginary)
-  model_harmonic, model_consistent = ck_output_unique_model_harmonic(model_harmonics)
-  model_consistent || return ck_phase_time_kernel(zero(H), zero_coefficient), zero_coefficient, false
+  model_harmonic, model_present, model_consistent =
+    ck_output_unique_model_harmonic(model_harmonics)
+  model_consistent ||
+    return ck_phase_time_kernel(zero(H), zero_coefficient), zero_coefficient, false
 
-  if !isnothing(model_harmonic)
+  if model_present
     scalar = one_coefficient
     for harmonic in resolvent_harmonics
       mismatch = harmonic - model_harmonic
