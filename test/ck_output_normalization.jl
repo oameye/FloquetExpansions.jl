@@ -181,7 +181,8 @@ end
       FloquetExpansions.ck_output_time_overlap(left, right, ck_normalization_im), 0
     ) for left in keys, right in keys
   ]
-  @test gram_right_left == CKNormalizationExact[1 -ck_normalization_im; ck_normalization_im 1]
+  @test gram_right_left ==
+    CKNormalizationExact[1 -ck_normalization_im; ck_normalization_im 1]
   @test gram_right_left[1, 1] * gram_right_left[2, 2] ==
     gram_right_left[1, 2] * gram_right_left[2, 1]
 
@@ -189,11 +190,7 @@ end
     0, vacuum => identity_component, phase => -ck_normalization_im * identity_component
   )
   raw_metric = FloquetExpansions.ck_output_metric_pairing(
-    amplitude,
-    amplitude,
-    ck_normalization_im,
-    zero_component,
-    ck_normalization_metric_pair,
+    amplitude, amplitude, ck_normalization_im, zero_component, ck_normalization_metric_pair
   )
   raw_channel = FloquetExpansions.ck_output_channel_pairing(
     amplitude,
@@ -212,7 +209,7 @@ end
   normalized_amplitude = only(
     FloquetExpansions.ck_output_right_normalize_series(
       [amplitude], normalization, 0, zero_component
-    )
+    ),
   )
   normalized_metric = FloquetExpansions.ck_output_metric_pairing(
     normalized_amplitude,
