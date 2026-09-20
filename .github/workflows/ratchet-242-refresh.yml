@@ -1,0 +1,29 @@
+name: Ratchet 242 Refresh Diagnostic
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - name: Install pinned JETLS
+        run: |
+          julia -e 'using Pkg; Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="6893fcef26708d64360c048e039102c76ad032c0")'
+          echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
+      - name: Instantiate ratchet environment
+        run: julia --project=code_ratchet -e 'using Pkg; Pkg.instantiate()'
+      - name: Refresh measured baselines
+        run: julia --project=code_ratchet -e 'using CodeRatchet; exit(CodeRatchet.main())' all refresh
+      - name: Upload measured baselines
+        uses: actions/upload-artifact@v4
+        with:
+          name: ratchet-242-baselines
+          path: code_ratchet/*_baseline.toml
