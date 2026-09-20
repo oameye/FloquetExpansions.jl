@@ -1,0 +1,17 @@
+name: CK271 Targeted Diagnostic
+
+on:
+  pull_request:
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - name: Instantiate
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.resolve()'
+      - name: Run CK canonical normalization test
+        run: julia --project=. test/ck_canonical_normalization.jl
