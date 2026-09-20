@@ -27,6 +27,12 @@ function CKOutputPairingPolynomial(terms::Dict{Int,T}, zero_component::T) where 
   return CKOutputPairingPolynomial(graded_terms, zero_component)
 end
 
+struct CKOutputPairingOperations{G,S,P}
+  gram_weight::G
+  system_pair::S
+  phase_pair::P
+end
+
 function Base.isequal(left::CKOutputPairingPolynomial, right::CKOutputPairingPolynomial)
   return isequal(left.zero_component, right.zero_component) &&
          isequal(left.terms, right.terms)
@@ -71,9 +77,7 @@ function ck_output_period_pairing(
   right::CKOutputPeriodPolynomial{H,S},
   imaginary::T,
   zero_component::R,
-  gram_weight,
-  system_pair,
-  phase_pair,
+  operations::CKOutputPairingOperations,
 ) where {H<:Integer,S,T,R}
   result = Dict{CKOutputPairingGrade{H},R}()
 
@@ -90,12 +94,14 @@ function ck_output_period_pairing(
       output_number = length(left_key.output_channels)
       inverse_fourier_shift = left_period_power + right_period_power - 2 * output_number
       overlap = ck_output_time_overlap(left_key, right_key, imaginary)
-      paired_system = system_pair(left_value, right_value)
-      phase_harmonic = phase_pair(left_key.phase_harmonic, right_key.phase_harmonic)
+      paired_system = operations.system_pair(left_value, right_value)
+      phase_harmonic = operations.phase_pair(
+        left_key.phase_harmonic, right_key.phase_harmonic
+      )
 
       for (overlap_period_power, overlap_value) in overlap.terms
         total_period_power = inverse_fourier_shift + overlap_period_power
-        value = gram_weight(overlap_value) * paired_system
+        value = operations.gram_weight(overlap_value) * paired_system
         ck_output_pairing_accumulate!(
           result, phase_harmonic, total_period_power, value, zero_component
         )
@@ -112,15 +118,8 @@ function ck_output_channel_pairing(
   zero_component::R,
   channel_pair,
 ) where {H<:Integer,S,T,R}
-  return ck_output_period_pairing(
-    left,
-    right,
-    imaginary,
-    zero_component,
-    identity,
-    channel_pair,
-    ck_output_channel_phase,
-  )
+  operations = CKOutputPairingOperations(identity, channel_pair, ck_output_channel_phase)
+  return ck_output_period_pairing(left, right, imaginary, zero_component, operations)
 end
 
 function ck_output_metric_pairing(
@@ -130,15 +129,8 @@ function ck_output_metric_pairing(
   zero_component::R,
   metric_pair,
 ) where {H<:Integer,S,T,R}
-  return ck_output_period_pairing(
-    left,
-    right,
-    imaginary,
-    zero_component,
-    conj,
-    metric_pair,
-    ck_output_metric_phase,
-  )
+  operations = CKOutputPairingOperations(conj, metric_pair, ck_output_metric_phase)
+  return ck_output_period_pairing(left, right, imaginary, zero_component, operations)
 end
 
 function ck_output_pairing_coefficient(
