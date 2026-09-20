@@ -31,6 +31,7 @@ end
   @test length(output.terms) == 1
   output_key = only(keys(output.terms))
   @test output_key.output_channels == [1, 2]
+  @test output_key.phase_harmonic == 4
   @test output_key.blocks == [FloquetExpansions.CKOutputBlock(0, 3, 0, 2)]
   @test output_key.model_constraints == [FloquetExpansions.CKOutputConstraint(1, 2, 4)]
   @test output_key.resolvent_constraints == [
@@ -64,6 +65,7 @@ end
   output = FloquetExpansions.ck_output_kernel(endpoint)
   output_key = only(keys(output.terms))
 
+  @test output_key.phase_harmonic == 1
   @test output_key.blocks == [FloquetExpansions.CKOutputBlock(0, 2, 0, 1)]
   @test output_key.model_constraints == [FloquetExpansions.CKOutputConstraint(1, 1, 1)]
   @test output_key.resolvent_constraints == [FloquetExpansions.CKOutputConstraint(1, 0, 2)]
@@ -96,6 +98,7 @@ end
   output = FloquetExpansions.ck_output_kernel(endpoint)
   output_key = only(keys(output.terms))
 
+  @test output_key.phase_harmonic == 3
   @test output_key.blocks == [
     FloquetExpansions.CKOutputBlock(0, 1, 0, 1), FloquetExpansions.CKOutputBlock(1, 2, 1, 2)
   ]
