@@ -16,9 +16,7 @@ function ck_output_period_add!(
   for (period_index, source_kernel) in enumerate(source.coefficients)
     target_kernel = target.coefficients[period_index]
     for (key, value) in source_kernel.terms
-      ck_output_accumulate!(
-        target_kernel.terms, key, value, target_kernel.zero_component
-      )
+      ck_output_accumulate!(target_kernel.terms, key, value, target_kernel.zero_component)
     end
   end
   return target
@@ -29,20 +27,25 @@ function ck_output_period_right_product(
   factor::CKOutputPairingPolynomial{T},
   zero_component::T,
 ) where {H,T}
-  isempty(amplitude.coefficients) && throw(ArgumentError("amplitude polynomial must not be empty"))
+  isempty(amplitude.coefficients) &&
+    throw(ArgumentError("amplitude polynomial must not be empty"))
   isempty(factor.terms) && return ck_output_period_zero(zero(H), zero_component)
   max_factor_power = maximum(keys(factor.terms))
-  max_factor_power >= 0 || throw(ArgumentError("normalization contains a negative period power"))
+  max_factor_power >= 0 ||
+    throw(ArgumentError("normalization contains a negative period power"))
   max_period_power = length(amplitude.coefficients) - 1 + max_factor_power
   coefficients = CKOutputKernel{H,T}[
-    CKOutputKernel(Dict{CKOutputKernelKey{H},T}(), zero_component) for _ in 0:max_period_power
+    CKOutputKernel(Dict{CKOutputKernelKey{H},T}(), zero_component) for
+    _ in 0:max_period_power
   ]
 
   for (amplitude_index, amplitude_kernel) in enumerate(amplitude.coefficients)
     amplitude_power = amplitude_index - 1
     for (key, amplitude_value) in amplitude_kernel.terms,
       (factor_power, factor_value) in factor.terms
-      factor_power >= 0 || throw(ArgumentError("normalization contains a negative period power"))
+
+      factor_power >= 0 ||
+        throw(ArgumentError("normalization contains a negative period power"))
       target = coefficients[amplitude_power + factor_power + 1]
       ck_output_accumulate!(
         target.terms, key, amplitude_value * factor_value, zero_component
