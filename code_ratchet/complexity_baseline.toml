@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "c36bf60"
+commit = "2529e98"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -31,6 +31,17 @@ cyc_sum = 34
 cog_sum = 51
 arg_sum = 22
 
+[files."src/ck_canonical_normalization.jl"]
+cyc = 6
+cog = 8
+arg = 5
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 34
+cog_sum = 32
+arg_sum = 30
+
 [files."src/ck_output_kernel.jl"]
 cyc = 10
 cog = 15
@@ -38,20 +49,20 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 65
-cog_sum = 46
-arg_sum = 47
+cyc_sum = 69
+cog_sum = 48
+arg_sum = 53
 
 [files."src/ck_output_normalization.jl"]
-cyc = 10
-cog = 12
+cyc = 6
+cog = 6
 arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 24
+cyc_sum = 28
 cog_sum = 21
-arg_sum = 20
+arg_sum = 32
 
 [files."src/ck_output_overlap.jl"]
 cyc = 6
@@ -67,24 +78,24 @@ arg_sum = 48
 [files."src/ck_output_pairing.jl"]
 cyc = 5
 cog = 7
-arg = 6
+arg = 5
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 15
-cog_sum = 11
-arg_sum = 27
+cyc_sum = 34
+cog_sum = 24
+arg_sum = 48
 
 [files."src/ck_output_pairing_series.jl"]
 cyc = 6
 cog = 6
-arg = 6
+arg = 5
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 14
-cog_sum = 9
-arg_sum = 21
+cyc_sum = 15
+cog_sum = 10
+arg_sum = 22
 
 [files."src/ck_output_right_normalization.jl"]
 cyc = 7

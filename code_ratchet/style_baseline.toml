@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "c36bf60"
+commit = "2529e98"
 metric = "style"
 rules = ["implicit_kwarg", "underscore_name"]
 binding = ["underscore_name", "implicit_kwarg"]
@@ -13,6 +13,10 @@ underscore_name = 0
 implicit_kwarg = 0
 
 [files."src/bloch_projection.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/ck_canonical_normalization.jl"]
 underscore_name = 0
 implicit_kwarg = 0
 

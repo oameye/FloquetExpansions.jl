@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "c36bf60"
+commit = "2529e98"
 entry = ["src/FloquetExpansions.jl"]
 full_analysis = true
 metric = "lsp"
@@ -20,13 +20,17 @@ reviewed = 0
 raw = 0
 reviewed = 0
 
+[files."src/ck_canonical_normalization.jl"]
+raw = 0
+reviewed = 0
+
 [files."src/ck_output_kernel.jl"]
-raw = 1
-reviewed = 1
+raw = 0
+reviewed = 0
 
 [files."src/ck_output_normalization.jl"]
-raw = 1
-reviewed = 1
+raw = 0
+reviewed = 0
 
 [files."src/ck_output_overlap.jl"]
 raw = 0
