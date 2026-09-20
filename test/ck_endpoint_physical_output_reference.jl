@@ -47,8 +47,8 @@ function ck_endpoint_output_select_channels(polynomial, output_channels)
   coefficients = [
     FloquetExpansions.CKOutputKernel(
       Dict(
-        key => value for (key, value) in coefficient.terms if
-        key.output_channels == output_channels
+        key => value for
+        (key, value) in coefficient.terms if key.output_channels == output_channels
       ),
       coefficient.zero_component,
     ) for coefficient in polynomial.coefficients
