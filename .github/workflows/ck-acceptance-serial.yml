@@ -1,0 +1,53 @@
+name: CK Acceptance Serial Diagnostic
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v3
+      - name: Instantiate
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Run acceptance files
+        id: acceptance
+        continue-on-error: true
+        shell: bash
+        run: |
+          status=0
+          for test in \
+            ck_output_pairing \
+            ck_output_normalization \
+            ck_endpoint_physical_output_reference \
+            ck_mixed_qr_production_reference \
+            ck_gram_factorization_production_reference \
+            ck_rotating_jump_normalization \
+            ck_static_triangle_production_reference \
+            ck_output_kernel
+          do
+            echo "===== ${test} ====="
+            if julia --project=. -e "include(\"test/${test}.jl\")" > "${test}.log" 2>&1; then
+              echo "PASS ${test}"
+            else
+              echo "FAIL ${test}"
+              status=1
+            fi
+            cat "${test}.log"
+          done
+          exit ${status}
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ck-acceptance-serial-logs
+          path: '*.log'
+      - name: Propagate failure
+        if: steps.acceptance.outcome == 'failure'
+        run: exit 1
