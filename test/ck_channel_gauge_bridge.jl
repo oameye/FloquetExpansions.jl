@@ -49,49 +49,44 @@ function ck_channel_gauge_fixture()
   return (; hamiltonian, jumps, A1, A2, identity_state, zero_state, operations)
 end
 
-function ck_channel_gauge_hd_period_amplitudes(hd, identity_state, zero_state, order::Int)
+function ck_channel_gauge_hd_slow_amplitudes(hd, identity_state, zero_state, order::Int)
   zero_endpoint = FloquetExpansions.ck_endpoint_kernel(zero_state)
   identity_endpoint = FloquetExpansions.ck_endpoint_kernel(identity_state)
   zero_period = FloquetExpansions.ck_period_zero(zero_endpoint)
   identity_period = FloquetExpansions.ck_period_constant(identity_endpoint)
 
-  generator_series = [zero_period for _ in 0:order]
-  for n in 1:order
-    generator_series[n + 1] = FloquetExpansions.ck_period_constant(hd.generator[n])
-  end
-  endpoint_wave = FloquetExpansions.ck_zero_constant_series_exponential(
-    generator_series, order, identity_period, zero_period
-  )
-  endpoint_wave_inverse = FloquetExpansions.ck_unit_series_inverse(
-    endpoint_wave, order, identity_period, zero_period
-  )
-
   slow_generator = [zero_period for _ in 0:order]
   for n in 1:order
     slow_generator[n + 1] = FloquetExpansions.ck_period_monomial(hd.effective[n], 1)
   end
-  slow_propagator = FloquetExpansions.ck_zero_constant_series_exponential(
+  return FloquetExpansions.ck_zero_constant_series_exponential(
     slow_generator, order, identity_period, zero_period
-  )
-  dressed_left = FloquetExpansions.ck_truncated_series_product(
-    endpoint_wave, slow_propagator, order, zero_period
-  )
-  return FloquetExpansions.ck_truncated_series_product(
-    dressed_left, endpoint_wave_inverse, order, zero_period
   )
 end
 
-function ck_channel_gauge_output_amplitudes(amplitudes)
-  return [FloquetExpansions.ck_output_kernel(amplitude) for amplitude in amplitudes]
+function ck_channel_gauge_one_output(amplitude)
+  output = FloquetExpansions.ck_output_kernel(amplitude)
+  coefficients = typeof(output.coefficients)(undef, length(output.coefficients))
+  for index in eachindex(output.coefficients)
+    kernel = output.coefficients[index]
+    terms = Dict(
+      key => value for (key, value) in kernel.terms if length(key.output_channels) == 1
+    )
+    coefficients[index] = FloquetExpansions.CKOutputKernel(terms, kernel.zero_component)
+  end
+  return FloquetExpansions.CKOutputPeriodPolynomial(coefficients)
+end
+
+function ck_channel_gauge_one_output_series(amplitudes)
+  return [ck_channel_gauge_one_output(amplitude) for amplitude in amplitudes]
 end
 
 ck_channel_gauge_pair(left, right) = kron(conj(right), left)
 
 function ck_channel_gauge_channel_series(amplitudes, order::Int)
-  output_amplitudes = ck_channel_gauge_output_amplitudes(amplitudes)
   zero_channel = zeros(CKChannelGaugeExact, 4, 4)
   return FloquetExpansions.ck_output_channel_series(
-    output_amplitudes,
+    ck_channel_gauge_one_output_series(amplitudes),
     order,
     ck_channel_gauge_im,
     zero_channel,
@@ -99,13 +94,14 @@ function ck_channel_gauge_channel_series(amplitudes, order::Int)
   )
 end
 
-@testset "canonical BF and direct HD agree after exact physical channel pasting" begin
+@testset "canonical BF and direct HD agree after one-dissipator physical pasting" begin
   fixture = ck_channel_gauge_fixture()
-  order = 5
+  amplitude_order = 5
+  channel_order = 6
 
   recurrence = FloquetExpansions.evaluate_bloch_order_recurrence(
     [fixture.A1, fixture.A2],
-    order,
+    amplitude_order,
     fixture.identity_state,
     fixture.zero_state,
     fixture.operations,
@@ -113,28 +109,31 @@ end
   canonical = FloquetExpansions.evaluate_ck_canonical_normalization(
     recurrence.effective,
     recurrence.wave,
-    order,
+    amplitude_order,
     fixture.identity_state,
     fixture.zero_state,
   )
   bf_period = FloquetExpansions.evaluate_ck_period_amplitude(
     canonical.effective,
     canonical.wave,
-    order,
+    amplitude_order,
     fixture.identity_state,
     fixture.zero_state,
   )
 
   hd = FloquetExpansions.evaluate_ck_hori_deprit(
-    [fixture.A1, fixture.A2], order, fixture.zero_state
+    [fixture.A1, fixture.A2], amplitude_order, fixture.zero_state
   )
-  hd_amplitudes = ck_channel_gauge_hd_period_amplitudes(
-    hd, fixture.identity_state, fixture.zero_state, order
+  hd_slow = ck_channel_gauge_hd_slow_amplitudes(
+    hd, fixture.identity_state, fixture.zero_state, amplitude_order
   )
 
-  bf_channel = ck_channel_gauge_channel_series(bf_period.amplitude, order)
-  hd_channel = ck_channel_gauge_channel_series(hd_amplitudes, order)
+  bf_channel = ck_channel_gauge_channel_series(bf_period.slow_propagator, channel_order)
+  hd_channel = ck_channel_gauge_channel_series(hd_slow, channel_order)
 
   @test bf_channel.coefficients == hd_channel.coefficients
-  @test any(!isempty(coefficient.terms) for coefficient in bf_channel.coefficients[2:end])
+  @test isempty(bf_channel.coefficients[1].terms)
+  @test isempty(bf_channel.coefficients[2].terms)
+  @test !isempty(bf_channel.coefficients[3].terms)
+  @test !isempty(bf_channel.coefficients[7].terms)
 end
