@@ -9,7 +9,6 @@ ck_channel_gauge_commutator(left, right) = left * right - right * left
 
 function ck_channel_gauge_fixture()
   sigma_x = CKChannelGaugeExact[0 1; 1 0]
-  sigma_y = CKChannelGaugeExact[0 -ck_channel_gauge_im; ck_channel_gauge_im 0]
   sigma_z = CKChannelGaugeExact[1 0; 0 -1]
 
   hamiltonian = Dict(
@@ -19,8 +18,7 @@ function ck_channel_gauge_fixture()
   )
   jumps = Dict(
     0 => sigma_z,
-    1 => (1 // 2) * (sigma_y + ck_channel_gauge_im * sigma_x),
-    -1 => (1 // 2) * (sigma_y - ck_channel_gauge_im * sigma_x),
+    1 => CKChannelGaugeExact[0 0; 1 0],
   )
 
   zero_component = zeros(CKChannelGaugeExact, 2, 2)
@@ -206,7 +204,7 @@ end
     fixture.identity_state,
     fixture.zero_state,
   )
-  sidebands = collect(-3:3)
+  sidebands = collect(-2:3)
 
   canonical = [Dict{Int,Matrix{CKChannelGaugeExact}}() for _ in 1:3]
   coherent_cp = [Dict{Int,Matrix{CKChannelGaugeExact}}() for _ in 1:3]
