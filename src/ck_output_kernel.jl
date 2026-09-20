@@ -274,10 +274,10 @@ function ck_output_kernel_complete(key::CKOutputKernelKey)
   isempty(key.output_channels) && return true
   constrained = falses(length(key.output_channels))
   for constraint in key.model_constraints
-    constrained[constraint.output_stop] = true
+    iszero(constraint.output_stop) || (constrained[constraint.output_stop] = true)
   end
   for constraint in key.resolvent_constraints
-    constrained[constraint.output_stop] = true
+    iszero(constraint.output_stop) || (constrained[constraint.output_stop] = true)
   end
   return all(constrained)
 end
