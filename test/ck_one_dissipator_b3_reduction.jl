@@ -10,11 +10,7 @@ function ck_b3_reduction_fixture()
   H1 = CKB3ReductionExact[1 2 - ck_b3_reduction_im; -1 1 + ck_b3_reduction_im]
   H2 = CKB3ReductionExact[ck_b3_reduction_im 1; 2 -1]
   hamiltonian = Dict(
-    0 => H0,
-    1 => H1,
-    -1 => Matrix(adjoint(H1)),
-    2 => H2,
-    -2 => Matrix(adjoint(H2)),
+    0 => H0, 1 => H1, -1 => Matrix(adjoint(H1)), 2 => H2, -2 => Matrix(adjoint(H2))
   )
 
   jumps = Dict(
@@ -27,8 +23,7 @@ function ck_b3_reduction_fixture()
   identity_component = Matrix{CKB3ReductionExact}(I, 2, 2)
   A1 = FloquetExpansions.ck_kernel_generator(
     Dict(
-      FloquetExpansions.ck_jump_vertex(1, harmonic) => value for
-      (harmonic, value) in jumps
+      FloquetExpansions.ck_jump_vertex(1, harmonic) => value for (harmonic, value) in jumps
     ),
     zero_component,
   )
@@ -68,23 +63,19 @@ end
 
 function ck_b3_reduction_query(kernel, output_sideband::Int)
   return FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
-    kernel,
-    [1],
-    [output_sideband];
-    inverse_weight=ck_b3_reduction_inverse_weight,
+    kernel, [1], [output_sideband]; inverse_weight=ck_b3_reduction_inverse_weight
   )
 end
 
 function ck_b3_reduction_vacuum_query(kernel)
   return FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
-    kernel,
-    Int[],
-    Int[];
-    inverse_weight=ck_b3_reduction_inverse_weight,
+    kernel, Int[], Int[]; inverse_weight=ck_b3_reduction_inverse_weight
   )
 end
 
-function ck_b3_reduction_transport_reference(hamiltonian, jumps, output_sideband, zero_component)
+function ck_b3_reduction_transport_reference(
+  hamiltonian, jumps, output_sideband, zero_component
+)
   result = copy(zero_component)
   for (harmonic, Hh) in hamiltonian
     iszero(harmonic) && continue
@@ -129,8 +120,7 @@ end
   end
 
   # In the strict one-dissipator/Born slice A2=-iH, the zero-output slow block is -iH0.
-  @test ck_b3_reduction_vacuum_query(B2) ==
-    -ck_b3_reduction_im * fixture.hamiltonian[0]
+  @test ck_b3_reduction_vacuum_query(B2) == -ck_b3_reduction_im * fixture.hamiltonian[0]
 
   # The two BF folds cannot return the one-output complement branch to the model space.
   fold_x1_b2 = FloquetExpansions.ck_kernel_project_model(
@@ -172,7 +162,9 @@ end
   @test recurrence4.wave[1] == recurrence3.wave[1]
   @test recurrence4.wave[2] == recurrence3.wave[2]
 
-  grades = sort!(unique(FloquetExpansions.ck_kernel_output_number(key) for key in keys(B3.terms)))
+  grades = sort!(
+    unique(FloquetExpansions.ck_kernel_output_number(key) for key in keys(B3.terms))
+  )
   @test 1 in grades
   @test all(grade in (1, 3) for grade in grades)
 end
