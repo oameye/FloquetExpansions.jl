@@ -19,8 +19,9 @@ function ck_canonical_endpoint_query(kernel, sidebands::Vector{Int})
   )
 end
 
-ck_canonical_zero_sideband_query(kernel, outputs::Int) =
-  ck_canonical_endpoint_query(kernel, zeros(Int, outputs))
+function ck_canonical_zero_sideband_query(kernel, outputs::Int)
+  return ck_canonical_endpoint_query(kernel, zeros(Int, outputs))
+end
 
 function ck_canonical_grades(kernel)
   return sort!(
@@ -62,7 +63,7 @@ function ck_canonical_fixture()
     FloquetExpansions.ck_kernel_project_model,
     FloquetExpansions.ck_kernel_solve_complement,
   )
-  return (; A1, A2, identity_state, zero_state, zero_component)
+  return (; A1, A2, identity_state, zero_state, zero_component, operations)
 end
 
 struct CKCanonicalReference{T}
@@ -163,7 +164,9 @@ function ck_reference_series_ad(
   return result
 end
 
-function ck_reference_hori_deprit(amplitude_orders::Vector{P}, order::Int) where {P<:CKCanonicalReference}
+function ck_reference_hori_deprit(
+  amplitude_orders::Vector{P}, order::Int
+) where {P<:CKCanonicalReference}
   template = first(amplitude_orders)
   amplitude = P[zero(template) for _ in 1:order]
   for r in 1:min(order, length(amplitude_orders))
@@ -218,15 +221,14 @@ end
 @testset "CK endpoint canonical algebra preserves block-local complement constraints" begin
   qplus_physical = FloquetExpansions.ck_kernel_solve_complement(
     FloquetExpansions.ck_kernel_generator(
-      Dict(FloquetExpansions.ck_drift_vertex(1) => CKCanonicalExact(1)),
-      CKCanonicalExact(0),
-    )
+      Dict(FloquetExpansions.ck_drift_vertex(1) => CKCanonicalExact(1)), CKCanonicalExact(0)
+    ),
   )
   qminus_physical = FloquetExpansions.ck_kernel_solve_complement(
     FloquetExpansions.ck_kernel_generator(
       Dict(FloquetExpansions.ck_drift_vertex(-1) => CKCanonicalExact(1)),
       CKCanonicalExact(0),
-    )
+    ),
   )
   qplus = FloquetExpansions.ck_endpoint_kernel(qplus_physical)
   qminus = FloquetExpansions.ck_endpoint_kernel(qminus_physical)
@@ -236,9 +238,8 @@ end
   @test isempty(FloquetExpansions.ck_kernel_product(qplus_physical, qminus_physical).terms)
   @test length(projected.terms) == 1
   key = first(keys(projected.terms))
-  @test key.vertices == [
-    FloquetExpansions.ck_drift_vertex(-1), FloquetExpansions.ck_drift_vertex(1)
-  ]
+  @test key.vertices ==
+    [FloquetExpansions.ck_drift_vertex(-1), FloquetExpansions.ck_drift_vertex(1)]
   @test key.resolvent_intervals == [
     FloquetExpansions.CKEndpointConstraint(0, 1),
     FloquetExpansions.CKEndpointConstraint(1, 2),
@@ -263,11 +264,7 @@ end
     fixture.operations,
   )
   canonical = FloquetExpansions.evaluate_ck_canonical_normalization(
-    recurrence.effective,
-    recurrence.wave,
-    5,
-    fixture.identity_state,
-    fixture.zero_state,
+    recurrence.effective, recurrence.wave, 5, fixture.identity_state, fixture.zero_state
   )
 
   @test isempty(canonical.static_factor[1].terms)
@@ -290,11 +287,8 @@ end
   for sideband in -4:4
     @test ck_canonical_endpoint_query(canonical.effective[3], [sideband]) ==
       FloquetExpansions.ck_kernel_ordered_sideband_coefficient(
-        recurrence.effective[3],
-        [1],
-        [sideband];
-        inverse_weight=ck_canonical_inverse_weight,
-      )
+      recurrence.effective[3], [1], [sideband]; inverse_weight=ck_canonical_inverse_weight
+    )
   end
 
   zero_endpoint = FloquetExpansions.ck_endpoint_kernel(fixture.zero_state)
@@ -313,11 +307,7 @@ end
     fixture.operations,
   )
   canonical = FloquetExpansions.evaluate_ck_canonical_normalization(
-    recurrence.effective,
-    recurrence.wave,
-    5,
-    fixture.identity_state,
-    fixture.zero_state,
+    recurrence.effective, recurrence.wave, 5, fixture.identity_state, fixture.zero_state
   )
   reference = ck_canonical_reference_fixture()
 
@@ -366,18 +356,10 @@ end
     fixture.operations,
   )
   canonical4 = FloquetExpansions.evaluate_ck_canonical_normalization(
-    recurrence4.effective,
-    recurrence4.wave,
-    4,
-    fixture.identity_state,
-    fixture.zero_state,
+    recurrence4.effective, recurrence4.wave, 4, fixture.identity_state, fixture.zero_state
   )
   canonical5 = FloquetExpansions.evaluate_ck_canonical_normalization(
-    recurrence5.effective,
-    recurrence5.wave,
-    5,
-    fixture.identity_state,
-    fixture.zero_state,
+    recurrence5.effective, recurrence5.wave, 5, fixture.identity_state, fixture.zero_state
   )
 
   @test canonical5.static_factor[1:3] == canonical4.static_factor
@@ -386,11 +368,7 @@ end
   @test canonical5.effective[1:4] == canonical4.effective
 
   raw_period = FloquetExpansions.evaluate_ck_period_amplitude(
-    recurrence4.effective,
-    recurrence4.wave,
-    4,
-    fixture.identity_state,
-    fixture.zero_state,
+    recurrence4.effective, recurrence4.wave, 4, fixture.identity_state, fixture.zero_state
   )
   endpoint_period = FloquetExpansions.evaluate_ck_period_amplitude(
     [FloquetExpansions.ck_endpoint_kernel(value) for value in recurrence4.effective],

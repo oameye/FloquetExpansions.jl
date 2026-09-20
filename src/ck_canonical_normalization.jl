@@ -150,10 +150,12 @@ function evaluate_ck_endpoint_canonical_normalization(
     throw(ArgumentError("identity and zero endpoint states must share one component type"))
 
   canonical_order = order - 1
-  static_factor, normalized_wave, log_embedding, normalization_products =
-    ck_endpoint_canonical_factor(wave, canonical_order, zero_state)
-  inverse_static_factor, inverse_products =
-    ck_endpoint_inverse_static_factor(static_factor, zero_state)
+  static_factor, normalized_wave, log_embedding, normalization_products = ck_endpoint_canonical_factor(
+    wave, canonical_order, zero_state
+  )
+  inverse_static_factor, inverse_products = ck_endpoint_inverse_static_factor(
+    static_factor, zero_state
+  )
   canonical_effective, similarity_products = ck_endpoint_canonical_similarity(
     effective, static_factor, inverse_static_factor, order, zero_state
   )
