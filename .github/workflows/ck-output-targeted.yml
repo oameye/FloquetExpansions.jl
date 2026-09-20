@@ -1,0 +1,29 @@
+name: CK Output Targeted
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1.10', '1']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia-version }}
+      - uses: julia-actions/cache@v3
+      - name: Instantiate
+        run: julia --project -e 'using Pkg; Pkg.instantiate()'
+      - name: Run cumulative-output tests
+        run: |
+          julia --project test/ck_output_kernel.jl
+          julia --project test/ck_endpoint_physical_output_reference.jl
