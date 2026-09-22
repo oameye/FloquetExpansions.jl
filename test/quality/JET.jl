@@ -7,6 +7,33 @@ using Symbolics: @variables
   JET.test_package(FloquetExpansions; target_modules=(FloquetExpansions,))
 end
 
+@testset "expansion algorithm optimizer stability" begin
+  pauli = PauliSpace(:jet_expansion_algorithm)
+  σx = Pauli(pauli, :sigma, 1)
+  σz = Pauli(pauli, :sigma, 3)
+  @variables ω_bf::Real
+  generator = PeriodicGenerator(Dict(0 => 1 * σz, 1 => 1 * σx, -1 => 1 * σx), ω_bf)
+
+  JET.@test_opt target_modules=(FloquetExpansions,) floquet_expansion(
+    generator, VanVleck(), 3
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) floquet_expansion(
+    generator, VanVleck(; algorithm=BlochFeshbach()), 3
+  )
+
+  liouvillian_generator = PeriodicGenerator(
+    Dict(
+      0 => hamiltonian_action(σz),
+      1 => dissipator(σx),
+      -1 => hamiltonian_action(σx),
+    ),
+    ω_bf,
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) floquet_expansion(
+    liouvillian_generator, VanVleck(; algorithm=BlochFeshbach()), 2
+  )
+end
+
 @testset "completion optimizer stability" begin
   fock = FockSpace(:jet_completion_fock)
   a = Destroy(fock, :a)
