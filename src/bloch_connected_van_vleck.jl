@@ -49,7 +49,11 @@ struct BlochConnectedVanVleckResult{H,T}
   counts::BlochVanVleckCounts
 end
 
-function bloch_word_accumulate!(terms::Dict{Tuple,C}, word::Tuple, coefficient) where {C}
+const BlochWord = Vector
+
+function bloch_word_accumulate!(
+  terms::Dict{BlochWord{H},C}, word::BlochWord{H}, coefficient
+) where {H,C}
   value = get(terms, word, zero(C)) + convert(C, coefficient)
   if iszero(value)
     haskey(terms, word) && delete!(terms, word)
@@ -59,27 +63,29 @@ function bloch_word_accumulate!(terms::Dict{Tuple,C}, word::Tuple, coefficient) 
   return terms
 end
 
-function bloch_word_terms!(embedding::Dict{H,Dict{Tuple,C}}, harmonic::H) where {H,C}
+function bloch_word_terms!(embedding::Dict{H,Dict{BlochWord{H},C}}, harmonic::H) where {H,C}
   return get!(embedding, harmonic) do
-    return Dict{Tuple,C}()
+    return Dict{BlochWord{H},C}()
   end
 end
 
 function bloch_word_add_terms!(
-  destination::Dict{Tuple,C}, source::Dict{Tuple,C}, weight::C=one(C)
-) where {C}
+  destination::Dict{BlochWord{H},C}, source::Dict{BlochWord{H},C}, weight::C=one(C)
+) where {H,C}
   for (word, coefficient) in source
     bloch_word_accumulate!(destination, word, weight * coefficient)
   end
   return destination
 end
 
-function bloch_word_copy_embedding(embedding::Dict{H,Dict{Tuple,C}}) where {H,C}
+function bloch_word_copy_embedding(embedding::Dict{H,Dict{BlochWord{H},C}}) where {H,C}
   return Dict(harmonic => copy(terms) for (harmonic, terms) in embedding)
 end
 
 function bloch_word_add_embedding!(
-  destination::Dict{H,Dict{Tuple,C}}, source::Dict{H,Dict{Tuple,C}}, weight::C=one(C)
+  destination::Dict{H,Dict{BlochWord{H},C}},
+  source::Dict{H,Dict{BlochWord{H},C}},
+  weight::C=one(C),
 ) where {H,C}
   for (harmonic, terms) in source
     bloch_word_add_terms!(bloch_word_terms!(destination, harmonic), terms, weight)
@@ -88,16 +94,16 @@ function bloch_word_add_embedding!(
 end
 
 function bloch_word_periodic_product(
-  left::Dict{H,Dict{Tuple,C}}, right::Dict{H,Dict{Tuple,C}}
+  left::Dict{H,Dict{BlochWord{H},C}}, right::Dict{H,Dict{BlochWord{H},C}}
 ) where {H,C}
-  result = Dict{H,Dict{Tuple,C}}()
+  result = Dict{H,Dict{BlochWord{H},C}}()
   for (left_harmonic, left_terms) in left, (right_harmonic, right_terms) in right
     output = bloch_word_terms!(result, left_harmonic + right_harmonic)
     for (left_word, left_coefficient) in left_terms,
       (right_word, right_coefficient) in right_terms
 
       bloch_word_accumulate!(
-        output, (left_word..., right_word...), left_coefficient * right_coefficient
+        output, vcat(left_word, right_word), left_coefficient * right_coefficient
       )
     end
   end
@@ -105,18 +111,16 @@ function bloch_word_periodic_product(
 end
 
 function bloch_word_right_static_product(
-  periodic::Dict{H,Dict{Tuple,C}}, static::Dict{Tuple,C}
+  periodic::Dict{H,Dict{BlochWord{H},C}}, static::Dict{BlochWord{H},C}
 ) where {H,C}
-  result = Dict{H,Dict{Tuple,C}}()
+  result = Dict{H,Dict{BlochWord{H},C}}()
   for (harmonic, periodic_terms) in periodic
     output = bloch_word_terms!(result, harmonic)
     for (periodic_word, periodic_coefficient) in periodic_terms,
       (static_word, static_coefficient) in static
 
       bloch_word_accumulate!(
-        output,
-        (periodic_word..., static_word...),
-        periodic_coefficient * static_coefficient,
+        output, vcat(periodic_word, static_word), periodic_coefficient * static_coefficient
       )
     end
   end
@@ -124,7 +128,7 @@ function bloch_word_right_static_product(
 end
 
 function bloch_word_scale_embedding!(
-  embedding::Dict{H,Dict{Tuple,C}}, weight::C
+  embedding::Dict{H,Dict{BlochWord{H},C}}, weight::C
 ) where {H,C}
   for terms in values(embedding)
     for word in collect(keys(terms))
@@ -148,30 +152,32 @@ function bloch_compile_connected_log_words(
 
   C = Rational{Int}
   one_coefficient = one(C)
-  effective = Vector{Dict{Tuple,C}}()
-  B0 = Dict{Tuple,C}()
+  effective = Vector{Dict{BlochWord{H},C}}()
+  B0 = Dict{BlochWord{H},C}()
   if zero_harmonic in support
-    B0[(zero_harmonic,)] = one_coefficient
+    B0[H[zero_harmonic]] = one_coefficient
   end
   push!(effective, B0)
 
-  wave = Vector{Dict{H,Dict{Tuple,C}}}()
+  wave = Vector{Dict{H,Dict{BlochWord{H},C}}}()
   if order > 1
-    X1 = Dict{H,Dict{Tuple,C}}()
+    X1 = Dict{H,Dict{BlochWord{H},C}}()
     for harmonic in support
       harmonic == zero_harmonic && continue
-      bloch_word_terms!(X1, harmonic)[(harmonic,)] = 1 // harmonic
+      bloch_word_terms!(X1, harmonic)[H[harmonic]] = 1 // harmonic
     end
     push!(wave, X1)
   end
 
   for n in 1:(order - 1)
-    residual = Dict{H,Dict{Tuple,C}}()
+    residual = Dict{H,Dict{BlochWord{H},C}}()
 
     for generator_harmonic in support, (wave_harmonic, wave_terms) in wave[n]
       output = bloch_word_terms!(residual, generator_harmonic + wave_harmonic)
       for (wave_word, wave_coefficient) in wave_terms
-        bloch_word_accumulate!(output, (generator_harmonic, wave_word...), wave_coefficient)
+        bloch_word_accumulate!(
+          output, vcat(H[generator_harmonic], wave_word), wave_coefficient
+        )
       end
     end
 
@@ -186,17 +192,17 @@ function bloch_compile_connected_log_words(
 
           bloch_word_accumulate!(
             output,
-            (wave_word..., effective_word...),
+            vcat(wave_word, effective_word),
             -wave_coefficient * effective_coefficient,
           )
         end
       end
     end
 
-    push!(effective, copy(get(residual, zero_harmonic, Dict{Tuple,C}())))
+    push!(effective, copy(get(residual, zero_harmonic, Dict{BlochWord{H},C}())))
 
     if n < order - 1
-      Xnext = Dict{H,Dict{Tuple,C}}()
+      Xnext = Dict{H,Dict{BlochWord{H},C}}()
       for (harmonic, residual_terms) in residual
         harmonic == zero_harmonic && continue
         output = bloch_word_terms!(Xnext, harmonic)
@@ -210,11 +216,11 @@ function bloch_compile_connected_log_words(
   end
 
   canonical_order = order - 1
-  static_factor = Dict{Tuple,C}[Dict(() => one_coefficient)]
-  normalized = Vector{Dict{H,Dict{Tuple,C}}}()
-  log_embedding = Vector{Dict{H,Dict{Tuple,C}}}()
+  static_factor = Dict{BlochWord{H},C}[Dict{BlochWord{H},C}(H[] => one_coefficient)]
+  normalized = Vector{Dict{H,Dict{BlochWord{H},C}}}()
+  log_embedding = Vector{Dict{H,Dict{BlochWord{H},C}}}()
   powers = [
-    [Dict{H,Dict{Tuple,C}}() for _ in 1:max(canonical_order, 1)] for
+    [Dict{H,Dict{BlochWord{H},C}}() for _ in 1:max(canonical_order, 1)] for
     _ in 1:max(canonical_order, 1)
   ]
 
@@ -225,9 +231,9 @@ function bloch_compile_connected_log_words(
       bloch_word_add_embedding!(prefactor, correction)
     end
 
-    nonlinear_log = Dict{H,Dict{Tuple,C}}()
+    nonlinear_log = Dict{H,Dict{BlochWord{H},C}}()
     for power in 2:n
-      power_coefficient = Dict{H,Dict{Tuple,C}}()
+      power_coefficient = Dict{H,Dict{BlochWord{H},C}}()
       for k in 1:(n - power + 1)
         contribution = bloch_word_periodic_product(normalized[k], powers[power - 1][n - k])
         bloch_word_add_embedding!(power_coefficient, contribution)
@@ -241,8 +247,8 @@ function bloch_compile_connected_log_words(
 
     candidate = bloch_word_copy_embedding(prefactor)
     bloch_word_add_embedding!(candidate, nonlinear_log)
-    static_n = Dict{Tuple,C}()
-    for (word, coefficient) in get(candidate, zero_harmonic, Dict{Tuple,C}())
+    static_n = Dict{BlochWord{H},C}()
+    for (word, coefficient) in get(candidate, zero_harmonic, Dict{BlochWord{H},C}())
       bloch_word_accumulate!(static_n, word, -coefficient)
     end
     push!(static_factor, static_n)
@@ -260,12 +266,21 @@ function bloch_compile_connected_log_words(
   return log_embedding
 end
 
-function bloch_is_lyndon_word(word::Tuple)
-  isempty(word) && return false
-  return all(isless(word, word[index:end]) === true for index in 2:length(word))
+function bloch_word_isless(left::BlochWord{H}, right::BlochWord{H}) where {H}
+  common = min(length(left), length(right))
+  for index in 1:common
+    isequal(left[index], right[index]) && continue
+    return isless(left[index], right[index]) === true
+  end
+  return length(left) < length(right)
 end
 
-function bloch_lyndon_standard_factorization(word::Tuple)
+function bloch_is_lyndon_word(word::BlochWord{H}) where {H}
+  isempty(word) && return false
+  return all(bloch_word_isless(word, word[index:end]) for index in 2:length(word))
+end
+
+function bloch_lyndon_standard_factorization(word::BlochWord{H}) where {H}
   length(word) > 1 || throw(ArgumentError("a Lyndon leaf has no standard factorization"))
   for split in 2:length(word)
     suffix = word[split:end]
@@ -274,26 +289,28 @@ function bloch_lyndon_standard_factorization(word::Tuple)
   return throw(ArgumentError("word is not Lyndon"))
 end
 
-function bloch_word_leaf(harmonic, ::Type{C}) where {C}
-  return Dict{Tuple,C}((harmonic,) => one(C))
+function bloch_word_leaf(harmonic::H, ::Type{C}) where {H,C}
+  return Dict{BlochWord{H},C}(H[harmonic] => one(C))
 end
 
-function bloch_word_commutator(left::Dict{Tuple,C}, right::Dict{Tuple,C}) where {C}
-  result = Dict{Tuple,C}()
+function bloch_word_commutator(
+  left::Dict{BlochWord{H},C}, right::Dict{BlochWord{H},C}
+) where {H,C}
+  result = Dict{BlochWord{H},C}()
   for (left_word, left_coefficient) in left, (right_word, right_coefficient) in right
     bloch_word_accumulate!(
-      result, (left_word..., right_word...), left_coefficient * right_coefficient
+      result, vcat(left_word, right_word), left_coefficient * right_coefficient
     )
     bloch_word_accumulate!(
-      result, (right_word..., left_word...), -right_coefficient * left_coefficient
+      result, vcat(right_word, left_word), -right_coefficient * left_coefficient
     )
   end
   return result
 end
 
 function bloch_lyndon_bracket_words!(
-  cache::Dict{Tuple,Dict{Tuple,C}}, word::Tuple, ::Type{C}
-) where {C}
+  cache::Dict{BlochWord{H},Dict{BlochWord{H},C}}, word::BlochWord{H}, ::Type{C}
+) where {H,C}
   haskey(cache, word) && return cache[word]
   result = if length(word) == 1
     bloch_word_leaf(first(word), C)
@@ -308,12 +325,16 @@ function bloch_lyndon_bracket_words!(
 end
 
 function bloch_lyndon_decomposition(
-  word_terms::Dict{Tuple,C}, bracket_cache::Dict{Tuple,Dict{Tuple,C}}
-) where {C}
+  word_terms::Dict{BlochWord{H},C}, bracket_cache::Dict{BlochWord{H},Dict{BlochWord{H},C}}
+) where {H,C}
   residual = copy(word_terms)
-  coefficients = Dict{Tuple,C}()
+  coefficients = Dict{BlochWord{H},C}()
   while !isempty(residual)
-    word = minimum(keys(residual))
+    words = collect(keys(residual))
+    word = words[1]
+    for candidate in @view words[2:end]
+      bloch_word_isless(candidate, word) && (word = candidate)
+    end
     bloch_is_lyndon_word(word) ||
       throw(ArgumentError("primitive polynomial has a non-Lyndon leading word"))
     coefficient = residual[word]
@@ -332,10 +353,10 @@ function bloch_lyndon_decomposition(
 end
 
 function bloch_lyndon_ensure_node!(
-  word::Tuple,
+  word::BlochWord{H},
   leaves::Vector{H},
   leaf_ids::Dict{H,Int},
-  word_ids::Dict{Tuple,Int},
+  word_ids::Dict{BlochWord{H},Int},
   brackets::Vector{BlochLyndonBracketNode},
 ) where {H}
   length(word) == 1 && return leaf_ids[first(word)]
@@ -356,9 +377,9 @@ function compile_bloch_connected_log_plan(
   leaves = sort(unique(H[harmonic for harmonic in support_input]))
   isempty(leaves) && throw(ArgumentError("harmonic support must not be empty"))
   leaf_ids = Dict(harmonic => index for (index, harmonic) in enumerate(leaves))
-  word_ids = Dict{Tuple,Int}()
+  word_ids = Dict{BlochWord{H},Int}()
   brackets = BlochLyndonBracketNode[]
-  bracket_cache = Dict{Tuple,Dict{Tuple,C}}()
+  bracket_cache = Dict{BlochWord{H},Dict{BlochWord{H},C}}()
   log_embedding = bloch_compile_connected_log_words(leaves, order, zero_harmonic)
   outputs = Vector{Dict{H,Vector{BlochLyndonOutputTerm{C}}}}()
 
