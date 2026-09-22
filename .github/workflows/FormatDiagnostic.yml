@@ -15,7 +15,7 @@ jobs:
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
       - name: Capture formatter patch
         run: |
-          ${HOME}/.julia/bin/jlfmt .
+          ${HOME}/.julia/bin/jlfmt . || true
           git diff --binary > format.patch
       - name: Upload formatter patch
         uses: actions/upload-artifact@v6
