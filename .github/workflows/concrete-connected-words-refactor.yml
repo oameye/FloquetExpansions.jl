@@ -1,0 +1,88 @@
+name: Concrete Connected Words Refactor
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Replace erased tuple words with concrete harmonic vectors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/bloch_connected_van_vleck.jl")
+          text = path.read_text()
+
+          marker = "function bloch_word_accumulate!"
+          if "const BlochWord{H} = Vector{H}" not in text:
+              text = text.replace(marker, "const BlochWord{H} = Vector{H}\n\n" + marker, 1)
+
+          text = text.replace("Dict{Tuple,", "Dict{BlochWord{H},")
+
+          replacements = {
+              "function bloch_word_accumulate!(terms::Dict{BlochWord{H},C}, word::Tuple, coefficient) where {C}":
+                  "function bloch_word_accumulate!(\n  terms::Dict{BlochWord{H},C}, word::BlochWord{H}, coefficient\n) where {H,C}",
+              "function bloch_word_add_terms!(\n  destination::Dict{BlochWord{H},C}, source::Dict{BlochWord{H},C}, weight::C=one(C)\n) where {C}":
+                  "function bloch_word_add_terms!(\n  destination::Dict{BlochWord{H},C}, source::Dict{BlochWord{H},C}, weight::C=one(C)\n) where {H,C}",
+              "B0[(zero_harmonic,)] = one_coefficient": "B0[H[zero_harmonic]] = one_coefficient",
+              "bloch_word_terms!(X1, harmonic)[(harmonic,)] = 1 // harmonic":
+                  "bloch_word_terms!(X1, harmonic)[H[harmonic]] = 1 // harmonic",
+              "(generator_harmonic, wave_word...)": "vcat(H[generator_harmonic], wave_word)",
+              "(wave_word..., effective_word...)": "vcat(wave_word, effective_word)",
+              "(periodic_word..., static_word...)": "vcat(periodic_word, static_word)",
+              "(left_word..., right_word...)": "vcat(left_word, right_word)",
+              "(right_word..., left_word...)": "vcat(right_word, left_word)",
+              "static_factor = Dict{BlochWord{H},C}[Dict(() => one_coefficient)]":
+                  "static_factor = Dict{BlochWord{H},C}[\n    Dict{BlochWord{H},C}(H[] => one_coefficient)\n  ]",
+              "function bloch_is_lyndon_word(word::Tuple)":
+                  "function bloch_word_isless(left::BlochWord{H}, right::BlochWord{H}) where {H}\n  common = min(length(left), length(right))\n  for index in 1:common\n    left[index] == right[index] && continue\n    return isless(left[index], right[index])\n  end\n  return length(left) < length(right)\nend\n\nfunction bloch_is_lyndon_word(word::BlochWord{H}) where {H}",
+              "return all(isless(word, word[index:end]) === true for index in 2:length(word))":
+                  "return all(bloch_word_isless(word, word[index:end]) for index in 2:length(word))",
+              "function bloch_lyndon_standard_factorization(word::Tuple)":
+                  "function bloch_lyndon_standard_factorization(word::BlochWord{H}) where {H}",
+              "function bloch_word_leaf(harmonic, ::Type{C}) where {C}":
+                  "function bloch_word_leaf(harmonic::H, ::Type{C}) where {H,C}",
+              "return Dict{BlochWord{H},C}((harmonic,) => one(C))":
+                  "return Dict{BlochWord{H},C}(H[harmonic] => one(C))",
+              "function bloch_word_commutator(\n  left::Dict{BlochWord{H},C}, right::Dict{BlochWord{H},C}\n) where {C}":
+                  "function bloch_word_commutator(\n  left::Dict{BlochWord{H},C}, right::Dict{BlochWord{H},C}\n) where {H,C}",
+              "cache::Dict{BlochWord{H},Dict{BlochWord{H},C}}, word::Tuple, ::Type{C}\n) where {C}":
+                  "cache::Dict{BlochWord{H},Dict{BlochWord{H},C}}, word::BlochWord{H}, ::Type{C}\n) where {H,C}",
+              "word_terms::Dict{BlochWord{H},C}, bracket_cache::Dict{BlochWord{H},Dict{BlochWord{H},C}}\n) where {C}":
+                  "word_terms::Dict{BlochWord{H},C}, bracket_cache::Dict{BlochWord{H},Dict{BlochWord{H},C}}\n) where {H,C}",
+              "word::Tuple,\n  leaves::Vector{H}": "word::BlochWord{H},\n  leaves::Vector{H}",
+              "    word = minimum(keys(residual))":
+                  "    words = collect(keys(residual))\n    word = words[1]\n    for candidate in @view words[2:end]\n      bloch_word_isless(candidate, word) && (word = candidate)\n    end",
+          }
+
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f"expected pattern not found:\n{old}")
+              text = text.replace(old, new)
+
+          path.write_text(text)
+          PY
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - name: Install formatter
+        run: julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Format and commit backend refactor
+        run: |
+          "$HOME/.julia/bin/jlfmt" --inplace src/bloch_connected_van_vleck.jl
+          git diff --check
+          if ! git diff --quiet -- src/bloch_connected_van_vleck.jl; then
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add src/bloch_connected_van_vleck.jl
+            git commit -m "perf: make connected Bloch words concrete"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
