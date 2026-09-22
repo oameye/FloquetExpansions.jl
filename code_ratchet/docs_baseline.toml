@@ -3,12 +3,16 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "687f3b5"
+commit = "5cb8b24"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
 
 [files."src/FloquetExpansions.jl"]
+undocumented = 0
+public = 0
+
+[files."src/bloch_connected_van_vleck.jl"]
 undocumented = 0
 public = 0
 
