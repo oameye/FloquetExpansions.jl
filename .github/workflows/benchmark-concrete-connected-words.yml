@@ -1,0 +1,50 @@
+name: Benchmark Concrete Connected Words
+
+on:
+  pull_request:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - name: Benchmark candidate
+        run: |
+          julia --project=. -e 'using Pkg; Pkg.instantiate()'
+          julia --project=. -e '
+            using FloquetExpansions, Statistics
+            const FE = FloquetExpansions
+            plan = FE.compile_bloch_projection_plan([-1, 0, 1], 6)
+            for _ in 1:10
+              FE.compile_bloch_connected_van_vleck_plan(plan)
+            end
+            GC.gc()
+            times = [@elapsed FE.compile_bloch_connected_van_vleck_plan(plan) for _ in 1:100]
+            GC.gc()
+            alloc = @allocated FE.compile_bloch_connected_van_vleck_plan(plan)
+            println("CANDIDATE_MEDIAN_NS=", round(Int, median(times) * 1e9))
+            println("CANDIDATE_ALLOC_BYTES=", alloc)
+          '
+      - name: Benchmark frozen 166
+        run: |
+          git checkout --force ae3457b813db8a2f483b594c85a251148115aee6
+          julia --project=. -e 'using Pkg; Pkg.instantiate()'
+          julia --project=. -e '
+            using FloquetExpansions, Statistics
+            const FE = FloquetExpansions
+            plan = FE.compile_bloch_projection_plan([-1, 0, 1], 6)
+            for _ in 1:10
+              FE.compile_bloch_connected_van_vleck_plan(plan)
+            end
+            GC.gc()
+            times = [@elapsed FE.compile_bloch_connected_van_vleck_plan(plan) for _ in 1:100]
+            GC.gc()
+            alloc = @allocated FE.compile_bloch_connected_van_vleck_plan(plan)
+            println("FROZEN_MEDIAN_NS=", round(Int, median(times) * 1e9))
+            println("FROZEN_ALLOC_BYTES=", alloc)
+          '
