@@ -1,0 +1,24 @@
+name: Format diagnostic
+
+on:
+  pull_request:
+
+jobs:
+  format-diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+      - uses: julia-actions/cache@v3
+      - name: Install JuliaFormatter
+        run: |
+          julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+      - name: Capture formatter patch
+        run: |
+          ${HOME}/.julia/bin/jlfmt .
+          git diff --binary > format.patch
+      - name: Upload formatter patch
+        uses: actions/upload-artifact@v6
+        with:
+          name: format-patch
+          path: format.patch
