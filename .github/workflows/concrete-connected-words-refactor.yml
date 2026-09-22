@@ -22,51 +22,74 @@ jobs:
           text = path.read_text()
 
           marker = "function bloch_word_accumulate!"
-          if "const BlochWord{H} = Vector{H}" not in text:
-              text = text.replace(marker, "const BlochWord{H} = Vector{H}\n\n" + marker, 1)
+          if "const BlochWord = Vector" not in text:
+              text = text.replace(marker, "const BlochWord = Vector\n\n" + marker, 1)
 
-          text = text.replace("Dict{Tuple,", "Dict{BlochWord{H},")
+          # The symbolic free-word algebra is the only target. Static-plan tuple keys
+          # such as Tuple{Int,Int,H} remain untouched.
+          text = text.replace("Dict{Tuple,C}", "Dict{BlochWord{H},C}")
+          text = text.replace("Dict{Tuple,Dict{BlochWord{H},C}}", "Dict{BlochWord{H},Dict{BlochWord{H},C}}")
+          text = text.replace("Dict{Tuple,Int}", "Dict{BlochWord{H},Int}")
 
-          replacements = {
-              "function bloch_word_accumulate!(terms::Dict{BlochWord{H},C}, word::Tuple, coefficient) where {C}":
-                  "function bloch_word_accumulate!(\n  terms::Dict{BlochWord{H},C}, word::BlochWord{H}, coefficient\n) where {H,C}",
-              "function bloch_word_add_terms!(\n  destination::Dict{BlochWord{H},C}, source::Dict{BlochWord{H},C}, weight::C=one(C)\n) where {C}":
-                  "function bloch_word_add_terms!(\n  destination::Dict{BlochWord{H},C}, source::Dict{BlochWord{H},C}, weight::C=one(C)\n) where {H,C}",
-              "B0[(zero_harmonic,)] = one_coefficient": "B0[H[zero_harmonic]] = one_coefficient",
-              "bloch_word_terms!(X1, harmonic)[(harmonic,)] = 1 // harmonic":
-                  "bloch_word_terms!(X1, harmonic)[H[harmonic]] = 1 // harmonic",
-              "(generator_harmonic, wave_word...)": "vcat(H[generator_harmonic], wave_word)",
-              "(wave_word..., effective_word...)": "vcat(wave_word, effective_word)",
-              "(periodic_word..., static_word...)": "vcat(periodic_word, static_word)",
-              "(left_word..., right_word...)": "vcat(left_word, right_word)",
-              "(right_word..., left_word...)": "vcat(right_word, left_word)",
-              "static_factor = Dict{BlochWord{H},C}[Dict(() => one_coefficient)]":
-                  "static_factor = Dict{BlochWord{H},C}[\n    Dict{BlochWord{H},C}(H[] => one_coefficient)\n  ]",
-              "function bloch_is_lyndon_word(word::Tuple)":
-                  "function bloch_word_isless(left::BlochWord{H}, right::BlochWord{H}) where {H}\n  common = min(length(left), length(right))\n  for index in 1:common\n    left[index] == right[index] && continue\n    return isless(left[index], right[index])\n  end\n  return length(left) < length(right)\nend\n\nfunction bloch_is_lyndon_word(word::BlochWord{H}) where {H}",
-              "return all(isless(word, word[index:end]) === true for index in 2:length(word))":
-                  "return all(bloch_word_isless(word, word[index:end]) for index in 2:length(word))",
-              "function bloch_lyndon_standard_factorization(word::Tuple)":
-                  "function bloch_lyndon_standard_factorization(word::BlochWord{H}) where {H}",
-              "function bloch_word_leaf(harmonic, ::Type{C}) where {C}":
-                  "function bloch_word_leaf(harmonic::H, ::Type{C}) where {H,C}",
-              "return Dict{BlochWord{H},C}((harmonic,) => one(C))":
-                  "return Dict{BlochWord{H},C}(H[harmonic] => one(C))",
-              "function bloch_word_commutator(\n  left::Dict{BlochWord{H},C}, right::Dict{BlochWord{H},C}\n) where {C}":
-                  "function bloch_word_commutator(\n  left::Dict{BlochWord{H},C}, right::Dict{BlochWord{H},C}\n) where {H,C}",
-              "cache::Dict{BlochWord{H},Dict{BlochWord{H},C}}, word::Tuple, ::Type{C}\n) where {C}":
-                  "cache::Dict{BlochWord{H},Dict{BlochWord{H},C}}, word::BlochWord{H}, ::Type{C}\n) where {H,C}",
-              "word_terms::Dict{BlochWord{H},C}, bracket_cache::Dict{BlochWord{H},Dict{BlochWord{H},C}}\n) where {C}":
-                  "word_terms::Dict{BlochWord{H},C}, bracket_cache::Dict{BlochWord{H},Dict{BlochWord{H},C}}\n) where {H,C}",
-              "word::Tuple,\n  leaves::Vector{H}": "word::BlochWord{H},\n  leaves::Vector{H}",
-              "    word = minimum(keys(residual))":
-                  "    words = collect(keys(residual))\n    word = words[1]\n    for candidate in @view words[2:end]\n      bloch_word_isless(candidate, word) && (word = candidate)\n    end",
-          }
+          text = text.replace(
+              "function bloch_word_accumulate!(terms::Dict{BlochWord{H},C}, word::Tuple, coefficient) where {C}",
+              "function bloch_word_accumulate!(\n  terms::Dict{BlochWord{H},C}, word::BlochWord{H}, coefficient\n) where {H,C}",
+          )
+          text = text.replace(
+              ") where {C}\n  for (word, coefficient) in source\n    bloch_word_accumulate!(destination, word, weight * coefficient)",
+              ") where {H,C}\n  for (word, coefficient) in source\n    bloch_word_accumulate!(destination, word, weight * coefficient)",
+              1,
+          )
 
-          for old, new in replacements.items():
-              if old not in text:
-                  raise SystemExit(f"expected pattern not found:\n{old}")
-              text = text.replace(old, new)
+          text = text.replace("B0[(zero_harmonic,)]", "B0[H[zero_harmonic]]")
+          text = text.replace("[(harmonic,)] = 1 // harmonic", "[H[harmonic]] = 1 // harmonic")
+          text = text.replace("(generator_harmonic, wave_word...)", "vcat(H[generator_harmonic], wave_word)")
+          text = text.replace("(wave_word..., effective_word...)", "vcat(wave_word, effective_word)")
+          text = text.replace("(periodic_word..., static_word...)", "vcat(periodic_word, static_word)")
+          text = text.replace("(left_word..., right_word...)", "vcat(left_word, right_word)")
+          text = text.replace("(right_word..., left_word...)", "vcat(right_word, left_word)")
+          text = text.replace(
+              "Dict{BlochWord{H},C}[Dict(() => one_coefficient)]",
+              "Dict{BlochWord{H},C}[Dict{BlochWord{H},C}(H[] => one_coefficient)]",
+          )
+          text = text.replace("Dict{BlochWord{H},C}((harmonic,) => one(C))", "Dict{BlochWord{H},C}(H[harmonic] => one(C))")
+
+          text = text.replace(
+              "function bloch_is_lyndon_word(word::Tuple)\n  isempty(word) && return false\n  return all(isless(word, word[index:end]) === true for index in 2:length(word))\nend",
+              "function bloch_word_isless(left::BlochWord{H}, right::BlochWord{H}) where {H}\n  common = min(length(left), length(right))\n  for index in 1:common\n    left[index] == right[index] && continue\n    return isless(left[index], right[index])\n  end\n  return length(left) < length(right)\nend\n\nfunction bloch_is_lyndon_word(word::BlochWord{H}) where {H}\n  isempty(word) && return false\n  return all(bloch_word_isless(word, word[index:end]) for index in 2:length(word))\nend",
+          )
+          text = text.replace(
+              "function bloch_lyndon_standard_factorization(word::Tuple)",
+              "function bloch_lyndon_standard_factorization(word::BlochWord{H}) where {H}",
+          )
+          text = text.replace(
+              "function bloch_word_leaf(harmonic, ::Type{C}) where {C}",
+              "function bloch_word_leaf(harmonic::H, ::Type{C}) where {H,C}",
+          )
+          text = text.replace(
+              "function bloch_word_commutator(left::Dict{BlochWord{H},C}, right::Dict{BlochWord{H},C}) where {C}",
+              "function bloch_word_commutator(\n  left::Dict{BlochWord{H},C}, right::Dict{BlochWord{H},C}\n) where {H,C}",
+          )
+          text = text.replace("word::Tuple, ::Type{C}\n) where {C}", "word::BlochWord{H}, ::Type{C}\n) where {H,C}")
+          text = text.replace(") where {C}\n  residual = copy(word_terms)", ") where {H,C}\n  residual = copy(word_terms)", 1)
+          text = text.replace("  word::Tuple,\n  leaves::Vector{H}", "  word::BlochWord{H},\n  leaves::Vector{H}")
+
+          text = text.replace(
+              "    word = minimum(keys(residual))",
+              "    words = collect(keys(residual))\n    word = words[1]\n    for candidate in @view words[2:end]\n      bloch_word_isless(candidate, word) && (word = candidate)\n    end",
+          )
+
+          # Guard the exact intended seam. Remaining bare Tuple word dictionaries or
+          # Tuple-typed free-word arguments indicate an incomplete transform.
+          prefix = text.split("function evaluate_bloch_connected_log_plan", 1)[0]
+          bad = [
+              "Dict{Tuple,C}",
+              "word::Tuple",
+              "Dict{Tuple,Int}",
+          ]
+          leftovers = [token for token in bad if token in prefix]
+          if leftovers:
+              raise SystemExit("incomplete concrete-word transform: " + ", ".join(leftovers))
 
           path.write_text(text)
           PY
