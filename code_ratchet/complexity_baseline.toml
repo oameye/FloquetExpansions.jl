@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "5cb8b24"
+commit = "8b6b7a8"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -27,9 +27,9 @@ arg = 7
 cyc_over = 1
 cog_over = 1
 arg_over = 0
-cyc_sum = 103
-cog_sum = 135
-arg_sum = 70
+cyc_sum = 108
+cog_sum = 140
+arg_sum = 72
 
 [files."src/bloch_projection.jl"]
 cyc = 12
@@ -119,6 +119,17 @@ cyc_sum = 53
 cog_sum = 33
 arg_sum = 73
 
+[files."src/expansion_algorithms.jl"]
+cyc = 5
+cog = 7
+arg = 8
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 23
+cog_sum = 14
+arg_sum = 48
+
 [files."src/gksl_coordinates.jl"]
 cyc = 8
 cog = 9
@@ -192,9 +203,9 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 73
-cog_sum = 38
-arg_sum = 80
+cyc_sum = 74
+cog_sum = 39
+arg_sum = 81
 
 [files."src/quasienergy.jl"]
 cyc = 4
