@@ -12,10 +12,10 @@ jobs:
       - uses: julia-actions/cache@v3
       - name: Install JuliaFormatter
         run: |
-          julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
+          julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.add("JuliaFormatter")'
       - name: Capture formatter patch
         run: |
-          ${HOME}/.julia/bin/jlfmt . || true
+          julia -e 'using JuliaFormatter; format(".")'
           git diff --binary > format.patch
       - name: Upload formatter patch
         uses: actions/upload-artifact@v6
