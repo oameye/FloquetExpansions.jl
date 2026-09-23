@@ -5,17 +5,28 @@ on:
 
 permissions:
   actions: read
-  contents: read
+  contents: write
 
 jobs:
-  show-refresh:
+  apply-refresh:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: feature/310-integrate-ck-algorithm-seam
       - name: Download exact refresh artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh run download 35876720301 -n coderatchet-refresh -D /tmp/coderatchet-refresh
-      - name: Print refresh files
+      - name: Apply exact generated baselines
         run: |
-          find /tmp/coderatchet-refresh -type f -print -exec sh -c 'echo "===== $1 ====="; cat "$1"' _ {} \;
+          cp /tmp/coderatchet-refresh/*.toml code_ratchet/
+          git diff -- code_ratchet
+          if git diff --quiet -- code_ratchet; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add code_ratchet
+          git commit -m 'ci: register combined CodeRatchet baselines'
+          git push origin HEAD:feature/310-integrate-ck-algorithm-seam
