@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "8b6b7a8"
+commit = "053a1d1"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -21,6 +21,54 @@ undocumented = 0
 public = 0
 
 [files."src/bloch_van_vleck.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_canonical_normalization.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_hori_deprit.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_kernel.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_normalization.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_overlap.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_pairing.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_pairing_series.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_right_normalization.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_time_kernel.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_output_time_realization.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_period_amplitude.jl"]
+undocumented = 0
+public = 0
+
+[files."src/ck_physical_kernel.jl"]
 undocumented = 0
 public = 0
 

@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "8b6b7a8"
+commit = "053a1d1"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -20,6 +20,42 @@ boxes = 0
 boxes = 0
 
 [files."src/bloch_van_vleck.jl"]
+boxes = 0
+
+[files."src/ck_canonical_normalization.jl"]
+boxes = 0
+
+[files."src/ck_hori_deprit.jl"]
+boxes = 0
+
+[files."src/ck_output_kernel.jl"]
+boxes = 0
+
+[files."src/ck_output_normalization.jl"]
+boxes = 0
+
+[files."src/ck_output_overlap.jl"]
+boxes = 0
+
+[files."src/ck_output_pairing.jl"]
+boxes = 0
+
+[files."src/ck_output_pairing_series.jl"]
+boxes = 0
+
+[files."src/ck_output_right_normalization.jl"]
+boxes = 0
+
+[files."src/ck_output_time_kernel.jl"]
+boxes = 0
+
+[files."src/ck_output_time_realization.jl"]
+boxes = 0
+
+[files."src/ck_period_amplitude.jl"]
+boxes = 0
+
+[files."src/ck_physical_kernel.jl"]
 boxes = 0
 
 [files."src/completion.jl"]
