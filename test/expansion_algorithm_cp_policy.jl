@@ -13,6 +13,22 @@ function cp_policy_vanishes(generator::PeriodicGenerator)
   return iszero(SQA_CP_POLICY.simplify(generator))
 end
 
+@testset "CP selector policy is static" begin
+  hd_raw = @inferred(HoriDeprit(; complete_positive=Val(false)))
+  bf_raw = @inferred(BlochFeshbach(; complete_positive=Val(false)))
+  hd_cp = @inferred(HoriDeprit(; complete_positive=Val(true)))
+  bf_cp = @inferred(BlochFeshbach(; complete_positive=Val(true)))
+
+  @test hd_raw isa HoriDeprit
+  @test bf_raw isa BlochFeshbach
+  @test typeof(hd_raw) === typeof(HoriDeprit())
+  @test typeof(bf_raw) === typeof(BlochFeshbach())
+  @test hd_cp.algorithm isa HoriDeprit
+  @test bf_cp.algorithm isa BlochFeshbach
+  @test typeof(hd_cp) !== typeof(hd_raw)
+  @test typeof(bf_cp) !== typeof(bf_raw)
+end
+
 @testset "explicit non-CP selectors preserve the raw Van Vleck algorithms" begin
   space = PauliSpace(:cp_algorithm_policy)
   σx = Pauli(space, :σ, 1)

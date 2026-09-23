@@ -30,6 +30,53 @@ end
   )
 end
 
+@testset "CP algorithm policy optimizer stability" begin
+  JET.@test_opt target_modules=(FloquetExpansions,) HoriDeprit(;
+    complete_positive=Val(false)
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) BlochFeshbach(;
+    complete_positive=Val(false)
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) HoriDeprit(;
+    complete_positive=Val(true)
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) BlochFeshbach(;
+    complete_positive=Val(true)
+  )
+
+  pauli = PauliSpace(:jet_cp_algorithm_policy)
+  σx = Pauli(pauli, :sigma, 1)
+  σz = Pauli(pauli, :sigma, 3)
+  @variables ω_cp_algorithm_policy::Real
+  hamiltonian_generator = PeriodicGenerator(
+    Dict(0 => 1 * σz, 1 => 1 * σx, -1 => 1 * σx), ω_cp_algorithm_policy
+  )
+  liouvillian_generator = PeriodicGenerator(
+    Dict(0 => hamiltonian_action(σz) + dissipator(σx)), ω_cp_algorithm_policy
+  )
+
+  JET.@test_opt target_modules=(FloquetExpansions,) floquet_expansion(
+    hamiltonian_generator,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(true))),
+    2,
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) floquet_expansion(
+    hamiltonian_generator,
+    VanVleck(; algorithm=BlochFeshbach(; complete_positive=Val(true))),
+    2,
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) floquet_expansion(
+    liouvillian_generator,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    2,
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) floquet_expansion(
+    liouvillian_generator,
+    VanVleck(; algorithm=BlochFeshbach(; complete_positive=Val(false))),
+    2,
+  )
+end
+
 @testset "Bloch order recurrence optimizer stability" begin
   operations = FloquetExpansions.BlochOrderOperations(*, identity, identity)
   JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.evaluate_bloch_order_recurrence(
