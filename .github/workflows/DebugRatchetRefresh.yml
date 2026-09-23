@@ -1,0 +1,21 @@
+name: Debug Ratchet Refresh
+
+on:
+  pull_request:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  show-refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download exact refresh artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 35876720301 -n coderatchet-refresh -D /tmp/coderatchet-refresh
+      - name: Print refresh files
+        run: |
+          find /tmp/coderatchet-refresh -type f -print -exec sh -c 'echo "===== $1 ====="; cat "$1"' _ {} \;
