@@ -6,18 +6,43 @@ Supertype of gauges that fix the free integration constant in [`antiderivative`]
 abstract type Gauge end
 
 """
-    VanVleck()
+    ExpansionAlgorithm
+
+Supertype of algorithms used to construct a Floquet expansion within a fixed gauge.
+"""
+abstract type ExpansionAlgorithm end
+
+"""
+    HoriDeprit()
+
+Select the Hori–Deprit Lie-transform expansion algorithm.
+"""
+struct HoriDeprit <: ExpansionAlgorithm end
+
+"""
+    BlochFeshbach()
+
+Select the Bloch/Feshbach projection-recurrence expansion algorithm.
+"""
+struct BlochFeshbach <: ExpansionAlgorithm end
+
+"""
+    VanVleck(; algorithm=HoriDeprit())
 
 Select the van Vleck gauge, ``\\langle \\mathcal{K} \\rangle = 0``. This gives the micromotion
 generator zero period average and makes the effective generator independent of the drive's
-initial phase.
+initial phase. `algorithm` selects the expansion algorithm while leaving the gauge fixed.
 
 # References
 
 The van Vleck construction follows [VanVleck1929](@cite), and its Floquet-space formulation
 follows [Rahav2003](@cite), [Eckardt2015](@cite), and [Bukov2015](@cite).
 """
-struct VanVleck <: Gauge end
+struct VanVleck{A<:ExpansionAlgorithm} <: Gauge
+  algorithm::A
+end
+
+VanVleck(; algorithm::ExpansionAlgorithm=HoriDeprit()) = VanVleck(algorithm)
 
 # `iszero` on a `BasicSymbolic` builds the symbolic equation `0 == 0` rather than returning a
 # `Bool`, so use structural comparison instead.
