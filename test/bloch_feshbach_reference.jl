@@ -202,7 +202,9 @@ L = PeriodicGenerator(
     @test liouvillian_vanishes(lhs - rhs)
   end
 
-  vv = floquet_expansion(L, VanVleck(), 2)
+  vv = floquet_expansion(
+    L, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   @test liouvillian_vanishes(effective_component(vv, 1) - w^(-1) * result.effective[2])
   @test liouvillian_vanishes(micromotion(vv, 1) - w^(-1) * result.wave[1])
 end

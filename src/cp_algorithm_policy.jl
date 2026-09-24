@@ -13,26 +13,26 @@ function cp_configured_algorithm(::A, ::Val{CP}) where {A<:ExpansionAlgorithm,CP
 end
 
 """
-    HoriDeprit(; complete_positive=Val(false))
+    HoriDeprit(; complete_positive=Val(true))
 
 Select the Hori–Deprit Lie-transform expansion algorithm. For Liouvillian input,
 `complete_positive=Val(true)` applies the package's graded [`Gram`](@ref) positive completion to
 the canonical Hori–Deprit Van Vleck expansion. `Val(false)` returns the traditional raw canonical
 series exactly. Hamiltonian expansions are unchanged by the policy.
 """
-function HoriDeprit(; complete_positive::Val{CP}=Val(false)) where {CP}
+function HoriDeprit(; complete_positive::Val{CP}=Val(true)) where {CP}
   return cp_configured_algorithm(HoriDeprit(Val(:raw)), complete_positive)
 end
 
 """
-    BlochFeshbach(; complete_positive=Val(false))
+    BlochFeshbach(; complete_positive=Val(true))
 
 Select the Bloch/Feshbach projection-recurrence expansion algorithm. For Liouvillian input,
 `complete_positive=Val(true)` applies the package's graded [`Gram`](@ref) positive completion to
 the canonical Bloch/Feshbach Van Vleck expansion. `Val(false)` returns the traditional raw
 canonical series exactly. Hamiltonian expansions are unchanged by the policy.
 """
-function BlochFeshbach(; complete_positive::Val{CP}=Val(false)) where {CP}
+function BlochFeshbach(; complete_positive::Val{CP}=Val(true)) where {CP}
   return cp_configured_algorithm(BlochFeshbach(Val(:raw)), complete_positive)
 end
 

@@ -118,7 +118,9 @@ end
     zero_component=getfield(L, :zero_component),
     simplifier=SQA_BVVI.simplify,
   )
-  vv = floquet_expansion(L, VanVleck(), order)
+  vv = floquet_expansion(
+    L, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), order
+  )
 
   @test all(!haskey(term, plan.zero_harmonic) for term in converted.log_embedding)
   for n in 1:(order - 1)

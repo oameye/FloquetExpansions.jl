@@ -13,23 +13,25 @@ function cp_policy_vanishes(generator::PeriodicGenerator)
   return iszero(SQA_CP_POLICY.simplify(generator))
 end
 
-@testset "CP selector policy is static" begin
+@testset "CP selector policy is static and enabled by default" begin
   hd_raw = @inferred(HoriDeprit(; complete_positive=Val(false)))
   bf_raw = @inferred(BlochFeshbach(; complete_positive=Val(false)))
   hd_cp = @inferred(HoriDeprit(; complete_positive=Val(true)))
   bf_cp = @inferred(BlochFeshbach(; complete_positive=Val(true)))
+  hd_default = @inferred(HoriDeprit())
+  bf_default = @inferred(BlochFeshbach())
 
   @test hd_raw isa HoriDeprit
   @test bf_raw isa BlochFeshbach
-  @test typeof(hd_raw) === typeof(HoriDeprit())
-  @test typeof(bf_raw) === typeof(BlochFeshbach())
   @test hd_cp.algorithm isa HoriDeprit
   @test bf_cp.algorithm isa BlochFeshbach
-  @test typeof(hd_cp) !== typeof(hd_raw)
-  @test typeof(bf_cp) !== typeof(bf_raw)
+  @test typeof(hd_default) === typeof(hd_cp)
+  @test typeof(bf_default) === typeof(bf_cp)
+  @test typeof(hd_default) !== typeof(hd_raw)
+  @test typeof(bf_default) !== typeof(bf_raw)
 end
 
-@testset "explicit non-CP selectors preserve the raw Van Vleck algorithms" begin
+@testset "explicit non-CP selectors preserve raw HD/BF equivalence" begin
   space = PauliSpace(:cp_algorithm_policy)
   σx = Pauli(space, :σ, 1)
   σy = Pauli(space, :σ, 2)
@@ -47,26 +49,19 @@ end
     ω_cp_policy,
   )
 
-  selectors = (
-    (HoriDeprit(), HoriDeprit(; complete_positive=Val(false))),
-    (BlochFeshbach(), BlochFeshbach(; complete_positive=Val(false))),
-  )
-
   for generator in (H, L)
-    for (raw_algorithm, configured_algorithm) in selectors
-      raw = floquet_expansion(generator, VanVleck(; algorithm=raw_algorithm), 3)
-      configured = floquet_expansion(
-        generator, VanVleck(; algorithm=configured_algorithm), 3
-      )
+    hd = floquet_expansion(
+      generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 3
+    )
+    bf = floquet_expansion(
+      generator, VanVleck(; algorithm=BlochFeshbach(; complete_positive=Val(false))), 3
+    )
 
-      for n in 0:2
-        @test cp_policy_vanishes(
-          effective_component(configured, n) - effective_component(raw, n)
-        )
-      end
-      for n in 1:2
-        @test cp_policy_vanishes(micromotion(configured, n) - micromotion(raw, n))
-      end
+    for n in 0:2
+      @test cp_policy_vanishes(effective_component(bf, n) - effective_component(hd, n))
+    end
+    for n in 1:2
+      @test cp_policy_vanishes(micromotion(bf, n) - micromotion(hd, n))
     end
   end
 end
@@ -79,17 +74,18 @@ end
 
   H = PeriodicGenerator(Dict(0 => 1 * σz, 1 => 1 * σx, -1 => 1 * σx), ω_cp_policy_h)
 
-  for algorithm in (
-    HoriDeprit(; complete_positive=Val(true)), BlochFeshbach(; complete_positive=Val(true))
+  for (algorithm, raw_algorithm) in (
+    (HoriDeprit(), HoriDeprit(; complete_positive=Val(false))),
+    (BlochFeshbach(), BlochFeshbach(; complete_positive=Val(false))),
   )
     configured = floquet_expansion(H, VanVleck(; algorithm=algorithm), 3)
-    raw = floquet_expansion(H, VanVleck(algorithm.algorithm), 3)
+    raw = floquet_expansion(H, VanVleck(; algorithm=raw_algorithm), 3)
     @test cp_policy_vanishes(effective_generator(configured) - effective_generator(raw))
     @test cp_policy_vanishes(micromotion(configured) - micromotion(raw))
   end
 end
 
-@testset "CP Liouvillian selectors apply Gram completion" begin
+@testset "default Liouvillian selectors apply Gram completion" begin
   space = PauliSpace(:cp_algorithm_policy_liouvillian)
   σx = Pauli(space, :σ, 1)
   σz = Pauli(space, :σ, 3)
@@ -97,16 +93,29 @@ end
 
   L = PeriodicGenerator(Dict(0 => hamiltonian_action(σz) + dissipator(σx)), ω_cp_policy_l)
 
-  for algorithm in (
-    HoriDeprit(; complete_positive=Val(true)), BlochFeshbach(; complete_positive=Val(true))
+  for (algorithm, explicit_cp_algorithm, raw_algorithm) in (
+    (
+      HoriDeprit(),
+      HoriDeprit(; complete_positive=Val(true)),
+      HoriDeprit(; complete_positive=Val(false)),
+    ),
+    (
+      BlochFeshbach(),
+      BlochFeshbach(; complete_positive=Val(true)),
+      BlochFeshbach(; complete_positive=Val(false)),
+    ),
   )
     configured = floquet_expansion(L, VanVleck(; algorithm=algorithm), 2)
-    raw = floquet_expansion(L, VanVleck(algorithm.algorithm), 2)
+    explicit_cp = floquet_expansion(L, VanVleck(; algorithm=explicit_cp_algorithm), 2)
+    raw = floquet_expansion(L, VanVleck(; algorithm=raw_algorithm), 2)
     expected = positive_completion(raw, Gram())
 
     @test factorization(configured) isa FloquetExpansions.GramFactorization
     @test cp_policy_vanishes(
       effective_generator(configured) - effective_generator(expected)
+    )
+    @test cp_policy_vanishes(
+      effective_generator(explicit_cp) - effective_generator(configured)
     )
     @test cp_policy_vanishes(
       liouvillian(hamiltonian(configured); channels=channels(configured)) -

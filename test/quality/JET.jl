@@ -26,7 +26,9 @@ end
     ω_bf,
   )
   JET.@test_opt target_modules=(FloquetExpansions,) floquet_expansion(
-    liouvillian_generator, VanVleck(; algorithm=BlochFeshbach()), 2
+    liouvillian_generator,
+    VanVleck(; algorithm=BlochFeshbach(; complete_positive=Val(false))),
+    2,
   )
 end
 
@@ -173,7 +175,13 @@ end
   @variables ω::Real t::Real
   gram_frame = DissipativeFrame(a, a^2)
   gram_generator = liouvillian(0 * a; channels=(collapse(a + a^2), collapse(a + im * a^2)))
-  gram_expansion = floquet_expansion(gram_generator, ω, t, VanVleck(), 1)
+  gram_expansion = floquet_expansion(
+    gram_generator,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1,
+  )
 
   JET.@test_opt target_modules=(FloquetExpansions,) positive_completion(
     gram_expansion, Gram(), gram_frame
@@ -185,7 +193,12 @@ end
   σz = Pauli(pauli, :sigma, 3)
   recursive_frame = DissipativeFrame(σx, σy, σz)
   recursive_expansion = floquet_expansion(
-    cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    cos(ω * t) * σx,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3;
+    channels=(collapse(σz),),
   )
 
   JET.@test_opt target_modules=(FloquetExpansions,) positive_completion(

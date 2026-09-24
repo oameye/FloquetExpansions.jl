@@ -17,12 +17,21 @@ symbolic_zero(expression) = iszero(SQA.simplify(expression))
   @variables ω::Real t::Real E::Real γ::Real
 
   H = (1 // 2) * σz + E * cos(ω * t) * σx
-  parsed = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(jump(σminus, γ),))
+  parsed = floquet_expansion(
+    H,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3;
+    channels=(jump(σminus, γ),),
+  )
 
   L0 = liouvillian((1 // 2) * σz; channels=(jump(σminus, γ),))
   L1 = hamiltonian_action(((1 // 2) * E) * σx)
   explicit = floquet_expansion(
-    PeriodicGenerator(Dict(0 => L0, 1 => L1, -1 => L1), ω), VanVleck(), 3
+    PeriodicGenerator(Dict(0 => L0, 1 => L1, -1 => L1), ω),
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3,
   )
 
   for order in 0:2
@@ -73,12 +82,14 @@ end
   one_photon_loss = κ1 * (1 + r1 * cos(ω * t)) * D1
   two_photon_loss = κ2 * (1 + r2 * sin(ω * t)) * D2
   time_domain = one_photon_loss + two_photon_loss
-  parsed = floquet_expansion(time_domain, ω, t, VanVleck(), 2)
+  parsed = floquet_expansion(
+    time_domain, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   explicit = floquet_expansion(
     PeriodicGenerator(
       Dict(0 => κ1 * D1 + κ2 * D2, 1 => u * D1 + im * v * D2, -1 => u * D1 - im * v * D2), ω
     ),
-    VanVleck(),
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
     2,
   )
 

@@ -34,7 +34,14 @@ end
 
   @variables ω::Real t::Real E::Real γ::Real
   H = (1 // 2) * σz + E * cos(ω * t) * σx
-  expansion = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(jump(σminus, γ),))
+  expansion = floquet_expansion(
+    H,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3;
+    channels=(jump(σminus, γ),),
+  )
 
   z2 = E^2 / ω^2
   z4 = z2^2
@@ -131,7 +138,9 @@ end
   generator = PeriodicGenerator(
     Dict(0 => κ1 * D1 + κ2 * D2, 1 => u * D1 + im * v * D2, -1 => u * D1 - im * v * D2), ω
   )
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   c = χ / ω
 
   expected_leading = analytic_matrix((κ1, 0, 0), (0, κ2, 0), (0, 0, 0))
