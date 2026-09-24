@@ -2,6 +2,12 @@
 
 Base.copy(frame::DissipativeFrame) = deepcopy(frame)
 
+function empty_dissipative_frame()
+  return DissipativeFrame(
+    (), SQA.QTerm[], coefficient_matrix(0, 0), Int[], coefficient_matrix(0, 0)
+  )
+end
+
 function coordinate_columns_independent(coordinates::KossakowskiMatrix)
   _, direction_count = size(coordinates)
   return length(coordinate_pivot_rows(coordinates)) == direction_count
@@ -47,10 +53,6 @@ function automatic_dissipative_frame(expansion::FloquetExpansion)
   for component in getfield(expansion, :effective_components)
     append_generated_directions!(operators, component)
   end
-  isempty(operators) && throw(
-    ArgumentError(
-      "positive completion found no dissipative directions; pass an explicit DissipativeFrame if a representation is required",
-    ),
-  )
+  isempty(operators) && return empty_dissipative_frame()
   return DissipativeFrame(Tuple(operators))
 end
