@@ -129,7 +129,7 @@ julia> @variables ω::Real t::Real E::Real γ::Real;
 
 julia> H = (1 // 2) * σz + E * cos(ω * t) * σx;
 
-julia> raw = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(jump(σminus, γ),));
+julia> raw = floquet_expansion(H, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 3; channels=(jump(σminus, γ),));
 
 julia> cartesian = DissipativeFrame(σx, σy, σz);
 

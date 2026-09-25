@@ -17,14 +17,18 @@ abstract type ExpansionAlgorithm end
 
 Select the Hori–Deprit Lie-transform expansion algorithm.
 """
-struct HoriDeprit <: ExpansionAlgorithm end
+struct HoriDeprit <: ExpansionAlgorithm
+  HoriDeprit(::Val{:raw}) = new()
+end
 
 """
     BlochFeshbach()
 
 Select the Bloch/Feshbach projection-recurrence expansion algorithm.
 """
-struct BlochFeshbach <: ExpansionAlgorithm end
+struct BlochFeshbach <: ExpansionAlgorithm
+  BlochFeshbach(::Val{:raw}) = new()
+end
 
 """
     VanVleck(; algorithm=HoriDeprit())
