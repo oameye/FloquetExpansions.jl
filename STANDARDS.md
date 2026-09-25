@@ -22,6 +22,7 @@ side: a contradiction between standards files is itself a defect.
 | --- | --- | --- |
 | Struct field storage types | [`docs/agents/style.md`](docs/agents/style.md) | `test/quality/CheckConcreteStructs.jl`, via `make test` |
 | Imports and qualified access | [`docs/agents/style.md`](docs/agents/style.md) | `test/quality/ExplicitImports.jl`, via `make test` |
+| Public-API-only package tests | [`docs/agents/development.md`](docs/agents/development.md) | `test/quality/PublicAPI.jl`, via `make test` |
 | Formatting | `.JuliaFormatter.toml` | `.github/workflows/Format.yml`; `make format` locally |
 | A dependency or `[compat]` bound | `Project.toml` | `test/quality/Aqua.jl`, via `make test` |
 | An `export` line | `src/FloquetExpansions.jl` | `test/quality/Aqua.jl`, undefined exports only |
@@ -39,7 +40,7 @@ No gate checks the following. That is a known state, not an implied guarantee.
 | --- | --- |
 | Signature type constraints, keyword and forwarding form, comments, internal docstrings, private names | [`docs/agents/style.md`](docs/agents/style.md) |
 | Allocation behaviour, and how a performance number is reported | [`docs/agents/performance.md`](docs/agents/performance.md) |
-| Reaching past the public API in a behavior test, and docstrings on exported or `@public` names | [`docs/agents/development.md`](docs/agents/development.md) |
+| Semantic private-field access that cannot be recognized statically, and docstrings on qualified `@public` names | [`docs/agents/development.md`](docs/agents/development.md) |
 | Module boundaries, symbolic representation, and the qualified `@public` seam | [`docs/agents/architecture.md`](docs/agents/architecture.md) |
 | A name for a domain concept | [`CONTEXT.md`](CONTEXT.md) |
 | A breaking change's blast radius, and git policy | [`AGENTS.md`](AGENTS.md) |

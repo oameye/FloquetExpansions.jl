@@ -14,7 +14,7 @@ The v0.0.1 policy permits breaking changes. Update every in-repository caller, t
 
 [`architecture.md`](architecture.md) is the authority for what each file under `src/` owns. Around it:
 
-- `test/*.jl` holds behavior tests, `test/helpers/` shared fixtures, and `test/quality/` package-wide checks.
+- `test/*.jl` holds behavior tests, `test/helpers/` shared fixtures and independent reference calculations, and `test/quality/` package-wide checks.
 - `docs/src/` holds user-facing documentation, `docs/adr/` design decisions, and `docs/agents/` repository guidance.
 - `examples/*.jl` is the source for the generated Literate pages under `docs/src/examples/`.
 
@@ -28,8 +28,10 @@ The qualified expert API is marked with `@public` in `src/FloquetExpansions.jl` 
 
 ## Testing patterns
 
-- **Test user-visible behavior through the public API.** Behavior and regression tests for package features should exercise exported or intentionally qualified `@public` interfaces. Do not reach through private fields or helpers merely to make such a test convenient.
-- **Use internal tests for internal invariants.** Focused algebra or algorithm tests may qualify private helpers when directly validating a load-bearing invariant that is not usefully observable at the public seam, as in matrix-series or Gram-recursion tests. Such a test does not make that helper public API.
+- **Tests use only the public package API.** Package behavior must be exercised through exported names or intentionally qualified `@public` interfaces. Tests must not call private FloquetExpansions helpers, inspect private fields, alias the package module to reach internals, or use `getfield` to bypass accessors. There is no private-helper exception.
+- `test/helpers/` may define fixtures, mathematical reference implementations, and independent numerical or symbolic oracles. Those helpers may use public FloquetExpansions objects, but they must not call private FloquetExpansions implementation code. A reference implementation is useful only when it independently checks public behavior.
+- If an invariant is important but cannot be observed through the public API, first decide whether users need a public accessor or operation. If not, do not preserve implementation code merely to support a private unit test; unreachable or otherwise unused internals are candidates for deletion.
+- `test/quality/PublicAPI.jl` enforces the common private-access paths on every supported Julia version by deriving the allowed surface from `export` and `@public` declarations. Review still owns semantic cases that cannot be recognized syntactically, such as direct field access through a value whose package type is only apparent from context.
 - Use `@inferred` when a stable return-type contract is part of the behavior.
 - Keep compiler-sensitive core workloads under `JET.@test_opt` when optimizer cleanliness is an acceptance property. The current completion workloads in `test/quality/JET.jl` are required gates, not optional diagnostics.
 - For runtime-sensitive changes, measure the benchmark workload that exercises the path. Add an allocation assertion only when a small, stable operation is genuinely expected to have a fixed allocation contract; the repository does not currently impose a package-wide zero-allocation gate.
@@ -42,7 +44,7 @@ Use the smallest check that answers the current question, then run the relevant 
 | Command | Runs | CI |
 | --- | --- | --- |
 | `make format` | JuliaFormatter in-place over the repository | `Format.yml` checks formatting |
-| `make test` | the default ParallelTestRunner suite, including Aqua, CheckConcreteStructs, ExplicitImports and doctests, but excluding `quality/JET` | `Tests.yml` |
+| `make test` | the default ParallelTestRunner suite, including Aqua, CheckConcreteStructs, ExplicitImports, PublicAPI and doctests, but excluding `quality/JET` | `Tests.yml` |
 | `make jet` | `test/quality/JET.jl`: package JET plus explicit optimizer-stability workloads | `JET.yml` |
 | `make docs` | the Documenter build with `checkdocs=:exports`; doctests are disabled here because the test suite owns them | `Documentation.yml` |
 | `make bench` | the benchmark suite | `Benchmarks.yaml` |
