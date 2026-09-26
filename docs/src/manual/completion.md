@@ -11,15 +11,18 @@ without changing the retained Floquet coefficients or micromotion. It only fixes
 the retained order. Different completion methods can therefore agree with the same retained
 expansion while differing at higher order.
 
+For Liouvillian Van Vleck expansions, [`HoriDeprit`](@ref) and [`BlochFeshbach`](@ref) use
+`Gram()` completion by default. Request the raw canonical HFE with
+`complete_positive=Val(false)`. The explicit [`positive_completion`](@ref) API remains useful for
+fixed dissipative frames, `Spectral()`, and completion-method comparisons.
+
 ```@docs
 positive_completion
 ```
 
 ## Choosing a completion algorithm
 
-The package provides two CP completion algorithms: [`Gram`](@ref) and  [`Spectral`](@ref).
-
-
+The package provides two CP completion algorithms: [`Gram`](@ref) and [`Spectral`](@ref).
 
 Both methods preserve the retained Kossakowski coefficients, but their finite positive
 continuations need not agree beyond the retained order.
@@ -32,8 +35,10 @@ Spectral
 ## Reading a completed expansion
 
 A completed result remains a [`FloquetExpansion`](@ref) struct. The [`effective_component`](@ref),
-[`hamiltonian_component`](@ref), and [`micromotion`](@ref) expose retained Floquet data. Whereas, [`effective_generator`](@ref),
-[`hamiltonian`](@ref), [`kossakowski`](@ref), and [`channels`](@ref) expose the finite completed model. 
+[`hamiltonian_component`](@ref), and [`micromotion`](@ref) expose retained Floquet data. Whereas,
+[`effective_generator`](@ref), [`hamiltonian`](@ref), [`kossakowski`](@ref), and [`channels`](@ref)
+expose the finite completed model.
+
 ```@docs
 channels
 dissipative_frame

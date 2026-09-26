@@ -1,17 +1,17 @@
-# Explicit, conditional completely-positive completion
+# Default, conditional completely-positive completion
 
-Finite-order Floquet Liouvillian expansions are returned algebraically by default and are not implicitly repaired into GKSL form. Complete positivity is an explicit opt-in post-processing step applied to a `FloquetExpansion`.
+Finite-order Floquet Liouvillian expansions may leave the GKSL cone even when the microscopic driven model is Lindbladian. Van Vleck open-system expansions therefore use graded `Gram()` positive completion by default. The selected Hori–Deprit or Bloch/Feshbach backend still constructs the same canonical retained Floquet coefficients and micromotion; completion changes only the finite effective-generator realization beyond the retained order.
 
-`positive_completion(vv, algorithm)` constructs a finite positive continuation that preserves every retained Floquet coefficient through the requested order. The completion may depend on symbolic positivity and regularity conditions. These conditions are reported rather than guessed when the package cannot prove them from microscopic rate provenance or structural algebra.
+The raw canonical expansion remains available explicitly through `HoriDeprit(; complete_positive=Val(false))` and `BlochFeshbach(; complete_positive=Val(false))`. This is the path for algebraic diagnostics, perturbative comparison, custom completion, and validation against the historical raw HFE.
 
-The first supported completion algorithms are an algebraic Gram/Feshbach construction and a restricted perturbative spectral/HCM construction. Completion does not modify the retained micromotion or Hamiltonian coefficients through the controlled order, and it does not claim that the finite completed model is the exact Floquet GKSL logarithm.
+`positive_completion(vv, algorithm)` remains a public operation on an explicitly raw expansion. It is required for selecting `Spectral()`, supplying a fixed `DissipativeFrame`, or comparing completion algorithms. Completion may depend on symbolic positivity and regularity conditions; unresolved conditions are reported rather than guessed.
 
-This ADR supersedes the earlier decision that positivity completion was only a future possibility; the feature remains explicit rather than automatic.
+The default `Gram()` continuation preserves every retained Floquet coefficient and the retained micromotion. It does not claim that the finite completed generator is the exact Floquet GKSL logarithm. Native CK/open-leg reconstruction of a finite CPTP period map is a separate construction and is not identified with this static completion.
 
 ## Gate
 
 `make test` runs the testsets that hold this decision:
 
-- `test/completion_state.jl`: "raw Floquet expansions carry uncompleted state"
-- `test/gram_completion.jl`: "symbolic positivity and regularity conditions remain distinct"
-- `test/cp_completion_validation.jl`: "spectral symbolic rank strata separate positivity and regularity"
+- `test/expansion_algorithm_cp_policy.jl`: default selectors equal explicit CP completion and explicit `Val(false)` preserves the raw HD/BF HFE;
+- `test/gram_completion.jl`: symbolic positivity and regularity conditions remain distinct;
+- `test/cp_completion_validation.jl`: spectral symbolic rank strata separate positivity and regularity.

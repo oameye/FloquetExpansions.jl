@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "8b6b7a8"
+commit = "e8b116b"
 entry = ["src/FloquetExpansions.jl"]
 full_analysis = true
 metric = "lsp"
@@ -45,6 +45,10 @@ raw = 0
 reviewed = 0
 
 [files."src/completion_types.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/cp_algorithm_policy.jl"]
 raw = 0
 reviewed = 0
 

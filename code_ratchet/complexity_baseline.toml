@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "8b6b7a8"
+commit = "e8b116b"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -43,15 +43,15 @@ cog_sum = 37
 arg_sum = 13
 
 [files."src/bloch_van_vleck.jl"]
-cyc = 8
-cog = 12
+cyc = 3
+cog = 3
 arg = 6
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 33
-cog_sum = 32
-arg_sum = 38
+cyc_sum = 7
+cog_sum = 7
+arg_sum = 11
 
 [files."src/completion.jl"]
 cyc = 2
@@ -82,9 +82,9 @@ arg = 2
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 14
-cog_sum = 9
-arg_sum = 11
+cyc_sum = 22
+cog_sum = 10
+arg_sum = 22
 
 [files."src/completion_linear_algebra.jl"]
 cyc = 7
@@ -107,6 +107,17 @@ arg_over = 0
 cyc_sum = 2
 cog_sum = 0
 arg_sum = 4
+
+[files."src/cp_algorithm_policy.jl"]
+cyc = 1
+cog = 1
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 9
+cog_sum = 4
+arg_sum = 20
 
 [files."src/engine.jl"]
 cyc = 8
@@ -203,9 +214,9 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 74
+cyc_sum = 76
 cog_sum = 39
-arg_sum = 81
+arg_sum = 83
 
 [files."src/quasienergy.jl"]
 cyc = 4

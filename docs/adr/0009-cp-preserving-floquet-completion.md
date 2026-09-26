@@ -1,12 +1,26 @@
 # CP-preserving completion of truncated Floquet Liouvillians
 
-Finite-order Floquet Liouvillian expansions may leave the GKSL cone even when the microscopic driven model is Lindbladian. The package therefore supports an explicit positive-completion stage that selects a finite completely-positive continuation without changing any retained Van Vleck coefficient.
+Finite-order Floquet Liouvillian expansions may leave the GKSL cone even when the microscopic driven model is Lindbladian. The package therefore uses graded `Gram()` positive completion by default for Liouvillian Van Vleck expansions, selecting a finite completely-positive continuation without changing any retained Van Vleck coefficient. The raw canonical HFE remains available through explicit `complete_positive=Val(false)`.
 
 ## Result model
 
-Completion preserves the unified `FloquetExpansion` result model. A raw expansion carries an `Uncompleted` completion state. `positive_completion(vv, Gram())` or `positive_completion(vv, Spectral())` returns another `FloquetExpansion` carrying a concrete completed state. Completing an already completed expansion is an error; there is no operation that removes the completion state.
+Completion preserves the unified `FloquetExpansion` result model. With the default Hori–Deprit or Bloch/Feshbach selector, a Liouvillian expansion carries a concrete Gram-completed state. An explicitly raw expansion (`complete_positive=Val(false)`) carries `Uncompleted`; `positive_completion(vv, Gram())` or `positive_completion(vv, Spectral())` then returns another `FloquetExpansion` carrying a concrete completed state. Completing an already completed expansion is an error; there is no operation that removes the completion state.
 
 The retained `effective_components`, Hamiltonian components, gauge, and micromotion are not rewritten. The no-index `effective_generator(cp)` returns the finite completed generator, while `effective_component(cp, n)` continues to return the original retained order-`n` Floquet coefficient.
+
+## Default algorithm policy
+
+`HoriDeprit()` and `BlochFeshbach()` enable positive completion by default. For Liouvillian input the selected raw Van Vleck backend is evaluated first and the resulting expansion is completed with `Gram()`. Hamiltonian input is unchanged by the policy.
+
+```julia
+VanVleck(; algorithm=HoriDeprit())
+VanVleck(; algorithm=BlochFeshbach())
+
+VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false)))
+VanVleck(; algorithm=BlochFeshbach(; complete_positive=Val(false)))
+```
+
+The last two forms expose the raw canonical HFE. The CP policy is static type information; there is no runtime Boolean branch in the perturbative backend. Native CK/open-leg reconstruction of a finite CPTP period map remains a separate physical representation and does not imply that a channel logarithm is universally GKSL.
 
 ## Dissipative representation
 
@@ -105,10 +119,11 @@ This construction does not imply convergence of the high-frequency expansion, un
 
 `make test` runs the testsets that hold this decision:
 
-- `test/completion_state.jl`: "raw Floquet expansions carry uncompleted state"
-- `test/completion_state.jl`: "positive-completion algorithms establish the public dispatch boundary"
-- `test/completion_storage.jl`: "completed representation owns frame and cached retained data"
-- `test/gksl_coordinates.jl`: "DissipativeFrame is ordered and independent modulo identity"
-- `test/gram_completion.jl`: "automatic frame preserves microscopic channel order"
-- `test/cp_completion_validation.jl`: "public completion API is inferred for fixed frames"
-- `test/cp_completion_validation.jl`: "driven qubit validates Cartesian Gram and adapted spectral frames"
+- `test/expansion_algorithm_cp_policy.jl`: default selectors are Gram-completed while explicit `Val(false)` remains raw;
+- `test/completion_state.jl`: explicit raw expansions carry uncompleted state;
+- `test/completion_state.jl`: positive-completion algorithms establish the public dispatch boundary;
+- `test/completion_storage.jl`: completed representation owns frame and cached retained data;
+- `test/gksl_coordinates.jl`: `DissipativeFrame` is ordered and independent modulo identity;
+- `test/gram_completion.jl`: automatic frame preserves microscopic channel order;
+- `test/cp_completion_validation.jl`: public completion API is inferred for fixed frames;
+- `test/cp_completion_validation.jl`: driven qubit validates Cartesian Gram and adapted spectral frames.

@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "8b6b7a8"
+commit = "e8b116b"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -34,7 +34,7 @@ public = 0
 
 [files."src/completion_frame.jl"]
 undocumented = 0
-public = 0
+public = 1
 
 [files."src/completion_linear_algebra.jl"]
 undocumented = 0
@@ -42,7 +42,11 @@ public = 0
 
 [files."src/completion_types.jl"]
 undocumented = 0
-public = 6
+public = 8
+
+[files."src/cp_algorithm_policy.jl"]
+undocumented = 0
+public = 2
 
 [files."src/engine.jl"]
 undocumented = 0
