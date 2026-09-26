@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "8b6b7a8"
+commit = "88fa48c"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -20,38 +20,38 @@ cyc_sum = 0
 cog_sum = 0
 arg_sum = 0
 
-[files."src/bloch_connected_van_vleck.jl"]
-cyc = 23
-cog = 43
-arg = 7
-cyc_over = 1
-cog_over = 1
-arg_over = 0
-cyc_sum = 108
-cog_sum = 140
-arg_sum = 72
-
-[files."src/bloch_projection.jl"]
-cyc = 12
-cog = 17
-arg = 6
-cyc_over = 1
-cog_over = 2
-arg_over = 0
-cyc_sum = 25
-cog_sum = 37
-arg_sum = 13
-
-[files."src/bloch_van_vleck.jl"]
-cyc = 8
-cog = 12
-arg = 6
+[files."src/bloch_feshbach/bloch_feshbach.jl"]
+cyc = 3
+cog = 3
+arg = 5
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 33
-cog_sum = 32
-arg_sum = 38
+cyc_sum = 25
+cog_sum = 13
+arg_sum = 41
+
+[files."src/bloch_feshbach/lyndon_words.jl"]
+cyc = 5
+cog = 4
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 30
+cog_sum = 19
+arg_sum = 30
+
+[files."src/bloch_feshbach/van_vleck_words.jl"]
+cyc = 4
+cog = 3
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 35
+cog_sum = 23
+arg_sum = 42
 
 [files."src/completion.jl"]
 cyc = 2
@@ -108,27 +108,27 @@ cyc_sum = 2
 cog_sum = 0
 arg_sum = 4
 
-[files."src/engine.jl"]
-cyc = 8
-cog = 12
+[files."src/floquet_expansion.jl"]
+cyc = 5
+cog = 3
 arg = 6
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 53
-cog_sum = 33
-arg_sum = 73
+cyc_sum = 33
+cog_sum = 14
+arg_sum = 50
 
-[files."src/expansion_algorithms.jl"]
-cyc = 5
-cog = 7
-arg = 8
+[files."src/gauges.jl"]
+cyc = 1
+cog = 1
+arg = 1
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 23
-cog_sum = 14
-arg_sum = 48
+cyc_sum = 1
+cog_sum = 1
+arg_sum = 1
 
 [files."src/gksl_coordinates.jl"]
 cyc = 8
@@ -174,6 +174,17 @@ cyc_sum = 22
 cog_sum = 17
 arg_sum = 25
 
+[files."src/hori_deprit.jl"]
+cyc = 8
+cog = 12
+arg = 6
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 21
+cog_sum = 19
+arg_sum = 27
+
 [files."src/liouvillian.jl"]
 cyc = 9
 cog = 14
@@ -203,9 +214,9 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 74
-cog_sum = 39
-arg_sum = 81
+cyc_sum = 73
+cog_sum = 38
+arg_sum = 80
 
 [files."src/quasienergy.jl"]
 cyc = 4

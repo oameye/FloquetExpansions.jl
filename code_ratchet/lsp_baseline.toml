@@ -3,28 +3,28 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "8b6b7a8"
+commit = "88fa48c"
 entry = ["src/FloquetExpansions.jl"]
 full_analysis = true
 metric = "lsp"
 severity = "hint"
 tool = "jetls"
-version = "jetls version 2026-08-23, julia version 1.13.0"
+version = "jetls version 2026-09-06, julia version 1.13.0"
 binding = ["reviewed"]
 
 [files."src/FloquetExpansions.jl"]
 raw = 0
 reviewed = 0
 
-[files."src/bloch_connected_van_vleck.jl"]
+[files."src/bloch_feshbach/bloch_feshbach.jl"]
 raw = 0
 reviewed = 0
 
-[files."src/bloch_projection.jl"]
+[files."src/bloch_feshbach/lyndon_words.jl"]
 raw = 0
 reviewed = 0
 
-[files."src/bloch_van_vleck.jl"]
+[files."src/bloch_feshbach/van_vleck_words.jl"]
 raw = 0
 reviewed = 0
 
@@ -48,11 +48,11 @@ reviewed = 0
 raw = 0
 reviewed = 0
 
-[files."src/engine.jl"]
+[files."src/floquet_expansion.jl"]
 raw = 0
 reviewed = 0
 
-[files."src/expansion_algorithms.jl"]
+[files."src/gauges.jl"]
 raw = 0
 reviewed = 0
 
@@ -69,6 +69,10 @@ raw = 0
 reviewed = 0
 
 [files."src/gram_recursion.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/hori_deprit.jl"]
 raw = 0
 reviewed = 0
 

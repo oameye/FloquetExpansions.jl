@@ -72,9 +72,10 @@ combined when they use the same Fourier basis.
 
 - `components`: Map integer harmonic labels to their nonzero components.
 - `ωd`: Symbolic angular frequency defining the Fourier basis.
-- `zero_component`: Prototype used to determine the component type of an empty generator.
+- `zero_component`: The zero of the component algebra, which `G[l]` returns for a missing
+  harmonic. A nonzero value throws an `ArgumentError`.
 
-For an empty generator, the optional `zero_component` prototype fixes the component type.
+For an empty generator, the optional `zero_component` fixes the component type.
 The component type determines the algebra used by addition, commutators,
 differentiation, and simplification.
 
@@ -113,6 +114,8 @@ struct PeriodicGenerator{T}
     components::Dict{Int,T}, wd::Symbolics.Num, zero_component::T
   ) where {T}
     validate_component_type(T)
+    iszero(zero_component) ||
+      throw(ArgumentError("zero_component must be the zero of the component algebra"))
     kept = Dict{Int,T}()
     sizehint!(kept, length(components))
     for (harmonic, component) in components

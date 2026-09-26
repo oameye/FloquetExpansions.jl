@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "8b6b7a8"
+commit = "88fa48c"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -12,15 +12,15 @@ binding = ["undocumented"]
 undocumented = 0
 public = 0
 
-[files."src/bloch_connected_van_vleck.jl"]
+[files."src/bloch_feshbach/bloch_feshbach.jl"]
 undocumented = 0
 public = 0
 
-[files."src/bloch_projection.jl"]
+[files."src/bloch_feshbach/lyndon_words.jl"]
 undocumented = 0
 public = 0
 
-[files."src/bloch_van_vleck.jl"]
+[files."src/bloch_feshbach/van_vleck_words.jl"]
 undocumented = 0
 public = 0
 
@@ -44,13 +44,13 @@ public = 0
 undocumented = 0
 public = 6
 
-[files."src/engine.jl"]
+[files."src/floquet_expansion.jl"]
 undocumented = 0
 public = 6
 
-[files."src/expansion_algorithms.jl"]
+[files."src/gauges.jl"]
 undocumented = 0
-public = 0
+public = 5
 
 [files."src/gksl_coordinates.jl"]
 undocumented = 0
@@ -68,6 +68,10 @@ public = 9
 undocumented = 0
 public = 0
 
+[files."src/hori_deprit.jl"]
+undocumented = 0
+public = 0
+
 [files."src/liouvillian.jl"]
 undocumented = 0
 public = 9
@@ -78,7 +82,7 @@ public = 0
 
 [files."src/periodic_operator.jl"]
 undocumented = 0
-public = 11
+public = 6
 
 [files."src/quasienergy.jl"]
 undocumented = 0

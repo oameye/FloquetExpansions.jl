@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "8b6b7a8"
+commit = "88fa48c"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -13,13 +13,13 @@ binding = ["boxes"]
 [files."src/FloquetExpansions.jl"]
 boxes = 0
 
-[files."src/bloch_connected_van_vleck.jl"]
+[files."src/bloch_feshbach/bloch_feshbach.jl"]
 boxes = 0
 
-[files."src/bloch_projection.jl"]
+[files."src/bloch_feshbach/lyndon_words.jl"]
 boxes = 0
 
-[files."src/bloch_van_vleck.jl"]
+[files."src/bloch_feshbach/van_vleck_words.jl"]
 boxes = 0
 
 [files."src/completion.jl"]
@@ -37,10 +37,10 @@ boxes = 0
 [files."src/completion_types.jl"]
 boxes = 0
 
-[files."src/engine.jl"]
+[files."src/floquet_expansion.jl"]
 boxes = 0
 
-[files."src/expansion_algorithms.jl"]
+[files."src/gauges.jl"]
 boxes = 0
 
 [files."src/gksl_coordinates.jl"]
@@ -53,6 +53,9 @@ boxes = 0
 boxes = 0
 
 [files."src/gram_recursion.jl"]
+boxes = 0
+
+[files."src/hori_deprit.jl"]
 boxes = 0
 
 [files."src/liouvillian.jl"]

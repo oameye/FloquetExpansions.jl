@@ -13,6 +13,8 @@ Each fact lives in exactly one place, chosen by the question it answers. The oth
 | Theory page | Why does it work? | Conventions, defining equations, mechanism, literature |
 | Example | What does real use look like? | A worked model, generated from `examples/*.jl` |
 
+**Keep implementation out of user-facing documentation.** How the package organizes a computation, such as its internal representations, compiled plans, or performance strategy, belongs in [`architecture.md`](architecture.md), not in a docstring, manual page, or theory page.
+
 ## Docstrings
 
 Every exported name and every name in the qualified expert API marked with `@public` has a docstring. A docstring is read alone at the REPL through `?name`, so it is **self-contained**: a reader who never opens the manual can use the name correctly. Self-contained means usable, not derived. Equations and mechanism belong to the theory page, reached through one link such as ``[High-frequency expansion](@ref high-frequency-expansion-theory)``. A guarantee or caveat about the name itself stays in its docstring, even when a manual reader would also want it.
