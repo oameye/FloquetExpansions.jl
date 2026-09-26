@@ -84,7 +84,9 @@ a = Destroy(fock, :a)
 @testset "full-rank non-diagonal Gram completion" begin
   frame = DissipativeFrame(a, a^2)
   L = liouvillian(0 * a; channels=(collapse(a + a^2), collapse(a + im * a^2)))
-  expansion = floquet_expansion(L, ω, t, VanVleck(), 2)
+  expansion = floquet_expansion(
+    L, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   completion = @inferred positive_completion(expansion, Gram(), frame)
 
   @test dissipative_frame(completion) == frame
@@ -110,7 +112,14 @@ end
 
 @testset "completed Gram accessors return independent containers" begin
   frame = DissipativeFrame(a)
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(collapse(a),))
+  expansion = floquet_expansion(
+    0 * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(collapse(a),),
+  )
   completion = positive_completion(expansion, Gram(), frame)
 
   matrix = kossakowski(completion)
@@ -134,7 +143,12 @@ end
   first_channel = a + a^2
   second_channel = a + im * a^2
   expansion = floquet_expansion(
-    0 * a, ω, t, VanVleck(), 1; channels=(collapse(first_channel), collapse(second_channel))
+    0 * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(collapse(first_channel), collapse(second_channel)),
   )
   completion = positive_completion(expansion, Gram())
 
@@ -143,13 +157,25 @@ end
     effective_generator(completion)
 
   dependent = floquet_expansion(
-    0 * a, ω, t, VanVleck(), 1; channels=(collapse(a), collapse(2a))
+    0 * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(collapse(a), collapse(2a)),
   )
   @test dissipative_frame(positive_completion(dependent, Gram())) == DissipativeFrame(a)
 end
 
 @testset "symbolic positivity and regularity conditions remain distinct" begin
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(jump(a, γ),))
+  expansion = floquet_expansion(
+    0 * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(jump(a, γ),),
+  )
   completion = positive_completion(expansion, Gram())
   γc = convert(SQA.CNum, γ)
 
@@ -168,7 +194,7 @@ end
     H,
     ω,
     t,
-    VanVleck(),
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
     2;
     channels=(collapse(σx + σy), collapse(σy + σz), collapse(σz + σx)),
   )
@@ -192,7 +218,12 @@ end
 
 @testset "bosonic periodically modulated loss" begin
   expansion = floquet_expansion(
-    Δ * a' * a, ω, t, VanVleck(), 2; channels=(jump(a, 2 + cos(ω * t)),)
+    Δ * a' * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    2;
+    channels=(jump(a, 2 + cos(ω * t)),),
   )
   completion = positive_completion(expansion, Gram())
 
@@ -205,7 +236,13 @@ end
 end
 
 @testset "retained negative direction is a completion obstruction" begin
-  expansion = floquet_expansion(-dissipator(a), ω, t, VanVleck(), 1)
+  expansion = floquet_expansion(
+    -dissipator(a),
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1,
+  )
   @test_throws FloquetExpansions.CompletionObstruction positive_completion(
     expansion, Gram(), DissipativeFrame(a)
   )

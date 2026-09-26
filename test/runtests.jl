@@ -16,6 +16,8 @@ init_code = quote
     Uncompleted,
     CompletionAlgorithm,
     CompletionFactorization,
+    CompletionObstruction,
+    FractionalJumpOnset,
     GramStage,
     GramFactorization,
     SpectralFactorization

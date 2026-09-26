@@ -24,6 +24,7 @@ include("liouvillian.jl")
 include("quasienergy.jl")
 include("engine.jl")
 include("expansion_algorithms.jl")
+include("cp_algorithm_policy.jl")
 include("gksl_coordinates.jl")
 include("completion_conversion.jl")
 include("completion_frame.jl")
@@ -54,6 +55,8 @@ export DissipativeFrame,
 @public Completion,
 CompletionAlgorithm,
 CompletionFactorization,
+CompletionObstruction,
+FractionalJumpOnset,
 GramFactorization,
 GramStage,
 SpectralFactorization,

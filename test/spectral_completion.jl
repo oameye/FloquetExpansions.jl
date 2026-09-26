@@ -21,7 +21,14 @@ a = Destroy(fock, :a)
 
 @testset "spectral completion preserves a diagonal rate branch" begin
   frame = DissipativeFrame(a)
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(jump(a, γ),))
+  expansion = floquet_expansion(
+    0 * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(jump(a, γ),),
+  )
   completion = @inferred positive_completion(expansion, Spectral(), frame)
   spectral = factorization(completion)
 
@@ -38,7 +45,14 @@ end
 
 @testset "spectral factorization accessor returns independent containers" begin
   frame = DissipativeFrame(a)
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(collapse(a),))
+  expansion = floquet_expansion(
+    0 * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(collapse(a),),
+  )
   completion = positive_completion(expansion, Spectral(), frame)
 
   spectral = factorization(completion)
@@ -57,7 +71,12 @@ end
   σz = Pauli(pauli, :sigma, 3)
   frame = DissipativeFrame(σz, σy)
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    Ω * cos(ω * t) * σx,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3;
+    channels=(collapse(σz),),
   )
   completion = @inferred positive_completion(expansion, Spectral(), frame)
   spectral = factorization(completion)
@@ -95,7 +114,9 @@ end
     ),
     ω,
   )
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   mixing = kossakowski_component(expansion, frame, 1)
 
   @test !iszero(SQA.simplify(mixing[1, 2]))
@@ -133,7 +154,9 @@ end
     ),
     ω,
   )
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   mixing = kossakowski_component(expansion, frame, 1)
 
   @test !iszero(SQA.simplify(mixing[1, 2]))
@@ -159,7 +182,9 @@ end
     ),
     ω,
   )
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   completion = positive_completion(expansion, Spectral(), frame)
   spectral = factorization(completion)
 
@@ -185,7 +210,12 @@ end
   σz = Pauli(pauli, :sigma, 3)
   frame = DissipativeFrame(σz, σy)
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    Ω * cos(ω * t) * σx,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3;
+    channels=(collapse(σz),),
   )
   gram = positive_completion(expansion, Gram(), frame)
   spectral = positive_completion(expansion, Spectral(), frame)
@@ -205,7 +235,12 @@ end
 @testset "non-diagonal leading spectral frame is rejected" begin
   frame = DissipativeFrame(a, a^2)
   expansion = floquet_expansion(
-    0 * a, ω, t, VanVleck(), 1; channels=(collapse(a + a^2), collapse(a + im * a^2))
+    0 * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(collapse(a + a^2), collapse(a + im * a^2)),
   )
   @test_throws ArgumentError positive_completion(expansion, Spectral(), frame)
 end
