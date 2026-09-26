@@ -1,6 +1,6 @@
 # The van Vleck gauge carries a public expansion-algorithm selector
 
-`VanVleck` is parameterized by an `ExpansionAlgorithm`, chosen as `VanVleck(; algorithm=...)` with `HoriDeprit()` as the default and `BlochFeshbach()` as the alternative. Both algorithms compute the same retained effective components and micromotion, so the selector changes cost and intermediate quantities, never the result. The selector is public because neither algorithm dominates: on the benchmarks behind this decision, Hori–Deprit was 15 to 350 times faster on Hamiltonian workloads at orders 7 to 10, while Bloch/Feshbach was about 5 times faster on a qubit Liouvillian at order 7.
+`VanVleck` is parameterized by an `ExpansionAlgorithm`, chosen as `VanVleck(; algorithm=...)` with `HoriDeprit()` as the default and `BlochFeshbach()` as the alternative. Both algorithms compute the same retained effective components and micromotion, so the selector changes cost and intermediate quantities, never the result. The selector is public because neither algorithm dominates: on the benchmarks behind this decision, Hori–Deprit was 2 to 25 times faster on driven-qubit Hamiltonians at orders 6 to 10, while Bloch/Feshbach was about 12 times faster on a driven Kerr oscillator at order 6 and 11 to 20 times faster on qubit and cavity Liouvillians at orders 4 to 7.
 
 ## Considered options
 

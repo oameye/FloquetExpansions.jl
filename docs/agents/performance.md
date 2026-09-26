@@ -30,4 +30,6 @@ Do not use a runtime benchmark as evidence about TTFX, or a successful precompil
 
 `make bench` runs the benchmark suite. `.github/workflows/Benchmarks.yaml` records benchmark history, comments when a result exceeds 130% of baseline, and fails when a result exceeds 170%.
 
+**Give every benchmark a key of depth three**, `suite[group][workload][case]`. Fold any further variant, such as the algorithm and the order, into the case name, as in `"Bloch-Feshbach order 5"`.
+
 A performance claim must identify the axis, workload, and measurement that supports it. Allocation claims need an allocation measurement; the repository currently has no package-wide committed `@allocations` gate, so do not imply one exists.

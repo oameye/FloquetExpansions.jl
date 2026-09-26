@@ -9,10 +9,8 @@ function word_letter(letter::H, ::Type{C}) where {H,C}
 end
 
 Base.one(::Type{WordPolynomial{H,C}}) where {H,C} = WordPolynomial(Dict(H[] => one(C)))
-Base.zero(::WordPolynomial{H,C}) where {H,C} = WordPolynomial{H,C}()
+Base.zero(::Type{WordPolynomial{H,C}}) where {H,C} = WordPolynomial{H,C}()
 Base.iszero(polynomial::WordPolynomial) = isempty(polynomial.terms)
-
-simplify_component(polynomial::WordPolynomial) = polynomial
 
 function accumulate_word!(
   terms::Dict{Vector{H},C}, word::Vector{H}, coefficient
@@ -22,49 +20,41 @@ function accumulate_word!(
   return terms
 end
 
-function Base.:+(left::WordPolynomial{H,C}, right::WordPolynomial{H,C}) where {H,C}
-  terms = copy(left.terms)
-  for (word, coefficient) in right.terms
-    accumulate_word!(terms, word, coefficient)
+function add_scaled!(
+  target::WordPolynomial{H,C}, source::WordPolynomial{H,C}, scale::Number
+) where {H,C}
+  for (word, coefficient) in source.terms
+    accumulate_word!(target.terms, word, scale * coefficient)
   end
-  return WordPolynomial(terms)
+  return target
 end
 
-function Base.:-(left::WordPolynomial{H,C}, right::WordPolynomial{H,C}) where {H,C}
-  terms = copy(left.terms)
-  for (word, coefficient) in right.terms
-    accumulate_word!(terms, word, -coefficient)
-  end
-  return WordPolynomial(terms)
-end
-
-Base.:-(polynomial::WordPolynomial) = -1 * polynomial
-
-function Base.:*(scale::Number, polynomial::WordPolynomial{H,C}) where {H,C}
-  terms = Dict{Vector{H},C}()
-  for (word, coefficient) in polynomial.terms
-    accumulate_word!(terms, word, scale * coefficient)
-  end
-  return WordPolynomial(terms)
-end
-
-function Base.:*(left::WordPolynomial{H,C}, right::WordPolynomial{H,C}) where {H,C}
-  terms = Dict{Vector{H},C}()
+function add_product!(
+  target::WordPolynomial{H,C},
+  left::WordPolynomial{H,C},
+  right::WordPolynomial{H,C},
+  scale::Number,
+) where {H,C}
   for (left_word, left_coefficient) in left.terms,
     (right_word, right_coefficient) in right.terms
 
     accumulate_word!(
-      terms, vcat(left_word, right_word), left_coefficient * right_coefficient
+      target.terms,
+      vcat(left_word, right_word),
+      scale * left_coefficient * right_coefficient,
     )
   end
-  return WordPolynomial(terms)
+  return target
 end
 
-word_commutator(left::WordPolynomial, right::WordPolynomial) = left * right - right * left
+function word_commutator(left::WordPolynomial{H,C}, right::WordPolynomial{H,C}) where {H,C}
+  commutator = add_product!(zero(WordPolynomial{H,C}), left, right, 1)
+  return add_product!(commutator, right, left, -1)
+end
 
 function is_lyndon_word(word::Vector)
   isempty(word) && return false
-  return all(word < word[index:end] for index in 2:length(word))
+  return all(word < view(word, index:lastindex(word)) for index in 2:lastindex(word))
 end
 
 function lyndon_standard_factorization(word::Vector)
@@ -90,20 +80,42 @@ function lyndon_bracket!(
   return bracket
 end
 
+function subtract_lyndon_bracket!(
+  residual::Dict{Vector{H},C},
+  cache::Dict{Vector{H},WordPolynomial{H,C}},
+  word::Vector{H},
+  coefficient::C,
+) where {H,C}
+  for (term, term_coefficient) in lyndon_bracket!(cache, word).terms
+    accumulate_word!(residual, term, -coefficient * term_coefficient)
+  end
+  return residual
+end
+
+function lyndon_pass!(
+  coordinates::Dict{Vector{H},C},
+  residual::Dict{Vector{H},C},
+  cache::Dict{Vector{H},WordPolynomial{H,C}},
+) where {H,C}
+  words = sort!(collect(keys(residual)))
+  is_lyndon_word(first(words)) ||
+    throw(ArgumentError("a Lie polynomial cannot have a non-Lyndon leading word"))
+  for word in words
+    (haskey(residual, word) && is_lyndon_word(word)) || continue
+    coefficient = residual[word]
+    accumulate_word!(coordinates, word, coefficient)
+    subtract_lyndon_bracket!(residual, cache, word, coefficient)
+  end
+  return coordinates
+end
+
 function lyndon_coordinates(
   polynomial::WordPolynomial{H,C}, cache::Dict{Vector{H},WordPolynomial{H,C}}
 ) where {H,C}
   residual = copy(polynomial.terms)
   coordinates = Dict{Vector{H},C}()
   while !isempty(residual)
-    word = minimum(keys(residual))
-    is_lyndon_word(word) ||
-      throw(ArgumentError("a Lie polynomial cannot have a non-Lyndon leading word"))
-    coefficient = residual[word]
-    coordinates[word] = coefficient
-    for (term, term_coefficient) in lyndon_bracket!(cache, word).terms
-      accumulate_word!(residual, term, -coefficient * term_coefficient)
-    end
+    lyndon_pass!(coordinates, residual, cache)
   end
   return coordinates
 end

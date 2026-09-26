@@ -64,7 +64,7 @@ end
 const GeneratorComponent = Union{SQA.QAdd,Liouvillian}
 
 function Base.show(io::IO, ::MIME"text/plain", expansion::FloquetExpansion{G}) where {G}
-  return print(io, "FloquetExpansion{", nameof(G), "} of order ", expansion.order)
+  return print(io, "FloquetExpansion{", G, "} of order ", expansion.order)
 end
 
 Base.show(io::IO, expansion::FloquetExpansion) = show(io, MIME"text/plain"(), expansion)
@@ -134,7 +134,7 @@ julia> @variables ω::Real t::Real g::Real;
 julia> H = harmonics(ω * (a' * a) + g * cos(ω * t) * (a + a'), ω, t);
 
 julia> vv = floquet_expansion(H, VanVleck(), 1)
-FloquetExpansion{VanVleck} of order 1
+FloquetExpansion{VanVleck{HoriDeprit}} of order 1
 
 julia> effective_generator(vv)
 ω * a' * a

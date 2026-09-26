@@ -12,7 +12,7 @@ Abstract selector for the algorithm that computes a Floquet expansion within a [
 
 The gauge fixes which effective generator and micromotion [`floquet_expansion`](@ref) returns;
 the algorithm fixes only how they are computed, so algorithms for the same gauge return the same
-retained coefficients. Pass one through the gauge constructor, as in
+retained coefficients. They do differ in cost. Pass one through the gauge constructor, as in
 `VanVleck(; algorithm=BlochFeshbach())`. The implemented algorithms are [`HoriDeprit`](@ref) and
 [`BlochFeshbach`](@ref).
 """

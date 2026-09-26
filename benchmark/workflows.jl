@@ -29,6 +29,18 @@ function driven_qubit()
   return H, ω, t
 end
 
+function driven_dissipative_qubit()
+  pauli = PauliSpace(:dissipative_qubit_benchmark)
+  σx = Pauli(pauli, :sigma, 1)
+  σy = Pauli(pauli, :sigma, 2)
+  σz = Pauli(pauli, :sigma, 3)
+  @variables ω::Real t::Real Δ::Real A::Real γ::Real
+
+  H = (Δ / 2) * σz + A * cos(ω * t) * σx
+  channels = (jump((σx - im * σy) / 2, γ),)
+  return H, channels, ω, t
+end
+
 function gram_completion_workload()
   space = FockSpace(:completion_benchmark)
   a = Destroy(space, :a)
@@ -95,24 +107,45 @@ function benchmark_floquet_expansion!(suite)
   return nothing
 end
 
+function benchmark_expansion_algorithms!(suite)
+  kpo, kpo_ω, kpo_t = kerr_parametric_oscillator()
+  qubit, qubit_ω, qubit_t = driven_qubit()
+  open_qubit, channels, open_ω, open_t = driven_dissipative_qubit()
+  algorithms = (("Hori-Deprit", HoriDeprit()), ("Bloch-Feshbach", BlochFeshbach()))
+
+  for (name, algorithm) in algorithms, order in (3, 5)
+    gauge = VanVleck(; algorithm)
+    suite["Expansion Algorithm"]["Kerr parametric oscillator"]["$name order $order"] = @benchmarkable floquet_expansion(
+      $kpo, $kpo_ω, $kpo_t, $gauge, $order
+    )
+    suite["Expansion Algorithm"]["Driven qubit"]["$name order $order"] = @benchmarkable floquet_expansion(
+      $qubit, $qubit_ω, $qubit_t, $gauge, $order
+    )
+    suite["Expansion Algorithm"]["Driven dissipative qubit"]["$name order $order"] = @benchmarkable floquet_expansion(
+      $open_qubit, $open_ω, $open_t, $gauge, $order; channels=($channels)
+    )
+  end
+  return nothing
+end
+
 function benchmark_positive_completion!(suite)
   expansion, frame = gram_completion_workload()
   recursive_expansion, recursive_frame = recursive_gram_workload()
   spectral_expansion, spectral_frame = spectral_completion_workload()
 
-  suite["Positive Completion"]["Full-rank bosonic"]["fixed frame"]["Gram"] = @benchmarkable positive_completion(
+  suite["Positive Completion"]["Full-rank bosonic"]["Gram fixed frame"] = @benchmarkable positive_completion(
     $expansion, Gram(), $frame
   )
-  suite["Positive Completion"]["Full-rank bosonic"]["automatic frame"]["Gram"] = @benchmarkable positive_completion(
+  suite["Positive Completion"]["Full-rank bosonic"]["Gram automatic frame"] = @benchmarkable positive_completion(
     $expansion, Gram()
   )
-  suite["Positive Completion"]["Recursive dark onset"]["fixed frame"]["Gram"] = @benchmarkable positive_completion(
+  suite["Positive Completion"]["Recursive dark onset"]["Gram fixed frame"] = @benchmarkable positive_completion(
     $recursive_expansion, Gram(), $recursive_frame
   )
-  suite["Positive Completion"]["Driven qubit"]["fixed frame"]["Gram"] = @benchmarkable positive_completion(
+  suite["Positive Completion"]["Driven qubit"]["Gram fixed frame"] = @benchmarkable positive_completion(
     $spectral_expansion, Gram(), $spectral_frame
   )
-  suite["Positive Completion"]["Driven qubit"]["fixed frame"]["Spectral"] = @benchmarkable positive_completion(
+  suite["Positive Completion"]["Driven qubit"]["Spectral fixed frame"] = @benchmarkable positive_completion(
     $spectral_expansion, Spectral(), $spectral_frame
   )
   return nothing

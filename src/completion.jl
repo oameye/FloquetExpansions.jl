@@ -134,7 +134,7 @@ julia> raw = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(jump(σminus, 
 julia> cartesian = DissipativeFrame(σx, σy, σz);
 
 julia> cp = positive_completion(raw, Gram(), cartesian)
-FloquetExpansion{VanVleck} of order 3
+FloquetExpansion{VanVleck{HoriDeprit}} of order 3
 
 julia> kossakowski(cp)
 3×3 Matrix{SecondQuantizedAlgebra.Coeff}:

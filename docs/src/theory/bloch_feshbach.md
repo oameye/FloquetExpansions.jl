@@ -158,7 +158,9 @@ N=1+\frac{1}{2\omega^{2}}\sum_{m\ne0}\frac{\mathcal{G}_m\mathcal{G}_{-m}}{m^2}
 ~~~
 
 Since ``\Lambda`` equals the Lie-transform micromotion, it is a Lie series in the harmonics
-``\mathcal{G}_m``: every term is a nested commutator, and all other products cancel.
+``\mathcal{G}_m``: every term is a nested commutator, and all other products cancel. The same
+holds for ``\mathcal{G}_{\mathrm{eff}}=N^{-1}\mathcal{B}N``, which equals the Lie-transform
+effective generator, although ``\mathcal{B}`` and ``N`` separately are not Lie series.
 
 For a Hamiltonian, ``N=S^{-1/2}V`` with ``V`` unitary, so the van Vleck and des Cloizeaux
 Hamiltonians differ by a static unitary rotation of the zero sector. They are not equal in general.

@@ -50,11 +50,9 @@ Listed in `src/FloquetExpansions.jl` include order, which is the source dependen
 | `quasienergy.jl` | Symbolic Sambe blocks and harmonic indexing | `QuasienergyOperator`, `harmonic_range` |
 | `floquet_expansion.jl` | `FloquetExpansion`, order scaling, retained effective/micromotion accessors, high-level physical lowering and microscopic-channel retention, and the error for an unimplemented expansion algorithm | `FloquetExpansion`, `floquet_expansion`, `order`, `effective_generator`, `effective_component`, `micromotion` |
 | `hori_deprit.jl` | The Hori–Deprit algorithm: the Lie-transform recursion for the van Vleck micromotion and effective generator | internal, selected by `HoriDeprit` |
-| `bloch_feshbach/wave_operator.jl` | Compiled plans for the Bloch recurrence over a harmonic support and their evaluation to the wave operator and Bloch effective generator, generic over the component algebra | internal only |
 | `bloch_feshbach/lyndon_words.jl` | Polynomials in the free associative algebra over harmonic letters and their coordinates in the Lyndon commutator basis | internal only |
-| `bloch_feshbach/connected_log.jl` | The connected logarithm: its word-level series, compiled to Lyndon commutators, and its evaluation on generator components | internal only |
-| `bloch_feshbach/van_vleck_normalization.jl` | The static factor and the similarity that carries the Bloch effective generator to the van Vleck representative | internal only |
-| `bloch_feshbach/bloch_feshbach.jl` | The Bloch/Feshbach algorithm entry point and its product and phase conventions for Hamiltonian and Liouvillian generators | internal, selected by `BlochFeshbach` |
+| `bloch_feshbach/van_vleck_words.jl` | The van Vleck pair over harmonic letters from the support alone: the Bloch recurrence for the wave operator and Bloch effective generator, the connected logarithm and static factor, and the static-factor similarity | internal only |
+| `bloch_feshbach/bloch_feshbach.jl` | The Bloch/Feshbach algorithm: compilation of the word-level van Vleck pair to Lyndon commutators, their evaluation on generator components under the Hamiltonian or Liouvillian product and phase conventions, and the entry point | internal, selected by `BlochFeshbach` |
 | `gksl_coordinates.jl` | Ordered dissipative frames and exact GKSL/Kossakowski coordinate extraction | `DissipativeFrame`, `hamiltonian`, `hamiltonian_component`, `kossakowski`, `kossakowski_component` |
 | `completion_conversion.jl` | Narrow conversion boundary between SQA coefficients and the completion scalar backend | internal only |
 | `completion_frame.jl` | Automatic dissipative-frame discovery and independent-direction filtering modulo identity | internal only |
@@ -73,6 +71,7 @@ The package delegates operator multiplication, adjoints, normal ordering, and co
 - `Liouvillian` and `PeriodicGenerator` remain algebraic and do not carry dissipative provenance through arbitrary arithmetic.
 - The high-level physical `floquet_expansion(...; channels=...)` path may retain internal microscopic channel provenance in the resulting `FloquetExpansion` for later completion.
 - A raw finite-order effective generator is the algebraic truncation and is not assumed to be GKSL or completely positive.
+- Bloch/Feshbach computes the van Vleck pair once per harmonic support and order in the free associative algebra over harmonic letters, with exact `Rational{Int}` coefficients, and evaluates only Lyndon commutators of the generator components. This relies on the connected logarithm and the van Vleck effective generator both being Lie series in the harmonics; the Lyndon decomposition throws when a word series is not one.
 - Positive completion is explicit, never implicit in `floquet_expansion`, is defined only for Liouvillian expansions, and does not rewrite retained Floquet coefficients or micromotion.
 - Kossakowski coordinates are relative to an ordered `DissipativeFrame`. Ordering is representation-significant even when two frames span the same subspace.
 - Raw expansions require an explicit `DissipativeFrame` for GKSL/Kossakowski coordinate extraction. Completed expansions store the finalized frame, so no-frame completed accessors are unambiguous.
