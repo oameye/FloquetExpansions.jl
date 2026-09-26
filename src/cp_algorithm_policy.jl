@@ -36,6 +36,54 @@ function BlochFeshbach(; complete_positive::Val{CP}=Val(true)) where {CP}
   return cp_configured_algorithm(BlochFeshbach(Val(:raw)), complete_positive)
 end
 
+function Base.show(io::IO, ::CPConfiguredAlgorithm{A,true}) where {A<:ExpansionAlgorithm}
+  return print(io, nameof(A), "()")
+end
+function Base.show(
+  io::IO, ::MIME"text/plain", algorithm::CPConfiguredAlgorithm{A,true}
+) where {A}
+  return show(io, algorithm)
+end
+
+function Base.show(io::IO, ::HoriDeprit)
+  return print(io, "HoriDeprit(complete_positive=Val(false))")
+end
+function Base.show(io::IO, ::MIME"text/plain", algorithm::HoriDeprit)
+  return show(io, algorithm)
+end
+
+function Base.show(io::IO, ::BlochFeshbach)
+  return print(io, "BlochFeshbach(complete_positive=Val(false))")
+end
+function Base.show(io::IO, ::MIME"text/plain", algorithm::BlochFeshbach)
+  return show(io, algorithm)
+end
+
+function show_van_vleck_algorithm(io::IO, gauge::VanVleck)
+  print(io, "VanVleck(algorithm=")
+  show(io, gauge.algorithm)
+  return print(io, ")")
+end
+
+function Base.show(io::IO, gauge::VanVleck{<:CPConfiguredAlgorithm})
+  return show_van_vleck_algorithm(io, gauge)
+end
+function Base.show(io::IO, gauge::VanVleck{HoriDeprit})
+  return show_van_vleck_algorithm(io, gauge)
+end
+function Base.show(io::IO, gauge::VanVleck{BlochFeshbach})
+  return show_van_vleck_algorithm(io, gauge)
+end
+function Base.show(io::IO, ::MIME"text/plain", gauge::VanVleck{<:CPConfiguredAlgorithm})
+  return show(io, gauge)
+end
+function Base.show(io::IO, ::MIME"text/plain", gauge::VanVleck{HoriDeprit})
+  return show(io, gauge)
+end
+function Base.show(io::IO, ::MIME"text/plain", gauge::VanVleck{BlochFeshbach})
+  return show(io, gauge)
+end
+
 function rewrap_algorithm_expansion(
   expansion::FloquetExpansion, gauge::G, provenance::R
 ) where {G<:Gauge,R<:FloquetProvenance}
