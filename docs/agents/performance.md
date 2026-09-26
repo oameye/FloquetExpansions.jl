@@ -15,19 +15,21 @@ Do not use a runtime benchmark as evidence about TTFX, or a successful precompil
 ## Inference and optimizer stability
 
 - **Treat inference as an acceptance property on core paths.** Use `@inferred` for stable observable return types and package-wide JET for broader inference diagnostics.
-- **Keep the explicit-frame completion path compiler-clean.** `test/quality/JET.jl` contains required `JET.@test_opt` workloads for explicit-frame Gram completion, recursive Gram completion, Spectral completion, and completed-state accessors. Do not remove or weaken those workloads to hide an inference problem.
+- **Keep the expansion algorithms and the explicit-frame completion path compiler-clean.** `test/quality/JET.jl` contains required `JET.@test_opt` workloads for `floquet_expansion` with each expansion algorithm on a Hamiltonian and on a Liouvillian, explicit-frame Gram completion, recursive Gram completion, Spectral completion, and completed-state accessors. Do not remove or weaken those workloads to hide an inference problem.
 - **Keep the explicit-frame computational core concrete.** Automatic dissipative-frame discovery is allowed to be a dynamic convenience frontend because the number of independent directions is discovered at runtime; once a `DissipativeFrame` is explicit, the downstream completion path should preserve concrete dispatch and storage.
 
 ## Runtime and allocations
 
 - **Minimize avoidable allocations; do not claim whole symbolic algorithms are allocation-free.** Fourier lowering, recursive expansion, Liouvillian composition, symbolic matrix/series algebra, and positive completion naturally construct symbolic objects. Optimize repeated temporary structure and data movement, and measure the path that matters.
-- **Reuse structural work.** When repeated symbolic solves share the same leading matrix, build and reuse the solve plan. In Gram recursion, dark-sector dressing and the associated Feshbach residual should reuse equivalent solve structure rather than factor the same system twice.
-- **Preserve Hermitian structure in completion linear algebra.** Use Hermitian/congruence elimination directly and avoid materializing dense elementary transforms when structured elimination suffices.
-- **Keep API convenience separate from hot kernels.** Keyword arguments are valid at public boundaries. Do not mechanically ban them; use positional inner kernels where measurements or inference show that doing so keeps a compiler-sensitive call chain concrete and simple.
+- **Reuse structural work.** When repeated symbolic solves share the same leading matrix, build and reuse the solve plan. In Gram recursion, dark-sector dressing and the associated Feshbach residual should reuse equivalent solve structure rather than factor the same system twice: with ``A = GG^\dagger`` and ``GY = X``, ``X^\dagger A^{-1} X = Y^\dagger Y``, so one triangular solve supplies both.
+- **Preserve Hermitian structure in completion linear algebra.** Use Hermitian/congruence elimination directly and avoid materializing dense elementary transforms when structured elimination suffices. The Schur update of an elementary congruence computes one triangle of the trailing block and restores the other by conjugation, and the accumulated transform is updated row by row, since each elementary factor differs from the identity in one row.
+- **Keep API convenience separate from hot kernels.** Public keyword arguments forward into positional inner kernels, as [`style.md`](style.md) requires for every non-public function, which keeps a compiler-sensitive call chain concrete and simple.
 - **Do not change the completion scalar backend as an incidental optimization.** The current dedicated completion scalar representation remains behind `completion_conversion.jl`; replacing it with a native `SQA.CNum`-based layer is a separate architectural change.
 
 ## Measuring
 
 `make bench` runs the benchmark suite. `.github/workflows/Benchmarks.yaml` records benchmark history, comments when a result exceeds 130% of baseline, and fails when a result exceeds 170%.
+
+**Give every benchmark a key of depth three**, `suite[group][workload][case]`. Fold any further variant, such as the algorithm and the order, into the case name, as in `"Bloch-Feshbach order 5"`.
 
 A performance claim must identify the axis, workload, and measurement that supports it. Allocation claims need an allocation measurement; the repository currently has no package-wide committed `@allocations` gate, so do not imply one exists.

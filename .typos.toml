@@ -1,5 +1,5 @@
 [files]
-extend-exclude = ["AGENTS.md"]
+extend-exclude = ["AGENTS.md", "docs/src/refs.bib", "docs/research/floquet-nakajima-zwanzig-notes.md"]
 
 [default.extend-words]
 commutating = "commutating"

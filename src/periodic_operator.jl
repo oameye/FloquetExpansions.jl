@@ -1,36 +1,10 @@
-"""
-    Gauge
-
-Supertype of gauges that fix the free integration constant in [`antiderivative`](@ref).
-"""
-abstract type Gauge end
-
-"""
-    VanVleck()
-
-Select the van Vleck gauge, ``\\langle \\mathcal{K} \\rangle = 0``. This gives the micromotion
-generator zero period average and makes the effective generator independent of the drive's
-initial phase.
-
-# References
-
-The van Vleck construction follows [VanVleck1929](@cite), and its Floquet-space formulation
-follows [Rahav2003](@cite), [Eckardt2015](@cite), and [Bukov2015](@cite).
-"""
-struct VanVleck <: Gauge end
-
-# `iszero` on a `BasicSymbolic` builds the symbolic equation `0 == 0` rather than returning a
-# `Bool`, so use structural comparison instead.
 issymzero(x) = isequal(Symbolics.value(x), 0)
 
-# `expim(arg)` is `exp(+i*arg)` with arg REAL; the package convention is `exp(-i*m*w*t)`.
-# Split arg into `c*w*t + offset` and return `(-c, offset)`.
 function harmonic_index(arg, w, t)
   offset = Symbolics.substitute(arg, Dict(t => 0))
   time_part = Symbolics.simplify(arg - offset)
   c = Symbolics.value(Symbolics.substitute(time_part, Dict(w => 1, t => 1)))
 
-  # Guards `w*t^2` and friends: only a phase linear in `w*t` is periodic at all.
   residual = Symbolics.simplify(arg - (c * w * t + offset))
   issymzero(residual) || throw(
     ArgumentError(
@@ -93,9 +67,10 @@ combined when they use the same Fourier basis.
 
 - `components`: Map integer harmonic labels to their nonzero components.
 - `ωd`: Symbolic angular frequency defining the Fourier basis.
-- `zero_component`: Prototype used to determine the component type of an empty generator.
+- `zero_component`: The zero of the component algebra, which `G[l]` returns for a missing
+  harmonic. A nonzero value throws an `ArgumentError`.
 
-For an empty generator, the optional `zero_component` prototype fixes the component type.
+For an empty generator, the optional `zero_component` fixes the component type.
 The component type determines the algebra used by addition, commutators,
 differentiation, and simplification.
 
@@ -134,6 +109,8 @@ struct PeriodicGenerator{T}
     components::Dict{Int,T}, wd::Symbolics.Num, zero_component::T
   ) where {T}
     validate_component_type(T)
+    iszero(zero_component) ||
+      throw(ArgumentError("zero_component must be the zero of the component algebra"))
     kept = Dict{Int,T}()
     sizehint!(kept, length(components))
     for (harmonic, component) in components

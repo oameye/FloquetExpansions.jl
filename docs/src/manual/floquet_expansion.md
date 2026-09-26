@@ -20,7 +20,7 @@ e^{t\mathcal{G}_\mathrm{eff}}
 Here ``\mathcal{G}_\mathrm{eff}`` is time independent and ``\mathcal{K}(t)`` is the periodic
 generator of the micromotion map. The package currently implements the van Vleck expansion
 [VanVleck1929, Eckardt2015](@cite). Hamiltonian and
-Liouvillian inputs use the same expansion engine once they have been expressed as
+Liouvillian inputs use the same expansion algorithms once they have been expressed as
 [`PeriodicGenerator`](@ref) values; the corresponding extension to periodic Lindblad generators
 is discussed in [Ikeda2021, Schnell2021](@cite).
 

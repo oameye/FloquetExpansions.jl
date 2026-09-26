@@ -9,17 +9,21 @@ using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 @reexport using SecondQuantizedAlgebra
 const SQA = SecondQuantizedAlgebra
 
-# `@public` in SQA but NOT exported, so `@reexport` does not forward them.
 using SecondQuantizedAlgebra: expim, exponential_form, trigonometric_form
 export expim, exponential_form, trigonometric_form
 
+include("gauges.jl")
 include("periodic_operator.jl")
 include("completion_types.jl")
 include("matrix_series.jl")
 include("completion_linear_algebra.jl")
 include("liouvillian.jl")
 include("quasienergy.jl")
-include("engine.jl")
+include("floquet_expansion.jl")
+include("hori_deprit.jl")
+include("bloch_feshbach/lyndon_words.jl")
+include("bloch_feshbach/van_vleck_words.jl")
+include("bloch_feshbach/bloch_feshbach.jl")
 include("gksl_coordinates.jl")
 include("completion_conversion.jl")
 include("completion_frame.jl")
@@ -29,6 +33,7 @@ include("spectral_completion.jl")
 include("completion.jl")
 include("gksl_floquet.jl")
 
+export BlochFeshbach, HoriDeprit
 export Gauge, PeriodicGenerator, QuasienergyOperator, VanVleck, harmonic_range
 export antiderivative, derivative, harmonics, support, time_average
 export FloquetExpansion,
@@ -45,13 +50,13 @@ export Liouvillian,
 export DissipativeFrame,
   hamiltonian, hamiltonian_component, kossakowski, kossakowski_component
 
-# Stable expert API that is intentionally qualified rather than exported.
 @public Completion,
 CompletionAlgorithm,
 CompletionFactorization,
 GramFactorization,
 GramStage,
 SpectralFactorization,
-Uncompleted
+Uncompleted,
+ExpansionAlgorithm
 
-end # module FloquetExpansions
+end

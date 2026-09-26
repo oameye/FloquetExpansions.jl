@@ -139,4 +139,7 @@ end
   @test iszero(Z)
   @test Z[0] == zero(SQA.QAdd)
   @test_throws ArgumentError PeriodicGenerator(Dict{Int,Any}(), w)
+
+  @test iszero(PeriodicGenerator(Dict(1 => 1 * a), w, 0 * (a' * a))[0])
+  @test_throws ArgumentError PeriodicGenerator(Dict(1 => 1 * a), w, 1 * (a' * a))
 end

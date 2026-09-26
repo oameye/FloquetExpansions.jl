@@ -37,7 +37,38 @@ A time-periodic generator expressed through Fourier harmonics in a drive-frequen
 _Avoid_: `PeriodicOperator`, the superseded Hamiltonian-only name.
 
 **Van Vleck expansion**:
-A high-frequency expansion that separates a periodic generator into a time-independent effective generator and periodic micromotion in a chosen gauge.
+The high-frequency expansion in the van Vleck gauge, separating a periodic generator into a time-independent effective generator and periodic micromotion.
+_Avoid_: treating van Vleck as a method applied in some other gauge; it is the gauge, and the method is the expansion algorithm.
+
+**Van Vleck pair**:
+The effective generator and the micromotion generator of the van Vleck gauge, taken together. The zero-average condition fixes the pair uniquely, which is why every expansion algorithm for that gauge must return it.
+
+**Gauge**:
+The convention fixing the free integration constant of the micromotion generator, and with it which effective generator and micromotion a Floquet expansion represents. The van Vleck gauge requires the micromotion generator to have zero period average.
+
+**Expansion algorithm**:
+The procedure that computes the coefficients a gauge fixes. Algorithms for the same gauge produce identical retained effective components and micromotion; they differ only in intermediate quantities and cost.
+_Avoid_: calling an algorithm a gauge, or confusing it with a positive-completion algorithm, which changes the finite effective generator.
+
+**Hori–Deprit algorithm**:
+The Lie-transform expansion algorithm, which solves for the micromotion generator order by order through nested commutators of drive harmonics.
+
+**Bloch/Feshbach algorithm**:
+The wave-operator expansion algorithm, which solves the Bloch equation for a periodic wave operator and a Bloch effective generator, then normalizes both to the gauge's micromotion and effective generator.
+
+**Wave operator**:
+A periodic map with unit period average that carries solutions of a constant generator into solutions of the driven dynamics.
+
+**Bloch effective generator**:
+The constant generator paired with a wave operator. It is similar to the van Vleck effective generator and shares its quasienergies, but it is a different representative and is not Hermitian in general for a Hamiltonian.
+_Avoid_: calling it the effective generator, which is always the gauge's representative.
+
+**Static factor**:
+The constant ``N`` that renormalizes a wave operator to the van Vleck gauge through ``ΩN = e^{Λ}`` with ``⟨Λ⟩ = 0``. The van Vleck effective generator is its similarity transform ``N⁻¹BN`` of the Bloch effective generator.
+
+**Connected logarithm**:
+The periodic logarithm ``Λ`` of the renormalized wave operator ``ΩN``. It has zero period average and contains only nested commutators of drive harmonics, so it is the van Vleck micromotion generator.
+_Avoid_: calling it the logarithm of the wave operator, which differs from it by the static factor.
 
 **Floquet expansion**:
 The finite-order result of applying a high-frequency expansion to a periodic generator, including its retained effective-generator coefficients, micromotion, and completion state.

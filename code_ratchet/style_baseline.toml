@@ -3,12 +3,24 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "9e6d4f4"
+commit = "88fa48c"
 metric = "style"
 rules = ["implicit_kwarg", "underscore_name"]
 binding = ["underscore_name", "implicit_kwarg"]
 
 [files."src/FloquetExpansions.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/bloch_feshbach/bloch_feshbach.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/bloch_feshbach/lyndon_words.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/bloch_feshbach/van_vleck_words.jl"]
 underscore_name = 0
 implicit_kwarg = 0
 
@@ -32,7 +44,11 @@ implicit_kwarg = 0
 underscore_name = 0
 implicit_kwarg = 0
 
-[files."src/engine.jl"]
+[files."src/floquet_expansion.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/gauges.jl"]
 underscore_name = 0
 implicit_kwarg = 0
 
@@ -49,6 +65,10 @@ underscore_name = 0
 implicit_kwarg = 0
 
 [files."src/gram_recursion.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/hori_deprit.jl"]
 underscore_name = 0
 implicit_kwarg = 0
 

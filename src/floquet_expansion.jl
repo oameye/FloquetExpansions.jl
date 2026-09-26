@@ -12,7 +12,7 @@ See also [`floquet_expansion`](@ref), [`positive_completion`](@ref).
 """
 struct FloquetExpansion{G<:Gauge,P<:PeriodicGenerator,E,C<:Completion,R<:FloquetProvenance}
   generator::P
-  kick_components::Vector{P}
+  micromotion_components::Vector{P}
   effective_components::Vector{E}
   gauge::G
   order::Int
@@ -47,7 +47,9 @@ end
 function Base.propertynames(
   ::FloquetExpansion{G,P,E,C,R}, private::Bool=false
 ) where {G,P,E,C,R}
-  names = (:generator, :kick_components, :effective_components, :gauge, :order, :completion)
+  names = (
+    :generator, :micromotion_components, :effective_components, :gauge, :order, :completion
+  )
   return if private
     (
       names...,
@@ -63,67 +65,36 @@ end
 
 const GeneratorComponent = Union{SQA.QAdd,Liouvillian}
 
-triindex(n::Int, j::Int) = (n * (n + 1)) ÷ 2 + j + 1
-lie_transform_phase(::PeriodicGenerator{SQA.QAdd}) = im
-lie_transform_phase(::PeriodicGenerator{Liouvillian}) = -1
-
-function weight_generator(generator::PeriodicGenerator, j::Int)
-  return lie_transform_phase(generator)^j * (1 // factorial(j))
-end
-
-function weight_kick_derivative(generator::PeriodicGenerator, j::Int)
-  return lie_transform_phase(generator)^j * (1 // factorial(j + 1))
-end
-
 function Base.show(io::IO, ::MIME"text/plain", expansion::FloquetExpansion{G}) where {G}
-  return print(io, "FloquetExpansion{", nameof(G), "} of order ", expansion.order)
+  return print(io, "FloquetExpansion{", G, "} of order ", expansion.order)
 end
 
 Base.show(io::IO, expansion::FloquetExpansion) = show(io, MIME"text/plain"(), expansion)
 
-function dressed_generator_node(
-  K::Vector{P}, dressed_generator::Vector{P}, n::Int, j::Int, generator::P
-) where {P}
-  result = zero(generator)
-  for k in 1:(n - j + 1)
-    previous = dressed_generator[triindex(n - k, j - 1)]
-    result = result + SQA.commutator(K[k], previous)
-  end
-  return result
+struct ComponentConvention{F,C<:Number}
+  product::F
+  generator_phase::C
 end
 
-function dressed_kick_derivative_node(
-  K::Vector{P},
-  Kdot::Vector{P},
-  dressed_kick_derivative::Vector{P},
-  n::Int,
-  j::Int,
-  generator::P,
-) where {P}
-  result = zero(generator)
-  for k in 1:(n - j + 1)
-    previous = if j == 1
-      Kdot[n - k + 1]
-    else
-      dressed_kick_derivative[triindex(n - k, j - 1)]
-    end
-    result = result + SQA.commutator(K[k], previous)
-  end
-  return result
+component_convention(::PeriodicGenerator{SQA.QAdd}) = ComponentConvention(*, -im)
+component_convention(::PeriodicGenerator{Liouvillian}) = ComponentConvention(compose, 1)
+
+function floquet_expansion_impl(
+  generator::P, gauge::G, order::Int, provenance::R
+) where {P<:PeriodicGenerator,G<:VanVleck,R<:FloquetProvenance}
+  order >= 1 || throw(ArgumentError("order must be >= 1"))
+  generator isa PeriodicGenerator{SQA.QAdd} && require_hermitian_drive(generator)
+  return van_vleck_expansion(generator, gauge, order, provenance)
 end
 
-function assemble_resolvent(
-  dressed_generator::Vector{P}, dressed_kick_derivative::Vector{P}, n::Int, generator::P
-) where {P<:PeriodicGenerator}
-  result = zero(generator)
-  for j in 0:n
-    result = result + weight_generator(generator, j) * dressed_generator[triindex(n, j)]
-  end
-  for j in 1:n
-    weight = weight_kick_derivative(generator, j)
-    result = result - weight * dressed_kick_derivative[triindex(n, j)]
-  end
-  return result
+function van_vleck_expansion(
+  ::P, ::VanVleck{A}, ::Int, ::R
+) where {P<:PeriodicGenerator,A<:ExpansionAlgorithm,R<:FloquetProvenance}
+  return throw(
+    ArgumentError(
+      "no van Vleck expansion implementation for algorithm $(A) and generator $(P)"
+    ),
+  )
 end
 
 function require_hermitian_drive(generator::PeriodicGenerator{SQA.QAdd})
@@ -133,53 +104,6 @@ function require_hermitian_drive(generator::PeriodicGenerator{SQA.QAdd})
     ),
   )
   return generator
-end
-
-function floquet_expansion_impl(
-  generator::P, gauge::G, order::Int, provenance::R
-) where {P<:PeriodicGenerator,G<:Gauge,R<:FloquetProvenance}
-  order >= 1 || throw(ArgumentError("order must be >= 1"))
-
-  generator isa PeriodicGenerator{SQA.QAdd} && require_hermitian_drive(generator)
-
-  nodes = (order * (order + 1)) ÷ 2
-  dressed_generator = [zero(generator) for _ in 1:nodes]
-  dressed_kick_derivative = [zero(generator) for _ in 1:nodes]
-  generator_type = typeof(generator)
-  K = generator_type[]
-  Kdot = generator_type[]
-  E = typeof(time_average(generator))
-  effective = E[]
-
-  for n in 0:(order - 1)
-    dressed_generator[triindex(n, 0)] = n == 0 ? generator : zero(generator)
-
-    for j in 1:n
-      dressed_generator[triindex(n, j)] = dressed_generator_node(
-        K, dressed_generator, n, j, generator
-      )
-    end
-
-    for j in 1:n
-      dressed_kick_derivative[triindex(n, j)] = dressed_kick_derivative_node(
-        K, Kdot, dressed_kick_derivative, n, j, generator
-      )
-    end
-
-    resolvent = SQA.simplify(
-      assemble_resolvent(dressed_generator, dressed_kick_derivative, n, generator)
-    )
-    effective_n = SQA.simplify(time_average(resolvent))
-    push!(effective, effective_n)
-
-    if n < order - 1
-      next_kick = SQA.simplify(antiderivative(remove_average(resolvent), gauge))
-      push!(K, next_kick)
-      push!(Kdot, derivative(next_kick))
-    end
-  end
-
-  return FloquetExpansion(generator, K, effective, gauge, order, Uncompleted(), provenance)
 end
 
 """
@@ -198,7 +122,7 @@ contributions.
 - `H`: Symbolic time-dependent Hamiltonian to decompose using `ωd` and `t`.
 - `ωd`: Symbolic drive frequency.
 - `t`: Symbolic time variable.
-- `gauge`: Gauge fixing the micromotion integration constant.
+- `gauge`: [`Gauge`](@ref) fixing the micromotion integration constant.
 - `order`: Number of retained orders; must be at least one.
 - `channels`: Tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values added to `H`.
 
@@ -228,7 +152,7 @@ julia> @variables ω::Real t::Real g::Real;
 julia> H = harmonics(ω * (a' * a) + g * cos(ω * t) * (a + a'), ω, t);
 
 julia> vv = floquet_expansion(H, VanVleck(), 1)
-FloquetExpansion{VanVleck} of order 1
+FloquetExpansion{VanVleck{HoriDeprit}} of order 1
 
 julia> effective_generator(vv)
 ω * a' * a
@@ -368,8 +292,8 @@ function micromotion(
   expansion::FloquetExpansion{G,P,E,C,R}
 ) where {G,P<:PeriodicGenerator,E,C,R}
   result = zero(expansion.generator)::P
-  for (order, kick) in enumerate(expansion.kick_components)
-    result = (result + reattach(kick, order))::P
+  for (order, component) in enumerate(expansion.micromotion_components)
+    result = (result + reattach(component, order))::P
   end
   return result::P
 end
@@ -379,5 +303,5 @@ function micromotion(
 ) where {G,P<:PeriodicGenerator,E,C,R}
   1 <= n < expansion.order ||
     throw(ArgumentError("order $(n) is outside 1:$(expansion.order - 1)"))
-  return SQA.simplify(reattach(expansion.kick_components[n], n))::P
+  return SQA.simplify(reattach(expansion.micromotion_components[n], n))::P
 end

@@ -1,7 +1,7 @@
 function with_completion(expansion::FloquetExpansion, completion::PositiveCompletion)
   return FloquetExpansion(
     getfield(expansion, :generator),
-    getfield(expansion, :kick_components),
+    getfield(expansion, :micromotion_components),
     getfield(expansion, :effective_components),
     getfield(expansion, :gauge),
     getfield(expansion, :order),
@@ -42,9 +42,6 @@ function finalize_positive_completion(
   coherent = retained.coherent
   generator = liouvillian(coherent; channels=completed_channels)
 
-  # The completed result owns its representation data. In particular, mutating a frame that
-  # the caller supplied after completion must not invalidate cached coordinates or make the
-  # stored generator inconsistent with the stored Kossakowski form.
   owned_frame = copy(frame)
   completion = PositiveCompletion(
     algorithm,
@@ -134,7 +131,7 @@ julia> raw = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(jump(σminus, 
 julia> cartesian = DissipativeFrame(σx, σy, σz);
 
 julia> cp = positive_completion(raw, Gram(), cartesian)
-FloquetExpansion{VanVleck} of order 3
+FloquetExpansion{VanVleck{HoriDeprit}} of order 3
 
 julia> kossakowski(cp)
 3×3 Matrix{SecondQuantizedAlgebra.Coeff}:

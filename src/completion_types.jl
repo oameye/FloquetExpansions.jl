@@ -104,8 +104,6 @@ function Base.showerror(io::IO, error::FractionalJumpOnset)
   )
 end
 
-# Internal microscopic provenance. These types deliberately live outside Liouvillian and
-# PeriodicGenerator: generic map/Fourier algebra must not acquire physical channel metadata.
 abstract type FloquetProvenance end
 struct NoProvenance <: FloquetProvenance end
 
@@ -131,9 +129,6 @@ struct MicroscopicProvenance <: FloquetProvenance
   order::Vector{DissipativeSeedRef}
 end
 
-# Exact retained GKSL data in one fixed dissipative frame. The coherent part is already
-# reattached to physical inverse-drive powers; the dissipative coefficients remain order-resolved
-# until completion finalization converts them to their physical series representation.
 struct RetainedGKSLData
   coherent::SQA.QAdd
   kossakowski::Vector{Matrix{SQA.CNum}}
