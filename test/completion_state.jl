@@ -7,7 +7,14 @@ a = Destroy(h, :a)
 @variables ω::Real t::Real γ::Real
 
 @testset "completion diagnostics have semantic displays" begin
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(jump(a, γ),))
+  expansion = floquet_expansion(
+    0 * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(jump(a, γ),),
+  )
   frame = DissipativeFrame(a)
   gram = factorization(positive_completion(expansion, Gram(), frame))
   spectral = factorization(positive_completion(expansion, Spectral(), frame))
@@ -26,7 +33,9 @@ end
 
 @testset "raw Floquet expansions carry uncompleted state" begin
   H = a' * a + cos(ω * t) * (a + a')
-  vv = @inferred floquet_expansion(H, ω, t, VanVleck(), 2)
+  vv = @inferred floquet_expansion(
+    H, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
 
   @test vv.completion isa Uncompleted
   @test @inferred(effective_component(vv, 0)) == hamiltonian_component(vv, 0)
@@ -39,8 +48,16 @@ end
   H = a' * a + cos(ω * t) * (a + a')
   channels = (collapse(a), jump(a', γ))
 
-  physical = @inferred floquet_expansion(H, ω, t, VanVleck(), 2; channels)
-  lowered = @inferred floquet_expansion(liouvillian(H; channels), ω, t, VanVleck(), 2)
+  physical = @inferred floquet_expansion(
+    H, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2; channels
+  )
+  lowered = @inferred floquet_expansion(
+    liouvillian(H; channels),
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    2,
+  )
 
   @test physical.completion isa Uncompleted
   @test lowered.completion isa Uncompleted
@@ -55,10 +72,29 @@ end
   tuple_channels = (collapse(a), jump(a', γ))
   vector_channels = [collapse(a), jump(a', γ)]
 
-  tuple_vv = @inferred floquet_expansion(H, ω, t, VanVleck(), 2; channels=tuple_channels)
-  vector_vv = @inferred floquet_expansion(H, ω, t, VanVleck(), 2; channels=vector_channels)
+  tuple_vv = @inferred floquet_expansion(
+    H,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    2;
+    channels=tuple_channels,
+  )
+  vector_vv = @inferred floquet_expansion(
+    H,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    2;
+    channels=vector_channels,
+  )
   reversed_vv = @inferred floquet_expansion(
-    H, ω, t, VanVleck(), 2; channels=(jump(a', γ), collapse(a))
+    H,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    2;
+    channels=(jump(a', γ), collapse(a)),
   )
 
   for other in (vector_vv, reversed_vv)
@@ -75,20 +111,45 @@ end
   empty!(empty_channels)
 
   @test_throws ArgumentError floquet_expansion(
-    H, ω, t, VanVleck(), 1; channels=empty_channels
+    H,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=empty_channels,
   )
   @test_throws ArgumentError floquet_expansion(
-    a, ω, t, VanVleck(), 1; channels=(collapse(a),)
+    a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(collapse(a),),
   )
 end
 
 @testset "positive-completion algorithms establish the public dispatch boundary" begin
   H = a' * a + cos(ω * t) * (a + a')
-  physical = floquet_expansion(H, ω, t, VanVleck(), 1; channels=(jump(a, γ),))
+  physical = floquet_expansion(
+    H,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(jump(a, γ),),
+  )
   lowered_L = liouvillian(H; channels=(jump(a, γ),))
-  lowered = @inferred floquet_expansion(lowered_L, ω, t, VanVleck(), 1)
-  periodic = @inferred floquet_expansion(harmonics(lowered_L, ω, t), VanVleck(), 1)
-  coherent = floquet_expansion(H, ω, t, VanVleck(), 1)
+  lowered = @inferred floquet_expansion(
+    lowered_L, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 1
+  )
+  periodic = @inferred floquet_expansion(
+    harmonics(lowered_L, ω, t),
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1,
+  )
+  coherent = floquet_expansion(
+    H, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 1
+  )
   frame = DissipativeFrame(a)
 
   @test Gram() isa CompletionAlgorithm

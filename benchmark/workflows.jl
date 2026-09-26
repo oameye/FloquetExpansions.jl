@@ -35,7 +35,9 @@ function gram_completion_workload()
   @variables ω::Real t::Real
   frame = DissipativeFrame(a, a^2)
   generator = liouvillian(0 * a; channels=(collapse(a + a^2), collapse(a + im * a^2)))
-  expansion = floquet_expansion(generator, ω, t, VanVleck(), 1)
+  expansion = floquet_expansion(
+    generator, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 1
+  )
   return expansion, frame
 end
 
@@ -47,7 +49,12 @@ function recursive_gram_workload()
   @variables ω::Real t::Real Ω::Real
   frame = DissipativeFrame(σx, σy, σz)
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    Ω * cos(ω * t) * σx,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3;
+    channels=(collapse(σz),),
   )
   return expansion, frame
 end
@@ -60,7 +67,12 @@ function spectral_completion_workload()
   @variables ω::Real t::Real Ω::Real
   frame = DissipativeFrame(σz, σy)
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    Ω * cos(ω * t) * σx,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3;
+    channels=(collapse(σz),),
   )
   return expansion, frame
 end

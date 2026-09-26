@@ -106,8 +106,12 @@ end
   )
   order = 3
 
-  hori_deprit = floquet_expansion(L, VanVleck(; algorithm=HoriDeprit()), order)
-  bloch_feshbach = floquet_expansion(L, VanVleck(; algorithm=BlochFeshbach()), order)
+  hori_deprit = floquet_expansion(
+    L, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), order
+  )
+  bloch_feshbach = floquet_expansion(
+    L, VanVleck(; algorithm=BlochFeshbach(; complete_positive=Val(false))), order
+  )
 
   for n in 0:(order - 1)
     @test ea_vanishes(
@@ -146,7 +150,9 @@ end
   end
   expected_kick = PeriodicGenerator(expected_kick_components, ω_ea_map_ref)
 
-  expansion = floquet_expansion(L, VanVleck(; algorithm=BlochFeshbach()), 2)
+  expansion = floquet_expansion(
+    L, VanVleck(; algorithm=BlochFeshbach(; complete_positive=Val(false))), 2
+  )
   @test ea_vanishes(
     effective_component(expansion, 1) - ω_ea_map_ref^(-1) * expected_effective
   )
