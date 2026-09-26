@@ -60,6 +60,13 @@ A periodic map with unit period average that carries solutions of a constant gen
 The constant generator paired with a wave operator. It is similar to the van Vleck effective generator and shares its quasienergies, but it is a different representative and is not Hermitian in general for a Hamiltonian.
 _Avoid_: calling it the effective generator, which is always the gauge's representative.
 
+**Static factor**:
+The constant ``N`` that renormalizes a wave operator to the van Vleck gauge through ``ΩN = e^{Λ}`` with ``⟨Λ⟩ = 0``. The van Vleck effective generator is its similarity transform ``N⁻¹BN`` of the Bloch effective generator.
+
+**Connected logarithm**:
+The periodic logarithm ``Λ`` of the renormalized wave operator ``ΩN``. It has zero period average and contains only nested commutators of drive harmonics, so it is the van Vleck micromotion generator.
+_Avoid_: calling it the logarithm of the wave operator, which differs from it by the static factor.
+
 **Floquet expansion**:
 The finite-order result of applying a high-frequency expansion to a periodic generator, including its retained effective-generator coefficients, micromotion, and completion state.
 

@@ -23,7 +23,7 @@ Do not use a runtime benchmark as evidence about TTFX, or a successful precompil
 - **Minimize avoidable allocations; do not claim whole symbolic algorithms are allocation-free.** Fourier lowering, recursive expansion, Liouvillian composition, symbolic matrix/series algebra, and positive completion naturally construct symbolic objects. Optimize repeated temporary structure and data movement, and measure the path that matters.
 - **Reuse structural work.** When repeated symbolic solves share the same leading matrix, build and reuse the solve plan. In Gram recursion, dark-sector dressing and the associated Feshbach residual should reuse equivalent solve structure rather than factor the same system twice.
 - **Preserve Hermitian structure in completion linear algebra.** Use Hermitian/congruence elimination directly and avoid materializing dense elementary transforms when structured elimination suffices.
-- **Keep API convenience separate from hot kernels.** Keyword arguments are valid at public boundaries. Do not mechanically ban them; use positional inner kernels where measurements or inference show that doing so keeps a compiler-sensitive call chain concrete and simple.
+- **Keep API convenience separate from hot kernels.** Public keyword arguments forward into positional inner kernels, as [`style.md`](style.md) requires for every non-public function, which keeps a compiler-sensitive call chain concrete and simple.
 - **Do not change the completion scalar backend as an incidental optimization.** The current dedicated completion scalar representation remains behind `completion_conversion.jl`; replacing it with a native `SQA.CNum`-based layer is a separate architectural change.
 
 ## Measuring

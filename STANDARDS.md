@@ -30,6 +30,7 @@ side: a contradiction between standards files is itself a defect.
 | Type inference and optimizer stability | [`docs/agents/performance.md`](docs/agents/performance.md) | `make jet` and `.github/workflows/JET.yml`. `make test` excludes it |
 | Runtime performance | [`docs/agents/performance.md`](docs/agents/performance.md) | `.github/workflows/Benchmarks.yaml`: alert at 130%, fail at 170%; `make bench` |
 | Prose spelling | `.typos.toml` | `.github/workflows/SpellCheck.yml`, on pull requests |
+| Per-file complexity, style, docstring, boxed-capture, and JETLS counts | `code_ratchet/rulings.toml` | `.github/workflows/Ratchet.yml`: fails when a number in `code_ratchet/*_baseline.toml` rises |
 
 ## Held by review alone
 

@@ -7,6 +7,7 @@ Scope: `src/`. Test code follows `development.md`.
 ## Function signatures
 
 - **Constrain a parameter when the constraint expresses a semantic invariant or dispatch boundary.** Do not make a signature artificially concrete merely to silence inference tooling. The expansion engine is intentionally generic over the `PeriodicGenerator` component algebra, while completion kernels use stronger constraints where the representation requires them.
+- **Give a non-public function positional arguments only.** Keyword arguments belong to the exported and `@public` interface; an internal helper takes every argument positionally and hard-codes what never varies in production rather than exposing it as an option.
 - **Write keyword arguments after an explicit `;`**, at the call site as well as the definition:
 
   ```julia
@@ -31,7 +32,7 @@ JuliaFormatter owns formatting, configured by `.JuliaFormatter.toml`: `blue` sty
 
 ## Comments and docstrings
 
-- **Comment the non-obvious why, not the visible what.** Keep comments compact and local to the invariant they explain.
+- **Write no comments in `src/`.** Names, types, and small functions carry the meaning. A non-obvious invariant belongs in the architecture document, ADR, or theory page that owns it.
 - **Explain internal helpers through names and types.** An ordinary internal helper is explained by its name, its types, and the architecture document or ADR that owns any non-obvious invariant, rather than by design prose in a local docstring. Docstrings of the public interface follow [`documentation.md`](documentation.md).
 
 ## Naming
