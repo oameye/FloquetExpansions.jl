@@ -63,10 +63,15 @@ Abstract type for factorization data produced by a positive-completion algorithm
 abstract type CompletionFactorization end
 
 """
-    CompletionObstruction
+    CompletionObstruction <: Exception
 
-Raised when a retained dissipative leading form contains a direction incompatible with a
-positive continuation on the current symbolic stratum.
+Raised by [`positive_completion`](@ref) when a retained dissipative leading form contains a
+direction incompatible with a positive continuation on the current symbolic stratum.
+
+The field `rate_order` is the inverse-drive-frequency order of the obstructing form,
+`obstruction` is the offending pivot, coupling, or rate coefficient (zero when no single
+coefficient is responsible), and `reason` is a symbol naming the failure, for example
+`:negative_direction` or `:zero_diagonal_coupling`.
 """
 struct CompletionObstruction <: Exception
   rate_order::Int
@@ -87,10 +92,13 @@ function Base.showerror(io::IO, error::CompletionObstruction)
 end
 
 """
-    FractionalJumpOnset
+    FractionalJumpOnset <: Exception
 
-Raised when a positive dissipative rate first appears at odd inverse-frequency order, so an
-integer-power collapse-amplitude representation would require a half-integer onset.
+Raised by [`positive_completion`](@ref) with [`Gram`](@ref) when a positive dissipative rate
+first appears at odd inverse-frequency order `rate_order`, so an integer-power collapse-amplitude
+representation would require a half-integer onset. The odd onset does not obstruct complete
+positivity itself: [`Spectral`](@ref) completion represents it as a Puiseux rate branch when its
+frame requirements hold.
 """
 struct FractionalJumpOnset <: Exception
   rate_order::Int

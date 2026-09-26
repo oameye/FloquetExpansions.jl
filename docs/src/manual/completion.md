@@ -60,6 +60,17 @@ positivity_conditions
 regularity_conditions
 ```
 
+## When completion fails
+
+A [`FractionalJumpOnset`](@ref) concerns only the integer-power amplitudes of `Gram()`, so
+`Spectral()` in a suitable frame is the alternative. A [`CompletionObstruction`](@ref) concerns
+the retained data themselves on the current symbolic stratum.
+
+```@docs
+CompletionObstruction
+FractionalJumpOnset
+```
+
 ## Factorization diagnostics
 
 The common physical API is algorithm independent. Method-specific diagnostics are
