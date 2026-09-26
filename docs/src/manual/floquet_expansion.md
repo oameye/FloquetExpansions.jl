@@ -18,9 +18,9 @@ e^{t\mathcal{G}_\mathrm{eff}}
 ```
 
 Here ``\mathcal{G}_\mathrm{eff}`` is time independent and ``\mathcal{K}(t)`` is the periodic
-generator of the micromotion map. The package currently implements the van Vleck expansion
-[VanVleck1929, Eckardt2015](@cite). Hamiltonian and
-Liouvillian inputs use the same expansion engine once they have been expressed as
+generator of the micromotion map. The package implements the van Vleck expansion
+[VanVleck1929, Eckardt2015](@cite) with Hori–Deprit and Bloch/Feshbach algorithms. Hamiltonian and
+Liouvillian inputs use the same public expansion interface once they have been expressed as
 [`PeriodicGenerator`](@ref) values; the corresponding extension to periodic Lindblad generators
 is discussed in [Ikeda2021, Schnell2021](@cite).
 
@@ -46,6 +46,38 @@ Gauge
 
 ```@docs
 VanVleck
+```
+
+## Choosing an expansion algorithm
+
+The gauge and the expansion algorithm are separate choices. [`VanVleck`](@ref) uses
+[`HoriDeprit`](@ref) by default, preserving the existing Lie-transform implementation:
+
+```julia
+VanVleck()
+VanVleck(; algorithm=HoriDeprit())
+```
+
+The same canonical van Vleck representative can instead be computed with the
+[`BlochFeshbach`](@ref) projection recurrence and connected reconstruction:
+
+```julia
+VanVleck(; algorithm=BlochFeshbach())
+```
+
+Both algorithms return the same [`FloquetExpansion`](@ref) interface and expose the same retained
+effective and micromotion coefficients. The algorithm selector is explicit; the package does not
+switch algorithms automatically as a function of truncation order.
+
+For a generic `PeriodicGenerator{Liouvillian}`, either algorithm is an algebraic high-frequency
+expansion of the assembled Liouvillian. Selecting `BlochFeshbach()` does not by itself imply
+complete positivity of a finite truncation. CP-preserving reconstruction is a separate physical
+open-system construction.
+
+```@docs
+ExpansionAlgorithm
+HoriDeprit
+BlochFeshbach
 ```
 
 ## Computing an expansion
