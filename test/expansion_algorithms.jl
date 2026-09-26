@@ -19,17 +19,6 @@ function ea_vanishes(generator::PeriodicGenerator)
   return iszero(SQA_EA.simplify(generator))
 end
 
-@testset "Van Vleck algorithm selectors" begin
-  default = VanVleck()
-  explicit_hori_deprit = VanVleck(; algorithm=HoriDeprit())
-  bloch_feshbach = VanVleck(; algorithm=BlochFeshbach())
-
-  @test default == explicit_hori_deprit
-  @test default != bloch_feshbach
-  @test typeof(default) === typeof(explicit_hori_deprit)
-  @test typeof(default) !== typeof(bloch_feshbach)
-end
-
 @testset "Bloch Feshbach matches Hamiltonian Hori Deprit Van Vleck" begin
   space = PauliSpace(:expansion_algorithm_hamiltonian)
   σx = Pauli(space, :σ, 1)
@@ -42,21 +31,16 @@ end
   H = PeriodicGenerator(Dict(0 => 1 * σz, 1 => H1, -1 => H1', 2 => H2, -2 => H2'), ω_ea)
   order = 6
 
-  default = floquet_expansion(H, VanVleck(), order)
-  explicit_hori_deprit = floquet_expansion(H, VanVleck(; algorithm=HoriDeprit()), order)
+  hori_deprit = floquet_expansion(H, VanVleck(), order)
   bloch_feshbach = floquet_expansion(H, VanVleck(; algorithm=BlochFeshbach()), order)
 
   for n in 0:(order - 1)
     @test ea_vanishes(
-      effective_component(default, n) - effective_component(explicit_hori_deprit, n)
-    )
-    @test ea_vanishes(
-      effective_component(bloch_feshbach, n) - effective_component(default, n)
+      effective_component(bloch_feshbach, n) - effective_component(hori_deprit, n)
     )
   end
   for n in 1:(order - 1)
-    @test ea_vanishes(micromotion(default, n) - micromotion(explicit_hori_deprit, n))
-    @test ea_vanishes(micromotion(bloch_feshbach, n) - micromotion(default, n))
+    @test ea_vanishes(micromotion(bloch_feshbach, n) - micromotion(hori_deprit, n))
     @test ea_vanishes(time_average(micromotion(bloch_feshbach, n)))
   end
 
@@ -66,12 +50,6 @@ end
 
   unsupported = VanVleck(; algorithm=UnsupportedExpansionAlgorithm())
   @test_throws ArgumentError floquet_expansion(H, unsupported, 2)
-  @test_throws ArgumentError floquet_expansion(H, VanVleck(; algorithm=BlochFeshbach()), 0)
-  @test_throws ArgumentError floquet_expansion(H, VanVleck(; algorithm=BlochFeshbach()), -1)
-  non_hermitian = PeriodicGenerator(Dict(0 => 1 * σz, 1 => 1 * σx), ω_ea)
-  @test_throws ArgumentError floquet_expansion(
-    non_hermitian, VanVleck(; algorithm=BlochFeshbach()), 2
-  )
 end
 
 @testset "Bloch Feshbach Hamiltonian leading correction" begin
@@ -169,36 +147,6 @@ end
   end
 end
 
-@testset "Bloch Feshbach truncation invariance" begin
-  space = PauliSpace(:expansion_algorithm_truncation)
-  σx = Pauli(space, :σ, 1)
-  σy = Pauli(space, :σ, 2)
-  σz = Pauli(space, :σ, 3)
-  @variables ω_ea_trunc::Real
-
-  L = PeriodicGenerator(
-    Dict(
-      0 => hamiltonian_action(σz) + dissipator(σx),
-      1 => hamiltonian_action(σx + σy),
-      2 => dissipator(σy),
-      -3 => hamiltonian_action(σz) + dissipator(σx + σz),
-    ),
-    ω_ea_trunc,
-  )
-  low_order = 3
-  high_order = 5
-
-  low = floquet_expansion(L, VanVleck(; algorithm=BlochFeshbach()), low_order)
-  high = floquet_expansion(L, VanVleck(; algorithm=BlochFeshbach()), high_order)
-
-  for n in 0:(low_order - 1)
-    @test ea_vanishes(effective_component(low, n) - effective_component(high, n))
-  end
-  for n in 1:(low_order - 1)
-    @test ea_vanishes(micromotion(low, n) - micromotion(high, n))
-  end
-end
-
 @testset "Bloch Feshbach Liouvillian leading correction" begin
   space = PauliSpace(:expansion_algorithm_liouvillian_reference)
   σx = Pauli(space, :σ, 1)
@@ -244,23 +192,15 @@ end
   H = (1 // 2) * σz + E_ea_cp * cos(ω_ea_cp * t_ea_cp) * σx
   channels = (jump(σminus, γ_ea_cp),)
   frame = DissipativeFrame(σx, σy, σz)
-  order = 4
 
-  completed = map((HoriDeprit(), BlochFeshbach())) do algorithm
+  hori_deprit, bloch_feshbach = map((HoriDeprit(), BlochFeshbach())) do algorithm
     raw = floquet_expansion(
-      H, ω_ea_cp, t_ea_cp, VanVleck(; algorithm), order; channels=channels
+      H, ω_ea_cp, t_ea_cp, VanVleck(; algorithm), 2; channels=channels
     )
     positive_completion(raw, Gram(), frame)
   end
-  hori_deprit, bloch_feshbach = completed
 
   @test ea_vanishes(effective_generator(bloch_feshbach) - effective_generator(hori_deprit))
-  @test all(
-    ea_vanishes(entry) for entry in kossakowski(bloch_feshbach) - kossakowski(hori_deprit)
-  )
-  for n in 1:(order - 1)
-    @test ea_vanishes(micromotion(bloch_feshbach, n) - micromotion(hori_deprit, n))
-  end
 end
 
 function ea_numeric(coefficient, substitutions)

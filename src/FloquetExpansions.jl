@@ -56,6 +56,7 @@ CompletionFactorization,
 GramFactorization,
 GramStage,
 SpectralFactorization,
-Uncompleted, ExpansionAlgorithm
+Uncompleted,
+ExpansionAlgorithm
 
 end

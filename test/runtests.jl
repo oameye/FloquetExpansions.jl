@@ -18,7 +18,8 @@ init_code = quote
     CompletionFactorization,
     GramStage,
     GramFactorization,
-    SpectralFactorization
+    SpectralFactorization,
+    ExpansionAlgorithm
 end
 
 ParallelTestRunner.runtests(FloquetExpansions, args; testsuite, init_code)
