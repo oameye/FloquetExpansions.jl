@@ -1,9 +1,3 @@
-struct BlochConventions{F,W<:Number,K<:Number}
-  product::F
-  weight_phase::W
-  kick_phase::K
-end
-
 struct LyndonBracketNode
   left::Int
   right::Int
@@ -69,9 +63,9 @@ function lyndon_series_terms!(
   return compiled
 end
 
-function compile_lie_series_plan(support::Vector{H}, order::Int, zero_harmonic::H) where {H}
+function compile_lie_series_plan(support::Vector{Int}, order::Int)
   letters = sort!(unique(support))
-  words = van_vleck_words(letters, order, zero_harmonic)
+  words = van_vleck_words(letters, order)
   table = LyndonBracketTable(letters, eltype(words.effective))
   connected_log = [lyndon_series_terms!(table, series) for series in words.connected_log]
   effective = [lyndon_terms!(table, polynomial) for polynomial in words.effective]
@@ -123,63 +117,37 @@ function evaluate_lie_series(
   plan::LieSeriesPlan{H},
   components::AbstractDict{H,T},
   zero_component::T,
-  conventions::BlochConventions,
+  convention::ComponentConvention,
 ) where {H,T}
-  (; product, weight_phase, kick_phase) = conventions
+  (; product, generator_phase) = convention
+  order_phase = im * generator_phase
+  micromotion_phase = conj(generator_phase)
   bracket_values = evaluate_lyndon_brackets(plan, components, product)
   effective = T[
-    lie_combination(terms, bracket_values, zero_component, weight_phase^(n - 1)) for
+    lie_combination(terms, bracket_values, zero_component, order_phase^(n - 1)) for
     (n, terms) in enumerate(plan.effective)
   ]
-  kick_series = [
+  micromotion_series = [
     lie_series_component(
-      output, bracket_values, zero_component, kick_phase * weight_phase^n
+      output, bracket_values, zero_component, micromotion_phase * order_phase^n
     ) for (n, output) in enumerate(plan.connected_log)
   ]
-  return (; kick_series, effective)
+  return (; micromotion_series, effective)
 end
 
-bloch_conventions(::PeriodicGenerator{SQA.QAdd}) = BlochConventions(*, 1, im)
-bloch_conventions(::PeriodicGenerator{Liouvillian}) = BlochConventions(compose, im, 1)
-
-function floquet_expansion_impl(
-  generator::PeriodicGenerator{SQA.QAdd},
-  gauge::VanVleck{BlochFeshbach},
-  order::Int,
-  provenance::R,
-) where {R<:FloquetProvenance}
-  return bloch_feshbach_expansion(
-    generator, gauge, order, provenance, bloch_conventions(generator)
-  )
-end
-
-function floquet_expansion_impl(
-  generator::PeriodicGenerator{Liouvillian},
-  gauge::VanVleck{BlochFeshbach},
-  order::Int,
-  provenance::R,
-) where {R<:FloquetProvenance}
-  return bloch_feshbach_expansion(
-    generator, gauge, order, provenance, bloch_conventions(generator)
-  )
-end
-
-function bloch_feshbach_expansion(
-  generator::P, gauge::G, order::Int, provenance::R, conventions::BlochConventions
-) where {T,P<:PeriodicGenerator{T},G<:VanVleck{BlochFeshbach},R<:FloquetProvenance}
-  order >= 1 || throw(ArgumentError("order must be >= 1"))
-  generator isa PeriodicGenerator{SQA.QAdd} && require_hermitian_drive(generator)
-
+function van_vleck_expansion(
+  generator::P, gauge::VanVleck{BlochFeshbach}, order::Int, provenance::R
+) where {P<:PeriodicGenerator,R<:FloquetProvenance}
   (; components, zero_component, wd) = generator
-  plan = compile_lie_series_plan(collect(keys(generator)), order, 0)
-  (; kick_series, effective) = evaluate_lie_series(
-    plan, components, zero_component, conventions
+  plan = compile_lie_series_plan(collect(keys(generator)), order)
+  (; micromotion_series, effective) = evaluate_lie_series(
+    plan, components, zero_component, component_convention(generator)
   )
-  kick_components = P[
-    periodic_generator(series, wd, zero_component)::P for series in kick_series
+  micromotion_components = P[
+    periodic_generator(series, wd, zero_component)::P for series in micromotion_series
   ]
 
   return FloquetExpansion(
-    generator, kick_components, effective, gauge, order, Uncompleted(), provenance
+    generator, micromotion_components, effective, gauge, order, Uncompleted(), provenance
   )
 end

@@ -12,7 +12,8 @@ elimination of the other sectors gives an effective generator that depends on th
 [Feshbach1958, Feshbach1962](@cite), and Bloch's wave-operator equation removes that dependence
 [Bloch1958](@cite). For a periodic drive this is the Brillouin--Wigner high-frequency expansion of
 Mikami et al. [Mikami2016Brillouin](@cite). Its effective generator is a different representative
-of the slow dynamics, and a static normalization recovers the van Vleck pair of the
+of the slow dynamics, and a static normalization recovers the van Vleck pair, the effective
+generator and micromotion generator of the
 [high-frequency expansion](@ref high-frequency-expansion-theory). Reviews of the wave-operator
 formalism are [Killingbeck2003, Jolicard2003](@cite).
 
@@ -21,12 +22,12 @@ formalism are [Killingbeck2003, Jolicard2003](@cite).
 Use the Fourier convention and the quasienergy operator of [Floquet theory](@ref floquet-theory),
 
 ~~~math
-Q_{mn}=H_{m-n}-m\omega\,\delta_{mn}.
+Q_{mn}=H_{m-n}-m\omega_d\,\delta_{mn}.
 ~~~
 
 Let ``P`` project onto the zero Fourier sector and ``\bar P=1-P`` onto all others. The diagonal
-``-m\omega`` makes ``P`` an exactly degenerate model space, separated from every other sector by at
-least ``\omega``. Eliminating ``\bar P`` gives Feshbach's effective Hamiltonian on the zero sector,
+``-m\omega_d`` makes ``P`` an exactly degenerate model space, separated from every other sector by
+at least ``\omega_d``. Eliminating ``\bar P`` gives Feshbach's effective Hamiltonian on the zero sector,
 
 ~~~math
 H_{\mathrm{eff}}(\varepsilon)
@@ -117,12 +118,13 @@ zero-sector projections of the Floquet states are not orthonormal, and their met
 des Cloizeaux's similarity ``S^{1/2}H_{\mathrm{B}}S^{-1/2}`` restores Hermiticity. For the split
 of the zero sector against all others it coincides with the Schrieffer--Wolff effective
 Hamiltonian and with Shavitt and Redmon's canonical form of static quasidegenerate perturbation
-theory [DesCloizeaux1960, ShavittRedmon1980, Kvaal2008, Bravyi2011](@cite).
+theory applied to that two-block split [DesCloizeaux1960, ShavittRedmon1980, Kvaal2008, Bravyi2011](@cite).
 
 ## Normalization to the van Vleck gauge
 
 The wave operator and the van Vleck micromotion describe the same invariant subspace in different
-normalizations. Seek a constant ``N`` and a periodic ``\Lambda`` with
+normalizations. Seek a constant ``N``, the static factor, and a periodic ``\Lambda``, the connected
+logarithm, with
 
 ~~~math
 \Omega(t)N=e^{\Lambda(t)},
@@ -164,9 +166,9 @@ effective generator, although ``\mathcal{B}`` and ``N`` separately are not Lie s
 
 For a Hamiltonian, ``N=S^{-1/2}V`` with ``V`` unitary, so the van Vleck and des Cloizeaux
 Hamiltonians differ by a static unitary rotation of the zero sector. They are not equal in general.
-The van Vleck gauge decouples every pair of Fourier sectors
-[Eckardt2015](@cite), whereas des Cloizeaux's normalization only decouples the zero sector from the
-rest. The first difference appears at order ``\omega^{-3}`` or later, depending on which harmonics
+The van Vleck gauge decouples every pair of Fourier sectors, which is the canonical form applied
+to all sectors at once [Eckardt2015](@cite), whereas des Cloizeaux's normalization only decouples
+the zero sector from the rest. The first difference appears at order ``\omega^{-3}`` or later, depending on which harmonics
 the drive contains.
 
 ## Open systems and complete positivity
@@ -193,9 +195,7 @@ completely positive dynamics by construction [Chruscinski2013](@cite). See also
 | Result | van Vleck pair | the same van Vleck pair |
 
 The projection trades the commutator recursion for a product recurrence followed by a
-normalization. Which route costs less depends on the harmonic support, the growth of the symbolic
-expressions, and the order. Usage is described in
-[Expansion algorithms](@ref expansion-algorithms-manual).
+normalization. Usage is described in [Expansion algorithms](@ref expansion-algorithms-manual).
 
 Mikami et al. use the Fourier convention of this page. Sources that write
 ``H(t)=\sum_m H_m e^{+im\omega t}``, such as Eckardt and Anisimovas, require ``m\mapsto-m``

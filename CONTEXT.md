@@ -40,6 +40,9 @@ _Avoid_: `PeriodicOperator`, the superseded Hamiltonian-only name.
 The high-frequency expansion in the van Vleck gauge, separating a periodic generator into a time-independent effective generator and periodic micromotion.
 _Avoid_: treating van Vleck as a method applied in some other gauge; it is the gauge, and the method is the expansion algorithm.
 
+**Van Vleck pair**:
+The effective generator and the micromotion generator of the van Vleck gauge, taken together. The zero-average condition fixes the pair uniquely, which is why every expansion algorithm for that gauge must return it.
+
 **Gauge**:
 The convention fixing the free integration constant of the micromotion generator, and with it which effective generator and micromotion a Floquet expansion represents. The van Vleck gauge requires the micromotion generator to have zero period average.
 

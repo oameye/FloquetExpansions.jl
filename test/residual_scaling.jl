@@ -64,10 +64,10 @@ end
 @testset "the truncated factorization solves eq:defining0 to O(wd^-(N-1))" begin
   wds = [20.0, 40.0, 80.0, 160.0]
 
-  for N in 2:5
+  for algorithm in (HoriDeprit(), BlochFeshbach()), N in 2:5
     errs = [
       let H = random_drive(MersenneTwister(0xF10), HN, D, 2, wd_symbol)
-        residual(floquet_expansion(H, VanVleck(), N), H, wd, D)
+        residual(floquet_expansion(H, VanVleck(; algorithm), N), H, wd, D)
       end for wd in wds
     ]
     @test fitslope(wds, errs) ≈ -(N - 1) atol = 0.1

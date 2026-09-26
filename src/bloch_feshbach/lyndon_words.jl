@@ -59,11 +59,11 @@ end
 
 function lyndon_standard_factorization(word::Vector)
   length(word) > 1 || throw(ArgumentError("a Lyndon letter has no standard factorization"))
-  for split in 2:length(word)
+  for split in 2:(length(word) - 1)
     suffix = word[split:end]
     is_lyndon_word(suffix) && return word[1:(split - 1)], suffix
   end
-  return throw(ArgumentError("word is not Lyndon"))
+  return word[1:(end - 1)], word[end:end]
 end
 
 function lyndon_bracket!(

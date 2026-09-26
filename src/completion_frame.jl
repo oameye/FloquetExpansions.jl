@@ -1,5 +1,3 @@
-# Dissipative-frame ownership and automatic discovery for positive completion.
-
 Base.copy(frame::DissipativeFrame) = deepcopy(frame)
 
 function coordinate_columns_independent(coordinates::KossakowskiMatrix)

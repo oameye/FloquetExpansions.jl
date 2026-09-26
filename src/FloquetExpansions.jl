@@ -9,7 +9,6 @@ using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 @reexport using SecondQuantizedAlgebra
 const SQA = SecondQuantizedAlgebra
 
-# `@public` in SQA but NOT exported, so `@reexport` does not forward them.
 using SecondQuantizedAlgebra: expim, exponential_form, trigonometric_form
 export expim, exponential_form, trigonometric_form
 
@@ -34,7 +33,7 @@ include("spectral_completion.jl")
 include("completion.jl")
 include("gksl_floquet.jl")
 
-export BlochFeshbach, ExpansionAlgorithm, HoriDeprit
+export BlochFeshbach, HoriDeprit
 export Gauge, PeriodicGenerator, QuasienergyOperator, VanVleck, harmonic_range
 export antiderivative, derivative, harmonics, support, time_average
 export FloquetExpansion,
@@ -51,13 +50,12 @@ export Liouvillian,
 export DissipativeFrame,
   hamiltonian, hamiltonian_component, kossakowski, kossakowski_component
 
-# Stable expert API that is intentionally qualified rather than exported.
 @public Completion,
 CompletionAlgorithm,
 CompletionFactorization,
 GramFactorization,
 GramStage,
 SpectralFactorization,
-Uncompleted
+Uncompleted, ExpansionAlgorithm
 
-end # module FloquetExpansions
+end

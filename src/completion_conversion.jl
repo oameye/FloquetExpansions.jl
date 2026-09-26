@@ -1,7 +1,3 @@
-# Boundary conversions between the internal completion scalar algebra and SQA coefficients.
-# Keep Symbolics expression-tree compatibility work isolated here so the completion algorithms
-# themselves remain representation-agnostic.
-
 function completion_scalar(x::SQA.CNum)::CompletionScalar
   value = SQA.to_num(x)::Complex{Symbolics.Num}
   return completion_scalar(value)

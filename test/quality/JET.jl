@@ -26,6 +26,9 @@ end
     ω_bf,
   )
   JET.@test_opt target_modules=(FloquetExpansions,) floquet_expansion(
+    liouvillian_generator, VanVleck(), 2
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) floquet_expansion(
     liouvillian_generator, VanVleck(; algorithm=BlochFeshbach()), 2
   )
 end

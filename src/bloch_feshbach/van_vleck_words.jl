@@ -1,5 +1,5 @@
-struct WaveOperator{H,P}
-  coefficients::Vector{Dict{H,P}}
+struct BlochSolution{P}
+  wave_operator::Vector{Dict{Int,P}}
   bloch_effective_generator::Vector{P}
 end
 
@@ -37,13 +37,11 @@ function add_right_static_product!(
   return target
 end
 
-bloch_harmonic_inverse(harmonic::Int) = 1 // harmonic
-
-function bloch_antiderivative(residual::Dict{H,P}, zero_harmonic::H) where {H,P}
-  wave = Dict{H,P}()
+function bloch_antiderivative(residual::Dict{Int,P}) where {P}
+  wave = Dict{Int,P}()
   for (harmonic, polynomial) in residual
-    (harmonic == zero_harmonic || iszero(polynomial)) && continue
-    wave[harmonic] = add_scaled!(zero(P), polynomial, bloch_harmonic_inverse(harmonic))
+    (harmonic == 0 || iszero(polynomial)) && continue
+    wave[harmonic] = add_scaled!(zero(P), polynomial, 1 // harmonic)
   end
   return wave
 end
@@ -59,16 +57,16 @@ function bloch_residual(
   return residual
 end
 
-function bloch_wave_operator(letters::Dict{H,P}, order::Int, zero_harmonic::H) where {H,P}
-  bloch_effective_generator = P[get(letters, zero_harmonic, zero(P))]
-  wave = Dict{H,P}[]
-  order > 1 && push!(wave, bloch_antiderivative(letters, zero_harmonic))
+function bloch_solution(letters::Dict{Int,P}, order::Int) where {P}
+  bloch_effective_generator = P[get(letters, 0, zero(P))]
+  wave = Dict{Int,P}[]
+  order > 1 && push!(wave, bloch_antiderivative(letters))
   for n in 1:(order - 1)
     residual = bloch_residual(letters, wave, bloch_effective_generator, n)
-    push!(bloch_effective_generator, get(residual, zero_harmonic, zero(P)))
-    n < order - 1 && push!(wave, bloch_antiderivative(residual, zero_harmonic))
+    push!(bloch_effective_generator, get(residual, 0, zero(P)))
+    n < order - 1 && push!(wave, bloch_antiderivative(residual))
   end
-  return WaveOperator(wave, bloch_effective_generator)
+  return BlochSolution(wave, bloch_effective_generator)
 end
 
 function wave_times_static_factor(
@@ -97,23 +95,21 @@ function log_series_nonlinear_terms!(
   return nonlinear
 end
 
-function connected_log_series(
-  wave::Vector{Dict{H,P}}, highest_power::Int, zero_harmonic::H
-) where {H,P}
+function connected_log_series(wave::Vector{Dict{Int,P}}, highest_power::Int) where {P}
   static_factor = P[one(P)]
-  normalized = Dict{H,P}[]
-  powers = Dict{Tuple{Int,Int},Dict{H,P}}()
-  connected_log = Dict{H,P}[]
+  normalized = Dict{Int,P}[]
+  powers = Dict{Tuple{Int,Int},Dict{Int,P}}()
+  connected_log = Dict{Int,P}[]
 
   for n in 1:highest_power
     normalized_n = wave_times_static_factor(wave, static_factor, n)
     nonlinear = log_series_nonlinear_terms!(powers, normalized, n)
-    static_part = get(nonlinear, zero_harmonic, zero(P))
+    static_part = get(nonlinear, 0, zero(P))
     push!(static_factor, add_scaled!(zero(P), static_part, -1))
-    add_scaled!(series_entry!(normalized_n, zero_harmonic), static_part, -1)
+    add_scaled!(series_entry!(normalized_n, 0), static_part, -1)
     push!(normalized, normalized_n)
     powers[(1, n)] = normalized_n
-    connected_log_n = add_periodic_scaled!(Dict{H,P}(), normalized_n, 1)
+    connected_log_n = add_periodic_scaled!(Dict{Int,P}(), normalized_n, 1)
     push!(connected_log, add_periodic_scaled!(connected_log_n, nonlinear, 1))
   end
 
@@ -146,11 +142,11 @@ function static_series_product(
   return result
 end
 
-function normalize_to_van_vleck(wave::WaveOperator{H,P}, zero_harmonic::H) where {H,P}
-  bloch_effective = wave.bloch_effective_generator
+function normalize_to_van_vleck(solution::BlochSolution{P}) where {P}
+  bloch_effective = solution.bloch_effective_generator
   highest_power = length(bloch_effective) - 1
   (; connected_log, static_factor) = connected_log_series(
-    wave.coefficients, highest_power, zero_harmonic
+    solution.wave_operator, highest_power
   )
   inverse_static_factor = static_series_inverse(static_factor, highest_power)
   bloch_effective_times_static_factor = static_series_product(
@@ -162,10 +158,10 @@ function normalize_to_van_vleck(wave::WaveOperator{H,P}, zero_harmonic::H) where
   return (; connected_log, effective)
 end
 
-function van_vleck_words(letters::Vector{H}, order::Int, zero_harmonic::H) where {H}
-  C = typeof(bloch_harmonic_inverse(one(H)))
-  P = WordPolynomial{H,C}
-  components = Dict{H,P}(letter => word_letter(letter, C) for letter in letters)
-  wave = bloch_wave_operator(components, order, zero_harmonic)
-  return normalize_to_van_vleck(wave, zero_harmonic)
+function van_vleck_words(letters::Vector{Int}, order::Int)
+  P = WordPolynomial{Int,Rational{Int}}
+  components = Dict{Int,P}(
+    letter => word_letter(letter, Rational{Int}) for letter in letters
+  )
+  return normalize_to_van_vleck(bloch_solution(components, order))
 end

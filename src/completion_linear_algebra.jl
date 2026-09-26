@@ -1,9 +1,3 @@
-# Structured symbolic linear algebra used by the positive-completion kernels.
-#
-# Keep this separate from the coefficient/series recurrences in `matrix_series.jl`: the
-# routines below cache structural work that depends only on a leading matrix and exploit
-# Hermitian/triangular structure without materializing dense elementary transforms.
-
 struct MatrixSolvePlan
   lower::CompletionMatrix
   upper::CompletionMatrix
@@ -179,8 +173,6 @@ function gram_feshbach_dressing(
   N::Int,
   conditions::CompletionConditions,
 )
-  # If A = G G† and G Y = X, then X† A⁻¹ X = Y†Y. The same solve therefore
-  # supplies both the active-to-dark dressing and the Feshbach/Schur residual.
   solved = lower_triangular_series_solve(active_factor, cross, N, conditions)
   correction = series_mul(series_adjoint(solved), solved, N)
   residual = series_sub(dark, correction, N)
@@ -232,9 +224,6 @@ function hermitian_congruence_eliminate_step!(
     coefficients[column - k] = simplify_scalar(-reduced[k, column] / pivot)
   end
 
-  # The trailing Hermitian block is the Schur update associated with the elementary
-  # congruence. Update one triangle and restore the other by conjugation so no dense
-  # elementary matrix multiplication is materialized.
   for column in (k + 1):n, row in column:n
     correction = (reduced[row, k] * reduced[k, column] / pivot)::CompletionScalar
     value = simplify_scalar((reduced[row, column] - correction)::CompletionScalar)
@@ -251,7 +240,6 @@ function hermitian_congruence_eliminate_step!(
     reduced[column, k] = completion_zero()
   end
 
-  # T <- T E, where E differs from the identity only in row k.
   for column in (k + 1):n
     coefficient = coefficients[column - k]
     for row in axes(transform, 1)

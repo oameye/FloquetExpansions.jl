@@ -12,7 +12,7 @@ See also [`floquet_expansion`](@ref), [`positive_completion`](@ref).
 """
 struct FloquetExpansion{G<:Gauge,P<:PeriodicGenerator,E,C<:Completion,R<:FloquetProvenance}
   generator::P
-  kick_components::Vector{P}
+  micromotion_components::Vector{P}
   effective_components::Vector{E}
   gauge::G
   order::Int
@@ -47,7 +47,9 @@ end
 function Base.propertynames(
   ::FloquetExpansion{G,P,E,C,R}, private::Bool=false
 ) where {G,P,E,C,R}
-  names = (:generator, :kick_components, :effective_components, :gauge, :order, :completion)
+  names = (
+    :generator, :micromotion_components, :effective_components, :gauge, :order, :completion
+  )
   return if private
     (
       names...,
@@ -69,7 +71,23 @@ end
 
 Base.show(io::IO, expansion::FloquetExpansion) = show(io, MIME"text/plain"(), expansion)
 
+struct ComponentConvention{F,C<:Number}
+  product::F
+  generator_phase::C
+end
+
+component_convention(::PeriodicGenerator{SQA.QAdd}) = ComponentConvention(*, -im)
+component_convention(::PeriodicGenerator{Liouvillian}) = ComponentConvention(compose, 1)
+
 function floquet_expansion_impl(
+  generator::P, gauge::G, order::Int, provenance::R
+) where {P<:PeriodicGenerator,G<:VanVleck,R<:FloquetProvenance}
+  order >= 1 || throw(ArgumentError("order must be >= 1"))
+  generator isa PeriodicGenerator{SQA.QAdd} && require_hermitian_drive(generator)
+  return van_vleck_expansion(generator, gauge, order, provenance)
+end
+
+function van_vleck_expansion(
   ::P, ::VanVleck{A}, ::Int, ::R
 ) where {P<:PeriodicGenerator,A<:ExpansionAlgorithm,R<:FloquetProvenance}
   return throw(
@@ -274,8 +292,8 @@ function micromotion(
   expansion::FloquetExpansion{G,P,E,C,R}
 ) where {G,P<:PeriodicGenerator,E,C,R}
   result = zero(expansion.generator)::P
-  for (order, kick) in enumerate(expansion.kick_components)
-    result = (result + reattach(kick, order))::P
+  for (order, component) in enumerate(expansion.micromotion_components)
+    result = (result + reattach(component, order))::P
   end
   return result::P
 end
@@ -285,5 +303,5 @@ function micromotion(
 ) where {G,P<:PeriodicGenerator,E,C,R}
   1 <= n < expansion.order ||
     throw(ArgumentError("order $(n) is outside 1:$(expansion.order - 1)"))
-  return SQA.simplify(reattach(expansion.kick_components[n], n))::P
+  return SQA.simplify(reattach(expansion.micromotion_components[n], n))::P
 end

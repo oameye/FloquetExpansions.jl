@@ -1,15 +1,10 @@
-# `iszero` on a `BasicSymbolic` builds the symbolic equation `0 == 0` rather than returning a
-# `Bool`, so use structural comparison instead.
 issymzero(x) = isequal(Symbolics.value(x), 0)
 
-# `expim(arg)` is `exp(+i*arg)` with arg REAL; the package convention is `exp(-i*m*w*t)`.
-# Split arg into `c*w*t + offset` and return `(-c, offset)`.
 function harmonic_index(arg, w, t)
   offset = Symbolics.substitute(arg, Dict(t => 0))
   time_part = Symbolics.simplify(arg - offset)
   c = Symbolics.value(Symbolics.substitute(time_part, Dict(w => 1, t => 1)))
 
-  # Guards `w*t^2` and friends: only a phase linear in `w*t` is periodic at all.
   residual = Symbolics.simplify(arg - (c * w * t + offset))
   issymzero(residual) || throw(
     ArgumentError(
