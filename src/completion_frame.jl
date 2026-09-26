@@ -90,10 +90,5 @@ function automatic_dissipative_frame(
   for component in getfield(expansion, :effective_components)
     append_generated_directions!(operators, component)
   end
-  isempty(operators) && throw(
-    ArgumentError(
-      "positive completion found no dissipative directions; pass an explicit DissipativeFrame if a representation is required",
-    ),
-  )
   return build_automatic_dissipative_frame(operators)
 end

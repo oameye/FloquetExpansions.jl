@@ -69,10 +69,14 @@ Both algorithms return the same [`FloquetExpansion`](@ref) interface and expose 
 effective and micromotion coefficients. The algorithm selector is explicit; the package does not
 switch algorithms automatically as a function of truncation order.
 
-For a generic `PeriodicGenerator{Liouvillian}`, either algorithm is an algebraic high-frequency
-expansion of the assembled Liouvillian. Selecting `BlochFeshbach()` does not by itself imply
-complete positivity of a finite truncation. CP-preserving reconstruction is a separate physical
-open-system construction.
+For Liouvillian input, the bare `HoriDeprit()` and `BlochFeshbach()` selectors first compute the
+corresponding raw canonical van Vleck series and then apply graded [`Gram`](@ref) positive
+completion. Thus every successful default open-system expansion has a finite static GKLS
+[`effective_generator`](@ref), while its retained effective coefficients and micromotion remain
+the canonical HFE data. Use `complete_positive=Val(false)` on either algorithm to request the raw
+uncompleted Liouvillian series explicitly. The CP policy is common to both algorithms; it is not a
+special property of the Bloch/Feshbach recurrence. Native CK/Stinespring reconstruction of a
+finite CPTP one-period map is a separate map-level construction.
 
 ```@docs
 ExpansionAlgorithm
