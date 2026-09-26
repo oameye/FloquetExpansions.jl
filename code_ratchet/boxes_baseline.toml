@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "88fa48c"
+commit = "896baf7"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -62,6 +62,9 @@ boxes = 0
 boxes = 0
 
 [files."src/matrix_series.jl"]
+boxes = 0
+
+[files."src/native_gksl.jl"]
 boxes = 0
 
 [files."src/periodic_operator.jl"]

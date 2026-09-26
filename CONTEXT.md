@@ -133,7 +133,7 @@ A symbolic inequality required for a completion to be nonnegative when it cannot
 A nonzero condition defining the fixed-rank parameter stratum on which a symbolic factorization is valid, for example an active pivot used in division or a scalar series square root.
 
 **Microscopic dissipative provenance**:
-Internal information retained only by the high-level physical `floquet_expansion(...; channels=...)` construction, used to seed automatic dissipative-frame discovery and physical rate assumptions. Generic `Liouvillian` and `PeriodicGenerator` algebra remains provenance-free.
+Internal information retained only by the physical constructions that take channels: `floquet_expansion(...; channels=...)`, which uses it to seed automatic dissipative-frame discovery and physical rate assumptions, and the native GKSL expansion, which labels each dissipator it builds with its source channel. Generic `Liouvillian` and `PeriodicGenerator` algebra remains provenance-free.
 
 **Completion factorization**:
 Algorithm-specific diagnostic data retained by a completed Floquet expansion and exposed through `factorization`. Gram data include the graded factor, onset information, and compact active/dark history; spectral data include completed branch rates, perturbative vectors/amplitudes, and onset information.
@@ -143,3 +143,7 @@ Algorithm-specific diagnostic data retained by a completed Floquet expansion and
 **Native GKSL expansion**:
 A high-frequency expansion of a periodically driven Lindblad system whose effective generator has Lindblad form by construction. It computes the van Vleck expansion of the Hamiltonian alone, carries each physical jump operator into that coherent frame order by order, and squares the truncated amplitudes without truncating again. It keeps one dissipative vertex, so terms quadratic in the dissipative strength, of order ``γ²/ω``, lie outside it. Its retained dissipative coefficients agree with the one-dissipator sector of the Liouvillian van Vleck expansion only up to a static similarity that is generally not completely positive, so they are not effective components.
 _Avoid_: "CP-HFE"; calling it positive completion, which selects a positive continuation of an already truncated Liouvillian expansion; calling it an expansion algorithm, which reproduces the van Vleck effective components.
+
+**Transported jump amplitude**:
+The jump operator of a physical channel carried into the coherent van Vleck frame, ``L'(t) = e^{iK(t)} L(t) e^{-iK(t)}`` with ``K`` the micromotion generator of the Hamiltonian alone, expanded order by order and truncated at the retained order. Each Fourier harmonic ``L'_m`` of the truncated amplitude, weighted by the channel's static rate ``γ``, which is one for a collapse channel, contributes one dissipator ``γD[L'_m]`` to the effective generator of the native GKSL expansion.
+_Avoid_: calling its harmonics the Kraus operators of the one-period map, which also include no-jump and multi-jump amplitudes.

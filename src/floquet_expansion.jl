@@ -220,8 +220,10 @@ function reattach(component::E, wd::Symbolics.Num, n::Int)::E where {E<:Generato
   scale = inverse_drive_power(wd, n)
   return (scale * component)::E
 end
-function reattach(generator::PeriodicGenerator{T}, n::Int) where {T<:GeneratorComponent}
-  return iszero(n) ? generator : generator.wd^(-n) * generator
+function reattach(generator::P, n::Int)::P where {P<:PeriodicGenerator}
+  iszero(n) && return generator
+  scale = inverse_drive_power(generator.wd, n)
+  return (scale * generator)::P
 end
 
 """
