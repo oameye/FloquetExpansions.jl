@@ -309,9 +309,10 @@ end
   )
   expansion = floquet_expansion(generator, VanVleck(), 2)
 
-  @test_throws FloquetExpansions.FractionalJumpOnset positive_completion(
+  failure = @test_throws FloquetExpansions.FractionalJumpOnset positive_completion(
     expansion, Gram(), frame
   )
+  @test failure.value.rate_order == 1
   spectral = positive_completion(expansion, Spectral(), frame)
   spectral_data = factorization(spectral)
   odd_branch = findfirst(==(1), spectral_data.onsets)
