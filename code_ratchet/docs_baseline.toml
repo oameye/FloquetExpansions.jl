@@ -3,12 +3,24 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "9e6d4f4"
+commit = "8b6b7a8"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
 
 [files."src/FloquetExpansions.jl"]
+undocumented = 0
+public = 0
+
+[files."src/bloch_connected_van_vleck.jl"]
+undocumented = 0
+public = 0
+
+[files."src/bloch_projection.jl"]
+undocumented = 0
+public = 0
+
+[files."src/bloch_van_vleck.jl"]
 undocumented = 0
 public = 0
 
@@ -30,11 +42,15 @@ public = 0
 
 [files."src/completion_types.jl"]
 undocumented = 0
-public = 8
+public = 6
 
 [files."src/engine.jl"]
 undocumented = 0
 public = 6
+
+[files."src/expansion_algorithms.jl"]
+undocumented = 0
+public = 0
 
 [files."src/gksl_coordinates.jl"]
 undocumented = 0
@@ -62,7 +78,7 @@ public = 0
 
 [files."src/periodic_operator.jl"]
 undocumented = 0
-public = 8
+public = 11
 
 [files."src/quasienergy.jl"]
 undocumented = 0
