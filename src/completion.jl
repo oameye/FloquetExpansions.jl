@@ -106,6 +106,8 @@ The two-argument form derives a dissipative frame from the available Floquet dat
 present, microscopic channel information. Pass a [`DissipativeFrame`](@ref) explicitly to fix the
 operator representation, for example when comparing completion methods in the same physical basis.
 Algorithm-specific frame requirements still apply; see [`Gram`](@ref) and [`Spectral`](@ref).
+An expansion without dissipative terms completes in an empty derived frame with no channels; the
+completed generator is then the Hamiltonian action of the retained coherent Hamiltonian.
 
 Positive completion is defined only for Liouvillian expansions. Calling it on an already
 completed expansion is an error. Use [`Gram`](@ref) or [`Spectral`](@ref) to select the algorithm.

@@ -45,10 +45,5 @@ function automatic_dissipative_frame(expansion::FloquetExpansion)
   for component in getfield(expansion, :effective_components)
     append_generated_directions!(operators, component)
   end
-  isempty(operators) && throw(
-    ArgumentError(
-      "positive completion found no dissipative directions; pass an explicit DissipativeFrame if a representation is required",
-    ),
-  )
-  return DissipativeFrame(Tuple(operators))
+  return assemble_dissipative_frame(Tuple(operators))
 end

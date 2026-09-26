@@ -358,6 +358,32 @@ end
   @test error.reason == :zero_diagonal_coupling
 end
 
+@testset "coherent Liouvillian completes in an empty automatic frame" begin
+  pauli = PauliSpace(:cp_validation_coherent)
+  σx = Pauli(pauli, :sigma, 1)
+  σz = Pauli(pauli, :sigma, 3)
+  @variables ω::Real
+
+  generator = PeriodicGenerator(
+    Dict(
+      0 => hamiltonian_action(σz), 1 => hamiltonian_action(σx), -1 => hamiltonian_action(σx)
+    ),
+    ω,
+  )
+  raw = floquet_expansion(generator, VanVleck(), 3)
+
+  for (method, factorization_type) in
+      ((Gram(), GramFactorization), (Spectral(), SpectralFactorization))
+    completion = positive_completion(raw, method)
+    @test factorization(completion) isa factorization_type
+    @test isempty(channels(completion))
+    @test size(kossakowski(completion)) == (0, 0)
+    @test iszero(SQA.simplify(hamiltonian(completion) - hamiltonian(raw)))
+    @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+      effective_generator(completion)
+  end
+end
+
 @testset "spectral symbolic rank strata separate positivity and regularity" begin
   pauli = PauliSpace(:cp_validation_symbolic_stratum)
   σx = Pauli(pauli, :sigma, 1)
