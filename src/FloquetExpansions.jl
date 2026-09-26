@@ -14,12 +14,28 @@ using SecondQuantizedAlgebra: expim, exponential_form, trigonometric_form
 export expim, exponential_form, trigonometric_form
 
 include("periodic_operator.jl")
+include("bloch_projection.jl")
+include("bloch_van_vleck.jl")
+include("bloch_connected_van_vleck.jl")
+include("ck_physical_kernel.jl")
+include("ck_period_amplitude.jl")
+include("ck_canonical_normalization.jl")
+include("ck_hori_deprit.jl")
+include("ck_output_kernel.jl")
+include("ck_output_time_kernel.jl")
+include("ck_output_time_realization.jl")
+include("ck_output_overlap.jl")
+include("ck_output_pairing.jl")
+include("ck_output_pairing_series.jl")
+include("ck_output_normalization.jl")
+include("ck_output_right_normalization.jl")
 include("completion_types.jl")
 include("matrix_series.jl")
 include("completion_linear_algebra.jl")
 include("liouvillian.jl")
 include("quasienergy.jl")
 include("engine.jl")
+include("expansion_algorithms.jl")
 include("gksl_coordinates.jl")
 include("completion_conversion.jl")
 include("completion_frame.jl")
@@ -29,6 +45,7 @@ include("spectral_completion.jl")
 include("completion.jl")
 include("gksl_floquet.jl")
 
+export BlochFeshbach, ExpansionAlgorithm, HoriDeprit
 export Gauge, PeriodicGenerator, QuasienergyOperator, VanVleck, harmonic_range
 export antiderivative, derivative, harmonics, support, time_average
 export FloquetExpansion,
