@@ -32,7 +32,7 @@ JuliaFormatter owns formatting, configured by `.JuliaFormatter.toml`: `blue` sty
 ## Comments and docstrings
 
 - **Comment the non-obvious why, not the visible what.** Keep comments compact and local to the invariant they explain.
-- **Docstring the public interface.** This includes exported names and the intentionally qualified expert API marked with `@public`. Ordinary internal helpers should normally be explained by their names, types, and the architecture/ADR that owns any non-obvious invariant rather than by duplicating design prose in local docstrings.
+- **Explain internal helpers through names and types.** An ordinary internal helper is explained by its name, its types, and the architecture document or ADR that owns any non-obvious invariant, rather than by design prose in a local docstring. Docstrings of the public interface follow [`documentation.md`](documentation.md).
 
 ## Naming
 

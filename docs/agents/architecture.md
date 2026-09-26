@@ -41,13 +41,17 @@ Listed in `src/FloquetExpansions.jl` include order, which is the source dependen
 | Module | Owns | Public seam |
 | --- | --- | --- |
 | `FloquetExpansions.jl` | Module wiring, include order, SQA reexports/forwards, the export list, and the qualified expert API | the module's exported and `@public` names |
-| `periodic_operator.jl` | Fourier harmonics, drive frequency, harmonic calculus, gauges | `Gauge`, `VanVleck`, `PeriodicGenerator`, `harmonics`, `support`, `time_average`, `derivative`, `antiderivative` |
+| `periodic_operator.jl` | Fourier harmonics, drive frequency, harmonic calculus, gauges, algorithm selector types | `Gauge`, `ExpansionAlgorithm`, `HoriDeprit`, `BlochFeshbach`, `VanVleck`, `PeriodicGenerator`, `harmonics`, `support`, `time_average`, `derivative`, `antiderivative` |
+| `bloch_projection.jl` | Compiled plans for the Bloch wave-operator recurrence over the harmonic support, and their evaluation | internal only |
+| `bloch_van_vleck.jl` | Static formal-series inverse and product used by the van Vleck normalization | internal only |
+| `bloch_connected_van_vleck.jl` | Connected logarithm of the wave operator in a Lyndon commutator basis, the static factor, and the similarity to the van Vleck representative | internal only |
 | `completion_types.jl` | Completion state/algorithm types, factorization supertype, completion exceptions, microscopic provenance, completed-state storage | `Completion`, `Uncompleted`, `CompletionAlgorithm`, `Gram`, `Spectral`, `CompletionFactorization`, `CompletionObstruction`, `FractionalJumpOnset` |
 | `matrix_series.jl` | Truncated completion scalar/matrix-series algebra, conditions, and graded factor recurrences | internal only |
 | `completion_linear_algebra.jl` | Reusable symbolic solve plans, triangular series solves, structured Hermitian congruence elimination, Gram/Feshbach dressing | internal only |
 | `liouvillian.jl` | Collected `ρ ↦ AρB` terms, coherent/dissipative constructors, physical channel values, composition, Liouvillian Fourier lowering | `Liouvillian`, `liouvillian`, `terms`, `hamiltonian_action`, `dissipator`, `compose`, `collapse`, `jump`, plus the `harmonics` Liouvillian method |
 | `quasienergy.jl` | Symbolic Sambe blocks and harmonic indexing | `QuasienergyOperator`, `harmonic_range` |
-| `engine.jl` | Generic Van Vleck recursion, order scaling, `FloquetExpansion`, retained effective/micromotion accessors, high-level physical lowering and microscopic-channel retention | `FloquetExpansion`, `floquet_expansion`, `order`, `effective_generator`, `effective_component`, `micromotion` |
+| `engine.jl` | Hori–Deprit Van Vleck recursion, order scaling, `FloquetExpansion`, retained effective/micromotion accessors, high-level physical lowering and microscopic-channel retention | `FloquetExpansion`, `floquet_expansion`, `order`, `effective_generator`, `effective_component`, `micromotion` |
+| `expansion_algorithms.jl` | `VanVleck{A}` dispatch to the Hori–Deprit or Bloch/Feshbach algorithm, and the Hamiltonian and Liouvillian Bloch/Feshbach entry points | internal dispatch behind the `ExpansionAlgorithm` selectors |
 | `gksl_coordinates.jl` | Ordered dissipative frames and exact GKSL/Kossakowski coordinate extraction | `DissipativeFrame`, `hamiltonian`, `hamiltonian_component`, `kossakowski`, `kossakowski_component` |
 | `completion_conversion.jl` | Narrow conversion boundary between SQA coefficients and the completion scalar backend | internal only |
 | `completion_frame.jl` | Automatic dissipative-frame discovery and independent-direction filtering modulo identity | internal only |

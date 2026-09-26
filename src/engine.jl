@@ -198,7 +198,7 @@ contributions.
 - `H`: Symbolic time-dependent Hamiltonian to decompose using `ωd` and `t`.
 - `ωd`: Symbolic drive frequency.
 - `t`: Symbolic time variable.
-- `gauge`: Gauge fixing the micromotion integration constant.
+- `gauge`: [`Gauge`](@ref) fixing the micromotion integration constant.
 - `order`: Number of retained orders; must be at least one.
 - `channels`: Tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values added to `H`.
 
