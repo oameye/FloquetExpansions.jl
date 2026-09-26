@@ -27,6 +27,24 @@ end
   @test typeof(bf_default) === typeof(bf_cp)
   @test typeof(hd_default) !== typeof(hd_raw)
   @test typeof(bf_default) !== typeof(bf_raw)
+
+  @test sprint(show, hd_default) == "HoriDeprit()"
+  @test sprint(show, bf_default) == "BlochFeshbach()"
+  @test sprint(show, MIME"text/plain"(), hd_default) == "HoriDeprit()"
+  @test sprint(show, MIME"text/plain"(), bf_default) == "BlochFeshbach()"
+  @test sprint(show, hd_raw) == "HoriDeprit(complete_positive=Val(false))"
+  @test sprint(show, bf_raw) == "BlochFeshbach(complete_positive=Val(false))"
+  @test sprint(show, MIME"text/plain"(), hd_raw) ==
+    "HoriDeprit(complete_positive=Val(false))"
+  @test sprint(show, MIME"text/plain"(), bf_raw) ==
+    "BlochFeshbach(complete_positive=Val(false))"
+  @test sprint(show, VanVleck()) == "VanVleck(algorithm=HoriDeprit())"
+  @test sprint(show, VanVleck(; algorithm=bf_default)) ==
+    "VanVleck(algorithm=BlochFeshbach())"
+  @test sprint(show, VanVleck(; algorithm=hd_raw)) ==
+    "VanVleck(algorithm=HoriDeprit(complete_positive=Val(false)))"
+  @test sprint(show, VanVleck(; algorithm=bf_raw)) ==
+    "VanVleck(algorithm=BlochFeshbach(complete_positive=Val(false)))"
 end
 
 @testset "explicit non-CP selectors preserve raw HD/BF equivalence" begin
@@ -125,6 +143,41 @@ end
       )
     end
     @test cp_policy_vanishes(micromotion(configured) - micromotion(raw))
+  end
+end
+
+@testset "default Liouvillian selectors complete the zero-dissipation sector" begin
+  space = PauliSpace(:cp_algorithm_policy_coherent_liouvillian)
+  σx = Pauli(space, :σ, 1)
+  σz = Pauli(space, :σ, 3)
+  @variables ω_cp_policy_coherent::Real
+
+  L = PeriodicGenerator(
+    Dict(
+      0 => hamiltonian_action(σz), 1 => hamiltonian_action(σx), -1 => hamiltonian_action(σx)
+    ),
+    ω_cp_policy_coherent,
+  )
+
+  for (algorithm, raw_algorithm) in (
+    (HoriDeprit(), HoriDeprit(; complete_positive=Val(false))),
+    (BlochFeshbach(), BlochFeshbach(; complete_positive=Val(false))),
+  )
+    configured = floquet_expansion(L, VanVleck(; algorithm=algorithm), 3)
+    raw = floquet_expansion(L, VanVleck(; algorithm=raw_algorithm), 3)
+    expected = positive_completion(raw, Gram())
+
+    @test factorization(configured) isa FloquetExpansions.GramFactorization
+    @test isempty(channels(configured))
+    @test size(kossakowski(configured)) == (0, 0)
+    @test cp_policy_vanishes(
+      effective_generator(configured) - effective_generator(expected)
+    )
+    @test cp_policy_vanishes(hamiltonian(configured) - hamiltonian(raw))
+    @test cp_policy_vanishes(
+      liouvillian(hamiltonian(configured); channels=channels(configured)) -
+      effective_generator(configured),
+    )
   end
 end
 
