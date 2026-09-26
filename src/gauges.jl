@@ -30,7 +30,9 @@ order through nested commutators of the drive harmonics.
 
 See also [`BlochFeshbach`](@ref).
 """
-struct HoriDeprit <: ExpansionAlgorithm end
+struct HoriDeprit <: ExpansionAlgorithm
+  HoriDeprit(::Val{:raw}) = new()
+end
 
 """
     BlochFeshbach <: ExpansionAlgorithm
@@ -59,7 +61,9 @@ julia> iszero(simplify(effective_generator(bf) - effective_generator(hd)))
 true
 ```
 """
-struct BlochFeshbach <: ExpansionAlgorithm end
+struct BlochFeshbach <: ExpansionAlgorithm
+  BlochFeshbach(::Val{:raw}) = new()
+end
 
 """
     VanVleck(; algorithm=HoriDeprit())

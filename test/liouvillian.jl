@@ -278,7 +278,9 @@ end
   static = liouvillian(a' * a; channels=(jump(a, γ),))
   driven = liouvillian(a)
   generator = PeriodicGenerator(Dict(0 => static, 1 => driven, -1 => driven), ω)
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
 
   @test expansion isa FloquetExpansion
   @test effective_generator(expansion) isa Liouvillian
@@ -303,16 +305,20 @@ end
   @test periodic[1] == expected_oscillatory
   @test periodic[-1] == expected_oscillatory
 
-  direct = floquet_expansion(native, ω, t, VanVleck(), 1)
+  direct = floquet_expansion(
+    native, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 1
+  )
   keyword = floquet_expansion(
     H,
     ω,
     t,
-    VanVleck(),
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
     1;
     channels=(collapse(collapse_operator), jump(jump_operator, rate)),
   )
-  explicit = floquet_expansion(periodic, VanVleck(), 1)
+  explicit = floquet_expansion(
+    periodic, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 1
+  )
 
   @test direct isa FloquetExpansion
   @test effective_generator(direct) == effective_generator(explicit)
@@ -367,7 +373,13 @@ end
   @test iszero(periodic)
   @test time_average(periodic) == zero(Liouvillian)
   @test iszero(
-    floquet_expansion(zero(Liouvillian), ω, t, VanVleck(), 1) |> effective_generator
+    floquet_expansion(
+      zero(Liouvillian),
+      ω,
+      t,
+      VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+      1,
+    ) |> effective_generator,
   )
 end
 

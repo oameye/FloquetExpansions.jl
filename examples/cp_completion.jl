@@ -28,7 +28,9 @@ L = liouvillian(H; channels=(jump(σminus, γ),))
 
 # We will apply a the floquet expansion to the Lindblad generator using the Van Vleck gauge up to third order:
 
-vv = floquet_expansion(L, ω, t, VanVleck(), 3)
+vv = floquet_expansion(
+  L, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 3
+)
 
 # The effective Hamiltonian contain the RWA term and the Bloch-Siegert shift
 

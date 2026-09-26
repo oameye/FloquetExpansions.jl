@@ -15,24 +15,23 @@ time-dependent Hamiltonian / Liouvillian / PeriodicGenerator
  Van Vleck recursion      QuasienergyOperator
         │
         ▼
- FloquetExpansion (raw)
+ FloquetExpansion
         │
-        ├─ effective_generator / effective_component
-        ├─ micromotion
-        └─ optional positive_completion   [Liouvillian only]
+        ├─ Hamiltonian: canonical HFE
+        └─ Liouvillian
+             ├─ default: Gram-completed static GKSL generator
+             └─ complete_positive=Val(false): raw canonical HFE
                          │
-                         ▼
-                FloquetExpansion (completed)
-                         │
-                         ├─ effective_generator
-                         ├─ channels / hamiltonian
+                         ├─ effective_generator / effective_component
+                         ├─ micromotion
+                         ├─ channels / hamiltonian       [completed only]
                          ├─ kossakowski / dissipative_frame
-                         └─ factorization / conditions
+                         └─ factorization / conditions   [completed only]
 ```
 
 `PeriodicGenerator{T}` is the shared Fourier boundary. High-level Hamiltonian-plus-channel input is lowered to a Liouvillian periodic generator before recursion; an already constructed `PeriodicGenerator` enters at that boundary directly. Its component type carries the algebra through addition, commutators, derivatives, antiderivatives, and simplification. The expansion engine remains generic over Hamiltonian (`SQA.QAdd`) and Liouvillian components.
 
-Positive completion is an explicit post-processing stage for Liouvillian expansions. It preserves the retained Floquet coefficients and micromotion while replacing only the finite effective-generator realization by a selected positive continuation. Completion returns another `FloquetExpansion`; there is no parallel completed-result wrapper.
+For Liouvillian input, the public Hori–Deprit and Bloch/Feshbach Van Vleck selectors apply graded `Gram()` positive completion by default. The raw canonical HFE is selected statically with `complete_positive=Val(false)`. Completion preserves the retained Floquet coefficients and micromotion while replacing only the finite effective-generator realization by a positive continuation. The explicit `positive_completion` API remains available for raw expansions when a fixed frame, `Spectral()`, or an explicit algorithm comparison is required. There is no parallel completed-result wrapper.
 
 ## Module ownership
 
@@ -53,6 +52,7 @@ Listed in `src/FloquetExpansions.jl` include order, which is the source dependen
 | `bloch_feshbach/lyndon_words.jl` | Polynomials in the free associative algebra over harmonic letters and their coordinates in the Lyndon commutator basis | internal only |
 | `bloch_feshbach/van_vleck_words.jl` | The van Vleck pair over harmonic letters from the support alone: the Bloch recurrence for the wave operator and Bloch effective generator, the connected logarithm and static factor, and the static-factor similarity | internal only |
 | `bloch_feshbach/bloch_feshbach.jl` | The Bloch/Feshbach algorithm: compilation of the word-level van Vleck pair to Lyndon commutators, their evaluation on generator components under the Hamiltonian or Liouvillian product and phase conventions, and the entry point | internal, selected by `BlochFeshbach` |
+| `cp_algorithm_policy.jl` | Static CP policy wrapper and default Gram-completion dispatch for Liouvillian algorithms | `HoriDeprit`, `BlochFeshbach` constructor policy |
 | `gksl_coordinates.jl` | Ordered dissipative frames and exact GKSL/Kossakowski coordinate extraction | `DissipativeFrame`, `hamiltonian`, `hamiltonian_component`, `kossakowski`, `kossakowski_component` |
 | `completion_conversion.jl` | Narrow conversion boundary between SQA coefficients and the completion scalar backend | internal only |
 | `completion_frame.jl` | Automatic dissipative-frame discovery and independent-direction filtering modulo identity | internal only |
@@ -78,7 +78,7 @@ The package delegates operator multiplication, adjoints, normal ordering, and co
 - A raw finite-order effective generator is the algebraic truncation and is not assumed to be GKSL or completely positive.
 - Bloch/Feshbach computes the van Vleck pair from the harmonic support and order alone, rebuilt on every call, in the free associative algebra over harmonic letters, with exact `Rational{Int}` coefficients, and evaluates only Lyndon commutators of the generator components. This relies on the connected logarithm and the van Vleck effective generator both being Lie series in the harmonics; the Lyndon decomposition throws when a word series is not one.
 - A `ComponentConvention` fixes, per component type, the component product and the unit phase ``c`` with ``\mathcal{G} = cX``: ``c = -i`` for a Hamiltonian, ``c = 1`` for a Liouvillian. Hori–Deprit dresses with the phase ``-c``. Bloch/Feshbach evaluates words with ``1/m`` in place of ``i/m``, so it restores the phase ``(ic)^n`` on order-``n`` coefficients and a further ``\bar c = c^{-1}`` on the micromotion.
-- Positive completion is explicit, never implicit in `floquet_expansion`, is defined only for Liouvillian expansions, and does not rewrite retained Floquet coefficients or micromotion.
+- Liouvillian Van Vleck expansion is `Gram()`-completed by default; explicit `complete_positive=Val(false)` selects the raw canonical HFE. Completion does not rewrite retained Floquet coefficients or micromotion.
 - Kossakowski coordinates are relative to an ordered `DissipativeFrame`. Ordering is representation-significant even when two frames span the same subspace.
 - Raw expansions require an explicit `DissipativeFrame` for GKSL/Kossakowski coordinate extraction. Completed expansions store the finalized frame, so no-frame completed accessors are unambiguous.
 - Automatic frame discovery is a symbolic convenience frontend whose output arity depends on runtime algebraic independence. The explicit-frame `positive_completion(expansion, algorithm, frame)` methods are the inference-oriented computational core.

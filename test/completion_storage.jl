@@ -11,7 +11,14 @@ const SQA = SecondQuantizedAlgebra
   @variables ω::Real t::Real
 
   frame = DissipativeFrame(a)
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(collapse(a),))
+  expansion = floquet_expansion(
+    0 * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(collapse(a),),
+  )
   completion = @inferred positive_completion(expansion, Gram(), frame)
 
   retained = kossakowski_component(completion, 0)

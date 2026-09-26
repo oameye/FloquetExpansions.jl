@@ -132,8 +132,12 @@ end
   order = 5
 
   for L in (symmetric, resonant_triple)
-    hori_deprit = floquet_expansion(L, VanVleck(; algorithm=HoriDeprit()), order)
-    bloch_feshbach = floquet_expansion(L, VanVleck(; algorithm=BlochFeshbach()), order)
+    hori_deprit = floquet_expansion(
+      L, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), order
+    )
+    bloch_feshbach = floquet_expansion(
+      L, VanVleck(; algorithm=BlochFeshbach(; complete_positive=Val(false))), order
+    )
 
     for n in 0:(order - 1)
       @test ea_vanishes(
@@ -174,7 +178,9 @@ end
   end
   expected_micromotion = PeriodicGenerator(expected_micromotion_components, ω_ea_map_ref)
 
-  expansion = floquet_expansion(L, VanVleck(; algorithm=BlochFeshbach()), 2)
+  expansion = floquet_expansion(
+    L, VanVleck(; algorithm=BlochFeshbach(; complete_positive=Val(false))), 2
+  )
   @test ea_vanishes(
     effective_component(expansion, 1) - ω_ea_map_ref^(-1) * expected_effective
   )
@@ -193,7 +199,11 @@ end
   channels = (jump(σminus, γ_ea_cp),)
   frame = DissipativeFrame(σx, σy, σz)
 
-  hori_deprit, bloch_feshbach = map((HoriDeprit(), BlochFeshbach())) do algorithm
+  raw_algorithms = (
+    HoriDeprit(; complete_positive=Val(false)),
+    BlochFeshbach(; complete_positive=Val(false)),
+  )
+  hori_deprit, bloch_feshbach = map(raw_algorithms) do algorithm
     raw = floquet_expansion(
       H, ω_ea_cp, t_ea_cp, VanVleck(; algorithm), 2; channels=channels
     )
@@ -235,7 +245,11 @@ end
     return ea_superoperator(hamiltonian_action(X), d, substitutions)
   end
 
-  for algorithm in (HoriDeprit(), BlochFeshbach())
+  raw_algorithms = (
+    HoriDeprit(; complete_positive=Val(false)),
+    BlochFeshbach(; complete_positive=Val(false)),
+  )
+  for algorithm in raw_algorithms
     hamiltonian = floquet_expansion(H, VanVleck(; algorithm), order)
     liouvillian = floquet_expansion(L, VanVleck(; algorithm), order)
 

@@ -227,7 +227,9 @@ end
   H = Δ * a' * a
   L = liouvillian(H; channels=(collapse(a + im * a^2),))
   frame = DissipativeFrame(a, a^2)
-  expansion = floquet_expansion(L, ω, t, VanVleck(), 1)
+  expansion = floquet_expansion(
+    L, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 1
+  )
 
   d = @inferred kossakowski(expansion, frame)
   d0 = @inferred kossakowski_component(expansion, frame, 0)
@@ -247,7 +249,9 @@ end
   generator = PeriodicGenerator(
     Dict(1 => coherent_harmonic - quadrature, -1 => coherent_harmonic + quadrature), ω
   )
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   frame = DissipativeFrame(a, a' * a^2)
 
   d1 = @inferred kossakowski_component(expansion, frame, 1)
@@ -263,7 +267,9 @@ end
 
 @testset "Hamiltonian expansions retain their coherent accessors" begin
   H = Δ * a' * a
-  expansion = floquet_expansion(harmonics(H, ω, t), VanVleck(), 1)
+  expansion = floquet_expansion(
+    harmonics(H, ω, t), VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 1
+  )
 
   @test @inferred(hamiltonian(expansion)) == effective_generator(expansion)
   @test @inferred(hamiltonian_component(expansion, 0)) == effective_component(expansion, 0)

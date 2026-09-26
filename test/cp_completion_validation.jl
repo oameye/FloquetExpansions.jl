@@ -115,7 +115,14 @@ end
   frame = DissipativeFrame(a)
   @variables ω::Real t::Real
 
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(collapse(a),))
+  expansion = floquet_expansion(
+    0 * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(collapse(a),),
+  )
 
   # Automatic frame discovery has runtime-dependent arity by design. Exercise it as a public
   # path, while keeping strict inference checks on the fixed-frame entry points.
@@ -162,7 +169,12 @@ end
   @variables ω::Real t::Real Ω::Real
 
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(bright),)
+    Ω * cos(ω * t) * σx,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3;
+    channels=(collapse(bright),),
   )
   leading_cartesian = kossakowski_component(expansion, cartesian, 0)
   @test !iszero(SQA.simplify(leading_cartesian[2, 3]))
@@ -195,7 +207,9 @@ end
   @variables ω::Real t::Real
 
   generator = liouvillian(0 * a; channels=(collapse(a + a^2), collapse(a + im * a^2)))
-  expansion = floquet_expansion(generator, ω, t, VanVleck(), 1)
+  expansion = floquet_expansion(
+    generator, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 1
+  )
   leading = kossakowski_component(expansion, frame, 0)
   @test !iszero(SQA.simplify(leading[1, 2]))
   @test !iszero(SQA.simplify(leading[2, 1]))
@@ -227,7 +241,9 @@ end
     ),
     ω,
   )
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   gram = positive_completion(expansion, Gram(), frame)
   spectral = positive_completion(expansion, Spectral(), frame)
 
@@ -248,7 +264,9 @@ end
   generator = PeriodicGenerator(
     Dict(0 => D1 + D2, 1 => (1 // 2) * D1 + quadrature, -1 => (1 // 2) * D1 - quadrature), ω
   )
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   first_order = kossakowski_component(expansion, frame, 1)
   @test validation_matrix_hermitian(first_order)
   @test !iszero(SQA.simplify(first_order[1, 3]))
@@ -277,7 +295,12 @@ end
 
   H = K * a'^2 * a^2
   expansion = floquet_expansion(
-    H, ω, t, VanVleck(), 1; channels=(jump(number_selective, γ),)
+    H,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(jump(number_selective, γ),),
   )
 
   gram = @inferred positive_completion(expansion, Gram(), frame)
@@ -307,7 +330,9 @@ end
     ),
     ω,
   )
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
 
   @test_throws FloquetExpansions.FractionalJumpOnset positive_completion(
     expansion, Gram(), frame
@@ -325,7 +350,13 @@ end
   a = Destroy(fock, :a)
   frame = DissipativeFrame(a)
   @variables ω::Real t::Real
-  expansion = floquet_expansion(-dissipator(a), ω, t, VanVleck(), 1)
+  expansion = floquet_expansion(
+    -dissipator(a),
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1,
+  )
 
   for method in (Gram(), Spectral())
     error = try
@@ -345,7 +376,9 @@ end
   frame = DissipativeFrame(a, a^2)
   @variables ω::Real t::Real
   cross = dissipator(a + a^2) - dissipator(a) - dissipator(a^2)
-  expansion = floquet_expansion(cross, ω, t, VanVleck(), 1)
+  expansion = floquet_expansion(
+    cross, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 1
+  )
 
   error = try
     positive_completion(expansion, Gram(), frame)
@@ -378,7 +411,9 @@ end
     ),
     ω,
   )
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   completion = positive_completion(expansion, Spectral(), frame)
 
   @test validation_has_condition(positivity_conditions(completion), γ)
@@ -396,7 +431,14 @@ end
   channel = 2g1 + 3g2
   @variables ω::Real t::Real
 
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(collapse(channel),))
+  expansion = floquet_expansion(
+    0 * a,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    1;
+    channels=(collapse(channel),),
+  )
   native_completion = positive_completion(expansion, Gram(), native)
   transformed_completion = positive_completion(expansion, Gram(), transformed)
 

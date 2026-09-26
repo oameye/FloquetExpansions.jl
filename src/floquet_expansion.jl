@@ -152,7 +152,7 @@ julia> @variables ω::Real t::Real g::Real;
 julia> H = harmonics(ω * (a' * a) + g * cos(ω * t) * (a + a'), ω, t);
 
 julia> vv = floquet_expansion(H, VanVleck(), 1)
-FloquetExpansion{VanVleck{HoriDeprit}} of order 1
+FloquetExpansion{VanVleck{FloquetExpansions.CPConfiguredAlgorithm{HoriDeprit, true}}} of order 1
 
 julia> effective_generator(vv)
 ω * a' * a

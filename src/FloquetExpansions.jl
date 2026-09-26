@@ -24,6 +24,7 @@ include("hori_deprit.jl")
 include("bloch_feshbach/lyndon_words.jl")
 include("bloch_feshbach/van_vleck_words.jl")
 include("bloch_feshbach/bloch_feshbach.jl")
+include("cp_algorithm_policy.jl")
 include("gksl_coordinates.jl")
 include("completion_conversion.jl")
 include("completion_frame.jl")
@@ -53,6 +54,8 @@ export DissipativeFrame,
 @public Completion,
 CompletionAlgorithm,
 CompletionFactorization,
+CompletionObstruction,
+FractionalJumpOnset,
 GramFactorization,
 GramStage,
 SpectralFactorization,

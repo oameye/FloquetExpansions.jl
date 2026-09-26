@@ -77,6 +77,11 @@ L_eff = effective_generator(expansion)
 K = micromotion(expansion)(t)
 ```
 
+For this open-system input, the default Van Vleck selector returns a finite Gram-completed GKLS
+effective generator while preserving the retained Floquet coefficients and micromotion. Use an
+explicit algorithm selector with `complete_positive=Val(false)` when the raw canonical
+Liouvillian HFE is required.
+
 See the [Manual](manual/system.md) for the conceptual interface and API documentation.
 
 ## Main Features
@@ -90,6 +95,8 @@ materializing a Floquet-Sambe matrix.
 ### CP-preserving open-system completion
 
 A finite-order Floquet-Lindblad expansion can leave the GKLS cone even when the microscopic
-dynamics is completely positive. [`positive_completion`](@ref) constructs a finite positive
-continuation while preserving the retained effective coefficients and micromotion. See
-[Positive completion](@ref positive-completion-manual) for the Gram and spectral/HCM workflows.
+dynamics is completely positive. Liouvillian Van Vleck expansions therefore use graded `Gram()`
+completion by default, preserving the retained effective coefficients and micromotion. Explicit
+`complete_positive=Val(false)` exposes the raw canonical HFE; [`positive_completion`](@ref) remains
+available for fixed-frame and spectral/HCM workflows. See
+[Positive completion](@ref positive-completion-manual).

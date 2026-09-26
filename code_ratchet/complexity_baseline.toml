@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "88fa48c"
+commit = "673e62c"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -23,13 +23,13 @@ arg_sum = 0
 [files."src/bloch_feshbach/bloch_feshbach.jl"]
 cyc = 3
 cog = 3
-arg = 5
+arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 25
-cog_sum = 13
-arg_sum = 41
+cyc_sum = 19
+cog_sum = 11
+arg_sum = 29
 
 [files."src/bloch_feshbach/lyndon_words.jl"]
 cyc = 5
@@ -49,9 +49,9 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 35
+cyc_sum = 34
 cog_sum = 23
-arg_sum = 42
+arg_sum = 36
 
 [files."src/completion.jl"]
 cyc = 2
@@ -82,9 +82,9 @@ arg = 2
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 14
-cog_sum = 9
-arg_sum = 11
+cyc_sum = 22
+cog_sum = 10
+arg_sum = 22
 
 [files."src/completion_linear_algebra.jl"]
 cyc = 7
@@ -108,6 +108,17 @@ cyc_sum = 2
 cog_sum = 0
 arg_sum = 4
 
+[files."src/cp_algorithm_policy.jl"]
+cyc = 1
+cog = 1
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 9
+cog_sum = 4
+arg_sum = 20
+
 [files."src/floquet_expansion.jl"]
 cyc = 5
 cog = 3
@@ -115,9 +126,9 @@ arg = 6
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 33
-cog_sum = 14
-arg_sum = 50
+cyc_sum = 38
+cog_sum = 16
+arg_sum = 56
 
 [files."src/gauges.jl"]
 cyc = 1
@@ -126,9 +137,9 @@ arg = 1
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 1
+cyc_sum = 3
 cog_sum = 1
-arg_sum = 1
+arg_sum = 3
 
 [files."src/gksl_coordinates.jl"]
 cyc = 8
@@ -175,15 +186,15 @@ cog_sum = 17
 arg_sum = 25
 
 [files."src/hori_deprit.jl"]
-cyc = 8
-cog = 12
+cyc = 6
+cog = 10
 arg = 6
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 21
-cog_sum = 19
-arg_sum = 27
+cyc_sum = 18
+cog_sum = 17
+arg_sum = 26
 
 [files."src/liouvillian.jl"]
 cyc = 9
@@ -214,8 +225,8 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 73
-cog_sum = 38
+cyc_sum = 74
+cog_sum = 39
 arg_sum = 80
 
 [files."src/quasienergy.jl"]

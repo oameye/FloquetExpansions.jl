@@ -42,7 +42,9 @@ end
     ),
     ω,
   )
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   gram = positive_completion(expansion, Gram(), frame)
   spectral = positive_completion(expansion, Spectral(), frame)
   substitutions = Dict(ω => 10.0)
@@ -68,7 +70,9 @@ end
   generator = PeriodicGenerator(
     Dict(0 => D1 + D2, 1 => (1 // 2) * D1 + quadrature, -1 => (1 // 2) * D1 - quadrature), ω
   )
-  expansion = floquet_expansion(generator, VanVleck(), 2)
+  expansion = floquet_expansion(
+    generator, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 2
+  )
   completion = positive_completion(expansion, Gram(), frame)
   substitutions = Dict(ω => 12.0)
 

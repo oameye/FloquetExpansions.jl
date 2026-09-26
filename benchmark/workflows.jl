@@ -47,7 +47,9 @@ function gram_completion_workload()
   @variables ω::Real t::Real
   frame = DissipativeFrame(a, a^2)
   generator = liouvillian(0 * a; channels=(collapse(a + a^2), collapse(a + im * a^2)))
-  expansion = floquet_expansion(generator, ω, t, VanVleck(), 1)
+  expansion = floquet_expansion(
+    generator, ω, t, VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))), 1
+  )
   return expansion, frame
 end
 
@@ -59,7 +61,12 @@ function recursive_gram_workload()
   @variables ω::Real t::Real Ω::Real
   frame = DissipativeFrame(σx, σy, σz)
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    Ω * cos(ω * t) * σx,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3;
+    channels=(collapse(σz),),
   )
   return expansion, frame
 end
@@ -72,7 +79,12 @@ function spectral_completion_workload()
   @variables ω::Real t::Real Ω::Real
   frame = DissipativeFrame(σz, σy)
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    Ω * cos(ω * t) * σx,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3;
+    channels=(collapse(σz),),
   )
   return expansion, frame
 end
@@ -111,7 +123,10 @@ function benchmark_expansion_algorithms!(suite)
   kpo, kpo_ω, kpo_t = kerr_parametric_oscillator()
   qubit, qubit_ω, qubit_t = driven_qubit()
   open_qubit, channels, open_ω, open_t = driven_dissipative_qubit()
-  algorithms = (("Hori-Deprit", HoriDeprit()), ("Bloch-Feshbach", BlochFeshbach()))
+  algorithms = (
+    ("Hori-Deprit", HoriDeprit(; complete_positive=Val(false))),
+    ("Bloch-Feshbach", BlochFeshbach(; complete_positive=Val(false))),
+  )
 
   for (name, algorithm) in algorithms, order in (3, 5)
     gauge = VanVleck(; algorithm)

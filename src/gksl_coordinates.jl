@@ -26,7 +26,7 @@ nonorthogonal.
 
 See also [`kossakowski`](@ref), [`hamiltonian`](@ref).
 """
-struct DissipativeFrame{O<:Tuple}
+struct DissipativeFrame{O<:Union{Tuple,Vector{SQA.QAdd}}}
   operators::O
   monomials::Vector{SQA.QTerm}
   coordinates::KossakowskiMatrix

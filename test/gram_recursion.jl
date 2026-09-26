@@ -15,7 +15,14 @@ const SQA = SecondQuantizedAlgebra
   frame = DissipativeFrame(σx, σy, σz)
 
   H = Ω * cos(ω * t) * σx
-  expansion = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(collapse(σz),))
+  expansion = floquet_expansion(
+    H,
+    ω,
+    t,
+    VanVleck(; algorithm=HoriDeprit(; complete_positive=Val(false))),
+    3;
+    channels=(collapse(σz),),
+  )
   completion = positive_completion(expansion, Gram(), frame)
   gram = factorization(completion)
 

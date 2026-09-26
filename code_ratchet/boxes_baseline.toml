@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "88fa48c"
+commit = "673e62c"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -35,6 +35,9 @@ boxes = 0
 boxes = 0
 
 [files."src/completion_types.jl"]
+boxes = 0
+
+[files."src/cp_algorithm_policy.jl"]
 boxes = 0
 
 [files."src/floquet_expansion.jl"]
