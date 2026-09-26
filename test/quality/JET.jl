@@ -67,3 +67,30 @@ end
   JET.@test_opt target_modules=(FloquetExpansions,) hamiltonian(completion)
   JET.@test_opt target_modules=(FloquetExpansions,) kossakowski_component(completion, 0)
 end
+
+@testset "native GKSL expansion optimizer stability" begin
+  space = NLevelSpace(:jet_native_gksl, 2)
+  σx = Transition(space, :σ, 1, 2) + Transition(space, :σ, 2, 1)
+  σz = Transition(space, :σ, 1, 1) - Transition(space, :σ, 2, 2)
+  σminus = Transition(space, :σ, 1, 2)
+  @variables ω_native::Real t_native::Real γ_native::Real
+
+  H = σz + σx * expim(-ω_native * t_native) + σx * expim(ω_native * t_native)
+  seed = only(
+    FloquetExpansions.jump_amplitude_seeds((jump(σminus, γ_native),), ω_native, t_native)
+  )
+  coherent = floquet_expansion(harmonics(H, ω_native, t_native), VanVleck(), 2)
+  K = coherent.micromotion_components
+  transported = FloquetExpansions.transport_jump_amplitude(seed, K, 2)
+  channels = FloquetExpansions.harmonic_jump_channels([transported])
+
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.transport_jump_amplitude(
+    seed, K, 2
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.harmonic_jump_channels([
+    transported
+  ])
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_gksl_generator(
+    coherent, channels
+  )
+end

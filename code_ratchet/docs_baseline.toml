@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "88fa48c"
+commit = "896baf7"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -79,6 +79,10 @@ public = 9
 [files."src/matrix_series.jl"]
 undocumented = 0
 public = 0
+
+[files."src/native_gksl.jl"]
+undocumented = 0
+public = 1
 
 [files."src/periodic_operator.jl"]
 undocumented = 0

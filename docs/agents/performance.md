@@ -15,7 +15,7 @@ Do not use a runtime benchmark as evidence about TTFX, or a successful precompil
 ## Inference and optimizer stability
 
 - **Treat inference as an acceptance property on core paths.** Use `@inferred` for stable observable return types and package-wide JET for broader inference diagnostics.
-- **Keep the expansion algorithms and the explicit-frame completion path compiler-clean.** `test/quality/JET.jl` contains required `JET.@test_opt` workloads for `floquet_expansion` with each expansion algorithm on a Hamiltonian and on a Liouvillian, explicit-frame Gram completion, recursive Gram completion, Spectral completion, and completed-state accessors. Do not remove or weaken those workloads to hide an inference problem.
+- **Keep the expansion algorithms, the explicit-frame completion path, and the native GKSL amplitude core compiler-clean.** `test/quality/JET.jl` contains required `JET.@test_opt` workloads for `floquet_expansion` with each expansion algorithm on a Hamiltonian and on a Liouvillian, explicit-frame Gram completion, recursive Gram completion, Spectral completion, completed-state accessors, and the native GKSL jump-amplitude transport, harmonic jump channels, and generator assembly. Do not remove or weaken those workloads to hide an inference problem.
 - **Keep the explicit-frame computational core concrete.** Automatic dissipative-frame discovery is allowed to be a dynamic convenience frontend because the number of independent directions is discovered at runtime; once a `DissipativeFrame` is explicit, the downstream completion path should preserve concrete dispatch and storage.
 
 ## Runtime and allocations

@@ -34,6 +34,32 @@ time-dependent Hamiltonian / Liouvillian / PeriodicGenerator
 
 Positive completion is an explicit post-processing stage for Liouvillian expansions. It preserves the retained Floquet coefficients and micromotion while replacing only the finite effective-generator realization by a selected positive continuation. Completion returns another `FloquetExpansion`; there is no parallel completed-result wrapper.
 
+The native GKSL expansion is a separate internal path that never lowers the physical model to a Liouvillian periodic generator:
+
+```text
+      Hamiltonian               collapse/jump channels
+           │                              │
+           ▼                              ▼
+PeriodicGenerator{SQA.QAdd}     JumpAmplitudeSeed: periodic operator, static rate
+           │                              │
+           ▼                              │
+  Van Vleck recursion                     │
+           │                              │
+           ├─ effective Hamiltonian       │
+           └─ micromotion K ─────▶ transport by e^{i ad_K}, order by order
+                                          │
+                                          ▼
+                              TransportedJumpAmplitude
+                                          │
+                                          ▼
+                 finite amplitude, one HarmonicJumpChannel per harmonic
+                                          │
+                                          ▼
+                 NativeGKSLExpansion: -i[H_eff, ·] + Σ γ D[L'_m]
+```
+
+`native_gksl_expansion(H, ωd, t, order, channels)` is its internal entry point. It is not exported or `@public`; its public seam is an open design question.
+
 ## Module ownership
 
 Listed in `src/FloquetExpansions.jl` include order, which is the source dependency order. Every file currently under `src/` has a row. The public-seam column lists names owned by this package; SecondQuantizedAlgebra reexports are wired at the module root.
@@ -54,6 +80,7 @@ Listed in `src/FloquetExpansions.jl` include order, which is the source dependen
 | `bloch_feshbach/van_vleck_words.jl` | The van Vleck pair over harmonic letters from the support alone: the Bloch recurrence for the wave operator and Bloch effective generator, the connected logarithm and static factor, and the static-factor similarity | internal only |
 | `bloch_feshbach/bloch_feshbach.jl` | The Bloch/Feshbach algorithm: compilation of the word-level van Vleck pair to Lyndon commutators, their evaluation on generator components under the Hamiltonian or Liouvillian product and phase conventions, and the entry point | internal, selected by `BlochFeshbach` |
 | `gksl_coordinates.jl` | Ordered dissipative frames and exact GKSL/Kossakowski coordinate extraction | `DissipativeFrame`, `hamiltonian`, `hamiltonian_component`, `kossakowski`, `kossakowski_component` |
+| `native_gksl.jl` | The native GKSL expansion: jump-amplitude seeds from physical channels, their transport by the coherent van Vleck micromotion with Hori–Deprit weights, harmonic jump channels, the directly assembled GKSL generator, and the retained dissipative coefficients as diagnostic data | internal only |
 | `completion_conversion.jl` | Narrow conversion boundary between SQA coefficients and the completion scalar backend | internal only |
 | `completion_frame.jl` | Automatic dissipative-frame discovery and independent-direction filtering modulo identity | internal only |
 | `gram_completion.jl` | Gram completion data types and single-stratum factor operations | `GramStage`, `GramFactorization` |
@@ -89,6 +116,11 @@ The package delegates operator multiplication, adjoints, normal ordering, and co
 - `Spectral()` is a restricted perturbative spectral/HCM realization. The leading Kossakowski form must be diagonal in its frame, and retained corrections must already be diagonal within degenerate leading sectors. Automatic frame discovery does not diagonalize the leading Kossakowski form.
 - `channels(cp)` is defined only for completed expansions and satisfies `liouvillian(hamiltonian(cp); channels=channels(cp)) == effective_generator(cp)`.
 - Algorithm-specific intermediate data are exposed through `factorization(cp)`; the normal completed physical interface is common to all completion algorithms.
+- The native GKSL expansion keeps physical jump amplitudes apart from generic Liouvillian algebra. A seed holds a periodic jump operator and a static nonnegative rate, and a collapse channel enters with rate one. All periodic dependence belongs to the operator; a periodic scalar jump rate is rejected because its amplitude-level square root and onset are not specified.
+- The native GKSL expansion transports a jump operator by ``e^{i\,\mathrm{ad}_K}``, with ``K`` the micromotion generator that the van Vleck expansion of the Hamiltonian alone stores. It reuses `dressed_generator_node` and `weight_generator` from `hori_deprit.jl` with the Hamiltonian phase ``-c = i``, so ``L' = e^{iK}Le^{-iK}`` is the same frame change that turns the Hamiltonian into its effective generator, and a change to the Hori–Deprit dressing convention changes the transport with it. A jump operator transforms as an operator rather than as a generator, so the transport has no micromotion-derivative terms. The coherent expansion uses `VanVleck()`; both expansion algorithms return the same micromotion.
+- The native GKSL expansion reattaches inverse drive powers to the transported amplitude before squaring it. Period averaging turns ``\overline{D[L'(t)]}`` into ``\sum_m D[L'_m]``, one harmonic jump channel per Fourier harmonic, and the generator ``-i[H_\mathrm{eff}, \cdot] + \sum_a γ_a \sum_m D[L'_{a,m}]`` keeps that finite square untruncated. It is GKSL by construction, with no Kossakowski matrix and no repair step.
+- The native GKSL expansion depends on no positive-completion type or function. Its only link to `completion_types.jl` is `DissipativeSeedRef`, which labels every seed and harmonic jump channel with the meaning it has in `MicroscopicProvenance`: a channel kind and the index within that kind, in user channel order.
+- The native GKSL expansion keeps one dissipative vertex; two-dissipator terms of order ``γ²/ω`` lie outside it. Its retained dissipative coefficients, which `native_dissipative_component` returns as diagnostic data, differ from the one-dissipator sector of the Liouvillian van Vleck expansion by a static similarity that starts at second order. There the van Vleck sector minus the native coefficient is ``[\mathcal{B}_R^{(2)}, \mathcal{H}_0]``, with ``\mathcal{B}_R^{(2)} = \frac{1}{2}\sum_{m\neq0}[\mathcal{H}_m, \mathcal{R}_{-m}]/(m\omega)^2``, ``\mathcal{H}_m`` the Hamiltonian action of the drive harmonic ``H_m``, and ``\mathcal{R}_m`` the harmonics of the physical dissipator. The similarity is generally not completely positive, so these coefficients are not effective components. `test/native_gksl_reference_identities.jl` certifies the second-order identity, and `test/native_gksl_amplitude_transport.jl` ties the construction to it.
 - Expert API names marked `@public` are stable qualified interfaces, intentionally not widened into the ordinary export list.
 - Dissipative quasienergy blocks use the energy-like Floquet-Liouville convention documented in ADR 0008; numerical vectorization remains an adapter concern.
 
