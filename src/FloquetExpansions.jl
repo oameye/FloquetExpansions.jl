@@ -12,26 +12,33 @@ const SQA = SecondQuantizedAlgebra
 using SecondQuantizedAlgebra: expim, exponential_form, trigonometric_form
 export expim, exponential_form, trigonometric_form
 
-include("gauges.jl")
-include("periodic_operator.jl")
-include("completion_types.jl")
-include("matrix_series.jl")
-include("completion_linear_algebra.jl")
-include("liouvillian.jl")
-include("quasienergy.jl")
-include("floquet_expansion.jl")
-include("hori_deprit.jl")
-include("bloch_feshbach/lyndon_words.jl")
-include("bloch_feshbach/van_vleck_words.jl")
-include("bloch_feshbach/bloch_feshbach.jl")
-include("gksl_coordinates.jl")
-include("completion_conversion.jl")
-include("completion_frame.jl")
-include("gram_completion.jl")
-include("gram_recursion.jl")
-include("spectral_completion.jl")
-include("completion.jl")
-include("gksl_floquet.jl")
+include("generators/periodic_generator.jl")
+include("generators/liouvillian.jl")
+include("generators/channels.jl")
+include("generators/quasienergy.jl")
+
+include("words/lyndon_words.jl")
+include("words/van_vleck_words.jl")
+
+include("expansion/gauges.jl")
+include("expansion/floquet_expansion.jl")
+include("expansion/hori_deprit.jl")
+include("expansion/bloch_feshbach.jl")
+
+include("gksl/dissipative_frame.jl")
+include("gksl/coordinates.jl")
+include("gksl/floquet.jl")
+
+include("completion/types.jl")
+include("completion/backend/matrix_series.jl")
+include("completion/backend/linear_algebra.jl")
+include("completion/backend/conversion.jl")
+include("completion/frame_discovery.jl")
+include("completion/accessors.jl")
+include("completion/gram/factorization.jl")
+include("completion/gram/recursion.jl")
+include("completion/spectral.jl")
+include("completion/positive_completion.jl")
 
 export BlochFeshbach, HoriDeprit
 export Gauge, PeriodicGenerator, QuasienergyOperator, VanVleck, harmonic_range

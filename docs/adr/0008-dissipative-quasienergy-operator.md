@@ -13,5 +13,5 @@ separate adapters and are not part of this module.
 
 `make test` runs the testsets that hold this decision:
 
-- `test/quasienergy.jl`: "indexing is by harmonic, and the diagonal carries -m*wd"
-- `test/quasienergy.jl`: "dissipative quasienergy blocks use the Liouvillian convention"
+- `test/generators/quasienergy.jl`: "indexing is by harmonic, and the diagonal carries -m*wd"
+- `test/generators/quasienergy.jl`: "dissipative quasienergy blocks use the Liouvillian convention"

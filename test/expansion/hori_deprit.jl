@@ -4,7 +4,7 @@ using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 const SQA = SecondQuantizedAlgebra
 using Symbolics: Symbolics
 
-include(joinpath(@__DIR__, "helpers", "shared.jl"))
+include(joinpath(@__DIR__, "..", "helpers", "shared.jl"))
 
 h = FockSpace(:cavity)
 a = Destroy(h, :a)

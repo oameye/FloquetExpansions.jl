@@ -10,7 +10,7 @@ A completed `FloquetExpansion` exposes representation-independent physical acces
 
 `make test` runs the testsets that hold this decision:
 
-- `test/completion_state.jl`: "positive-completion algorithms establish the public dispatch boundary"
-- `test/completion_storage.jl`: "completed representation owns frame and cached retained data"
-- `test/gram_completion.jl`: "completed Gram accessors return independent containers"
-- `test/spectral_completion.jl`: "spectral factorization accessor returns independent containers"
+- `test/completion/state.jl`: "positive-completion algorithms establish the public dispatch boundary"
+- `test/completion/storage.jl`: "completed representation owns frame and cached retained data"
+- `test/completion/gram.jl`: "completed Gram accessors return independent containers"
+- `test/completion/spectral.jl`: "spectral factorization accessor returns independent containers"

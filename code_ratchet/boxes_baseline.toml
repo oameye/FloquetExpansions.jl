@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "88fa48c"
+commit = "8fe4108"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -13,62 +13,71 @@ binding = ["boxes"]
 [files."src/FloquetExpansions.jl"]
 boxes = 0
 
-[files."src/bloch_feshbach/bloch_feshbach.jl"]
+[files."src/completion/accessors.jl"]
 boxes = 0
 
-[files."src/bloch_feshbach/lyndon_words.jl"]
+[files."src/completion/backend/conversion.jl"]
 boxes = 0
 
-[files."src/bloch_feshbach/van_vleck_words.jl"]
+[files."src/completion/backend/linear_algebra.jl"]
 boxes = 0
 
-[files."src/completion.jl"]
+[files."src/completion/backend/matrix_series.jl"]
 boxes = 0
 
-[files."src/completion_conversion.jl"]
+[files."src/completion/frame_discovery.jl"]
 boxes = 0
 
-[files."src/completion_frame.jl"]
+[files."src/completion/gram/factorization.jl"]
 boxes = 0
 
-[files."src/completion_linear_algebra.jl"]
+[files."src/completion/gram/recursion.jl"]
 boxes = 0
 
-[files."src/completion_types.jl"]
+[files."src/completion/positive_completion.jl"]
 boxes = 0
 
-[files."src/floquet_expansion.jl"]
+[files."src/completion/spectral.jl"]
 boxes = 0
 
-[files."src/gauges.jl"]
+[files."src/completion/types.jl"]
 boxes = 0
 
-[files."src/gksl_coordinates.jl"]
+[files."src/expansion/bloch_feshbach.jl"]
 boxes = 0
 
-[files."src/gksl_floquet.jl"]
+[files."src/expansion/floquet_expansion.jl"]
 boxes = 0
 
-[files."src/gram_completion.jl"]
+[files."src/expansion/gauges.jl"]
 boxes = 0
 
-[files."src/gram_recursion.jl"]
+[files."src/expansion/hori_deprit.jl"]
 boxes = 0
 
-[files."src/hori_deprit.jl"]
+[files."src/generators/channels.jl"]
 boxes = 0
 
-[files."src/liouvillian.jl"]
+[files."src/generators/liouvillian.jl"]
 boxes = 0
 
-[files."src/matrix_series.jl"]
+[files."src/generators/periodic_generator.jl"]
 boxes = 0
 
-[files."src/periodic_operator.jl"]
+[files."src/generators/quasienergy.jl"]
 boxes = 0
 
-[files."src/quasienergy.jl"]
+[files."src/gksl/coordinates.jl"]
 boxes = 0
 
-[files."src/spectral_completion.jl"]
+[files."src/gksl/dissipative_frame.jl"]
+boxes = 0
+
+[files."src/gksl/floquet.jl"]
+boxes = 0
+
+[files."src/words/lyndon_words.jl"]
+boxes = 0
+
+[files."src/words/van_vleck_words.jl"]
 boxes = 0

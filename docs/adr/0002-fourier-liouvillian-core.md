@@ -6,5 +6,5 @@ Hamiltonian and Liouvillian inputs use the same `PeriodicGenerator{T}` Fourier r
 
 `make test` runs the testsets that hold this decision:
 
-- `test/liouvillian.jl`: "Liouvillians use the common van Vleck expansion"
-- `test/engine.jl`: "the parsing entry point agrees with the harmonic one"
+- `test/generators/liouvillian.jl`: "Liouvillians use the common van Vleck expansion"
+- `test/expansion/hori_deprit.jl`: "the parsing entry point agrees with the harmonic one"
