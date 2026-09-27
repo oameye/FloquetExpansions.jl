@@ -313,6 +313,10 @@ end
 function build_dissipative_frame(operators)
   isempty(operators) &&
     throw(ArgumentError("DissipativeFrame requires at least one direction"))
+  return assemble_dissipative_frame(operators)
+end
+
+function assemble_dissipative_frame(operators)
   projected = frame_operator_tuple(operators)
   monomials, coordinates = frame_coordinate_data(projected)
 
