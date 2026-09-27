@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "88fa48c"
+commit = "8fe4108"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -20,51 +20,18 @@ cyc_sum = 0
 cog_sum = 0
 arg_sum = 0
 
-[files."src/bloch_feshbach/bloch_feshbach.jl"]
-cyc = 3
-cog = 3
-arg = 5
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 25
-cog_sum = 13
-arg_sum = 41
-
-[files."src/bloch_feshbach/lyndon_words.jl"]
-cyc = 5
-cog = 4
-arg = 4
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 30
-cog_sum = 19
-arg_sum = 30
-
-[files."src/bloch_feshbach/van_vleck_words.jl"]
-cyc = 4
-cog = 3
-arg = 4
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 35
-cog_sum = 23
-arg_sum = 42
-
-[files."src/completion.jl"]
+[files."src/completion/accessors.jl"]
 cyc = 2
 cog = 1
-arg = 8
+arg = 2
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 17
+cyc_sum = 14
 cog_sum = 1
-arg_sum = 39
+arg_sum = 14
 
-[files."src/completion_conversion.jl"]
+[files."src/completion/backend/conversion.jl"]
 cyc = 7
 cog = 7
 arg = 0
@@ -75,18 +42,7 @@ cyc_sum = 34
 cog_sum = 27
 arg_sum = 0
 
-[files."src/completion_frame.jl"]
-cyc = 3
-cog = 4
-arg = 2
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 14
-cog_sum = 9
-arg_sum = 11
-
-[files."src/completion_linear_algebra.jl"]
+[files."src/completion/backend/linear_algebra.jl"]
 cyc = 7
 cog = 9
 arg = 5
@@ -97,106 +53,7 @@ cyc_sum = 77
 cog_sum = 68
 arg_sum = 60
 
-[files."src/completion_types.jl"]
-cyc = 1
-cog = 0
-arg = 2
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 2
-cog_sum = 0
-arg_sum = 4
-
-[files."src/floquet_expansion.jl"]
-cyc = 5
-cog = 3
-arg = 6
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 33
-cog_sum = 14
-arg_sum = 50
-
-[files."src/gauges.jl"]
-cyc = 1
-cog = 1
-arg = 1
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 1
-cog_sum = 1
-arg_sum = 1
-
-[files."src/gksl_coordinates.jl"]
-cyc = 8
-cog = 9
-arg = 3
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 139
-cog_sum = 94
-arg_sum = 37
-
-[files."src/gksl_floquet.jl"]
-cyc = 1
-cog = 1
-arg = 3
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 7
-cog_sum = 2
-arg_sum = 12
-
-[files."src/gram_completion.jl"]
-cyc = 6
-cog = 6
-arg = 3
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 42
-cog_sum = 29
-arg_sum = 19
-
-[files."src/gram_recursion.jl"]
-cyc = 8
-cog = 10
-arg = 5
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 22
-cog_sum = 17
-arg_sum = 25
-
-[files."src/hori_deprit.jl"]
-cyc = 8
-cog = 12
-arg = 6
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 21
-cog_sum = 19
-arg_sum = 27
-
-[files."src/liouvillian.jl"]
-cyc = 9
-cog = 14
-arg = 4
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 111
-cog_sum = 72
-arg_sum = 96
-
-[files."src/matrix_series.jl"]
+[files."src/completion/backend/matrix_series.jl"]
 cyc = 9
 cog = 15
 arg = 5
@@ -207,18 +64,150 @@ cyc_sum = 181
 cog_sum = 136
 arg_sum = 115
 
-[files."src/periodic_operator.jl"]
+[files."src/completion/frame_discovery.jl"]
+cyc = 3
+cog = 4
+arg = 2
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 13
+cog_sum = 8
+arg_sum = 11
+
+[files."src/completion/gram/factorization.jl"]
+cyc = 6
+cog = 6
+arg = 3
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 34
+cog_sum = 28
+arg_sum = 11
+
+[files."src/completion/gram/recursion.jl"]
+cyc = 8
+cog = 10
+arg = 5
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 22
+cog_sum = 17
+arg_sum = 25
+
+[files."src/completion/positive_completion.jl"]
+cyc = 2
+cog = 1
+arg = 8
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 13
+cog_sum = 1
+arg_sum = 35
+
+[files."src/completion/spectral.jl"]
+cyc = 7
+cog = 6
+arg = 5
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 75
+cog_sum = 58
+arg_sum = 43
+
+[files."src/completion/types.jl"]
+cyc = 1
+cog = 0
+arg = 2
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 2
+cog_sum = 0
+arg_sum = 4
+
+[files."src/expansion/bloch_feshbach.jl"]
+cyc = 3
+cog = 3
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 19
+cog_sum = 11
+arg_sum = 29
+
+[files."src/expansion/floquet_expansion.jl"]
+cyc = 5
+cog = 3
+arg = 6
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 37
+cog_sum = 16
+arg_sum = 55
+
+[files."src/expansion/gauges.jl"]
+cyc = 2
+cog = 1
+arg = 2
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 3
+cog_sum = 2
+arg_sum = 3
+
+[files."src/expansion/hori_deprit.jl"]
+cyc = 6
+cog = 10
+arg = 6
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 18
+cog_sum = 17
+arg_sum = 26
+
+[files."src/generators/channels.jl"]
+cyc = 9
+cog = 14
+arg = 3
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 67
+cog_sum = 52
+arg_sum = 49
+
+[files."src/generators/liouvillian.jl"]
+cyc = 5
+cog = 5
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 44
+cog_sum = 20
+arg_sum = 47
+
+[files."src/generators/periodic_generator.jl"]
 cyc = 5
 cog = 8
 arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 73
+cyc_sum = 72
 cog_sum = 38
-arg_sum = 80
+arg_sum = 78
 
-[files."src/quasienergy.jl"]
+[files."src/generators/quasienergy.jl"]
 cyc = 4
 cog = 5
 arg = 4
@@ -229,13 +218,57 @@ cyc_sum = 15
 cog_sum = 7
 arg_sum = 20
 
-[files."src/spectral_completion.jl"]
-cyc = 7
-cog = 6
-arg = 5
+[files."src/gksl/coordinates.jl"]
+cyc = 8
+cog = 9
+arg = 1
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 75
-cog_sum = 58
-arg_sum = 43
+cyc_sum = 63
+cog_sum = 48
+arg_sum = 2
+
+[files."src/gksl/dissipative_frame.jl"]
+cyc = 7
+cog = 7
+arg = 3
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 77
+cog_sum = 46
+arg_sum = 36
+
+[files."src/gksl/floquet.jl"]
+cyc = 1
+cog = 1
+arg = 3
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 6
+cog_sum = 2
+arg_sum = 11
+
+[files."src/words/lyndon_words.jl"]
+cyc = 5
+cog = 4
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 30
+cog_sum = 19
+arg_sum = 30
+
+[files."src/words/van_vleck_words.jl"]
+cyc = 4
+cog = 3
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 34
+cog_sum = 23
+arg_sum = 36

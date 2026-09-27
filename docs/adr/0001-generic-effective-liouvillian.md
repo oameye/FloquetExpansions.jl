@@ -6,7 +6,7 @@ The package returns the direct finite-order van Vleck result for both Hamiltonia
 
 `make test` runs the testsets that hold this decision:
 
-- `test/engine.jl`: "the spec's closed forms, orders 0 to 2"
-- `test/engine.jl`: "truncation follows the spec, X^[N] = sum_{k<N}"
-- `test/completion_state.jl`: "raw Floquet expansions carry uncompleted state"
-- `test/residual_scaling.jl`: "the truncated factorization solves eq:defining0 to O(wd^-(N-1))"
+- `test/expansion/hori_deprit.jl`: "the spec's closed forms, orders 0 to 2"
+- `test/expansion/hori_deprit.jl`: "truncation follows the spec, X^[N] = sum_{k<N}"
+- `test/completion/state.jl`: "raw Floquet expansions carry uncompleted state"
+- `test/completion/residual_scaling.jl`: "the truncated factorization solves eq:defining0 to O(wd^-(N-1))"

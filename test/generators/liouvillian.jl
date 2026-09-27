@@ -3,7 +3,7 @@ using FloquetExpansions
 using Symbolics: Num, Symbolics, @variables
 using LinearAlgebra: I, kron
 
-include(joinpath(@__DIR__, "helpers", "shared.jl"))
+include(joinpath(@__DIR__, "..", "helpers", "shared.jl"))
 
 space = FockSpace(:liouvillian)
 a = Destroy(space, :a)

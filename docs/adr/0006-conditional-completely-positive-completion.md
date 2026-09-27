@@ -12,6 +12,6 @@ This ADR supersedes the earlier decision that positivity completion was only a f
 
 `make test` runs the testsets that hold this decision:
 
-- `test/completion_state.jl`: "raw Floquet expansions carry uncompleted state"
-- `test/gram_completion.jl`: "symbolic positivity and regularity conditions remain distinct"
-- `test/cp_completion_validation.jl`: "spectral symbolic rank strata separate positivity and regularity"
+- `test/completion/state.jl`: "raw Floquet expansions carry uncompleted state"
+- `test/completion/gram.jl`: "symbolic positivity and regularity conditions remain distinct"
+- `test/completion/validation.jl`: "spectral symbolic rank strata separate positivity and regularity"

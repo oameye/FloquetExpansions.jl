@@ -24,7 +24,7 @@ Do not use a runtime benchmark as evidence about TTFX, or a successful precompil
 - **Reuse structural work.** When repeated symbolic solves share the same leading matrix, build and reuse the solve plan. In Gram recursion, dark-sector dressing and the associated Feshbach residual should reuse equivalent solve structure rather than factor the same system twice: with ``A = GG^\dagger`` and ``GY = X``, ``X^\dagger A^{-1} X = Y^\dagger Y``, so one triangular solve supplies both.
 - **Preserve Hermitian structure in completion linear algebra.** Use Hermitian/congruence elimination directly and avoid materializing dense elementary transforms when structured elimination suffices. The Schur update of an elementary congruence computes one triangle of the trailing block and restores the other by conjugation, and the accumulated transform is updated row by row, since each elementary factor differs from the identity in one row.
 - **Keep API convenience separate from hot kernels.** Public keyword arguments forward into positional inner kernels, as [`style.md`](style.md) requires for every non-public function, which keeps a compiler-sensitive call chain concrete and simple.
-- **Do not change the completion scalar backend as an incidental optimization.** The current dedicated completion scalar representation remains behind `completion_conversion.jl`; replacing it with a native `SQA.CNum`-based layer is a separate architectural change.
+- **Do not change the completion scalar backend as an incidental optimization.** The current dedicated completion scalar representation remains behind `completion/backend/conversion.jl`; replacing it with a native `SQA.CNum`-based layer is a separate architectural change.
 
 ## Measuring
 

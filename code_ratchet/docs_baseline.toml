@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "88fa48c"
+commit = "8fe4108"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -12,82 +12,94 @@ binding = ["undocumented"]
 undocumented = 0
 public = 0
 
-[files."src/bloch_feshbach/bloch_feshbach.jl"]
+[files."src/completion/accessors.jl"]
+undocumented = 0
+public = 9
+
+[files."src/completion/backend/conversion.jl"]
 undocumented = 0
 public = 0
 
-[files."src/bloch_feshbach/lyndon_words.jl"]
+[files."src/completion/backend/linear_algebra.jl"]
 undocumented = 0
 public = 0
 
-[files."src/bloch_feshbach/van_vleck_words.jl"]
+[files."src/completion/backend/matrix_series.jl"]
 undocumented = 0
 public = 0
 
-[files."src/completion.jl"]
-undocumented = 0
-public = 1
-
-[files."src/completion_conversion.jl"]
+[files."src/completion/frame_discovery.jl"]
 undocumented = 0
 public = 0
 
-[files."src/completion_frame.jl"]
-undocumented = 0
-public = 0
-
-[files."src/completion_linear_algebra.jl"]
-undocumented = 0
-public = 0
-
-[files."src/completion_types.jl"]
-undocumented = 0
-public = 6
-
-[files."src/floquet_expansion.jl"]
-undocumented = 0
-public = 6
-
-[files."src/gauges.jl"]
-undocumented = 0
-public = 5
-
-[files."src/gksl_coordinates.jl"]
+[files."src/completion/gram/factorization.jl"]
 undocumented = 0
 public = 2
 
-[files."src/gksl_floquet.jl"]
+[files."src/completion/gram/recursion.jl"]
+undocumented = 0
+public = 0
+
+[files."src/completion/positive_completion.jl"]
+undocumented = 0
+public = 1
+
+[files."src/completion/spectral.jl"]
+undocumented = 0
+public = 1
+
+[files."src/completion/types.jl"]
 undocumented = 0
 public = 4
 
-[files."src/gram_completion.jl"]
-undocumented = 0
-public = 9
-
-[files."src/gram_recursion.jl"]
+[files."src/expansion/bloch_feshbach.jl"]
 undocumented = 0
 public = 0
 
-[files."src/hori_deprit.jl"]
+[files."src/expansion/floquet_expansion.jl"]
 undocumented = 0
-public = 0
+public = 8
 
-[files."src/liouvillian.jl"]
-undocumented = 0
-public = 9
-
-[files."src/matrix_series.jl"]
-undocumented = 0
-public = 0
-
-[files."src/periodic_operator.jl"]
+[files."src/expansion/gauges.jl"]
 undocumented = 0
 public = 6
 
-[files."src/quasienergy.jl"]
+[files."src/expansion/hori_deprit.jl"]
+undocumented = 0
+public = 0
+
+[files."src/generators/channels.jl"]
+undocumented = 0
+public = 3
+
+[files."src/generators/liouvillian.jl"]
+undocumented = 0
+public = 6
+
+[files."src/generators/periodic_generator.jl"]
+undocumented = 0
+public = 5
+
+[files."src/generators/quasienergy.jl"]
 undocumented = 0
 public = 2
 
-[files."src/spectral_completion.jl"]
+[files."src/gksl/coordinates.jl"]
 undocumented = 0
 public = 1
+
+[files."src/gksl/dissipative_frame.jl"]
+undocumented = 0
+public = 1
+
+[files."src/gksl/floquet.jl"]
+undocumented = 0
+public = 4
+
+[files."src/words/lyndon_words.jl"]
+undocumented = 0
+public = 0
+
+[files."src/words/van_vleck_words.jl"]
+undocumented = 0
+public = 0
