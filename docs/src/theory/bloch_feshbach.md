@@ -197,6 +197,33 @@ completely positive dynamics by construction [Chruscinski2013](@cite). See also
 The projection trades the commutator recursion for a product recurrence followed by a
 normalization. Usage is described in [Expansion algorithms](@ref expansion-algorithms-manual).
 
+The two recurrences differ in how their bookkeeping grows with the order ``N``. The Lie transform
+fills two triangular tables, the dressed generator and the dressed micromotion derivative, whose
+entry at order ``n`` and depth ``j`` is a sum of ``n-j+1`` commutators. Its total is
+``N(N^2-1)/3`` commutators of periodic operators. The Bloch recurrence instead takes, at order
+``n``, one product ``\mathcal{G}\,\Omega^{(n)}`` and a single fold over ``\Omega^{(j)}\mathcal{B}^{(n-j)}``.
+This is a Cauchy product with ``n+1`` terms and no nesting, so the total is ``(N-1)(N+2)/2``
+products. Pymablock classifies Bloch's similarity transform with the other schemes that cost one
+Cauchy product per order [ArayaDay2025](@cite).
+
+```@example bloch-feshbach-cost
+using Plots
+N = 2:12
+lie_transform = @. N * (N^2 - 1) ÷ 3
+bloch = @. (N - 1) * (N + 2) ÷ 2
+plot(N, [lie_transform bloch];
+  xscale=:log10, yscale=:log10, xticks=(N, string.(N)), marker=:circle,
+  label=["Lie transform, N(N²-1)/3" "Bloch recurrence, (N-1)(N+2)/2"],
+  xlabel="order N", ylabel="operator products", legend=:topleft)
+plot!(N, [N .^ 3 ./ 3 N .^ 2 ./ 2]; linestyle=:dash, color=:gray, label=["N³/3" "N²/2"])
+```
+
+Both counts treat a product of two periodic operators as one unit, which ignores two costs. First,
+each product is a convolution over harmonics whose support grows with the order. Second, the
+normalization ``\Omega N=e^{\Lambda}`` produces nested commutators whose number grows faster than
+any power of ``N``. The counts therefore compare the recurrences, not the run time of a full
+expansion.
+
 Mikami et al. use the Fourier convention of this page. Sources that write
 ``H(t)=\sum_m H_m e^{+im\omega t}``, such as Eckardt and Anisimovas, require ``m\mapsto-m``
 [Eckardt2015](@cite).
