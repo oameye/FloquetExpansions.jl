@@ -263,7 +263,19 @@ end
   @test compose(zero(coherent), dissipative) == zero(coherent)
   @test SQA.commutator(coherent, dissipative) ==
     compose(coherent, dissipative) - compose(dissipative, coherent)
-  @test compose(coherent, dissipative) != compose(dissipative, coherent)
+  # Photon-number rotations leave D[a] invariant, so the two maps commute exactly.
+  @test iszero(SQA.commutator(coherent, dissipative))
+  drive = hamiltonian_action(a + a')
+  @test compose(drive, dissipative) != compose(dissipative, drive)
+end
+
+@testset "Liouvillian equality is map equality" begin
+  q = NLevelSpace(:atom, 2)
+  σ11 = Transition(q, :σ, 1, 1)
+  σ22 = Transition(q, :σ, 2, 2)
+  σ12 = Transition(q, :σ, 1, 2)
+  @test hamiltonian_action(σ11 + σ22) == zero(hamiltonian_action(σ11))
+  @test dissipator(σ12) == dissipator(σ12) + hamiltonian_action(σ11 + σ22)
 end
 
 @testset "Liouvillian channel adapters" begin

@@ -126,12 +126,6 @@ function sorted_term_pairs(operator::SQA.QAdd)
   return pairs
 end
 
-function monomial_operator(term::SQA.QTerm)::SQA.QAdd
-  arguments = SQA.QTermDict()
-  arguments[term] = coefficient_one()
-  return SQA.QAdd(arguments, SQA.Index[])
-end
-
 function coefficient_matrix(rows::Int, columns::Int)::KossakowskiMatrix
   return fill(coefficient_zero(), rows, columns)
 end
