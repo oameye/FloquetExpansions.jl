@@ -29,6 +29,9 @@ include("gksl/dissipative_frame.jl")
 include("gksl/coordinates.jl")
 include("gksl/floquet.jl")
 
+include("harmonic_balance/carrier_embedding.jl")
+include("harmonic_balance/harmonic_balance.jl")
+
 include("completion/types.jl")
 include("completion/backend/matrix_series.jl")
 include("completion/backend/linear_algebra.jl")
@@ -56,6 +59,7 @@ export Liouvillian,
   collapse, compose, dissipator, hamiltonian_action, jump, liouvillian, terms
 export DissipativeFrame,
   hamiltonian, hamiltonian_component, kossakowski, kossakowski_component
+export CarrierEmbedding, carrier_modes, harmonic_balance, reconstruct
 
 @public Completion,
 CompletionAlgorithm,

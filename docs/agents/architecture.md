@@ -36,7 +36,7 @@ Positive completion is an explicit post-processing stage for Liouvillian expansi
 
 ## Module ownership
 
-`src/` is one module split into four layer folders plus a shared word algebra. `src/FloquetExpansions.jl` includes them in the order below, which is the source dependency order.
+`src/` is one module split into five layer folders plus a shared word algebra. `src/FloquetExpansions.jl` includes them in the order below, which is the source dependency order.
 
 | Folder | Layer |
 | --- | --- |
@@ -45,6 +45,7 @@ Positive completion is an explicit post-processing stage for Liouvillian expansi
 | `expansion/` | Gauges, the `FloquetExpansion` result, and the expansion algorithms that fill it. |
 | `gksl/` | Ordered dissipative frames and exact GKSL/Kossakowski coordinates, on a `Liouvillian` and on any `FloquetExpansion`. |
 | `completion/` | Positive completion: algorithm selectors, the completed state, its accessors, and the Gram and Spectral realizations. `completion/backend/` holds the dedicated completion scalar backend. |
+| `harmonic_balance/` | Quantum harmonic balance: the carrier embedding of one physical mode and the time-independent carrier generator. Depends on `generators/` only, not on expansion or completion (ADR 0011). |
 
 **Layering rule.** A file names a type from its own folder or an earlier one only. A call into a later folder resolves at run time and is allowed, but a signature, a field type, or a type parameter never refers forward. A change that needs a forward type reference moves the type to the earliest folder that uses it, as `Completion` sits in `expansion/` and the provenance types in `generators/`.
 
@@ -76,6 +77,8 @@ Every file currently under `src/` has a row. The public-seam column lists names 
 | `completion/gram/recursion.jl` | Recursive active/dark onset filtration and the algebraic Gram completion implementation | internal only |
 | `completion/spectral.jl` | Restricted perturbative spectral/HCM completion and factorization data | `SpectralFactorization` |
 | `completion/positive_completion.jl` | Common completion dispatch, result finalization, owned representation data, and retained/coherent caches | `positive_completion` |
+| `harmonic_balance/carrier_embedding.jl` | The carrier embedding: carrier modes on their own product space, the exact embedding weight, frequency validation, and reconstruction of physical operators | `CarrierEmbedding`, `carrier_modes`, `reconstruct` |
+| `harmonic_balance/harmonic_balance.jl` | The resonant projection over frequency components, the harmonic normalization, the frame Hamiltonian, and the unreduced carrier generator of a Hamiltonian or `Liouvillian` | `harmonic_balance` |
 
 ### Where new work goes
 
@@ -83,6 +86,7 @@ Every file currently under `src/` has a row. The public-seam column lists names 
 - Algebra over harmonic words that another algorithm could reuse belongs in `words/`, not in the algorithm file that first needs it.
 - An open-system construction that produces a GKSL generator directly, without passing through `positive_completion`, gets its own folder after `gksl/` and does not depend on `completion/`.
 - Replacing the completion scalar backend replaces `completion/backend/` and nothing outside it.
+- Reductions of unreduced harmonic balance, such as QHB-RWA, and further carrier constructions belong in `harmonic_balance/`.
 - Multi-frequency harmonics change `generators/periodic_generator.jl` and the harmonic letters in `words/`; the layers above see harmonics only through `PeriodicGenerator`.
 
 `@reexport` forwards only the names SecondQuantizedAlgebra exports, so the module root imports and exports `expim`, `exponential_form`, and `trigonometric_form`, which SecondQuantizedAlgebra marks `@public` without exporting.
@@ -115,6 +119,8 @@ The package delegates operator multiplication, adjoints, normal ordering, and co
 - Algorithm-specific intermediate data are exposed through `factorization(cp)`; the normal completed physical interface is common to all completion algorithms.
 - Expert API names marked `@public` are stable qualified interfaces, intentionally not widened into the ordinary export list.
 - Dissipative quasienergy blocks use the energy-like Floquet-Liouville convention documented in ADR 0008; numerical vectorization remains an adapter concern.
+- A carrier embedding acts on one physical bosonic mode. Its carrier modes live on a product space it creates, so a generator containing any other operator is rejected rather than mixed with those modes. The embedding weight is built as `sqrt(Num(1 // λ_H))`, which SecondQuantizedAlgebra keeps exact for every carrier count.
+- The resonant projection groups terms by the expanded frequency of their phases and keeps a term when that frequency is the symbolic zero. Floating-point coefficients of a symbol in a frequency are rejected, because they make the zero test unreliable.
 
 Implementation-performance constraints such as solve-plan reuse and structured Hermitian elimination are owned by [`performance.md`](performance.md); the completion physics and representation contract are owned by ADR 0009.
 
