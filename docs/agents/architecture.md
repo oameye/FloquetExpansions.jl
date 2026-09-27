@@ -36,35 +36,58 @@ Positive completion is an explicit post-processing stage for Liouvillian expansi
 
 ## Module ownership
 
-Listed in `src/FloquetExpansions.jl` include order, which is the source dependency order. Every file currently under `src/` has a row. The public-seam column lists names owned by this package; SecondQuantizedAlgebra reexports are wired at the module root.
+`src/` is one module split into four layer folders plus a shared word algebra. `src/FloquetExpansions.jl` includes them in the order below, which is the source dependency order.
 
-| Module | Owns | Public seam |
+| Folder | Layer |
+| --- | --- |
+| `generators/` | Periodic generators: Fourier harmonics and harmonic calculus, the `Liouvillian` map algebra, dissipative channels, and Sambe blocks. Knows nothing of gauges, expansions, or completion. |
+| `words/` | The free associative algebra over harmonic letters and the word-level van Vleck pair. Generic over its coefficient type and independent of the generator component. |
+| `expansion/` | Gauges, the `FloquetExpansion` result, and the expansion algorithms that fill it. |
+| `gksl/` | Ordered dissipative frames and exact GKSL/Kossakowski coordinates, on a `Liouvillian` and on any `FloquetExpansion`. |
+| `completion/` | Positive completion: algorithm selectors, the completed state, its accessors, and the Gram and Spectral realizations. `completion/backend/` holds the dedicated completion scalar backend. |
+
+**Layering rule.** A file names a type from its own folder or an earlier one only. A call into a later folder resolves at run time and is allowed, but a signature, a field type, or a type parameter never refers forward. A change that needs a forward type reference moves the type to the earliest folder that uses it, as `Completion` sits in `expansion/` and the provenance types in `generators/`.
+
+Every file currently under `src/` has a row. The public-seam column lists names owned by this package; SecondQuantizedAlgebra reexports are wired at the module root.
+
+| File | Owns | Public seam |
 | --- | --- | --- |
 | `FloquetExpansions.jl` | Module wiring, include order, SQA reexports/forwards, the export list, and the qualified expert API | the module's exported and `@public` names |
-| `gauges.jl` | Gauges and the expansion-algorithm selectors a gauge carries | `Gauge`, `VanVleck`, `ExpansionAlgorithm`, `HoriDeprit`, `BlochFeshbach` |
-| `periodic_operator.jl` | Fourier harmonics, drive frequency, harmonic calculus | `PeriodicGenerator`, `harmonics`, `support`, `time_average`, `derivative`, `antiderivative` |
-| `completion_types.jl` | Completion state/algorithm types, factorization supertype, completion exceptions, microscopic provenance, completed-state storage | `Completion`, `Uncompleted`, `CompletionAlgorithm`, `Gram`, `Spectral`, `CompletionFactorization`, `CompletionObstruction`, `FractionalJumpOnset` |
-| `matrix_series.jl` | Truncated completion scalar/matrix-series algebra, conditions, and graded factor recurrences | internal only |
-| `completion_linear_algebra.jl` | Reusable symbolic solve plans, triangular series solves, structured Hermitian congruence elimination, Gram/Feshbach dressing | internal only |
-| `liouvillian.jl` | Collected `ρ ↦ AρB` terms, coherent/dissipative constructors, physical channel values, composition, Liouvillian Fourier lowering | `Liouvillian`, `liouvillian`, `terms`, `hamiltonian_action`, `dissipator`, `compose`, `collapse`, `jump`, plus the `harmonics` Liouvillian method |
-| `quasienergy.jl` | Symbolic Sambe blocks and harmonic indexing | `QuasienergyOperator`, `harmonic_range` |
-| `floquet_expansion.jl` | `FloquetExpansion`, order scaling, retained effective/micromotion accessors, high-level physical lowering and microscopic-channel retention, the component conventions and input checks shared by the expansion algorithms, and the error for an unimplemented expansion algorithm | `FloquetExpansion`, `floquet_expansion`, `order`, `effective_generator`, `effective_component`, `micromotion` |
-| `hori_deprit.jl` | The Hori–Deprit algorithm: the Lie-transform recursion for the van Vleck micromotion and effective generator | internal, selected by `HoriDeprit` |
-| `bloch_feshbach/lyndon_words.jl` | Polynomials in the free associative algebra over harmonic letters and their coordinates in the Lyndon commutator basis | internal only |
-| `bloch_feshbach/van_vleck_words.jl` | The van Vleck pair over harmonic letters from the support alone: the Bloch recurrence for the wave operator and Bloch effective generator, the connected logarithm and static factor, and the static-factor similarity | internal only |
-| `bloch_feshbach/bloch_feshbach.jl` | The Bloch/Feshbach algorithm: compilation of the word-level van Vleck pair to Lyndon commutators, their evaluation on generator components under the Hamiltonian or Liouvillian product and phase conventions, and the entry point | internal, selected by `BlochFeshbach` |
-| `gksl_coordinates.jl` | Ordered dissipative frames and exact GKSL/Kossakowski coordinate extraction | `DissipativeFrame`, `hamiltonian`, `hamiltonian_component`, `kossakowski`, `kossakowski_component` |
-| `completion_conversion.jl` | Narrow conversion boundary between SQA coefficients and the completion scalar backend | internal only |
-| `completion_frame.jl` | Automatic dissipative-frame discovery and independent-direction filtering modulo identity | internal only |
-| `gram_completion.jl` | Gram completion data types and single-stratum factor operations | `GramStage`, `GramFactorization` |
-| `gram_recursion.jl` | Recursive active/dark onset filtration and the algebraic Gram completion implementation | internal only |
-| `spectral_completion.jl` | Restricted perturbative spectral/HCM completion and factorization data | `SpectralFactorization` |
-| `completion.jl` | Common completion dispatch, result finalization, owned representation data, retained/coherent caches, and common completed-state accessors | `positive_completion`, `channels`, `dissipative_frame`, `positivity_conditions`, `regularity_conditions`, `factorization` |
-| `gksl_floquet.jl` | GKSL/Kossakowski and coherent-Hamiltonian accessors specialized to `FloquetExpansion` | `kossakowski`, `kossakowski_component`, `hamiltonian`, `hamiltonian_component` |
+| `generators/periodic_generator.jl` | Fourier harmonics, drive frequency, gauge-free harmonic calculus | `PeriodicGenerator`, `harmonics`, `support`, `time_average`, `derivative` |
+| `generators/liouvillian.jl` | Collected `ρ ↦ AρB` terms, coherent and dissipator constructors, composition, Liouvillian Fourier lowering | `Liouvillian`, `terms`, `hamiltonian_action`, `dissipator`, `compose`, plus the `harmonics` Liouvillian method |
+| `generators/channels.jl` | Physical channel values and their displays, jump-rate validation, microscopic provenance types and their construction, the Hamiltonian-plus-channels constructor | `liouvillian`, `collapse`, `jump` |
+| `generators/quasienergy.jl` | Symbolic Sambe blocks and harmonic indexing | `QuasienergyOperator`, `harmonic_range` |
+| `words/lyndon_words.jl` | Polynomials in the free associative algebra over harmonic letters and their coordinates in the Lyndon commutator basis | internal only |
+| `words/van_vleck_words.jl` | The van Vleck pair over harmonic letters from the support alone: the Bloch recurrence for the wave operator and Bloch effective generator, the connected logarithm and static factor, and the static-factor similarity | internal only |
+| `expansion/gauges.jl` | Gauges, the expansion-algorithm selectors a gauge carries, and the gauge-fixed antiderivative | `Gauge`, `VanVleck`, `ExpansionAlgorithm`, `HoriDeprit`, `BlochFeshbach`, `antiderivative` |
+| `expansion/floquet_expansion.jl` | The completion-state supertype and `Uncompleted`, `FloquetExpansion`, order scaling, retained effective/micromotion accessors, high-level physical lowering and microscopic-channel retention, the component conventions and input checks shared by the expansion algorithms, and the error for an unimplemented expansion algorithm | `FloquetExpansion`, `floquet_expansion`, `order`, `effective_generator`, `effective_component`, `micromotion`, `Completion`, `Uncompleted` |
+| `expansion/hori_deprit.jl` | The Hori–Deprit algorithm: the Lie-transform recursion for the van Vleck micromotion and effective generator | internal, selected by `HoriDeprit` |
+| `expansion/bloch_feshbach.jl` | The Bloch/Feshbach algorithm: compilation of the word-level van Vleck pair to Lyndon commutators, their evaluation on generator components under the Hamiltonian or Liouvillian product and phase conventions, and the entry point | internal, selected by `BlochFeshbach` |
+| `gksl/dissipative_frame.jl` | Ordered dissipative frames, the GKSL coordinate error, and the exact coefficient linear algebra that builds and inverts frame coordinates | `DissipativeFrame` |
+| `gksl/coordinates.jl` | Exact GKSL/Kossakowski coordinate extraction from a `Liouvillian` in a frame | `hamiltonian`, `kossakowski` on a `Liouvillian` |
+| `gksl/floquet.jl` | GKSL/Kossakowski and coherent-Hamiltonian accessors on a `FloquetExpansion` in an explicit frame, for any completion state | `kossakowski`, `kossakowski_component`, `hamiltonian`, `hamiltonian_component` |
+| `completion/types.jl` | Completion algorithm selectors, factorization supertype, completion exceptions, retained GKSL data, completed-state storage | `CompletionAlgorithm`, `Gram`, `Spectral`, `CompletionFactorization`, `CompletionObstruction`, `FractionalJumpOnset` |
+| `completion/backend/matrix_series.jl` | Truncated completion scalar/matrix-series algebra, conditions, and graded factor recurrences | internal only |
+| `completion/backend/linear_algebra.jl` | Reusable symbolic solve plans, triangular series solves, structured Hermitian congruence elimination, Gram/Feshbach dressing | internal only |
+| `completion/backend/conversion.jl` | Narrow conversion boundary between SQA coefficients and the completion scalar backend | internal only |
+| `completion/frame_discovery.jl` | Automatic dissipative-frame discovery and independent-direction filtering modulo identity | internal only |
+| `completion/accessors.jl` | Common completed-state accessors, shared by every completion algorithm, and the completed effective generator | `channels`, `dissipative_frame`, `positivity_conditions`, `regularity_conditions`, `factorization`, plus the no-frame `kossakowski`, `kossakowski_component`, `hamiltonian`, and `effective_generator` methods for a completed expansion |
+| `completion/gram/factorization.jl` | Gram completion data types and single-stratum factor operations | `GramStage`, `GramFactorization` |
+| `completion/gram/recursion.jl` | Recursive active/dark onset filtration and the algebraic Gram completion implementation | internal only |
+| `completion/spectral.jl` | Restricted perturbative spectral/HCM completion and factorization data | `SpectralFactorization` |
+| `completion/positive_completion.jl` | Common completion dispatch, result finalization, owned representation data, and retained/coherent caches | `positive_completion` |
+
+### Where new work goes
+
+- A new expansion algorithm for an existing gauge is one file in `expansion/` plus its selector in `expansion/gauges.jl`. A new gauge adds its type and its `antiderivative` method to `expansion/gauges.jl`.
+- Algebra over harmonic words that another algorithm could reuse belongs in `words/`, not in the algorithm file that first needs it.
+- An open-system construction that produces a GKSL generator directly, without passing through `positive_completion`, gets its own folder after `gksl/` and does not depend on `completion/`.
+- Replacing the completion scalar backend replaces `completion/backend/` and nothing outside it.
+- Multi-frequency harmonics change `generators/periodic_generator.jl` and the harmonic letters in `words/`; the layers above see harmonics only through `PeriodicGenerator`.
 
 `@reexport` forwards only the names SecondQuantizedAlgebra exports, so the module root imports and exports `expim`, `exponential_form`, and `trigonometric_form`, which SecondQuantizedAlgebra marks `@public` without exporting.
 
-The package delegates operator multiplication, adjoints, normal ordering, and coefficient algebra to SecondQuantizedAlgebra. Keep those concerns at that dependency's seam instead of recreating them here. Completion currently keeps a dedicated symbolic scalar backend behind `completion_conversion.jl`; replacing that backend is a separate architectural change, not a cleanup inside Gram or Spectral code.
+The package delegates operator multiplication, adjoints, normal ordering, and coefficient algebra to SecondQuantizedAlgebra. Keep those concerns at that dependency's seam instead of recreating them here. Completion currently keeps a dedicated symbolic scalar backend behind `completion/backend/conversion.jl`; replacing that backend is a separate architectural change confined to `completion/backend/`, not a cleanup inside Gram or Spectral code.
 
 ## Representation rules
 
@@ -72,7 +95,7 @@ The package delegates operator multiplication, adjoints, normal ordering, and co
 - `iszero` on a Symbolics `BasicSymbolic` builds the symbolic equation `0 == 0` rather than returning a `Bool`, so Fourier lowering tests symbolic zeros structurally.
 - `expim(arg)` is ``e^{+i\,\mathrm{arg}}`` while the package Fourier convention is ``e^{-im\omega t}``, so Fourier lowering reads the harmonic label as the negated coefficient of ``\omega t`` and rejects a phase that is not linear in ``\omega t``.
 - A Liouvillian is a collected sum of left/right terms; its sparse dictionary is an implementation detail exposed through `terms`.
-- `Liouvillian` and `PeriodicGenerator` remain algebraic and do not carry dissipative provenance through arbitrary arithmetic. The provenance types live in `completion_types.jl` for that reason.
+- `Liouvillian` and `PeriodicGenerator` remain algebraic and do not carry dissipative provenance through arbitrary arithmetic. The provenance types live in `generators/channels.jl`, beside the channels they record, for that reason.
 - The LaTeX display of a Liouvillian embeds SecondQuantizedAlgebra and Symbolics `text/latex` output inside a larger expression. Both emit self-delimited math, and a renderer strips only the outermost delimiter pair, so the display strips their delimiters through the `show` path; Latexify's environment entry point has no method for some symbolic types.
 - The high-level physical `floquet_expansion(...; channels=...)` path may retain internal microscopic channel provenance in the resulting `FloquetExpansion` for later completion.
 - A raw finite-order effective generator is the algebraic truncation and is not assumed to be GKSL or completely positive.

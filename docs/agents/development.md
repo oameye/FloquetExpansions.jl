@@ -14,7 +14,7 @@ The v0.0.1 policy permits breaking changes. Update every in-repository caller, t
 
 [`architecture.md`](architecture.md) is the authority for what each file under `src/` owns. Around it:
 
-- `test/*.jl` holds behavior tests, `test/helpers/` shared fixtures, and `test/quality/` package-wide checks.
+- `test/<folder>/*.jl` holds behavior tests, mirroring the `src/<folder>/` layer they exercise; `test/helpers/` holds shared fixtures and `test/quality/` package-wide checks. A positional test filter names the file by its path under `test/`, as in `generators/liouvillian`.
 - `docs/src/` holds user-facing documentation, `docs/adr/` design decisions, and `docs/agents/` repository guidance.
 - `examples/*.jl` is the source for the generated Literate pages under `docs/src/examples/`.
 

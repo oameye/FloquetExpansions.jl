@@ -5,7 +5,7 @@ using Random: MersenneTwister
 using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 using Symbolics: Symbolics, @variables
 
-include(joinpath(@__DIR__, "helpers", "shared.jl"))
+include(joinpath(@__DIR__, "..", "helpers", "shared.jl"))
 
 const SQA_EA = SecondQuantizedAlgebra
 

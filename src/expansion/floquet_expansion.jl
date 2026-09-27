@@ -1,4 +1,18 @@
 """
+    Completion
+
+Abstract completion state of a [`FloquetExpansion`](@ref). See [`positive_completion`](@ref).
+"""
+abstract type Completion end
+
+"""
+    Uncompleted <: Completion
+
+State of a Floquet expansion before positive completion.
+"""
+struct Uncompleted <: Completion end
+
+"""
     FloquetExpansion
 
 Result of [`floquet_expansion`](@ref). Read it with [`effective_generator`](@ref),
@@ -248,12 +262,6 @@ function effective_generator(
       result + reattach(expansion.effective_components[n + 1], expansion.generator.wd, n)
   end
   return SQA.simplify(result)::E
-end
-
-function effective_generator(
-  expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P,E,C<:PositiveCompletion,R}
-  return getfield(expansion, :completion).generator
 end
 
 """

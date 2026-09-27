@@ -12,8 +12,8 @@ The high-level `floquet_expansion(H, ωd, t, gauge, order; channels=...)` path m
 
 `make test` runs the testsets that hold this decision:
 
-- `test/liouvillian.jl`: "Liouvillian channel constructors"
-- `test/liouvillian.jl`: "jump rates are real and nonnegative by physical assumption"
-- `test/liouvillian.jl`: "collapse amplitudes and jump rates remain distinct representations"
-- `test/liouvillian.jl`: "periodic channel forms lower through the public Liouvillian seam"
-- `test/liouvillian.jl`: "operator and rate harmonics convolve in periodic channels"
+- `test/generators/liouvillian.jl`: "Liouvillian channel constructors"
+- `test/generators/liouvillian.jl`: "jump rates are real and nonnegative by physical assumption"
+- `test/generators/liouvillian.jl`: "collapse amplitudes and jump rates remain distinct representations"
+- `test/generators/liouvillian.jl`: "periodic channel forms lower through the public Liouvillian seam"
+- `test/generators/liouvillian.jl`: "operator and rate harmonics convolve in periodic channels"

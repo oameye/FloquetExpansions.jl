@@ -10,17 +10,6 @@ function with_completion(expansion::FloquetExpansion, completion::PositiveComple
   )
 end
 
-@inline function stored_completion(expansion::FloquetExpansion)
-  return getfield(expansion, :completion)
-end
-
-@inline stored_dissipative_frame(expansion::FloquetExpansion) =
-  stored_completion(expansion).frame
-@inline stored_retained_kossakowski(expansion::FloquetExpansion) =
-  stored_completion(expansion).retained_kossakowski
-@inline stored_completion_hamiltonian(expansion::FloquetExpansion) =
-  stored_completion(expansion).hamiltonian
-
 function finalize_positive_completion(
   expansion::FloquetExpansion,
   algorithm::CompletionAlgorithm,

@@ -22,7 +22,7 @@ Algorithm-specific intermediate data, such as the wave operator and the Bloch ef
 
 ## Gate
 
-`make test` runs the testsets in `test/expansion_algorithms.jl` that hold this decision:
+`make test` runs the testsets in `test/expansion/expansion_algorithms.jl` that hold this decision:
 
 - "Van Vleck algorithm selectors"
 - "Bloch Feshbach matches Hamiltonian Hori Deprit Van Vleck"

@@ -6,7 +6,7 @@ using Symbolics: Symbolics
 using LinearAlgebra: exp, opnorm
 using Random: MersenneTwister, randn
 
-include(joinpath(@__DIR__, "helpers", "shared.jl"))
+include(joinpath(@__DIR__, "..", "helpers", "shared.jl"))
 
 const D = 3
 const HN = NLevelSpace(:atom, D)

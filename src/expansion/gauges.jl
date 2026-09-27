@@ -81,3 +81,45 @@ struct VanVleck{A<:ExpansionAlgorithm} <: Gauge
 end
 
 VanVleck(; algorithm::ExpansionAlgorithm=HoriDeprit()) = VanVleck(algorithm)
+
+"""
+    antiderivative(X::PeriodicGenerator, gauge::Gauge) -> PeriodicGenerator
+
+Integrate `X` with respect to dimensionless drive time, with `gauge` fixing the free
+integration constant:
+
+```math
+(\\partial_t^{-1} X)_l = \\frac{i}{l} X_l \\quad (l \\neq 0)
+```
+
+`X` must have vanishing time average; pass `X - time_average(X)` if that is not already
+true.
+
+# Notes
+
+Weights remain exact rationals, so an `OverflowError` from `Rational{Int}` is possible at
+high order rather than a silent loss of precision.
+
+# Examples
+
+```jldoctest
+julia> h = FockSpace(:cavity); a = Destroy(h, :a);
+
+julia> @variables ω::Real t::Real;
+
+julia> X = harmonics(a * expim(2ω * t), ω, t);
+
+julia> derivative(antiderivative(X, VanVleck())) == X
+true
+```
+"""
+function antiderivative(G::PeriodicGenerator{T}, ::VanVleck) where {T}
+  haskey(G.components, 0) && throw(ArgumentError("antiderivative requires zero average"))
+  return periodic_generator(
+    Dict{Int,T}(
+      harmonic => (im // harmonic) * component for (harmonic, component) in G.components
+    ),
+    G.wd,
+    G.zero_component,
+  )
+end

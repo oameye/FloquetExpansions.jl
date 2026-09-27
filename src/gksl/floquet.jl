@@ -80,18 +80,6 @@ function hamiltonian(
 end
 
 function hamiltonian(
-  expansion::FloquetExpansion{G,P,E,C,R}
-) where {
-  G,
-  P<:PeriodicGenerator{Liouvillian},
-  E<:Liouvillian,
-  C<:PositiveCompletion,
-  R<:FloquetProvenance,
-}
-  return stored_completion_hamiltonian(expansion)::SQA.QAdd
-end
-
-function hamiltonian(
   expansion::FloquetExpansion{G,P,E}
 ) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
   generator = effective_generator(expansion)::E

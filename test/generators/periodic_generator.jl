@@ -5,7 +5,7 @@ using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 const SQA = SecondQuantizedAlgebra
 using Symbolics: Differential, expand_derivatives
 
-include(joinpath(@__DIR__, "helpers", "shared.jl"))
+include(joinpath(@__DIR__, "..", "helpers", "shared.jl"))
 
 h = FockSpace(:cavity)
 a = Destroy(h, :a)

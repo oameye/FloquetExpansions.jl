@@ -6,6 +6,6 @@
 
 `make test` runs the testsets that hold this decision:
 
-- `test/periodic_operator.jl`: "the drive frequency is part of the periodic generator"
-- `test/periodic_operator.jl`: "constructors normalize zero harmonics"
-- `test/liouvillian.jl`: "a zero periodic Liouvillian keeps its public zero prototype"
+- `test/generators/periodic_generator.jl`: "the drive frequency is part of the periodic generator"
+- `test/generators/periodic_generator.jl`: "constructors normalize zero harmonics"
+- `test/generators/liouvillian.jl`: "a zero periodic Liouvillian keeps its public zero prototype"

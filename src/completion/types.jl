@@ -1,18 +1,4 @@
 """
-    Completion
-
-Abstract completion state of a [`FloquetExpansion`](@ref). See [`positive_completion`](@ref).
-"""
-abstract type Completion end
-
-"""
-    Uncompleted <: Completion
-
-State of a Floquet expansion before positive completion.
-"""
-struct Uncompleted <: Completion end
-
-"""
     CompletionAlgorithm
 
 Abstract algorithm selector for [`positive_completion`](@ref).
@@ -102,31 +88,6 @@ function Base.showerror(io::IO, error::FractionalJumpOnset)
     "positive completion requires a fractional/Puiseux collapse-amplitude onset at rate order ",
     error.rate_order,
   )
-end
-
-abstract type FloquetProvenance end
-struct NoProvenance <: FloquetProvenance end
-
-struct NonnegativeRateAssumption
-  rate::SQA.CNum
-end
-
-@enum DissipativeSeedKind::UInt8 begin
-  COLLAPSE_SEED = 0x01
-  JUMP_SEED = 0x02
-end
-
-struct DissipativeSeedRef
-  kind::DissipativeSeedKind
-  index::Int
-end
-
-struct MicroscopicProvenance <: FloquetProvenance
-  collapse_operators::Vector{SQA.QAdd}
-  jump_operators::Vector{SQA.QAdd}
-  jump_rates::Vector{SQA.CNum}
-  rate_assumptions::Vector{NonnegativeRateAssumption}
-  order::Vector{DissipativeSeedRef}
 end
 
 struct RetainedGKSLData
