@@ -104,8 +104,9 @@ function native_hd_arbitrary(model::NativeModel, N; tol=1e-8)
   known_gram = NativeCM[]
 
   c0 = native_gram_coefficient(channels, 0, dim)
-  norm(native_kossakowski(L0, d) - c0) <= tol * max(1.0, norm(c0)) ||
-    error("HD order-zero native channels do not reconstruct the averaged Kossakowski tensor")
+  norm(native_kossakowski(L0, d) - c0) <= tol * max(1.0, norm(c0)) || error(
+    "HD order-zero native channels do not reconstruct the averaged Kossakowski tensor"
+  )
 
   # G[1] is the formal G_0 = 0 slot; G[2] is G_1.
   G = NativeFS[NativeFS(), native_fsint(L)]
@@ -208,10 +209,8 @@ function native_compare_arbitrary_states(bf::NativeBFState, hd::NativeHDState, N
   d = isqrt(size(bf.E[1], 1))
   dim = d^2 - 1
   for order in 0:N
-    @test norm(bf.E[order + 1] - hd.E[order + 1]) <=
-          tol * max(1.0, norm(bf.E[order + 1]))
-    @test norm(bf.H[order + 1] - hd.H[order + 1]) <=
-          tol * max(1.0, norm(bf.H[order + 1]))
+    @test norm(bf.E[order + 1] - hd.E[order + 1]) <= tol * max(1.0, norm(bf.E[order + 1]))
+    @test norm(bf.H[order + 1] - hd.H[order + 1]) <= tol * max(1.0, norm(bf.H[order + 1]))
     cbf = native_gram_coefficient(bf.channels, order, dim)
     chd = native_gram_coefficient(hd.channels, order, dim)
     @test norm(cbf - chd) <= tol * max(1.0, norm(cbf))
