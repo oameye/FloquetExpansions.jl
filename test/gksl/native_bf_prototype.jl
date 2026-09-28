@@ -38,8 +38,7 @@ function native_lindblad(H, jumps)
   result = -im * (native_lmul(H) - native_rmul(H))
   for R in jumps
     norm2 = R' * R
-    result +=
-      native_sand(R, R) - 0.5 * native_lmul(norm2) - 0.5 * native_rmul(norm2)
+    result += native_sand(R, R) - 0.5 * native_lmul(norm2) - 0.5 * native_rmul(norm2)
   end
   return result
 end
@@ -65,8 +64,7 @@ function native_fsmul(A::NativeFS, B::NativeFS)
 end
 
 native_fsavg(A::NativeFS, n) = get(A, 0, zeros(ComplexF64, n, n))
-native_fsint(A::NativeFS) =
-  NativeFS(k => (im / k) * value for (k, value) in A if k != 0)
+native_fsint(A::NativeFS) = NativeFS(k => (im / k) * value for (k, value) in A if k != 0)
 
 function native_fs_right_static(A::NativeFS, B::NativeCM)
   return NativeFS(k => value * B for (k, value) in A)
@@ -76,17 +74,14 @@ function native_liouvillian_harmonics(model::NativeModel)
   d = model.d
   out = NativeFS()
   function add!(m, value)
-    out[m] = get(out, m, zeros(ComplexF64, d^2, d^2)) + value
+    return out[m] = get(out, m, zeros(ComplexF64, d^2, d^2)) + value
   end
   for (m, Hm) in model.H
     add!(m, -im * (native_lmul(Hm) - native_rmul(Hm)))
   end
   for jump in model.jumps, (p, Rp) in jump, (q, Rq) in jump
     normpq = Rq' * Rp
-    add!(
-      p - q,
-      native_sand(Rp, Rq) - 0.5 * native_lmul(normpq) - 0.5 * native_rmul(normpq),
-    )
+    add!(p - q, native_sand(Rp, Rq) - 0.5 * native_lmul(normpq) - 0.5 * native_rmul(normpq))
   end
   return out
 end
@@ -148,11 +143,9 @@ function native_from_Hc(H, c, d)
   for i in eachindex(basis), j in eachindex(basis)
     abs(c[i, j]) <= 1e-14 && continue
     Fji = basis[j]' * basis[i]
-    result += c[i, j] * (
-      native_sand(basis[i], basis[j]) -
-      0.5 * native_lmul(Fji) -
-      0.5 * native_rmul(Fji)
-    )
+    result +=
+      c[i, j] *
+      (native_sand(basis[i], basis[j]) - 0.5 * native_lmul(Fji) - 0.5 * native_rmul(Fji))
   end
   return result
 end
@@ -222,8 +215,8 @@ function native_gauge_algebra(d)
     end
 
     columns = Vector{Vector{Float64}}()
-    for k in 1:(n^2)
-      χ = native_hmat(Float64.(1:(n^2) .== k), n)
+    for k in 1:(n ^ 2)
+      χ = native_hmat(Float64.(1:(n ^ 2) .== k), n)
       push!(columns, native_hvec(tp_operator(χ)))
     end
     constraints = hcat(columns...)
@@ -301,9 +294,7 @@ function native_dark_solve(L0, Vhat, known, active, d; tol=1e-9)
     S += coordinates[i] * gauge_basis[i]
   end
 
-  residual = native_hermitian(
-    delta + P' * native_kossakowski(L0 * S - S * L0, d) * P
-  )
+  residual = native_hermitian(delta + P' * native_kossakowski(L0 * S - S * L0, d) * P)
   scale = max(1.0, norm(delta))
   eig = eigen(Hermitian(residual))
   minimum(eig.values) >= -tol * scale || error(
@@ -389,9 +380,7 @@ function native_bf_order02(model::NativeModel; tol=1e-8)
 
   Y1 = copy(Y1osc)
   Y1[0] = S1
-  forcing1 = native_fsadd(
-    native_fsmul(L, Y1), native_fs_right_static(Y1, E0), 1.0, -1.0
-  )
+  forcing1 = native_fsadd(native_fsmul(L, Y1), native_fs_right_static(Y1, E0), 1.0, -1.0)
   Y2osc = native_fsint(forcing1)
 
   # Order 2 in intrinsic total-kick coordinates.
@@ -453,10 +442,7 @@ function native_effective_gkls(result::NativeOrder02, ε)
   H = result.H[1] + ε * result.H[2] + ε^2 * result.H[3]
   jumps = NativeCM[]
   for k in 1:3:length(result.birth0)
-    push!(
-      jumps,
-      result.birth0[k] + ε * result.birth0[k + 1] + ε^2 * result.birth0[k + 2],
-    )
+    push!(jumps, result.birth0[k] + ε * result.birth0[k + 1] + ε^2 * result.birth0[k + 2])
   end
   for k in 1:2:length(result.birth1)
     push!(jumps, sqrt(ε) * (result.birth1[k] + ε * result.birth1[k + 1]))
@@ -501,11 +487,7 @@ end
   γ = 0.63
   model = NativeModel(
     2,
-    NativeFS(
-      0 => 0.29 * σz_native,
-      1 => 0.38 * σx_native,
-      -1 => 0.38 * σx_native,
-    ),
+    NativeFS(0 => 0.29 * σz_native, 1 => 0.38 * σx_native, -1 => 0.38 * σx_native),
     [NativeFS(0 => sqrt(γ) * σm_native)],
   )
   result = native_bf_order02(model)
@@ -532,11 +514,7 @@ end
   )
   model = NativeModel(
     2,
-    NativeFS(
-      0 => 0.21 * σz_native,
-      1 => 0.24 * σx_native,
-      -1 => 0.24 * σx_native,
-    ),
+    NativeFS(0 => 0.21 * σz_native, 1 => 0.24 * σx_native, -1 => 0.24 * σx_native),
     [sideband_jump],
   )
   result = native_bf_order02(model)
