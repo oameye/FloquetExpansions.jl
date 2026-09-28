@@ -19,6 +19,4 @@ jobs:
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
       - name: Check formatting
         run: |
-          ${HOME}/.julia/bin/jlfmt --inplace test/gksl/native_hd_prototype.jl
-          git diff -- test/gksl/native_hd_prototype.jl
-          git diff --exit-code test/gksl/native_hd_prototype.jl
+          ${HOME}/.julia/bin/jlfmt --check --verbose .
