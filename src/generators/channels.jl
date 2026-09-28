@@ -7,22 +7,12 @@ struct NonnegativeRateAssumption
   rate::SQA.CNum
 end
 
-@enum DissipativeSeedKind::UInt8 begin
-  COLLAPSE_SEED = 0x01
-  JUMP_SEED = 0x02
-end
-
-struct DissipativeSeedRef
-  kind::DissipativeSeedKind
-  index::Int
-end
-
 struct MicroscopicProvenance <: FloquetProvenance
   collapse_operators::Vector{SQA.QAdd}
   jump_operators::Vector{SQA.QAdd}
   jump_rates::Vector{SQA.CNum}
   rate_assumptions::Vector{NonnegativeRateAssumption}
-  order::Vector{DissipativeSeedRef}
+  frame_seeds::Vector{SQA.QAdd}
 end
 
 abstract type LiouvillianChannel end
@@ -181,22 +171,31 @@ function Base.show(io::IO, ::MIME"text/latex", channels::Vector{<:LiouvillianCha
   return print(io, raw"\end{aligned}\]")
 end
 
-function microscopic_provenance(channels::LiouvillianChannelCollection)
+function append_frame_seeds!(seeds::Vector{SQA.QAdd}, lowered::PeriodicGenerator{SQA.QAdd})
+  for harmonic in sort!(collect(keys(lowered)); by=label -> (abs(label), label))
+    push!(seeds, lowered[harmonic])
+  end
+  return seeds
+end
+
+function microscopic_provenance(
+  channels::LiouvillianChannelCollection, wd::Symbolics.Num, t::Symbolics.Num
+)
   collapse_operators = SQA.QAdd[]
   jump_operators = SQA.QAdd[]
   jump_rates = SQA.CNum[]
   rate_assumptions = NonnegativeRateAssumption[]
-  order = DissipativeSeedRef[]
+  frame_seeds = SQA.QAdd[]
 
   for channel in channels
     if channel isa CollapseChannel
       push!(collapse_operators, qadd(channel.operator))
-      push!(order, DissipativeSeedRef(COLLAPSE_SEED, length(collapse_operators)))
+      append_frame_seeds!(frame_seeds, harmonics(last(collapse_operators), wd, t))
     elseif channel isa RateWeightedJump
       push!(jump_operators, qadd(channel.operator))
       push!(jump_rates, channel.rate)
       push!(rate_assumptions, channel.assumption)
-      push!(order, DissipativeSeedRef(JUMP_SEED, length(jump_operators)))
+      append_frame_seeds!(frame_seeds, harmonics(last(jump_operators), wd, t))
     else
       throw(
         ArgumentError("channels must contain only `collapse(...)` and `jump(...)` values")
@@ -205,7 +204,7 @@ function microscopic_provenance(channels::LiouvillianChannelCollection)
   end
 
   return MicroscopicProvenance(
-    collapse_operators, jump_operators, jump_rates, rate_assumptions, order
+    collapse_operators, jump_operators, jump_rates, rate_assumptions, frame_seeds
   )
 end
 

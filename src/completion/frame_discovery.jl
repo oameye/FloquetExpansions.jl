@@ -20,12 +20,7 @@ end
 function append_provenance_directions!(
   operators::Vector{SQA.QAdd}, provenance::MicroscopicProvenance
 )
-  for seed in provenance.order
-    operator = if seed.kind == COLLAPSE_SEED
-      provenance.collapse_operators[seed.index]
-    else
-      provenance.jump_operators[seed.index]
-    end
+  for operator in provenance.frame_seeds
     append_frame_candidate!(operators, operator)
   end
   return operators
