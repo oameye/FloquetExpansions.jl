@@ -351,6 +351,25 @@ end
   @test minimum(eigvals(Hermitian(cfinite))) >= -1e-9
 end
 
+@testset "a newborn channel joins the active flag at the next order" begin
+  dim = 3
+  leading = native_tlcoef(0.37 * σx_native, 2)
+  channels = [NativeChannelSeries(1, [leading])]
+
+  indices, active = native_active_channels(channels, 2, dim)
+  @test indices == [1]
+  @test active == reshape(leading, :, 1)
+  @test iszero(native_known_gram(channels, 2, dim))
+
+  correction = reshape(0.19 * native_tlcoef(σz_native, 2), :, 1)
+  native_store_active_corrections!(channels, indices, correction, 2)
+  expected2 = leading * correction[:, 1]' + correction[:, 1] * leading'
+  @test isapprox(native_gram_coefficient(channels, 2, dim), expected2; atol=1e-12)
+
+  expected3 = correction[:, 1] * correction[:, 1]'
+  @test isapprox(native_known_gram(channels, 3, dim), expected3; atol=1e-12)
+end
+
 @testset "arbitrary native GKLS BF preserves the Hamiltonian branch through order 4" begin
   model = NativeModel(
     2,
