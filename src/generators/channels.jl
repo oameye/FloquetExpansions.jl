@@ -171,10 +171,7 @@ function Base.show(io::IO, ::MIME"text/latex", channels::Vector{<:LiouvillianCha
   return print(io, raw"\end{aligned}\]")
 end
 
-function append_frame_seeds!(
-  seeds::Vector{SQA.QAdd}, operator::SQA.QAdd, wd::Symbolics.Num, t::Symbolics.Num
-)
-  lowered = harmonics(operator, wd, t)
+function append_frame_seeds!(seeds::Vector{SQA.QAdd}, lowered::PeriodicGenerator{SQA.QAdd})
   for harmonic in sort!(collect(keys(lowered)); by=label -> (abs(label), label))
     push!(seeds, lowered[harmonic])
   end
@@ -193,12 +190,12 @@ function microscopic_provenance(
   for channel in channels
     if channel isa CollapseChannel
       push!(collapse_operators, qadd(channel.operator))
-      append_frame_seeds!(frame_seeds, last(collapse_operators), wd, t)
+      append_frame_seeds!(frame_seeds, harmonics(last(collapse_operators), wd, t))
     elseif channel isa RateWeightedJump
       push!(jump_operators, qadd(channel.operator))
       push!(jump_rates, channel.rate)
       push!(rate_assumptions, channel.assumption)
-      append_frame_seeds!(frame_seeds, last(jump_operators), wd, t)
+      append_frame_seeds!(frame_seeds, harmonics(last(jump_operators), wd, t))
     else
       throw(
         ArgumentError("channels must contain only `collapse(...)` and `jump(...)` values")
