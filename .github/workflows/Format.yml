@@ -19,7 +19,7 @@ jobs:
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
       - name: Check formatting
         run: |
-          ${HOME}/.julia/bin/jlfmt --overwrite test/gksl/native_bf_prototype.jl
+          ${HOME}/.julia/bin/jlfmt --inplace test/gksl/native_bf_prototype.jl
           echo '--- FORMATTER OUTPUT START ---'
           cat test/gksl/native_bf_prototype.jl
           echo '--- FORMATTER OUTPUT END ---'
