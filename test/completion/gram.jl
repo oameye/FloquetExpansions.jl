@@ -148,6 +148,18 @@ end
   @test dissipative_frame(positive_completion(dependent, Gram())) == DissipativeFrame(a)
 end
 
+@testset "automatic frame seeds a time-dependent channel with its static harmonics" begin
+  n = a' * a
+  H = (1//2) * n + (3//10) * n * n + (2//5) * (a + a')
+  modulation = 1 + (1//4) * (expim(ω * t) + expim(-ω * t))
+  expansion = floquet_expansion(
+    H, ω, t, VanVleck(), 3; channels=(jump(modulation * a, 4//5),)
+  )
+
+  @test dissipative_frame(positive_completion(expansion, Gram())) ==
+    DissipativeFrame(a, a' * a * a)
+end
+
 @testset "symbolic positivity and regularity conditions remain distinct" begin
   expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(jump(a, γ),))
   completion = positive_completion(expansion, Gram())

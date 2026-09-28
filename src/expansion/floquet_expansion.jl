@@ -213,7 +213,7 @@ function floquet_expansion_channels(
     )
 
   require_hermitian_drive(harmonics(qadd(H), wd, t))
-  provenance = microscopic_provenance(channels)
+  provenance = microscopic_provenance(channels, wd, t)
   L = liouvillian_from_provenance(H, provenance)
   return floquet_expansion_impl(harmonics(L, wd, t), gauge, order, provenance)
 end
