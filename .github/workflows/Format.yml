@@ -17,8 +17,6 @@ jobs:
       - name: Install JuliaFormatter
         run: |
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
-      - name: Print arbitrary HD formatter diff
+      - name: Check formatting
         run: |
-          ${HOME}/.julia/bin/jlfmt --inplace test/gksl/native_hd_arbitrary.jl
-          git diff -- test/gksl/native_hd_arbitrary.jl
-          false
+          ${HOME}/.julia/bin/jlfmt --check --verbose .
