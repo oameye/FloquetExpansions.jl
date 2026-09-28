@@ -27,8 +27,7 @@ end
 function native_hd_forcing1(L::NativeFS, G1::NativeFS)
   dG1 = native_fsder(G1)
   return native_fsadd(
-    native_fsscale(native_fscomm(G1, L), -1.0),
-    native_fsscale(native_fscomm(G1, dG1), 0.5),
+    native_fsscale(native_fscomm(G1, L), -1.0), native_fsscale(native_fscomm(G1, dG1), 0.5)
   )
 end
 
@@ -38,14 +37,12 @@ function native_hd_forcing2(L::NativeFS, G1::NativeFS, G2::NativeFS)
 
   result = native_fsscale(native_fscomm(G2, L), -1.0)
   result = native_fsadd(
-    result,
-    native_fsscale(native_fscomm(G1, native_fscomm(G1, L)), 0.5),
+    result, native_fsscale(native_fscomm(G1, native_fscomm(G1, L)), 0.5)
   )
   result = native_fsadd(result, native_fsscale(native_fscomm(G1, dG2), 0.5))
   result = native_fsadd(result, native_fsscale(native_fscomm(G2, dG1), 0.5))
   result = native_fsadd(
-    result,
-    native_fsscale(native_fscomm(G1, native_fscomm(G1, dG1)), -1.0 / 6.0),
+    result, native_fsscale(native_fscomm(G1, native_fscomm(G1, dG1)), -1.0 / 6.0)
   )
   return result
 end
@@ -70,18 +67,7 @@ function native_pack_order02(E, S, H, B0, B1, B2, U0, U1, V0, G1osc, G2osc, K2kn
 
   birth2 = NativeCM[native_operator(V0[:, j], d) for j in axes(V0, 2)]
 
-  return NativeOrder02(
-    E,
-    S,
-    copy(S),
-    H,
-    birth0,
-    birth1,
-    birth2,
-    G1osc,
-    G2osc,
-    K2known,
-  )
+  return NativeOrder02(E, S, copy(S), H, birth0, birth1, birth2, G1osc, G2osc, K2known)
 end
 
 function native_hd_order02(model::NativeModel; tol=1e-8)
@@ -95,8 +81,9 @@ function native_hd_order02(model::NativeModel; tol=1e-8)
   G1osc = native_fsint(L)
   B0 = native_sideband_columns(model)
   c0 = B0 * B0'
-  norm(native_kossakowski(E0, d) - c0) <= tol * max(1.0, norm(c0)) ||
-    error("HD order-zero sideband columns do not reconstruct the averaged Kossakowski tensor")
+  norm(native_kossakowski(E0, d) - c0) <= tol * max(1.0, norm(c0)) || error(
+    "HD order-zero sideband columns do not reconstruct the averaged Kossakowski tensor"
+  )
   H0 = native_hamiltonian_part(E0, d)
 
   # Order 1:
