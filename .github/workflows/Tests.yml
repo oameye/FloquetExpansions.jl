@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'main'
+      - 'research/native-gkls-bf-arbitrary'
     paths:
       - '.github/workflows/Tests.yml'
       - 'src/**'
