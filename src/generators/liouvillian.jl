@@ -28,12 +28,9 @@ end
   return L
 end
 
-# Keys are pairs of unit monomials, reduced by the completeness relation, so equal maps
-# have equal keys and a zero map is empty. Factors with bound symbolic sums stay whole.
-function add_term!(L::Liouvillian, left::SQA.QAdd, right::SQA.QAdd, coefficient::SQA.CNum)
-  (iszero(left) || iszero(right) || iszero(coefficient)) && return L
-  isempty(left.indices) && isempty(right.indices) ||
-    return add_action!(L, (left, right), coefficient)
+function add_monomial_actions!(
+  L::Liouvillian, left::SQA.QAdd, right::SQA.QAdd, coefficient::SQA.CNum
+)
   for (left_term, left_coefficient) in SQA.expand_completeness(left),
     (right_term, right_coefficient) in SQA.expand_completeness(right)
 
@@ -44,6 +41,17 @@ function add_term!(L::Liouvillian, left::SQA.QAdd, right::SQA.QAdd, coefficient:
     )
   end
   return L
+end
+
+@inline has_bound_sums(left::SQA.QAdd, right::SQA.QAdd) =
+  !(isempty(left.indices) && isempty(right.indices))
+
+# Keys are pairs of unit monomials, reduced by the completeness relation, so equal maps
+# have equal keys and a zero map is empty. Factors with bound symbolic sums stay whole.
+function add_term!(L::Liouvillian, left::SQA.QAdd, right::SQA.QAdd, coefficient::SQA.CNum)
+  (iszero(left) || iszero(right) || iszero(coefficient)) && return L
+  has_bound_sums(left, right) && return add_action!(L, (left, right), coefficient)
+  return add_monomial_actions!(L, left, right, coefficient)
 end
 
 function raw_liouvillian(terms::LiouvillianTerms)
