@@ -38,7 +38,8 @@ function native_lindblad(H, jumps)
   result = -im * (native_lmul(H) - native_rmul(H))
   for R in jumps
     norm2 = R' * R
-    result += native_sand(R, R) - 0.5 * native_lmul(norm2) - 0.5 * native_rmul(norm2)
+    result +=
+      native_sand(R, R) - 0.5 * native_lmul(norm2) - 0.5 * native_rmul(norm2)
   end
   return result
 end
@@ -64,8 +65,8 @@ function native_fsmul(A::NativeFS, B::NativeFS)
 end
 
 native_fsavg(A::NativeFS, n) = get(A, 0, zeros(ComplexF64, n, n))
-native_fsint(A::NativeFS) = NativeFS(k => (im / k) * value for (k, value) in A if k != 0)
-native_fsconst(X) = NativeFS(0 => NativeCM(X))
+native_fsint(A::NativeFS) =
+  NativeFS(k => (im / k) * value for (k, value) in A if k != 0)
 
 function native_fs_right_static(A::NativeFS, B::NativeCM)
   return NativeFS(k => value * B for (k, value) in A)
@@ -203,6 +204,7 @@ function native_gauge_algebra(d)
   return get!(NATIVE_GAUGE_CACHE, d) do
     basis = native_full_basis(d)
     n = d^2
+
     function superop(χ)
       result = zeros(ComplexF64, n, n)
       for i in 1:n, j in 1:n
@@ -210,6 +212,7 @@ function native_gauge_algebra(d)
       end
       return result
     end
+
     function tp_operator(χ)
       result = zeros(ComplexF64, d, d)
       for i in 1:n, j in 1:n
@@ -218,9 +221,12 @@ function native_gauge_algebra(d)
       return native_hermitian(result)
     end
 
-    constraints = hcat([
-      native_hvec(tp_operator(native_hmat(Float64.(1:(n^2) .== k), n))) for k in 1:(n^2)
-    ]...)
+    columns = Vector{Vector{Float64}}()
+    for k in 1:(n^2)
+      χ = native_hmat(Float64.(1:(n^2) .== k), n)
+      push!(columns, native_hvec(tp_operator(χ)))
+    end
+    constraints = hcat(columns...)
     kernel = nullspace(constraints)
     return [superop(native_hmat(kernel[:, j], n)) for j in axes(kernel, 2)]
   end
@@ -235,12 +241,17 @@ function native_sideband_columns(model::NativeModel; tol=1e-12)
     end
   end
   n = model.d^2 - 1
-  return isempty(columns) ? zeros(ComplexF64, n, 0) : hcat(columns...)
+  if isempty(columns)
+    return zeros(ComplexF64, n, 0)
+  end
+  return hcat(columns...)
 end
 
 function native_active_split(A; tol=1e-10)
   n = size(A, 1)
-  size(A, 2) == 0 && return (zeros(ComplexF64, n, 0), native_id(n))
+  if size(A, 2) == 0
+    return zeros(ComplexF64, n, 0), native_id(n)
+  end
   decomposition = svd(A; full=true)
   scale = max(1.0, maximum(decomposition.S))
   rankA = count(>(tol * scale), decomposition.S)
@@ -250,22 +261,27 @@ function native_active_split(A; tol=1e-10)
 end
 
 function native_phi_matrix(L0, d, P, gauge_basis)
-  nd = size(P, 2)
-  nd == 0 && return zeros(Float64, 0, length(gauge_basis))
+  darkdim = size(P, 2)
+  if darkdim == 0
+    return zeros(Float64, 0, length(gauge_basis))
+  end
   columns = Vector{Vector{Float64}}()
   for S in gauge_basis
     commutator = L0 * S - S * L0
     dark = native_hermitian(P' * native_kossakowski(commutator, d) * P)
     push!(columns, native_hvec(dark))
   end
-  return isempty(columns) ? zeros(Float64, nd^2, 0) : hcat(columns...)
+  if isempty(columns)
+    return zeros(Float64, darkdim^2, 0)
+  end
+  return hcat(columns...)
 end
 
 function native_dark_solve(L0, Vhat, known, active, d; tol=1e-9)
   _, P = native_active_split(active; tol)
-  nd = size(P, 2)
+  darkdim = size(P, 2)
   gauge_basis = native_gauge_algebra(d)
-  if nd == 0
+  if darkdim == 0
     return (
       S=zeros(ComplexF64, d^2, d^2),
       newborn=zeros(ComplexF64, d^2 - 1, 0),
@@ -275,7 +291,11 @@ function native_dark_solve(L0, Vhat, known, active, d; tol=1e-9)
 
   delta = native_hermitian(P' * (native_kossakowski(Vhat, d) - known) * P)
   Φ = native_phi_matrix(L0, d, P, gauge_basis)
-  coordinates = isempty(gauge_basis) ? Float64[] : -pinv(Φ; rtol=1e-10) * native_hvec(delta)
+  if isempty(gauge_basis)
+    coordinates = Float64[]
+  else
+    coordinates = -pinv(Φ; rtol=1e-10) * native_hvec(delta)
+  end
   S = zeros(ComplexF64, d^2, d^2)
   for i in eachindex(coordinates)
     S += coordinates[i] * gauge_basis[i]
@@ -291,17 +311,20 @@ function native_dark_solve(L0, Vhat, known, active, d; tol=1e-9)
   )
 
   keep = findall(>(tol * scale), eig.values)
-  newborn = isempty(keep) ? zeros(ComplexF64, d^2 - 1, 0) :
-            P * eig.vectors[:, keep] * Diagonal(sqrt.(eig.values[keep]))
+  if isempty(keep)
+    newborn = zeros(ComplexF64, d^2 - 1, 0)
+  else
+    newborn = P * eig.vectors[:, keep] * Diagonal(sqrt.(eig.values[keep]))
+  end
   return (; S, newborn, dark_residual=residual)
 end
 
 function native_tangent_lift(active, target; tol=1e-9)
   n, r = size(active)
-  r == 0 && return (
-    norm(target) <= tol ? zeros(ComplexF64, n, 0) :
-    error("nonzero tangent target with no active channels")
-  )
+  if r == 0
+    norm(target) <= tol || error("nonzero tangent target with no active channels")
+    return zeros(ComplexF64, n, 0)
+  end
 
   columns = Vector{Vector{Float64}}()
   for j in 1:r, i in 1:n
@@ -331,10 +354,11 @@ function native_static_step(L0, Vhat, known, active, d; tol=1e-8)
   target = native_hermitian(native_kossakowski(E, d) - known - Pfull)
   correction = native_tangent_lift(active, target; tol)
   reconstructed = known + active * correction' + correction * active' + Pfull
-  norm(native_kossakowski(E, d) - reconstructed) <= tol * max(1.0, norm(reconstructed)) ||
+  scale = max(1.0, norm(reconstructed))
+  norm(native_kossakowski(E, d) - reconstructed) <= tol * scale ||
     error("native static step failed to reconstruct its Kossakowski coefficient")
   H = native_hamiltonian_part(E, d)
-  norm(E - native_from_Hc(H, reconstructed, d)) <= 20tol * max(1.0, norm(E)) ||
+  norm(E - native_from_Hc(H, reconstructed, d)) <= 20 * tol * max(1.0, norm(E)) ||
     error("native static step failed Hamiltonian/Kossakowski reconstruction")
   return (; E, S=dark.S, H, correction, newborn=dark.newborn, C=reconstructed)
 end
@@ -356,7 +380,8 @@ function native_bf_order02(model::NativeModel; tol=1e-8)
 
   # Order 1: solve the static GKLS slot before computing Y2^osc.
   V1 = native_fsavg(native_fsmul(L, Y1osc), nsuper)
-  step1 = native_static_step(L0, V1, zeros(ComplexF64, d^2 - 1, d^2 - 1), B0, d; tol)
+  known1 = zeros(ComplexF64, d^2 - 1, d^2 - 1)
+  step1 = native_static_step(L0, V1, known1, B0, d; tol)
   S1 = step1.S
   E1 = step1.E
   B1 = step1.correction
@@ -388,14 +413,21 @@ function native_bf_order02(model::NativeModel; tol=1e-8)
 
   # Direct BF coordinate identity at order two.
   E2bf = V2 + L0 * s2bf - s2bf * L0
-  norm(E2 - E2bf) <= tol * max(1.0, norm(E2)) || error("intrinsic/BF order-two slots disagree")
+  norm(E2 - E2bf) <= tol * max(1.0, norm(E2)) ||
+    error("intrinsic/BF order-two slots disagree")
 
-  # Store amplitude coefficients as physical operators.  The groups are encoded by onset:
-  # birth0[j] = [R_{j,0}, R_{j,1}, R_{j,2}], birth1[j] = [U_{j,0}, U_{j,1}],
-  # birth2[j] = [V_{j,0}].  Flattened vectors keep the test fixture compact.
+  # birth0[j] = [R_j,0, R_j,1, R_j,2], birth1[j] = [U_j,0, U_j,1], and
+  # birth2[j] = [V_j,0]. The vectors are flattened to keep this fixture local to the tests.
   birth0 = NativeCM[]
   for j in axes(B0, 2)
-    append!(birth0, [native_operator(B0[:, j], d), native_operator(B1[:, j], d), native_operator(B2[:, j], d)])
+    append!(
+      birth0,
+      [
+        native_operator(B0[:, j], d),
+        native_operator(B1[:, j], d),
+        native_operator(B2[:, j], d),
+      ],
+    )
   end
   birth1 = NativeCM[]
   for j in axes(U0, 2)
@@ -421,7 +453,10 @@ function native_effective_gkls(result::NativeOrder02, ε)
   H = result.H[1] + ε * result.H[2] + ε^2 * result.H[3]
   jumps = NativeCM[]
   for k in 1:3:length(result.birth0)
-    push!(jumps, result.birth0[k] + ε * result.birth0[k + 1] + ε^2 * result.birth0[k + 2])
+    push!(
+      jumps,
+      result.birth0[k] + ε * result.birth0[k + 1] + ε^2 * result.birth0[k + 2],
+    )
   end
   for k in 1:2:length(result.birth1)
     push!(jumps, sqrt(ε) * (result.birth1[k] + ε * result.birth1[k + 1]))
@@ -484,7 +519,8 @@ end
   finite = native_effective_gkls(result, ε)
   truncated = result.E[1] + ε * result.E[2] + ε^2 * result.E[3]
   @test norm(finite - truncated) <= 1e3 * ε^3
-  @test minimum(eigvals(Hermitian(native_hermitian(native_kossakowski(finite, 2))))) >= -1e-10
+  cfinite = native_hermitian(native_kossakowski(finite, 2))
+  @test minimum(eigvals(Hermitian(cfinite))) >= -1e-10
 end
 
 @testset "native GKLS BF research prototype: sidebands are native columns" begin
@@ -496,7 +532,11 @@ end
   )
   model = NativeModel(
     2,
-    NativeFS(0 => 0.21 * σz_native, 1 => 0.24 * σx_native, -1 => 0.24 * σx_native),
+    NativeFS(
+      0 => 0.21 * σz_native,
+      1 => 0.24 * σx_native,
+      -1 => 0.24 * σx_native,
+    ),
     [sideband_jump],
   )
   result = native_bf_order02(model)
@@ -506,7 +546,11 @@ end
   @test isempty(result.birth1)
   @test isempty(result.birth2)
 
-  B1 = hcat(native_tlcoef(result.birth0[2], 2), native_tlcoef(result.birth0[5], 2), native_tlcoef(result.birth0[8], 2))
+  B1 = hcat(
+    native_tlcoef(result.birth0[2], 2),
+    native_tlcoef(result.birth0[5], 2),
+    native_tlcoef(result.birth0[8], 2),
+  )
   @test norm(result.K2known - B1 * B1') <= 1e-9
 
   # This is the low-order reason no external transported-channel allowance Γ is needed:
