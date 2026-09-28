@@ -205,13 +205,15 @@ end
 function native_compare_arbitrary_states(bf::NativeBFState, hd::NativeHDState, N; tol=5e-7)
   @test length(bf.E) == N + 1
   @test length(hd.E) == N + 1
+  d = isqrt(size(bf.E[1], 1))
+  dim = d^2 - 1
   for order in 0:N
     @test norm(bf.E[order + 1] - hd.E[order + 1]) <=
           tol * max(1.0, norm(bf.E[order + 1]))
     @test norm(bf.H[order + 1] - hd.H[order + 1]) <=
           tol * max(1.0, norm(bf.H[order + 1]))
-    cbf = native_gram_coefficient(bf.channels, order, size(bf.channels) == 0 ? 3 : length(bf.channels[1].coefficients[1]))
-    chd = native_gram_coefficient(hd.channels, order, size(hd.channels) == 0 ? 3 : length(hd.channels[1].coefficients[1]))
+    cbf = native_gram_coefficient(bf.channels, order, dim)
+    chd = native_gram_coefficient(hd.channels, order, dim)
     @test norm(cbf - chd) <= tol * max(1.0, norm(cbf))
   end
   for order in 1:N
