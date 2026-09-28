@@ -17,6 +17,8 @@ jobs:
       - name: Install JuliaFormatter
         run: |
           julia -e 'using Pkg; Pkg.Registry.add("General"); Pkg.Registry.update(); Pkg.Apps.add(name="JuliaFormatter")'
-      - name: Check formatting
+      - name: Print native BF formatter diff
         run: |
-          ${HOME}/.julia/bin/jlfmt --check --verbose .
+          ${HOME}/.julia/bin/jlfmt --inplace test/gksl/native_bf_arbitrary.jl
+          git diff -- test/gksl/native_bf_arbitrary.jl
+          false
