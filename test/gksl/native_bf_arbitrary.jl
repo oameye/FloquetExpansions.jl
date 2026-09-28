@@ -63,7 +63,9 @@ function native_arb_series_exp(A, nsuper, N)
   power = native_arb_series_identity(nsuper, N)
   for p in 1:N
     power = native_arb_series_mul(power, A, N)
-    result = native_arb_series_add(result, native_arb_series_scale(power, N, inv(factorial(p))), N)
+    result = native_arb_series_add(
+      result, native_arb_series_scale(power, N, inv(factorial(p))), N
+    )
   end
   return result
 end
@@ -75,7 +77,9 @@ function native_arb_series_log(K, nsuper, N)
   power = A
   for p in 1:N
     coefficient = (-1.0)^(p + 1) / p
-    result = native_arb_series_add(result, native_arb_series_scale(power, N, coefficient), N)
+    result = native_arb_series_add(
+      result, native_arb_series_scale(power, N, coefficient), N
+    )
     p == N || (power = native_arb_series_mul(power, A, N))
   end
   return result
@@ -125,8 +129,10 @@ function native_known_gram(channels, order, dim)
     for k in 1:(q - 1)
       left = k + 1
       right = q - k + 1
-      left <= length(channel.coefficients) || error("missing lower left amplitude coefficient")
-      right <= length(channel.coefficients) || error("missing lower right amplitude coefficient")
+      left <= length(channel.coefficients) ||
+        error("missing lower left amplitude coefficient")
+      right <= length(channel.coefficients) ||
+        error("missing lower right amplitude coefficient")
       known += channel.coefficients[left] * channel.coefficients[right]'
     end
   end
@@ -137,7 +143,8 @@ function native_store_active_corrections!(channels, indices, correction, order)
   for (column, index) in pairs(indices)
     channel = channels[index]
     q = order - channel.onset
-    length(channel.coefficients) == q || error("graded channel coefficient sequence is not prefix complete")
+    length(channel.coefficients) == q ||
+      error("graded channel coefficient sequence is not prefix complete")
     push!(channel.coefficients, copy(correction[:, column]))
   end
   return channels
@@ -177,10 +184,7 @@ function native_bf_static_residual(L, Y, E, order, Yn)
   for j in 1:order
     Yj = j == order ? Yn : Y[j + 1]
     residual = native_fsadd(
-      residual,
-      native_fs_right_static(Yj, E[order - j + 1]),
-      1.0,
-      -1.0,
+      residual, native_fs_right_static(Yj, E[order - j + 1]), 1.0, -1.0
     )
   end
   return residual
@@ -279,7 +283,8 @@ function native_channel_prefix_equal(a, b, order; atol=1e-8)
     for k in 0:maxcoefficient
       k + 1 <= length(ca.coefficients) || return false
       k + 1 <= length(cb.coefficients) || return false
-      isapprox(ca.coefficients[k + 1], cb.coefficients[k + 1]; atol, rtol=atol) || return false
+      isapprox(ca.coefficients[k + 1], cb.coefficients[k + 1]; atol, rtol=atol) ||
+        return false
     end
   end
   return true
@@ -332,7 +337,9 @@ end
   dim = model.d^2 - 1
   for order in 0:4
     gram = native_gram_coefficient(order4.channels, order, dim)
-    @test isapprox(native_kossakowski(order4.E[order + 1], model.d), gram; atol=1e-7, rtol=1e-7)
+    @test isapprox(
+      native_kossakowski(order4.E[order + 1], model.d), gram; atol=1e-7, rtol=1e-7
+    )
   end
 
   ε = 2e-3
@@ -362,6 +369,7 @@ end
   @test all(norm(Sn) <= 1e-7 for Sn in result.S)
   @test all(norm(native_kossakowski(En, 2)) <= 1e-7 for En in result.E)
   @test all(
-    norm(result.E[n] - native_lindblad(result.H[n], NativeCM[])) <= 1e-7 for n in eachindex(result.E)
+    norm(result.E[n] - native_lindblad(result.H[n], NativeCM[])) <= 1e-7 for
+    n in eachindex(result.E)
   )
 end
