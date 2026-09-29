@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "8fe4108"
+commit = "9bdc380"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -17,6 +17,9 @@ boxes = 0
 boxes = 0
 
 [files."src/completion/backend/conversion.jl"]
+boxes = 0
+
+[files."src/completion/backend/gram_kernel.jl"]
 boxes = 0
 
 [files."src/completion/backend/linear_algebra.jl"]
