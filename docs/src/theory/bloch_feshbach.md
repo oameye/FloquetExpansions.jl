@@ -207,9 +207,9 @@ The Bloch recurrence uses products instead. At order ``n``, it forms one product
 ``\mathcal{G}\,\Omega^{(n)}`` and ``n`` products in the sum
 ``\sum_{j=1}^{n}\Omega^{(j)}\mathcal{B}^{(n-j)}``, for ``n+1`` products total. Summing over orders
 ``1`` through ``N-1`` gives ``(N-1)(N+2)/2`` products. Thus the Bloch recurrence requires a linear
-number of products at each order and a quadratic number through order ``N``. Araya Day et al. make
-a related comparison: Pymablock's work per added order grows linearly, similar to Bloch's
-non-orthogonal perturbation theory [ArayaDay2025](@cite).
+number of products at each order and a quadratic number through order ``N``. Araya Day et al. compare
+Pymablock's scaling with Bloch's non-orthogonal perturbation theory. Both have linear work per
+added order, but they are different algorithms [ArayaDay2025](@cite).
 
 ```@example bloch-feshbach-cost
 using Plots

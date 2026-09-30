@@ -46,8 +46,6 @@ end
 @inline has_bound_sums(left::SQA.QAdd, right::SQA.QAdd) =
   !(isempty(left.indices) && isempty(right.indices))
 
-# Keys are pairs of unit monomials, reduced by the completeness relation, so equal maps
-# have equal keys and a zero map is empty. Factors with bound symbolic sums stay whole.
 function add_term!(L::Liouvillian, left::SQA.QAdd, right::SQA.QAdd, coefficient::SQA.CNum)
   (iszero(left) || iszero(right) || iszero(coefficient)) && return L
   has_bound_sums(left, right) && return add_action!(L, (left, right), coefficient)
