@@ -16,7 +16,7 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [sources]
-SecondQuantizedAlgebra = {rev = "main", url = "https://github.com/qojulia/SecondQuantizedAlgebra.jl"}
+SecondQuantizedAlgebra = {rev = "feat/exact-numeric-radicals", url = "https://github.com/qojulia/SecondQuantizedAlgebra.jl"}
 
 [compat]
 Aqua = "0.8"
