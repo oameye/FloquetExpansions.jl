@@ -94,7 +94,7 @@ The package delegates operator multiplication, adjoints, normal ordering, and co
 - A missing Fourier harmonic and a zero harmonic are semantically equivalent.
 - `iszero` on a Symbolics `BasicSymbolic` builds the symbolic equation `0 == 0` rather than returning a `Bool`, so Fourier lowering tests symbolic zeros structurally.
 - `expim(arg)` is ``e^{+i\,\mathrm{arg}}`` while the package Fourier convention is ``e^{-im\omega t}``, so Fourier lowering reads the harmonic label as the negated coefficient of ``\omega t`` and rejects a phase that is not linear in ``\omega t``.
-- A Liouvillian is a collected sum of left/right terms; its sparse dictionary is an implementation detail exposed through `terms`.
+- A Liouvillian is a collected sum of left/right terms keyed by pairs of unit monomials (ADR 0007); its sparse dictionary is an implementation detail exposed through `terms`.
 - `Liouvillian` and `PeriodicGenerator` remain algebraic and do not carry dissipative provenance through arbitrary arithmetic. The provenance types live in `generators/channels.jl`, beside the channels they record, for that reason.
 - The LaTeX display of a Liouvillian embeds SecondQuantizedAlgebra and Symbolics `text/latex` output inside a larger expression. Both emit self-delimited math, and a renderer strips only the outermost delimiter pair, so the display strips their delimiters through the `show` path; Latexify's environment entry point has no method for some symbolic types.
 - The high-level physical `floquet_expansion(...; channels=...)` path may retain internal microscopic channel provenance in the resulting `FloquetExpansion` for later completion.
