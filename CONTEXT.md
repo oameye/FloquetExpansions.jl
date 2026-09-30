@@ -137,3 +137,9 @@ Internal information retained only by the high-level physical `floquet_expansion
 
 **Completion factorization**:
 Algorithm-specific diagnostic data retained by a completed Floquet expansion and exposed through `factorization`. Gram data include the graded factor, onset information, and compact active/dark history; spectral data include completed branch rates, perturbative vectors/amplitudes, and onset information.
+
+## Native GKSL expansion
+
+**Native GKSL expansion**:
+A high-frequency expansion of a periodically driven Lindblad system whose effective generator has Lindblad form by construction. It computes the van Vleck expansion of the Hamiltonian alone, carries each physical jump operator into that coherent frame order by order, and squares the truncated amplitudes without truncating again. It keeps one dissipative vertex, so terms quadratic in the dissipative strength, of order ``γ²/ω``, lie outside it. Its retained dissipative coefficients agree with the one-dissipator sector of the Liouvillian van Vleck expansion only up to a static similarity that is generally not completely positive, so they are not effective components.
+_Avoid_: "CP-HFE"; calling it positive completion, which selects a positive continuation of an already truncated Liouvillian expansion; calling it an expansion algorithm, which reproduces the van Vleck effective components.
