@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "8fe4108"
+commit = "9bdc380"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -42,6 +42,17 @@ cyc_sum = 34
 cog_sum = 27
 arg_sum = 0
 
+[files."src/completion/backend/gram_kernel.jl"]
+cyc = 8
+cog = 8
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 17
+cog_sum = 16
+arg_sum = 13
+
 [files."src/completion/backend/linear_algebra.jl"]
 cyc = 7
 cog = 9
@@ -66,13 +77,13 @@ arg_sum = 115
 
 [files."src/completion/frame_discovery.jl"]
 cyc = 3
-cog = 4
+cog = 2
 arg = 2
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 13
-cog_sum = 8
+cyc_sum = 12
+cog_sum = 5
 arg_sum = 11
 
 [files."src/completion/gram/factorization.jl"]
@@ -181,9 +192,9 @@ arg = 3
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 67
-cog_sum = 52
-arg_sum = 49
+cyc_sum = 69
+cog_sum = 53
+arg_sum = 53
 
 [files."src/generators/liouvillian.jl"]
 cyc = 5

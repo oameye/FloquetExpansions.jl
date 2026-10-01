@@ -1,5 +1,6 @@
 using Test
 using LinearAlgebra
+using FloquetExpansions
 
 # Research-only dense-matrix oracle for #350/#352.
 #
@@ -241,16 +242,8 @@ function native_sideband_columns(model::NativeModel; tol=1e-12)
 end
 
 function native_active_split(A; tol=1e-10)
-  n = size(A, 1)
-  if size(A, 2) == 0
-    return zeros(ComplexF64, n, 0), native_id(n)
-  end
-  decomposition = svd(A; full=true)
-  scale = max(1.0, maximum(decomposition.S))
-  rankA = count(>(tol * scale), decomposition.S)
-  U = decomposition.U[:, 1:rankA]
-  P = decomposition.U[:, (rankA + 1):n]
-  return U, P
+  frame = FloquetExpansions.gram_active_frame(A; rtol=tol)
+  return frame.active, frame.dark
 end
 
 function native_phi_matrix(L0, d, P, gauge_basis)
@@ -295,47 +288,13 @@ function native_dark_solve(L0, Vhat, known, active, d; tol=1e-9)
   end
 
   residual = native_hermitian(delta + P' * native_kossakowski(L0 * S - S * L0, d) * P)
-  scale = max(1.0, norm(delta))
-  eig = eigen(Hermitian(residual))
-  minimum(eig.values) >= -tol * scale || error(
-    "order-0/1/2 prototype found a non-PSD dark cokernel; full cone solve is not implemented",
-  )
-
-  keep = findall(>(tol * scale), eig.values)
-  if isempty(keep)
-    newborn = zeros(ComplexF64, d^2 - 1, 0)
-  else
-    newborn = P * eig.vectors[:, keep] * Diagonal(sqrt.(eig.values[keep]))
-  end
+  quotient_factor = FloquetExpansions.positive_gram_factor(residual; rtol=tol)
+  newborn = P * quotient_factor
   return (; S, newborn, dark_residual=residual)
 end
 
 function native_tangent_lift(active, target; tol=1e-9)
-  n, r = size(active)
-  if r == 0
-    norm(target) <= tol || error("nonzero tangent target with no active channels")
-    return zeros(ComplexF64, n, 0)
-  end
-
-  columns = Vector{Vector{Float64}}()
-  for j in 1:r, i in 1:n
-    for phase in (1.0 + 0im, 0.0 + 1im)
-      D = zeros(ComplexF64, n, r)
-      D[i, j] = phase
-      push!(columns, native_hvec(native_hermitian(active * D' + D * active')))
-    end
-  end
-  map = hcat(columns...)
-  coordinates = pinv(map; rtol=1e-10) * native_hvec(native_hermitian(target))
-  D = zeros(ComplexF64, n, r)
-  k = 1
-  for j in 1:r, i in 1:n
-    D[i, j] = coordinates[k] + im * coordinates[k + 1]
-    k += 2
-  end
-  residual = target - active * D' - D * active'
-  norm(residual) <= tol * max(1.0, norm(target)) || error("tangent Gram lift failed")
-  return D
+  return FloquetExpansions.gram_tangent_lift(active, target; rtol=tol)
 end
 
 function native_static_step(L0, Vhat, known, active, d; tol=1e-8)
