@@ -190,7 +190,7 @@ function native_bf_static_residual(L, Y, E, order, Yn)
   return residual
 end
 
-function native_bf_arbitrary(model::NativeModel, N; tol=1e-8)
+function native_bf_arbitrary(model::NativeModel, N; tol=1e-8, inverse=NativeNoInverse())
   N >= 0 || throw(ArgumentError("retained order must be nonnegative"))
   d = model.d
   nsuper = d^2
@@ -222,7 +222,7 @@ function native_bf_arbitrary(model::NativeModel, N; tol=1e-8)
 
     known = native_known_gram(channels, order, dim)
     active_indices, active = native_active_channels(channels, order, dim)
-    step = native_static_step(L0, Vhat, known, active, d; tol)
+    step = native_static_step(L0, Vhat, known, active, d; tol, inverse)
 
     push!(S, step.S)
     push!(bf_slots, base_slot + step.S)

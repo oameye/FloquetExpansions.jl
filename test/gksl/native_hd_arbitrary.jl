@@ -88,7 +88,7 @@ function native_hd_set_static(A::NativeFS, value)
   return result
 end
 
-function native_hd_arbitrary(model::NativeModel, N; tol=1e-8)
+function native_hd_arbitrary(model::NativeModel, N; tol=1e-8, inverse=NativeNoInverse())
   N >= 0 || throw(ArgumentError("retained order must be nonnegative"))
   d = model.d
   nsuper = d^2
@@ -121,7 +121,7 @@ function native_hd_arbitrary(model::NativeModel, N; tol=1e-8)
     Vhat = native_fsavg(transformed[order + 1], nsuper)
     known = native_known_gram(channels, order, dim)
     active_indices, active = native_active_channels(channels, order, dim)
-    step = native_static_step(L0, Vhat, known, active, d; tol)
+    step = native_static_step(L0, Vhat, known, active, d; tol, inverse)
 
     push!(S, step.S)
     push!(hd_slots, base_slot + step.S)

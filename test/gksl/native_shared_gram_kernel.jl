@@ -40,12 +40,17 @@ function native_tangent_lift(active::NativeCM, target::NativeCM; tol=1e-9)
 end
 
 function native_dark_solve(
-  L0::NativeCM, Vhat::NativeCM, known::NativeCM, active::NativeCM, d::Int; tol=1e-9
+  L0::NativeCM,
+  Vhat::NativeCM,
+  known::NativeCM,
+  active::NativeCM,
+  d::Int;
+  tol=1e-9,
+  gauge_basis=native_gauge_algebra(d),
 )
   frame = FloquetExpansions.gram_active_frame(active; rtol=tol)
   P = frame.dark
   darkdim = size(P, 2)
-  gauge_basis = native_gauge_algebra(d)
   if darkdim == 0
     return (
       S=zeros(ComplexF64, d^2, d^2),
