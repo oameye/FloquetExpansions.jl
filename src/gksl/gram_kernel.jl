@@ -1,7 +1,3 @@
-# Internal Gram geometry of fixed amplitude columns and Hermitian affine slices: active/dark
-# splitting, tangent-Gram lifts, PSD factors, and affine PSD sections. Nothing here chooses a
-# Floquet/static gauge or completes an already-computed effective generator.
-
 function gram_active_frame(
   B::AbstractMatrix{T}; rtol::Real=1e-10, atol::Real=0.0
 ) where {T<:Number}

@@ -53,7 +53,7 @@ end
   step = native_static_step(L0, Vhat, known, active, d)
   images = NativeCM[native_kossakowski(L0 * G - G * L0, d) for G in native_gauge_algebra(d)]
   direct = FloquetExpansions.native_static_solve(
-    native_kossakowski(Vhat, d), known, active, images; tol=1e-8
+    native_kossakowski(Vhat, d), known, active, images, 1e-8
   )
   @test step.C ≈ direct.coefficient atol = 1e-10 rtol = 1e-10
   @test step.correction ≈ direct.correction atol = 1e-10 rtol = 1e-10

@@ -32,6 +32,8 @@ include("gksl/gram_kernel.jl")
 
 include("native/graded_channels.jl")
 include("native/static_solve.jl")
+include("native/static_step.jl")
+include("native/dense_representation.jl")
 
 include("completion/types.jl")
 include("completion/backend/matrix_series.jl")

@@ -94,6 +94,24 @@ end
   active = reshape(T[1, 0, 0], :, 1)
   images = [Matrix{T}(FloquetExpansions.LinearAlgebra.I, 3, 3)]
   JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_static_solve(
-    residual, zeros(T, 3, 3), active, images
+    residual, zeros(T, 3, 3), active, images, 1e-8
+  )
+end
+
+@testset "native static step optimizer stability" begin
+  rep = FloquetExpansions.DenseLiouvilleRepresentation(2)
+  T = ComplexF64
+  σm = T[0 0; 1 0]
+  L0 = FloquetExpansions.native_gksl(rep, T[0.5 0; 0 -0.5], zeros(T, 3, 3))
+  active = reshape(T[0.5, 0.5im, 0], :, 1)
+  residual = FloquetExpansions.native_gksl(rep, zeros(T, 2, 2), active * active')
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_static_step(
+    rep,
+    FloquetExpansions.NoHomologicalInverse(),
+    L0,
+    residual,
+    zeros(T, 3, 3),
+    active,
+    1e-8,
   )
 end

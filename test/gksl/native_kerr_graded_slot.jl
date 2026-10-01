@@ -141,20 +141,32 @@ function native_charged_solve(inverse::NativeKerrLadderInverse, Y)
   return S
 end
 
-struct NativeChargedSection{T}
+struct NativeChargedSection{T} <: FloquetExpansions.HomologicalInverse
   inverse::T
   L0::NativeCM
   tol::Float64
 end
 
-function native_regular_gauge(section::NativeChargedSection, L0, Vhat, known, P, d)
+function FloquetExpansions.regular_gauge(
+  section::NativeChargedSection,
+  representation::FloquetExpansions.DenseLiouvilleRepresentation,
+  L0,
+  Vhat,
+  known,
+  P,
+)
+  d = representation.d
   norm(L0 - section.L0) <= section.tol * max(1.0, norm(L0)) ||
     error("charged section was built for a different averaged generator")
   Y = native_charged_dark_target(Vhat, known, P, d)
   return native_checked_charged_solve(section.inverse, L0, Y, section.tol)
 end
 
-native_singular_gauge_basis(::NativeChargedSection, d) = native_neutral_gauge_algebra(d)
+function FloquetExpansions.singular_gauge_directions(
+  ::NativeChargedSection, representation::FloquetExpansions.DenseLiouvilleRepresentation
+)
+  return native_neutral_gauge_algebra(representation.d)
+end
 
 function native_kerr_model(d, Δ, χ, κ, F)
   a = native_fock_annihilation(d)
