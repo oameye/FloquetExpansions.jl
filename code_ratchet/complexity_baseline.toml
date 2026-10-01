@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "72c059d"
+commit = "bd22739"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -42,17 +42,6 @@ cyc_sum = 34
 cog_sum = 27
 arg_sum = 0
 
-[files."src/completion/backend/gram_kernel.jl"]
-cyc = 8
-cog = 8
-arg = 4
-cyc_over = 0
-cog_over = 0
-arg_over = 0
-cyc_sum = 44
-cog_sum = 34
-arg_sum = 38
-
 [files."src/completion/backend/linear_algebra.jl"]
 cyc = 7
 cog = 9
@@ -60,9 +49,9 @@ arg = 5
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 77
+cyc_sum = 78
 cog_sum = 68
-arg_sum = 60
+arg_sum = 63
 
 [files."src/completion/backend/matrix_series.jl"]
 cyc = 9
@@ -262,6 +251,17 @@ cyc_sum = 6
 cog_sum = 2
 arg_sum = 11
 
+[files."src/gksl/gram_kernel.jl"]
+cyc = 8
+cog = 8
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 43
+cog_sum = 34
+arg_sum = 35
+
 [files."src/native/graded_channels.jl"]
 cyc = 5
 cog = 5
@@ -272,6 +272,17 @@ arg_over = 0
 cyc_sum = 19
 cog_sum = 15
 arg_sum = 17
+
+[files."src/native/static_solve.jl"]
+cyc = 6
+cog = 6
+arg = 6
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 8
+cog_sum = 7
+arg_sum = 12
 
 [files."src/words/lyndon_words.jl"]
 cyc = 5

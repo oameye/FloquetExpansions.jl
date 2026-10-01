@@ -266,40 +266,22 @@ end
 function native_dark_solve(
   L0, Vhat, known, active, d; tol=1e-9, gauge_basis=native_gauge_algebra(d)
 )
-  _, P = native_active_split(active; tol)
-  darkdim = size(P, 2)
-  if darkdim == 0
-    return (
-      S=zeros(ComplexF64, d^2, d^2),
-      newborn=zeros(ComplexF64, d^2 - 1, 0),
-      dark_residual=zeros(ComplexF64, 0, 0),
-      canonical=true,
-      iterations=0,
-    )
-  end
-
-  delta = native_hermitian(P' * (native_kossakowski(Vhat, d) - known) * P)
-  Φ = native_phi_matrix(L0, d, P, gauge_basis)
-  section = FloquetExpansions.positive_affine_section(delta, Φ; rtol=1e-10)
+  images = NativeCM[native_kossakowski(L0 * G - G * L0, d) for G in gauge_basis]
+  solution = FloquetExpansions.native_static_solve(
+    native_kossakowski(Vhat, d), known, active, images; tol
+  )
   S = zeros(ComplexF64, d^2, d^2)
-  for i in eachindex(section.coordinates)
-    S += section.coordinates[i] * gauge_basis[i]
+  for (coordinate, G) in zip(solution.coordinates, gauge_basis)
+    S += coordinate * G
   end
-
-  residual = native_hermitian(section.form)
-  quotient_factor = FloquetExpansions.positive_gram_factor(residual; rtol=tol)
-  newborn = P * quotient_factor
   return (;
     S,
-    newborn,
-    dark_residual=residual,
-    canonical=section.canonical,
-    iterations=section.iterations,
+    newborn=solution.newborn,
+    dark_residual=solution.dark_residual,
+    canonical=solution.canonical,
+    iterations=solution.iterations,
+    solution,
   )
-end
-
-function native_tangent_lift(active, target; tol=1e-9)
-  return FloquetExpansions.gram_tangent_lift(active, target; rtol=tol)
 end
 
 # A homological inverse removes the dark target exactly on the sectors where ad_Lbar is regular;
@@ -317,10 +299,8 @@ function native_static_step(L0, Vhat, known, active, d; tol=1e-8, inverse=Native
   dark = native_dark_solve(L0, Vsingular, known, active, d; tol, gauge_basis)
   S = regular + dark.S
   E = Vhat + L0 * S - S * L0
-  Pfull = dark.newborn * dark.newborn'
-  target = native_hermitian(native_kossakowski(E, d) - known - Pfull)
-  correction = native_tangent_lift(active, target; tol)
-  reconstructed = known + active * correction' + correction * active' + Pfull
+  correction = dark.solution.correction
+  reconstructed = dark.solution.coefficient
   scale = max(1.0, norm(reconstructed))
   norm(native_kossakowski(E, d) - reconstructed) <= tol * scale ||
     error("native static step failed to reconstruct its Kossakowski coefficient")

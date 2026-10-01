@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "72c059d"
+commit = "bd22739"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -17,10 +17,6 @@ undocumented = 0
 public = 9
 
 [files."src/completion/backend/conversion.jl"]
-undocumented = 0
-public = 0
-
-[files."src/completion/backend/gram_kernel.jl"]
 undocumented = 0
 public = 0
 
@@ -100,7 +96,15 @@ public = 1
 undocumented = 0
 public = 4
 
+[files."src/gksl/gram_kernel.jl"]
+undocumented = 0
+public = 0
+
 [files."src/native/graded_channels.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/static_solve.jl"]
 undocumented = 0
 public = 0
 
