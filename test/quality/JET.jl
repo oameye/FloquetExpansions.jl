@@ -115,3 +115,24 @@ end
     1e-8,
   )
 end
+
+@testset "native recurrence optimizer stability" begin
+  rep = FloquetExpansions.DenseLiouvilleRepresentation(2)
+  T = ComplexF64
+  σx = T[0 1; 1 0]
+  σm = T[0 0; 1 0]
+  c = [FloquetExpansions.LinearAlgebra.tr(F' * σm) for F in rep.basis]
+  L = Dict{Int,Matrix{T}}(
+    0 => FloquetExpansions.native_gksl(rep, zeros(T, 2, 2), c * c'),
+    1 => FloquetExpansions.native_gksl(rep, σx, zeros(T, 3, 3)),
+    -1 => FloquetExpansions.native_gksl(rep, σx, zeros(T, 3, 3)),
+  )
+  leading = reshape(c, :, 1)
+  inverse = FloquetExpansions.NoHomologicalInverse()
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_recurrence(
+    FloquetExpansions.BlochFeshbach(), rep, inverse, L, leading, 2, 1e-8
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_recurrence(
+    FloquetExpansions.HoriDeprit(), rep, inverse, L, leading, 2, 1e-8
+  )
+end

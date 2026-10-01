@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "efc4189"
+commit = "a867978"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -105,6 +105,10 @@ undocumented = 0
 public = 0
 
 [files."src/native/graded_channels.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/recurrence.jl"]
 undocumented = 0
 public = 0
 

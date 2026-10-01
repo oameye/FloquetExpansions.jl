@@ -34,6 +34,7 @@ include("native/graded_channels.jl")
 include("native/static_solve.jl")
 include("native/static_step.jl")
 include("native/dense_representation.jl")
+include("native/recurrence.jl")
 
 include("completion/types.jl")
 include("completion/backend/matrix_series.jl")

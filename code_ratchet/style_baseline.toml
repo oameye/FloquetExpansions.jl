@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "efc4189"
+commit = "a867978"
 metric = "style"
 rules = ["implicit_kwarg", "underscore_name"]
 binding = ["underscore_name", "implicit_kwarg"]
@@ -105,6 +105,10 @@ underscore_name = 0
 implicit_kwarg = 0
 
 [files."src/native/graded_channels.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/native/recurrence.jl"]
 underscore_name = 0
 implicit_kwarg = 0
 

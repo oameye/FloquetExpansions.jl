@@ -1,9 +1,10 @@
 include("native_bf_arbitrary.jl")
 
-# Independent arbitrary-order Hori--Deprit oracle for #350/#363.
+# Arbitrary-order native Hori--Deprit recurrence, run through the package driver.
 #
-# The Floquet recurrence below is generated from the exact Lie-transform identity rather than the
-# BF wave-operator recurrence. Only the GKLS static solver and graded channel state are shared.
+# The Lie-transform series below is an independent re-implementation of the HD identity. The
+# equation-defect checks evaluate the package HD state against it, and the package BF and HD
+# drivers share only the static step and the graded channel state.
 
 struct NativeHDState
   E::Vector{NativeCM}
@@ -66,87 +67,25 @@ function native_hd_generator_series(L::NativeFS, G, N)
   return effective
 end
 
-function native_hd_intrinsic_offset(G, Sprev, order, nsuper)
-  @assert length(G) >= order + 1
-  Gtrunc = native_arb_series_zero(order)
-  for n in 1:order
-    Gtrunc[n + 1] = copy(G[n + 1])
-  end
-  # The current raw HD static slot is temporarily zero.
-  delete!(Gtrunc[order + 1], 0)
-
-  kick = native_arb_series_exp(Gtrunc, nsuper, order)
-  minusS = native_arb_static_exp(Sprev, nsuper, order; sign=-1.0)
-  Kosc = native_arb_series_mul(kick, minusS, order)
-  logKosc = native_arb_series_log(Kosc, nsuper, order)
-  return native_fsavg(logKosc[order + 1], nsuper)
-end
-
-function native_hd_set_static(A::NativeFS, value)
-  result = copy(A)
-  result[0] = value
-  return result
-end
-
 function native_hd_arbitrary(model::NativeModel, N; tol=1e-8, inverse=NativeNoInverse())
-  N >= 0 || throw(ArgumentError("retained order must be nonnegative"))
-  d = model.d
-  nsuper = d^2
-  dim = d^2 - 1
-  L = native_liouvillian_harmonics(model)
-  L0 = native_fsavg(L, nsuper)
-
-  channels = native_initial_channels(model)
-  E = NativeCM[L0]
-  H = NativeCM[native_hamiltonian_part(L0, d)]
-  S = NativeCM[]
-  hd_slots = NativeCM[]
-  known_gram = NativeCM[]
-
-  c0 = native_gram_coefficient(channels, 0, dim)
-  norm(native_kossakowski(L0, d) - c0) <= tol * max(1.0, norm(c0)) || error(
-    "HD order-zero native channels do not reconstruct the averaged Kossakowski tensor"
+  result = FloquetExpansions.native_recurrence(
+    FloquetExpansions.HoriDeprit(),
+    native_dense_representation(model.d),
+    inverse,
+    native_liouvillian_harmonics(model),
+    native_sideband_columns(model),
+    N,
+    tol,
   )
-
-  # G[1] is the formal G_0 = 0 slot; G[2] is G_1.
-  G = NativeFS[NativeFS(), native_fsint(L)]
-  N == 0 && return NativeHDState(E, S, hd_slots, H, G, channels, known_gram)
-
-  for order in 1:N
-    offset = native_hd_intrinsic_offset(G, S, order, nsuper)
-    base_slot = -offset
-    G[order + 1] = native_hd_set_static(G[order + 1], base_slot)
-
-    transformed = native_hd_generator_series(L, G, order)
-    Vhat = native_fsavg(transformed[order + 1], nsuper)
-    known = native_known_gram(channels, order, dim)
-    active_indices, active = native_active_channels(channels, order, dim)
-    step = native_static_step(L0, Vhat, known, active, d; tol, inverse)
-
-    push!(S, step.S)
-    push!(hd_slots, base_slot + step.S)
-    push!(E, step.E)
-    push!(H, step.H)
-    push!(known_gram, known)
-
-    G[order + 1] = native_hd_set_static(G[order + 1], hd_slots[end])
-    native_store_active_corrections!(channels, active_indices, step.correction, order)
-    native_store_births!(channels, step.newborn, order)
-
-    reconstructed = native_gram_coefficient(channels, order, dim)
-    scale = max(1.0, norm(reconstructed))
-    norm(native_kossakowski(E[end], d) - reconstructed) <= 20 * tol * scale ||
-      error("HD graded channel state failed coefficient reconstruction")
-
-    # Recompute with the accepted static slot. Its oscillatory part determines G_{n+1}.
-    transformed = native_hd_generator_series(L, G, order)
-    Wn = transformed[order + 1]
-    norm(native_fsavg(Wn, nsuper) - E[end]) <= 20 * tol * max(1.0, norm(E[end])) ||
-      error("HD accepted static slot does not reproduce the retained coefficient")
-    order < N && push!(G, native_fsint(Wn))
-  end
-
-  return NativeHDState(E, S, hd_slots, H, G, channels, known_gram)
+  return NativeHDState(
+    result.E,
+    result.S,
+    result.slots,
+    result.H,
+    result.kick,
+    result.channels,
+    result.known_gram,
+  )
 end
 
 function native_hd_finite(state::NativeHDState, d, ε)

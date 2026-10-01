@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "efc4189"
+commit = "a867978"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -83,6 +83,9 @@ boxes = 0
 boxes = 0
 
 [files."src/native/graded_channels.jl"]
+boxes = 0
+
+[files."src/native/recurrence.jl"]
 boxes = 0
 
 [files."src/native/static_solve.jl"]

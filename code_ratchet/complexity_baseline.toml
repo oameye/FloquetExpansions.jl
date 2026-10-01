@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "efc4189"
+commit = "a867978"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -283,6 +283,17 @@ arg_over = 0
 cyc_sum = 19
 cog_sum = 15
 arg_sum = 17
+
+[files."src/native/recurrence.jl"]
+cyc = 7
+cog = 6
+arg = 7
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 59
+cog_sum = 41
+arg_sum = 84
 
 [files."src/native/static_solve.jl"]
 cyc = 6

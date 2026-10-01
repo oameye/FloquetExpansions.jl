@@ -1,9 +1,10 @@
 include("native_bf_prototype.jl")
 
-# Research-only arbitrary-order Bloch--Feshbach recurrence for #350/#359.
+# Arbitrary-order native Bloch--Feshbach recurrence, run through the package driver
+# FloquetExpansions.native_recurrence on the dense Liouville representation.
 #
 # The low-order oracle in native_bf_prototype.jl remains the independent frozen reference through
-# generator order 2. This file generalizes exactly the same semantics to arbitrary retained order.
+# generator order 2.
 
 const NativeChannelSeries = FloquetExpansions.GradedChannel{ComplexF64}
 
@@ -101,11 +102,6 @@ function native_bf_intrinsic_offset(Y, Sprev, order, nsuper)
   return native_fsavg(logKosc[order + 1], nsuper)
 end
 
-function native_initial_channels(model::NativeModel)
-  B0 = native_sideband_columns(model)
-  return [NativeChannelSeries(0, [copy(B0[:, j])]) for j in axes(B0, 2)]
-end
-
 function native_active_channels(channels, order, dim)
   return FloquetExpansions.active_channels(channels, order, dim)
 end
@@ -114,10 +110,6 @@ native_known_gram(channels, order, dim) = FloquetExpansions.known_gram(channels,
 
 function native_store_active_corrections!(channels, indices, correction, order)
   return FloquetExpansions.store_corrections!(channels, indices, correction, order)
-end
-
-function native_store_births!(channels, newborn, order)
-  return FloquetExpansions.store_births!(channels, newborn, order)
 end
 
 function native_gram_coefficient(channels, order, dim)
@@ -142,61 +134,24 @@ function native_bf_static_residual(L, Y, E, order, Yn)
 end
 
 function native_bf_arbitrary(model::NativeModel, N; tol=1e-8, inverse=NativeNoInverse())
-  N >= 0 || throw(ArgumentError("retained order must be nonnegative"))
-  d = model.d
-  nsuper = d^2
-  dim = d^2 - 1
-  L = native_liouvillian_harmonics(model)
-  L0 = native_fsavg(L, nsuper)
-
-  channels = native_initial_channels(model)
-  E = NativeCM[L0]
-  H = NativeCM[native_hamiltonian_part(L0, d)]
-  S = NativeCM[]
-  bf_slots = NativeCM[]
-  known_gram = NativeCM[]
-
-  c0 = native_gram_coefficient(channels, 0, dim)
-  norm(native_kossakowski(L0, d) - c0) <= tol * max(1.0, norm(c0)) ||
-    error("order-zero native channels do not reconstruct the averaged Kossakowski tensor")
-
-  Y = NativeFS[native_arb_fsconst(native_id(nsuper))]
-  N == 0 && return NativeBFState(E, S, bf_slots, H, Y, channels, known_gram)
-  push!(Y, native_fsint(L))
-
-  for order in 1:N
-    offset = native_bf_intrinsic_offset(Y, S, order, nsuper)
-    base_slot = -offset
-    Ynbase = native_set_static(Y[order + 1], base_slot)
-    residual_base = native_bf_static_residual(L, Y, E, order, Ynbase)
-    Vhat = native_fsavg(residual_base, nsuper)
-
-    known = native_known_gram(channels, order, dim)
-    active_indices, active = native_active_channels(channels, order, dim)
-    step = native_static_step(L0, Vhat, known, active, d; tol, inverse)
-
-    push!(S, step.S)
-    push!(bf_slots, base_slot + step.S)
-    push!(E, step.E)
-    push!(H, step.H)
-    push!(known_gram, known)
-
-    Y[order + 1] = native_set_static(Y[order + 1], bf_slots[end])
-    native_store_active_corrections!(channels, active_indices, step.correction, order)
-    native_store_births!(channels, step.newborn, order)
-
-    reconstructed = native_gram_coefficient(channels, order, dim)
-    scale = max(1.0, norm(reconstructed))
-    norm(native_kossakowski(E[end], d) - reconstructed) <= 20 * tol * scale ||
-      error("graded channel state failed coefficient reconstruction")
-
-    if order < N
-      forcing = native_bf_static_residual(L, Y, E, order, Y[order + 1])
-      push!(Y, native_fsint(forcing))
-    end
-  end
-
-  return NativeBFState(E, S, bf_slots, H, Y, channels, known_gram)
+  result = FloquetExpansions.native_recurrence(
+    FloquetExpansions.BlochFeshbach(),
+    native_dense_representation(model.d),
+    inverse,
+    native_liouvillian_harmonics(model),
+    native_sideband_columns(model),
+    N,
+    tol,
+  )
+  return NativeBFState(
+    result.E,
+    result.S,
+    result.slots,
+    result.H,
+    result.kick,
+    result.channels,
+    result.known_gram,
+  )
 end
 
 function native_bf_finite(state::NativeBFState, d, ε)
