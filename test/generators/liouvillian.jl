@@ -263,7 +263,6 @@ end
   @test compose(zero(coherent), dissipative) == zero(coherent)
   @test SQA.commutator(coherent, dissipative) ==
     compose(coherent, dissipative) - compose(dissipative, coherent)
-  # Photon-number rotations leave D[a] invariant, so the two maps commute exactly.
   @test iszero(SQA.commutator(coherent, dissipative))
   drive = hamiltonian_action(a + a')
   @test compose(drive, dissipative) != compose(dissipative, drive)
