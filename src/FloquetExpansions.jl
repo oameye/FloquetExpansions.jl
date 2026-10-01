@@ -29,6 +29,8 @@ include("gksl/dissipative_frame.jl")
 include("gksl/coordinates.jl")
 include("gksl/floquet.jl")
 
+include("native/graded_channels.jl")
+
 include("completion/types.jl")
 include("completion/backend/matrix_series.jl")
 include("completion/backend/linear_algebra.jl")

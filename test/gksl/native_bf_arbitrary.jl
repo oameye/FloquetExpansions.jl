@@ -5,10 +5,7 @@ include("native_bf_prototype.jl")
 # The low-order oracle in native_bf_prototype.jl remains the independent frozen reference through
 # generator order 2. This file generalizes exactly the same semantics to arbitrary retained order.
 
-mutable struct NativeChannelSeries
-  onset::Int
-  coefficients::Vector{Vector{ComplexF64}}
-end
+const NativeChannelSeries = FloquetExpansions.GradedChannel{ComplexF64}
 
 struct NativeBFState
   E::Vector{NativeCM}
@@ -110,67 +107,21 @@ function native_initial_channels(model::NativeModel)
 end
 
 function native_active_channels(channels, order, dim)
-  indices = Int[]
-  columns = Vector{Vector{ComplexF64}}()
-  for (index, channel) in pairs(channels)
-    channel.onset < order || continue
-    push!(indices, index)
-    push!(columns, channel.coefficients[1])
-  end
-  active = isempty(columns) ? zeros(ComplexF64, dim, 0) : hcat(columns...)
-  return indices, active
+  return FloquetExpansions.active_channels(channels, order, dim)
 end
 
-function native_known_gram(channels, order, dim)
-  known = zeros(ComplexF64, dim, dim)
-  for channel in channels
-    channel.onset < order || continue
-    q = order - channel.onset
-    for k in 1:(q - 1)
-      left = k + 1
-      right = q - k + 1
-      left <= length(channel.coefficients) ||
-        error("missing lower left amplitude coefficient")
-      right <= length(channel.coefficients) ||
-        error("missing lower right amplitude coefficient")
-      known += channel.coefficients[left] * channel.coefficients[right]'
-    end
-  end
-  return native_hermitian(known)
-end
+native_known_gram(channels, order, dim) = FloquetExpansions.known_gram(channels, order, dim)
 
 function native_store_active_corrections!(channels, indices, correction, order)
-  for (column, index) in pairs(indices)
-    channel = channels[index]
-    q = order - channel.onset
-    length(channel.coefficients) == q ||
-      error("graded channel coefficient sequence is not prefix complete")
-    push!(channel.coefficients, copy(correction[:, column]))
-  end
-  return channels
+  return FloquetExpansions.store_corrections!(channels, indices, correction, order)
 end
 
 function native_store_births!(channels, newborn, order)
-  for column in axes(newborn, 2)
-    push!(channels, NativeChannelSeries(order, [copy(newborn[:, column])]))
-  end
-  return channels
+  return FloquetExpansions.store_births!(channels, newborn, order)
 end
 
 function native_gram_coefficient(channels, order, dim)
-  coefficient = zeros(ComplexF64, dim, dim)
-  for channel in channels
-    q = order - channel.onset
-    q < 0 && continue
-    for k in 0:q
-      left = k + 1
-      right = q - k + 1
-      left <= length(channel.coefficients) || continue
-      right <= length(channel.coefficients) || continue
-      coefficient += channel.coefficients[left] * channel.coefficients[right]'
-    end
-  end
-  return native_hermitian(coefficient)
+  return FloquetExpansions.gram_coefficient(channels, order, dim)
 end
 
 function native_set_static(A::NativeFS, value)

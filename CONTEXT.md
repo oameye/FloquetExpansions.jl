@@ -123,6 +123,9 @@ The radical of the current leading dissipative Hermitian form. Its directions ha
 **Feshbach residual**:
 For a reduced block form ``d = [A X; X† C]`` with active ``A``, the induced dark-sector Hermitian form ``Σ = C - X†A⁻¹X``. It determines whether dark directions open, remain unresolved beyond truncation, or obstruct a positive continuation.
 
+**Graded native channel**:
+A jump amplitude of the generator-native GKLS expansion, ``R_α(ε) = ε^{ν_α} Σ_k ε^k R_{α,k}`` with onset grade ``ν_α = n/2`` for a channel whose rate first appears at generator order ``n``. Its coefficients are state of the BF/HD recurrence, not the output of positive completion. A channel is active, and spans the bright space, from the order after its birth.
+
 **Dissipative onset filtration**:
 The nested sequence of dark sectors exposed by recursively resolving Feshbach residuals. Its successive quotients collect channels that open at successive perturbative orders and replace perturbative eigenvalue branches as the general algebraic organizing structure.
 
