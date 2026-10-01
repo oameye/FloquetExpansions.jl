@@ -263,10 +263,11 @@ function native_phi_matrix(L0, d, P, gauge_basis)
   return hcat(columns...)
 end
 
-function native_dark_solve(L0, Vhat, known, active, d; tol=1e-9)
+function native_dark_solve(
+  L0, Vhat, known, active, d; tol=1e-9, gauge_basis=native_gauge_algebra(d)
+)
   _, P = native_active_split(active; tol)
   darkdim = size(P, 2)
-  gauge_basis = native_gauge_algebra(d)
   if darkdim == 0
     return (
       S=zeros(ComplexF64, d^2, d^2),
@@ -301,9 +302,21 @@ function native_tangent_lift(active, target; tol=1e-9)
   return FloquetExpansions.gram_tangent_lift(active, target; rtol=tol)
 end
 
-function native_static_step(L0, Vhat, known, active, d; tol=1e-8)
-  dark = native_dark_solve(L0, Vhat, known, active, d; tol)
-  E = Vhat + L0 * dark.S - dark.S * L0
+# A homological inverse removes the dark target exactly on the sectors where ad_Lbar is regular;
+# the remaining sector keeps the dense affine PSD section.  The default has no regular sector.
+struct NativeNoInverse end
+
+native_regular_gauge(::NativeNoInverse, L0, Vhat, known, P, d) = zeros(ComplexF64, d^2, d^2)
+native_singular_gauge_basis(::NativeNoInverse, d) = native_gauge_algebra(d)
+
+function native_static_step(L0, Vhat, known, active, d; tol=1e-8, inverse=NativeNoInverse())
+  _, P = native_active_split(active; tol)
+  regular = native_regular_gauge(inverse, L0, Vhat, known, P, d)
+  Vsingular = Vhat + L0 * regular - regular * L0
+  gauge_basis = native_singular_gauge_basis(inverse, d)
+  dark = native_dark_solve(L0, Vsingular, known, active, d; tol, gauge_basis)
+  S = regular + dark.S
+  E = Vhat + L0 * S - S * L0
   Pfull = dark.newborn * dark.newborn'
   target = native_hermitian(native_kossakowski(E, d) - known - Pfull)
   correction = native_tangent_lift(active, target; tol)
@@ -314,7 +327,7 @@ function native_static_step(L0, Vhat, known, active, d; tol=1e-8)
   H = native_hamiltonian_part(E, d)
   norm(E - native_from_Hc(H, reconstructed, d)) <= 20 * tol * max(1.0, norm(E)) ||
     error("native static step failed Hamiltonian/Kossakowski reconstruction")
-  return (; E, S=dark.S, H, correction, newborn=dark.newborn, C=reconstructed)
+  return (; E, S, H, correction, newborn=dark.newborn, C=reconstructed)
 end
 
 function native_bf_order02(model::NativeModel; tol=1e-8)
