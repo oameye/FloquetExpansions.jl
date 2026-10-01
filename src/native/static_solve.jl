@@ -1,13 +1,3 @@
-# One native static slot in Kossakowski coordinates of a fixed operator frame.
-#
-# Given c(V̂_n), the known products K_n^<, the leading amplitudes B_n of already active channels,
-# and the images c([Lbar, G_i]) of static gauge directions, choose gauge coordinates s with
-#
-#   P_n = π (c(V̂_n) - K_n^< + Σ_i s_i c([Lbar, G_i])) π† ⪰ 0
-#
-# on the dark quotient, factor P_n into newborn amplitudes, and lift the bright remainder to
-# corrections of the active amplitudes. The superoperator representation stays with the caller.
-
 struct NativeStaticSolution
   coordinates::Vector{Float64}
   newborn::Matrix{ComplexF64}
@@ -24,7 +14,6 @@ function native_dark_section(
   dark::Matrix{ComplexF64},
   gauge_images::Vector{Matrix{ComplexF64}},
   tol::Float64,
-  section_rtol::Float64,
 )
   delta = hermitian_part(adjoint(dark) * (residual - known) * dark)
   Phi = zeros(Float64, size(dark, 2)^2, length(gauge_images))
@@ -33,7 +22,7 @@ function native_dark_section(
       hermitian_part(adjoint(dark) * image * dark)
     )
   end
-  section = positive_affine_section(delta, Phi; rtol=section_rtol)
+  section = positive_affine_section(delta, Phi; rtol=1e-10)
   form = Matrix{ComplexF64}(hermitian_part(section.form))
   newborn = dark * positive_gram_factor(form; rtol=tol)
   coordinates = Vector{Float64}(section.coordinates)
@@ -44,9 +33,8 @@ function native_static_solve(
   residual::AbstractMatrix{<:Number},
   known::AbstractMatrix{<:Number},
   active::AbstractMatrix{<:Number},
-  gauge_images::AbstractVector{<:AbstractMatrix{<:Number}};
-  tol::Real=1e-8,
-  section_rtol::Real=1e-10,
+  gauge_images::AbstractVector{<:AbstractMatrix{<:Number}},
+  tol::Real,
 )
   dimension = size(residual, 1)
   size(residual) == size(known) == (dimension, dimension) || throw(
@@ -70,7 +58,7 @@ function native_static_solve(
       0,
     )
   else
-    native_dark_section(V, K, dark, images, tolerance, Float64(section_rtol))
+    native_dark_section(V, K, dark, images, tolerance)
   end
 
   solved = copy(V)

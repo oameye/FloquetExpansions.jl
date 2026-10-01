@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "bd22739"
+commit = "efc4189"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -262,6 +262,17 @@ cyc_sum = 43
 cog_sum = 34
 arg_sum = 35
 
+[files."src/native/dense_representation.jl"]
+cyc = 4
+cog = 4
+arg = 3
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 26
+cog_sum = 13
+arg_sum = 26
+
 [files."src/native/graded_channels.jl"]
 cyc = 5
 cog = 5
@@ -276,13 +287,24 @@ arg_sum = 17
 [files."src/native/static_solve.jl"]
 cyc = 6
 cog = 6
-arg = 6
+arg = 5
 cyc_over = 0
 cog_over = 0
 arg_over = 0
 cyc_sum = 8
 cog_sum = 7
-arg_sum = 12
+arg_sum = 10
+
+[files."src/native/static_step.jl"]
+cyc = 4
+cog = 3
+arg = 7
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 11
+cog_sum = 3
+arg_sum = 17
 
 [files."src/words/lyndon_words.jl"]
 cyc = 5

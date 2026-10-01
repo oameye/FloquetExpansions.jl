@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "bd22739"
+commit = "efc4189"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -100,11 +100,19 @@ public = 4
 undocumented = 0
 public = 0
 
+[files."src/native/dense_representation.jl"]
+undocumented = 0
+public = 0
+
 [files."src/native/graded_channels.jl"]
 undocumented = 0
 public = 0
 
 [files."src/native/static_solve.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/static_step.jl"]
 undocumented = 0
 public = 0
 

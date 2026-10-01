@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "bd22739"
+commit = "efc4189"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -79,10 +79,16 @@ boxes = 0
 [files."src/gksl/gram_kernel.jl"]
 boxes = 0
 
+[files."src/native/dense_representation.jl"]
+boxes = 0
+
 [files."src/native/graded_channels.jl"]
 boxes = 0
 
 [files."src/native/static_solve.jl"]
+boxes = 0
+
+[files."src/native/static_step.jl"]
 boxes = 0
 
 [files."src/words/lyndon_words.jl"]

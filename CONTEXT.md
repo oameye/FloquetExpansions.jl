@@ -126,6 +126,9 @@ For a reduced block form ``d = [A X; X† C]`` with active ``A``, the induced da
 **Graded native channel**:
 A jump amplitude of the generator-native GKLS expansion, ``R_α(ε) = ε^{ν_α} Σ_k ε^k R_{α,k}`` with onset grade ``ν_α = n/2`` for a channel whose rate first appears at generator order ``n``. Its coefficients are state of the BF/HD recurrence, not the output of positive completion. A channel is active, and spans the bright space, from the order after its birth.
 
+**Homological inverse**:
+An algebra-specific right inverse of ``\operatorname{ad}_{\bar{\mathcal L}}`` on the sectors where it is regular, used by the native static slot to cancel the dark Kossakowski target there exactly. For a U(1)-symmetric averaged generator these are the charged sectors, where the inverse lives in a localized coefficient algebra such as ``\mathfrak A_{\rm poly}[d_q^{-1}]``. A non-polynomial inverse is not a resonance; a physical zero of a Bohr multiplier is.
+
 **Dissipative onset filtration**:
 The nested sequence of dark sectors exposed by recursively resolving Feshbach residuals. Its successive quotients collect channels that open at successive perturbative orders and replace perturbative eigenvalue branches as the general algebraic organizing structure.
 

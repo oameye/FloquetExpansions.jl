@@ -31,6 +31,13 @@ struct NativeOrder02
 end
 
 native_id(d) = Matrix{ComplexF64}(I, d, d)
+
+const NATIVE_REPRESENTATIONS = Dict{Int,FloquetExpansions.DenseLiouvilleRepresentation}()
+function native_dense_representation(d)
+  return get!(
+    () -> FloquetExpansions.DenseLiouvilleRepresentation(d), NATIVE_REPRESENTATIONS, d
+  )
+end
 native_lmul(A) = kron(native_id(size(A, 1)), A)
 native_rmul(B) = kron(transpose(B), native_id(size(B, 1)))
 native_sand(X, Y) = kron(conj(Y), X)
@@ -87,68 +94,23 @@ function native_liouvillian_harmonics(model::NativeModel)
   return out
 end
 
-function native_traceless_basis(d)
-  basis = NativeCM[]
-  for j in 1:d, k in (j + 1):d
-    X = zeros(ComplexF64, d, d)
-    X[j, k] = 1
-    X[k, j] = 1
-    push!(basis, X / sqrt(2))
+native_traceless_basis(d) = native_dense_representation(d).basis
 
-    Y = zeros(ComplexF64, d, d)
-    Y[j, k] = -im
-    Y[k, j] = im
-    push!(basis, Y / sqrt(2))
-  end
-  for l in 1:(d - 1)
-    Z = zeros(ComplexF64, d, d)
-    for j in 1:l
-      Z[j, j] = 1
-    end
-    Z[l + 1, l + 1] = -l
-    push!(basis, Z / sqrt(l * (l + 1)))
-  end
-  return basis
+native_full_basis(d) = FloquetExpansions.dense_full_basis(d, native_traceless_basis(d))
+
+native_chimat(L, d) = FloquetExpansions.dense_chi_matrix(d, native_traceless_basis(d), L)
+
+function native_kossakowski(L, d)
+  return FloquetExpansions.native_kossakowski(native_dense_representation(d), L)
 end
-
-function native_full_basis(d)
-  return vcat([native_id(d) / sqrt(d)], native_traceless_basis(d))
-end
-
-function native_chimat(L, d)
-  basis = native_full_basis(d)
-  n = d^2
-  χ = zeros(ComplexF64, n, n)
-  for i in 1:n, j in 1:n
-    χ[i, j] = dot(vec(native_sand(basis[i], basis[j])), vec(L))
-  end
-  return χ
-end
-
-native_kossakowski(L, d) = native_chimat(L, d)[2:end, 2:end]
 native_hermitian(X) = (X + X') / 2
 
 function native_hamiltonian_part(L, d)
-  χ = native_chimat(L, d)
-  basis = native_traceless_basis(d)
-  H = zeros(ComplexF64, d, d)
-  for i in eachindex(basis)
-    H += χ[i + 1, 1] / sqrt(d) * basis[i]
-  end
-  return native_hermitian((im / 2) * (H - H'))
+  return FloquetExpansions.native_hamiltonian(native_dense_representation(d), L)
 end
 
 function native_from_Hc(H, c, d)
-  basis = native_traceless_basis(d)
-  result = -im * (native_lmul(H) - native_rmul(H))
-  for i in eachindex(basis), j in eachindex(basis)
-    abs(c[i, j]) <= 1e-14 && continue
-    Fji = basis[j]' * basis[i]
-    result +=
-      c[i, j] *
-      (native_sand(basis[i], basis[j]) - 0.5 * native_lmul(Fji) - 0.5 * native_rmul(Fji))
-  end
-  return result
+  return FloquetExpansions.native_gksl(native_dense_representation(d), H, c)
 end
 
 function native_tlcoef(X, d)
@@ -192,39 +154,7 @@ function native_hmat(v, n)
   return X
 end
 
-const NATIVE_GAUGE_CACHE = Dict{Int,Vector{NativeCM}}()
-
-function native_gauge_algebra(d)
-  return get!(NATIVE_GAUGE_CACHE, d) do
-    basis = native_full_basis(d)
-    n = d^2
-
-    function superop(χ)
-      result = zeros(ComplexF64, n, n)
-      for i in 1:n, j in 1:n
-        result += χ[i, j] * native_sand(basis[i], basis[j])
-      end
-      return result
-    end
-
-    function tp_operator(χ)
-      result = zeros(ComplexF64, d, d)
-      for i in 1:n, j in 1:n
-        result += χ[i, j] * basis[j]' * basis[i]
-      end
-      return native_hermitian(result)
-    end
-
-    columns = Vector{Vector{Float64}}()
-    for k in 1:(n ^ 2)
-      χ = native_hmat(Float64.(1:(n ^ 2) .== k), n)
-      push!(columns, native_hvec(tp_operator(χ)))
-    end
-    constraints = hcat(columns...)
-    kernel = nullspace(constraints)
-    return [superop(native_hmat(kernel[:, j], n)) for j in axes(kernel, 2)]
-  end
-end
+native_gauge_algebra(d) = native_dense_representation(d).gauge
 
 function native_sideband_columns(model::NativeModel; tol=1e-12)
   columns = Vector{Vector{ComplexF64}}()
@@ -268,7 +198,7 @@ function native_dark_solve(
 )
   images = NativeCM[native_kossakowski(L0 * G - G * L0, d) for G in gauge_basis]
   solution = FloquetExpansions.native_static_solve(
-    native_kossakowski(Vhat, d), known, active, images; tol
+    native_kossakowski(Vhat, d), known, active, images, tol
   )
   S = zeros(ComplexF64, d^2, d^2)
   for (coordinate, G) in zip(solution.coordinates, gauge_basis)
@@ -284,30 +214,16 @@ function native_dark_solve(
   )
 end
 
-# A homological inverse removes the dark target exactly on the sectors where ad_Lbar is regular;
-# the remaining sector keeps the dense affine PSD section.  The default has no regular sector.
-struct NativeNoInverse end
-
-native_regular_gauge(::NativeNoInverse, L0, Vhat, known, P, d) = zeros(ComplexF64, d^2, d^2)
-native_singular_gauge_basis(::NativeNoInverse, d) = native_gauge_algebra(d)
+const NativeNoInverse = FloquetExpansions.NoHomologicalInverse
 
 function native_static_step(L0, Vhat, known, active, d; tol=1e-8, inverse=NativeNoInverse())
-  _, P = native_active_split(active; tol)
-  regular = native_regular_gauge(inverse, L0, Vhat, known, P, d)
-  Vsingular = Vhat + L0 * regular - regular * L0
-  gauge_basis = native_singular_gauge_basis(inverse, d)
-  dark = native_dark_solve(L0, Vsingular, known, active, d; tol, gauge_basis)
-  S = regular + dark.S
-  E = Vhat + L0 * S - S * L0
-  correction = dark.solution.correction
-  reconstructed = dark.solution.coefficient
-  scale = max(1.0, norm(reconstructed))
-  norm(native_kossakowski(E, d) - reconstructed) <= tol * scale ||
-    error("native static step failed to reconstruct its Kossakowski coefficient")
-  H = native_hamiltonian_part(E, d)
-  norm(E - native_from_Hc(H, reconstructed, d)) <= 20 * tol * max(1.0, norm(E)) ||
-    error("native static step failed Hamiltonian/Kossakowski reconstruction")
-  return (; E, S, H, correction, newborn=dark.newborn, C=reconstructed)
+  step = FloquetExpansions.native_static_step(
+    native_dense_representation(d), inverse, L0, Vhat, known, active, tol
+  )
+  solution = step.solution
+  return (;
+    step.E, step.S, step.H, solution.correction, solution.newborn, C=solution.coefficient
+  )
 end
 
 function native_bf_order02(model::NativeModel; tol=1e-8)
