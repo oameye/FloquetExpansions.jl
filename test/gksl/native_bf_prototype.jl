@@ -272,25 +272,29 @@ function native_dark_solve(L0, Vhat, known, active, d; tol=1e-9)
       S=zeros(ComplexF64, d^2, d^2),
       newborn=zeros(ComplexF64, d^2 - 1, 0),
       dark_residual=zeros(ComplexF64, 0, 0),
+      canonical=true,
+      iterations=0,
     )
   end
 
   delta = native_hermitian(P' * (native_kossakowski(Vhat, d) - known) * P)
   Φ = native_phi_matrix(L0, d, P, gauge_basis)
-  if isempty(gauge_basis)
-    coordinates = Float64[]
-  else
-    coordinates = -pinv(Φ; rtol=1e-10) * native_hvec(delta)
-  end
+  section = FloquetExpansions.positive_affine_section(delta, Φ; rtol=1e-10)
   S = zeros(ComplexF64, d^2, d^2)
-  for i in eachindex(coordinates)
-    S += coordinates[i] * gauge_basis[i]
+  for i in eachindex(section.coordinates)
+    S += section.coordinates[i] * gauge_basis[i]
   end
 
-  residual = native_hermitian(delta + P' * native_kossakowski(L0 * S - S * L0, d) * P)
+  residual = native_hermitian(section.form)
   quotient_factor = FloquetExpansions.positive_gram_factor(residual; rtol=tol)
   newborn = P * quotient_factor
-  return (; S, newborn, dark_residual=residual)
+  return (;
+    S,
+    newborn,
+    dark_residual=residual,
+    canonical=section.canonical,
+    iterations=section.iterations,
+  )
 end
 
 function native_tangent_lift(active, target; tol=1e-9)
