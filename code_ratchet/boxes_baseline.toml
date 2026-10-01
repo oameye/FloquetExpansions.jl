@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "9bdc380"
+commit = "72c059d"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -77,6 +77,9 @@ boxes = 0
 boxes = 0
 
 [files."src/gksl/floquet.jl"]
+boxes = 0
+
+[files."src/native/graded_channels.jl"]
 boxes = 0
 
 [files."src/words/lyndon_words.jl"]

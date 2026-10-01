@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "9bdc380"
+commit = "72c059d"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -99,6 +99,10 @@ public = 1
 [files."src/gksl/floquet.jl"]
 undocumented = 0
 public = 4
+
+[files."src/native/graded_channels.jl"]
+undocumented = 0
+public = 0
 
 [files."src/words/lyndon_words.jl"]
 undocumented = 0

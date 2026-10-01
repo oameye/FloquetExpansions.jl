@@ -67,3 +67,23 @@ end
   JET.@test_opt target_modules=(FloquetExpansions,) hamiltonian(completion)
   JET.@test_opt target_modules=(FloquetExpansions,) kossakowski_component(completion, 0)
 end
+
+@testset "native graded channel optimizer stability" begin
+  T = ComplexF64
+  channels = [
+    FloquetExpansions.GradedChannel{T}(0, [T[1, 0, 0], T[0, 1, 0], T[0, 0, 1]]),
+    FloquetExpansions.GradedChannel{T}(1, [T[0, 1, 1]]),
+  ]
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.active_channels(
+    channels, 2, 3
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.known_gram(
+    channels, 2, 3
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.gram_coefficient(
+    channels, 2, 3
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.store_births!(
+    copy(channels), zeros(T, 3, 1), 2
+  )
+end
