@@ -1,8 +1,6 @@
-# Internal Gram geometry shared by positive completion and generator-native GKLS work.
-#
-# These helpers operate on fixed amplitude or Hermitian affine geometry. They do not choose a
-# Floquet/static gauge and they do not perform positive completion of an already-computed effective
-# generator.
+# Internal Gram geometry of fixed amplitude columns and Hermitian affine slices: active/dark
+# splitting, tangent-Gram lifts, PSD factors, and affine PSD sections. Nothing here chooses a
+# Floquet/static gauge or completes an already-computed effective generator.
 
 function gram_active_frame(
   B::AbstractMatrix{T}; rtol::Real=1e-10, atol::Real=0.0
@@ -228,9 +226,4 @@ function positive_affine_section(
   canonical = gram_canonical_affine_result(geometry, tolerance)
   canonical === nothing || return canonical
   return gram_dykstra_affine_psd(geometry, tolerance, maxiter)
-end
-
-function gram_feshbach_residual(dark::MatrixSeries, solved::MatrixSeries, N::Int)
-  correction = series_mul(series_adjoint(solved), solved, N)
-  return series_sub(dark, correction, N)
 end

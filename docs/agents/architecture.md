@@ -43,7 +43,7 @@ Positive completion is an explicit post-processing stage for Liouvillian expansi
 | `generators/` | Periodic generators: Fourier harmonics and harmonic calculus, the `Liouvillian` map algebra, dissipative channels, and Sambe blocks. Knows nothing of gauges, expansions, or completion. |
 | `words/` | The free associative algebra over harmonic letters and the word-level van Vleck pair. Generic over its coefficient type and independent of the generator component. |
 | `expansion/` | Gauges, the `FloquetExpansion` result, and the expansion algorithms that fill it. |
-| `gksl/` | Ordered dissipative frames and exact GKSL/Kossakowski coordinates, on a `Liouvillian` and on any `FloquetExpansion`. |
+| `gksl/` | Ordered dissipative frames and exact GKSL/Kossakowski coordinates, on a `Liouvillian` and on any `FloquetExpansion`, plus the shared floating-point Gram geometry. |
 | `native/` | Generator-native GKLS expansion internals: state solved inside the BF/HD recurrence rather than by completion. Does not depend on `completion/`. |
 | `completion/` | Positive completion: algorithm selectors, the completed state, its accessors, and the Gram and Spectral realizations. `completion/backend/` holds the dedicated completion scalar backend. |
 
@@ -67,7 +67,9 @@ Every file currently under `src/` has a row. The public-seam column lists names 
 | `gksl/dissipative_frame.jl` | Ordered dissipative frames, the GKSL coordinate error, and the exact coefficient linear algebra that builds and inverts frame coordinates | `DissipativeFrame` |
 | `gksl/coordinates.jl` | Exact GKSL/Kossakowski coordinate extraction from a `Liouvillian` in a frame | `hamiltonian`, `kossakowski` on a `Liouvillian` |
 | `gksl/floquet.jl` | GKSL/Kossakowski and coherent-Hamiltonian accessors on a `FloquetExpansion` in an explicit frame, for any completion state | `kossakowski`, `kossakowski_component`, `hamiltonian`, `hamiltonian_component` |
+| `gksl/gram_kernel.jl` | Floating-point Gram geometry of fixed amplitude columns and Hermitian affine slices: active/dark frames, tangent-Gram lifts, PSD factors, and the affine PSD section | internal only |
 | `native/graded_channels.jl` | Graded jump amplitudes with half-integer onset, their active flag, known products ``K_n^<``, Gram coefficients, and prefix-complete storage of corrections and births | internal only |
+| `native/static_solve.jl` | One native static slot in Kossakowski coordinates: dark quotient, affine PSD gauge section, newborn channels, bright tangent lift, and reconstruction check. The superoperator representation stays with the caller | internal only |
 | `completion/types.jl` | Completion algorithm selectors, factorization supertype, completion exceptions, retained GKSL data, completed-state storage | `CompletionAlgorithm`, `Gram`, `Spectral`, `CompletionFactorization`, `CompletionObstruction`, `FractionalJumpOnset` |
 | `completion/backend/matrix_series.jl` | Truncated completion scalar/matrix-series algebra, conditions, and graded factor recurrences | internal only |
 | `completion/backend/linear_algebra.jl` | Reusable symbolic solve plans, triangular series solves, structured Hermitian congruence elimination, Gram/Feshbach dressing | internal only |

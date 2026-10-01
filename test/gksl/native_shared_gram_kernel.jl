@@ -2,10 +2,9 @@ using FloquetExpansions
 
 include("native_hd_arbitrary.jl")
 
-# Certify one nontrivial order-four result through the generic shared-kernel adapters, then install
-# more-specific NativeCM methods below and require the recurrence to remain coefficientwise
-# unchanged. This checks that the package kernel is independent of the adapter dispatch used by
-# the research oracle.
+# Certify that the research recurrence runs its static slot through the package core: the
+# order-four BF/HD fixture is reproduced, and a single step equals a direct call of
+# native_static_solve on the same Kossakowski data.
 const shared_gram_γ = 0.52
 const shared_gram_model = NativeModel(
   2,
@@ -27,53 +26,6 @@ const shared_gram_model = NativeModel(
 const shared_gram_bf_baseline = native_bf_arbitrary(shared_gram_model, 4)
 const shared_gram_hd_baseline = native_hd_arbitrary(shared_gram_model, 4)
 
-# These methods are deliberately more specific than the generic adapters in
-# native_bf_prototype.jl. Both paths call the same package-level Gram geometry; the specialized
-# dispatch makes that production-kernel reuse explicit in the order-four BF/HD fixture.
-function native_active_split(A::NativeCM; tol=1e-10)
-  frame = FloquetExpansions.gram_active_frame(A; rtol=tol)
-  return frame.active, frame.dark
-end
-
-function native_tangent_lift(active::NativeCM, target::NativeCM; tol=1e-9)
-  return FloquetExpansions.gram_tangent_lift(active, target; rtol=tol)
-end
-
-function native_dark_solve(
-  L0::NativeCM,
-  Vhat::NativeCM,
-  known::NativeCM,
-  active::NativeCM,
-  d::Int;
-  tol=1e-9,
-  gauge_basis=native_gauge_algebra(d),
-)
-  frame = FloquetExpansions.gram_active_frame(active; rtol=tol)
-  P = frame.dark
-  darkdim = size(P, 2)
-  if darkdim == 0
-    return (
-      S=zeros(ComplexF64, d^2, d^2),
-      newborn=zeros(ComplexF64, d^2 - 1, 0),
-      dark_residual=zeros(ComplexF64, 0, 0),
-    )
-  end
-
-  delta = native_hermitian(P' * (native_kossakowski(Vhat, d) - known) * P)
-  Φ = native_phi_matrix(L0, d, P, gauge_basis)
-  coordinates = isempty(gauge_basis) ? Float64[] : -pinv(Φ; rtol=1e-10) * native_hvec(delta)
-
-  S = zeros(ComplexF64, d^2, d^2)
-  for i in eachindex(coordinates)
-    S += coordinates[i] * gauge_basis[i]
-  end
-
-  residual = native_hermitian(delta + P' * native_kossakowski(L0 * S - S * L0, d) * P)
-  quotient_factor = FloquetExpansions.positive_gram_factor(residual; rtol=tol)
-  newborn = P * quotient_factor
-  return (; S, newborn, dark_residual=residual)
-end
-
 function native_shared_state_equal(a, b, order; tol=2e-7)
   for n in 0:order
     isapprox(a.E[n + 1], b.E[n + 1]; atol=tol, rtol=tol) || return false
@@ -93,7 +45,16 @@ end
   @test native_shared_state_equal(hd, shared_gram_hd_baseline, 4)
   native_compare_arbitrary_states(bf, hd, 4; tol=2e-7)
 
-  # The package-kernel adapters are the selected dispatch for the dense native matrices.
-  @test String(which(native_tangent_lift, (NativeCM, NativeCM)).file) == @__FILE__
-  @test String(which(native_active_split, (NativeCM,)).file) == @__FILE__
+  d = shared_gram_model.d
+  L0 = native_fsavg(native_liouvillian_harmonics(shared_gram_model), d^2)
+  Vhat = bf.E[3] - (L0 * bf.S[2] - bf.S[2] * L0)
+  _, active = native_active_channels(bf.channels, 2, d^2 - 1)
+  known = bf.known_gram[2]
+  step = native_static_step(L0, Vhat, known, active, d)
+  images = NativeCM[native_kossakowski(L0 * G - G * L0, d) for G in native_gauge_algebra(d)]
+  direct = FloquetExpansions.native_static_solve(
+    native_kossakowski(Vhat, d), known, active, images; tol=1e-8
+  )
+  @test step.C ≈ direct.coefficient atol = 1e-10 rtol = 1e-10
+  @test step.correction ≈ direct.correction atol = 1e-10 rtol = 1e-10
 end

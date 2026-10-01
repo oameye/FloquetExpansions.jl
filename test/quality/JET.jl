@@ -87,3 +87,13 @@ end
     copy(channels), zeros(T, 3, 1), 2
   )
 end
+
+@testset "native static slot optimizer stability" begin
+  T = ComplexF64
+  residual = T[2 1im 0; -1im 1 0; 0 0 0.5]
+  active = reshape(T[1, 0, 0], :, 1)
+  images = [Matrix{T}(FloquetExpansions.LinearAlgebra.I, 3, 3)]
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_static_solve(
+    residual, zeros(T, 3, 3), active, images
+  )
+end

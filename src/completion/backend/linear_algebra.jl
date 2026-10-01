@@ -166,6 +166,11 @@ function lower_triangular_series_solve(
   return result
 end
 
+function gram_feshbach_residual(dark::MatrixSeries, solved::MatrixSeries, N::Int)
+  correction = series_mul(series_adjoint(solved), solved, N)
+  return series_sub(dark, correction, N)
+end
+
 function gram_feshbach_dressing(
   active_factor::MatrixSeries,
   cross::MatrixSeries,
