@@ -93,7 +93,7 @@ _Avoid_: assuming dissipative quasienergies are real or that every Liouvillian i
 ## GKSL coordinates and positive completion
 
 **Dissipative frame**:
-An ordered finite set of operator directions ``(F₁, …, F_q)`` used to represent the dissipative Hermitian form. The frame need not be complete, traceless, or Hilbert-Schmidt orthonormal. Ordering is part of the representation and affects coordinate matrices, deterministic pivot choices, and channel gauge.
+An ordered finite set of operator directions ``(F₁, …, F_q)`` used to represent the dissipative Hermitian form. The frame need not be complete, traceless, or Hilbert-Schmidt orthonormal. Ordering and scaling are part of the representation and affect coordinate matrices, deterministic pivot choices, and channel gauge. The frame also selects the positive continuation beyond the retained order. `Gram()` is the perturbative Cholesky gauge (graded LDL†, lower triangular factor coefficients in the active block). Its completion is invariant under lower-triangular frame changes, rescaling included, but depends on frame ordering whenever the active block has rank at least two with off-diagonal data. `Spectral()` depends on the coordinate inner product of the frame, so rescaling one frame vector changes it. Retained coefficients and positivity do not depend on the frame.
 _Avoid_: treating two differently ordered frames as identical merely because they span the same subspace.
 
 **Kossakowski matrix**:
