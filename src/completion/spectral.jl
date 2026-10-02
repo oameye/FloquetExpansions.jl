@@ -2,14 +2,18 @@
     SpectralFactorization <: CompletionFactorization
 
 Diagnostic data produced by [`Spectral`](@ref) positive completion. `rates` are the finite
-HCM-completed branch rates, `vectors` are the corresponding normalized dissipative-frame
-coordinates, `onsets` record the first retained rate order of each branch, and `puiseux`
+HCM-completed branch rates, `vectors` are the corresponding unnormalized dissipative-frame
+coordinates of the truncated perturbative branch vectors, and `norms` are their squared coordinate
+norms, so branch `a` contributes `rates[a] * vectors[a] * vectors[a]' / norms[a]` to the completed
+Kossakowski matrix. Keeping the normalization as a separate rational factor avoids square roots of
+rational functions in the completed coefficients. `onsets` record the first retained rate order of each branch, and `puiseux`
 marks odd rate onsets whose rate-folded collapse amplitudes would begin at half-integer
 order.
 """
 struct SpectralFactorization <: CompletionFactorization
   rates::Vector{SQA.CNum}
   vectors::Vector{Vector{SQA.CNum}}
+  norms::Vector{SQA.CNum}
   onsets::Vector{Int}
   puiseux::Vector{Bool}
 end
@@ -53,6 +57,7 @@ function Base.copy(factorization::SpectralFactorization)
   return SpectralFactorization(
     copy(factorization.rates),
     [copy(vector) for vector in factorization.vectors],
+    copy(factorization.norms),
     copy(factorization.onsets),
     copy(factorization.puiseux),
   )
@@ -281,32 +286,59 @@ function finite_spectral_vector(
       finite[index] += (scale * vectors[grade + 1][index])::CompletionScalar
     end
   end
+  finite = [simplify_scalar(value) for value in finite]
 
   norm_squared = hermitian_real(completion_dot(finite, finite))
   structurally_zero(norm_squared) &&
     throw(ArgumentError("Spectral completion produced a zero perturbative branch vector"))
-  norm = completion_scalar(sqrt(real(norm_squared)))
-  return [coefficient_from_completion(simplify_scalar(value / norm)) for value in finite]
+  return finite, norm_squared
 end
 
+function expand_scalar(z::CompletionScalar)
+  return complex(
+    completion_num(Symbolics.expand(real(z))), completion_num(Symbolics.expand(imag(z)))
+  )
+end
+
+# Each branch contributes rate * vector * vector' / norm. The entries are kept as sums of
+# per-branch quotients with expanded numerators: a gcd-based `simplify` of such sums overflows
+# `Rational{Int}` already for the order-five driven qubit, and every later identity test is
+# structural (`expanded_conjugate_pair`).
 function spectral_completed_matrix(
-  rates::Vector{SQA.CNum}, vectors::Vector{Vector{SQA.CNum}}, q::Int
+  rates::Vector{SQA.CNum},
+  vectors::Vector{Vector{CompletionScalar}},
+  norms::Vector{CompletionScalar},
+  q::Int,
 )
-  result = coefficient_matrix(q, q)
+  result = completion_matrix_zeros(q, q)
   for branch in eachindex(rates)
     iszero(rates[branch]) && continue
+    rate = completion_scalar(rates[branch])
+    norm = real(norms[branch])
     vector = vectors[branch]
     for row in 1:q, column in 1:q
-      result[row, column] = simplify_coefficient(
-        result[row, column] + rates[branch] * vector[row] * conj(vector[column])
+      numerator = expand_scalar(
+        (rate * vector[row] * conj(vector[column]))::CompletionScalar
       )
+      result[row, column] += complex(real(numerator) / norm, imag(numerator) / norm)
     end
   end
-  return simplify_matrix!(result)
+  return coefficient_matrix_from_expanded(result)
+end
+
+function coefficient_matrix_from_expanded(matrix::CompletionMatrix)::KossakowskiMatrix
+  result = coefficient_matrix(size(matrix, 1), size(matrix, 2))
+  for index in eachindex(matrix)
+    result[index] = convert(SQA.CNum, matrix[index])::SQA.CNum
+  end
+  return result
 end
 
 function spectral_completed_channels(
-  frame::DissipativeFrame, rates::Vector{SQA.CNum}, vectors::Vector{Vector{SQA.CNum}}
+  frame::DissipativeFrame,
+  rates::Vector{SQA.CNum},
+  vectors::Vector{Vector{SQA.CNum}},
+  norms::Vector{CompletionScalar},
 )
   result = RateWeightedJump{SQA.QAdd}[]
   for branch in eachindex(rates)
@@ -319,7 +351,11 @@ function spectral_completed_channels(
       operator = operator + coefficient * frame.operators[index]
     end
     operator = SQA.simplify(operator)
-    iszero(operator) || push!(result, jump(operator, rate))
+    iszero(operator) && continue
+    # Pass the real rational rate as a `Num`: converting a symbolic quotient to `SQA.CNum`
+    # introduces complex floating constants that defeat the provably-real rate check.
+    channel_rate = real(simplify_scalar(completion_scalar(rate) / norms[branch]))
+    push!(result, jump(operator, channel_rate))
   end
   return result
 end
@@ -336,25 +372,37 @@ function spectral_positive_completion(
 
   wd = getfield(expansion, :generator).wd
   completed_rates = SQA.CNum[]
-  completed_vectors = Vector{SQA.CNum}[]
+  completed_vectors = Vector{CompletionScalar}[]
+  completed_norms = CompletionScalar[]
   onsets = Int[]
   puiseux = Bool[]
   for branch in eachindex(leading_rates)
     rates, vectors = spectral_branch_series(series, leading_rates, branch, N, conditions)
     completed_rate, onset, fractional = hcm_completed_rate(rates, wd, N, conditions)
     push!(completed_rates, completed_rate)
-    push!(completed_vectors, finite_spectral_vector(vectors, wd))
+    finite_vector, norm_squared = finite_spectral_vector(vectors, wd)
+    push!(completed_vectors, finite_vector)
+    push!(completed_norms, norm_squared)
     push!(onsets, onset)
     push!(puiseux, fractional)
   end
 
   completed_matrix = spectral_completed_matrix(
-    completed_rates, completed_vectors, length(frame.operators)
+    completed_rates, completed_vectors, completed_norms, length(frame.operators)
   )
+  stored_vectors = [
+    [coefficient_from_completion(value) for value in vector] for vector in completed_vectors
+  ]
   completed_channels = spectral_completed_channels(
-    frame, completed_rates, completed_vectors
+    frame, completed_rates, stored_vectors, completed_norms
   )
-  factorization = SpectralFactorization(completed_rates, completed_vectors, onsets, puiseux)
+  factorization = SpectralFactorization(
+    completed_rates,
+    stored_vectors,
+    [coefficient_from_completion(norm) for norm in completed_norms],
+    onsets,
+    puiseux,
+  )
 
   return finalize_positive_completion(
     expansion,

@@ -276,17 +276,23 @@ function collapse(operator::SQA.QField)
   return CollapseChannel(operator)
 end
 
+function known_numeric_real(value)::Union{Nothing,Float64}
+  value isa Int && return Float64(value)
+  value isa Rational{Int} && return Float64(value)
+  value isa Float64 && return value
+  value isa Bool && return Float64(value)
+  return nothing
+end
+
 function known_numeric_jump_rate(rate::LiouvillianScalar)
   if rate isa Symbolics.Num
-    value = Symbolics.value(rate)
-    return value isa Real ? value : nothing
+    return known_numeric_real(Symbolics.value(rate))
   elseif rate isa Real
     return rate
   elseif rate isa Complex && iszero(imag(rate))
     real_rate = real(rate)
     if real_rate isa Symbolics.Num
-      value = Symbolics.value(real_rate)
-      return value isa Real ? value : nothing
+      return known_numeric_real(Symbolics.value(real_rate))
     elseif real_rate isa Real
       return real_rate
     end
