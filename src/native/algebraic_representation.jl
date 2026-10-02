@@ -165,24 +165,38 @@ function native_slot_solve(
   known,
   active,
   weights,
-  images,
-  directions,
+  family,
   tol::Real,
 ) where {T,R}
-  gauge_metric = R[
-    real(sum(conj(get(A.terms, k, zero(T))) * v for (k, v) in B.terms; init=zero(T))) for
-    A in directions, B in directions
-  ]
   solution = native_exact_static_solve(
     residual,
     known,
     active,
     R[real(weight) for weight in weights],
-    images,
+    family.images,
     representation.metric,
-    gauge_metric,
+    family.metric,
   )
   return solution, solution.correction, T.(solution.newborn_weights)
+end
+
+function native_gauge_metric(
+  ::AlgebraicLiouvilleRepresentation{T,R}, directions
+) where {T,R}
+  n = length(directions)
+  metric = exact_zeros(R, n, n)
+  for k in 1:n, l in k:n
+    A = directions[k].terms
+    B = directions[l].terms
+    value = zero(T)
+    for (key, v) in B
+      a = get(A, key, zero(T))
+      iszero(a) || (value += conj(a) * v)
+    end
+    metric[k, l] = real(value)
+    metric[l, k] = real(value)
+  end
+  return metric
 end
 
 function hermitian_generators(representation::AlgebraicLiouvilleRepresentation, keep)

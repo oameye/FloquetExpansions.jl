@@ -189,30 +189,31 @@ function exact_tangent_lift(
 ) where {T,R}
   n, k = size(B)
   k == 0 && return exact_zeros(T, n, 0)
+  H = adjoint(B) * G * B
+  C = exact_solve(H, adjoint(B) * G)
   W = LinearAlgebra.Diagonal(Vector{T}(weights))
-  Bw = B * W
-  equations(Y) = vcat(
-    exact_hermitian_coordinates(Bw * adjoint(Y) + Y * adjoint(Bw), R),
-    exact_hermitian_coordinates(
-      im * (W * adjoint(B) * G * Y * W - adjoint(W * adjoint(B) * G * Y * W)) / 2, R
-    ),
+  Winv = LinearAlgebra.Diagonal(Vector{T}(inv.(weights)))
+  Ct = adjoint(C)
+  dark = (target - B * (C * target)) * Ct * Winv
+  M = C * target * Ct
+  equations(A) = vcat(
+    exact_complex_coordinates(W * adjoint(A) + A * W, R),
+    exact_complex_coordinates(W * H * A * W - adjoint(W * H * A * W), R),
   )
-  unknowns = 2 * n * k
-  A = exact_zeros(R, length(equations(exact_zeros(T, n, k))), unknowns)
+  unknowns = 2 * k^2
+  system = exact_zeros(R, 4 * k^2, unknowns)
   for u in 1:unknowns
-    Y = exact_zeros(T, n, k)
-    index = (u + 1) ÷ 2
-    Y[index] = isodd(u) ? one(T) : im * one(T)
-    A[:, u] = equations(Y)
+    A = exact_zeros(T, k, k)
+    A[(u + 1) ÷ 2] = isodd(u) ? one(T) : im * one(T)
+    system[:, u] = equations(A)
   end
-  rhs = vcat(exact_hermitian_coordinates(target, R), exact_zeros(R, k^2))
-  x = exact_min_norm_solve(A, rhs, Matrix{R}(LinearAlgebra.I, unknowns, unknowns))
-  Y = exact_zeros(T, n, k)
+  rhs = vcat(exact_complex_coordinates(M, R), exact_zeros(R, 2 * k^2))
+  x = exact_min_norm_solve(system, rhs, Matrix{R}(LinearAlgebra.I, unknowns, unknowns))
+  A = exact_zeros(T, k, k)
   for u in 1:unknowns
-    index = (u + 1) ÷ 2
-    Y[index] += isodd(u) ? x[u] : im * x[u]
+    A[(u + 1) ÷ 2] += isodd(u) ? x[u] : im * x[u]
   end
-  return Y
+  return B * A + dark
 end
 
 function exact_complex_coordinates(X::AbstractMatrix, ::Type{R}) where {R}
@@ -226,6 +227,43 @@ function exact_combination(J::Vector{Matrix{T}}, x::AbstractVector, n::Int) wher
     result += xk * J[k]
   end
   return result
+end
+
+function exact_column_product(F::AbstractMatrix{T}, columns, N::AbstractMatrix) where {T}
+  result = exact_zeros(T, size(F, 1), size(N, 2))
+  for (j, column) in pairs(columns), a in axes(F, 1)
+    f = F[a, column]
+    iszero(f) && continue
+    for l in axes(N, 2)
+      v = N[j, l]
+      iszero(v) || (result[a, l] += f * v)
+    end
+  end
+  return result
+end
+
+function exact_row_cancellation(P0, J, C, c, ::Type{R}) where {R}
+  n = size(P0, 1)
+  for i in 1:n
+    rows = reduce(
+      hcat,
+      [exact_complex_coordinates(Jk[:, i:i], R) for Jk in J];
+      init=exact_zeros(R, 2 * n, 0),
+    )
+    rhs = -exact_complex_coordinates(P0[:, i:i], R)
+    iszero(rows) && iszero(rhs) && continue
+    trialC = vcat(C, rows)
+    trialc = vcat(c, rhs)
+    consistent = try
+      exact_min_norm_solve(trialC, trialc, Matrix{R}(LinearAlgebra.I, size(C, 2), size(C, 2)))
+      true
+    catch error
+      error isa ArgumentError || rethrow()
+      false
+    end
+    consistent && ((C, c) = (trialC, trialc))
+  end
+  return C, c
 end
 
 function exact_fixed_block(free, n::Int)
@@ -258,13 +296,18 @@ function exact_facial_constraints(
     isempty(fixed) && break
     current = P0 + exact_combination(J, x0, n)
     block = current[fixed, fixed]
-    exact_psd_factor(block, R)
+    try
+      exact_psd_factor(block, R)
+    catch error
+      error isa ArgumentError || rethrow()
+      throw(ArgumentError("no PSD lift exists in this static gauge family"))
+    end
     kernel = exact_nullspace(block)
     isempty(kernel) && break
     N = reduce(hcat, kernel)
     rows = reduce(
       hcat,
-      [exact_complex_coordinates(F[:, fixed] * N, R) for F in free];
+      [exact_complex_coordinates(exact_column_product(F, fixed, N), R) for F in free];
       init=exact_zeros(R, 2 * n * size(N, 2), 0),
     )
     rhs = -exact_complex_coordinates(current[:, fixed] * N, R)
@@ -274,7 +317,7 @@ function exact_facial_constraints(
     else
       reduce(
         hcat,
-        [exact_complex_coordinates(Jk[:, fixed] * N, R) for Jk in J];
+        [exact_complex_coordinates(exact_column_product(Jk, fixed, N), R) for Jk in J];
         init=exact_zeros(R, 2 * n * size(N, 2), 0),
       )
     end
@@ -286,6 +329,23 @@ function exact_facial_constraints(
     Z = isempty(reduced) ? exact_zeros(R, p, 0) : Z * reduce(hcat, reduced)
   end
   return C, c, Z
+end
+
+function exact_section(C, c, Z, normal_matrix, normal_rhs, gauge_metric)
+  Zt = Matrix(transpose(Z))
+  return exact_min_norm_solve(
+    vcat(C, Zt * normal_matrix), vcat(c, Zt * normal_rhs), gauge_metric
+  )
+end
+
+function exact_is_psd(P::AbstractMatrix, ::Type{R}) where {R}
+  try
+    exact_psd_factor(P, R)
+    return true
+  catch error
+    error isa ArgumentError || rethrow()
+    return false
+  end
 end
 
 function native_exact_static_solve(
@@ -322,10 +382,13 @@ function native_exact_static_solve(
   end
   normal_rhs = R[-exact_trace_product(entries[i], GP) for i in 1:p]
   C, c, Z = exact_facial_constraints(P0, J, R)
-  Zt = Matrix(transpose(Z))
-  coordinates = exact_min_norm_solve(
-    vcat(C, Zt * normal_matrix), vcat(c, Zt * normal_rhs), gauge_metric
-  )
+  coordinates = exact_section(C, c, Z, normal_matrix, normal_rhs, gauge_metric)
+  if !exact_is_psd(P0 + exact_combination(J, coordinates, n), R)
+    C, c = exact_row_cancellation(P0, J, C, c, R)
+    kernel = exact_nullspace(C)
+    Z = isempty(kernel) ? exact_zeros(R, p, 0) : reduce(hcat, kernel)
+    coordinates = exact_section(C, c, Z, normal_matrix, normal_rhs, gauge_metric)
+  end
 
   solved = copy(residual)
   for (coordinate, image) in zip(coordinates, gauge_images)
