@@ -83,6 +83,29 @@ end
 VanVleck(; algorithm::ExpansionAlgorithm=HoriDeprit()) = VanVleck(algorithm)
 
 """
+    GKSLNormalForm(; algorithm=HoriDeprit())
+
+Select the GKSL normal-form gauge for Liouvillian expansions. The oscillatory part of the
+micromotion is fixed as in [`VanVleck`](@ref); its static part is a similarity
+``W = e^{S}``, ``S = \\sum_n S_n/ω^n``, chosen order by order so that every truncation of the
+effective generator is of GKSL form and therefore completely positive.
+
+The effective generator is ``W^{-1} \\mathcal{L}_{\\mathrm{VV}} W``. It has the van Vleck spectrum
+through the retained order and coincides with the van Vleck generator wherever every ``S_n``
+vanishes, which is always the case without dissipation. The finite generator is assembled from
+graded jump amplitudes, so it equals the retained series up to a positive remainder beyond the
+retained order.
+
+`algorithm` selects [`HoriDeprit`](@ref), the default, or [`BlochFeshbach`](@ref); both return
+the same coefficients.
+"""
+struct GKSLNormalForm{A<:ExpansionAlgorithm} <: Gauge
+  algorithm::A
+end
+
+GKSLNormalForm(; algorithm::ExpansionAlgorithm=HoriDeprit()) = GKSLNormalForm(algorithm)
+
+"""
     antiderivative(X::PeriodicGenerator, gauge::Gauge) -> PeriodicGenerator
 
 Integrate `X` with respect to dimensionless drive time, with `gauge` fixing the free
