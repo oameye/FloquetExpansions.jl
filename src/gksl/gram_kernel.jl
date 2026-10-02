@@ -20,7 +20,7 @@ function gram_tangent_lift(
   B::AbstractMatrix{T}, target::AbstractMatrix{T}; rtol::Real=1e-10, atol::Real=0.0
 ) where {T<:Number}
   rows, columns = size(B)
-  size(target) == (rows, rows) ||
+  (size(target) == (rows, rows))::Bool ||
     throw(DimensionMismatch("tangent Gram target must match the amplitude row dimension"))
 
   hermitian_target = (target + adjoint(target)) / 2

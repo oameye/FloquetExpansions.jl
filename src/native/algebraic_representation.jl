@@ -210,11 +210,13 @@ function native_gauge_metric(
   return metric
 end
 
-function hermitian_generators(representation::AlgebraicLiouvilleRepresentation, keep)
-  generators = AlgebraOperator[]
+function hermitian_generators(
+  representation::AlgebraicLiouvilleRepresentation{T,R}, @nospecialize(keep)
+) where {T,R}
+  generators = AlgebraOperator{T,R}[]
   seen = Set{Monomial}()
   for (μ, F) in pairs(representation.frame)
-    (F in seen || !keep(μ, μ)) && continue
+    (F in seen || !(keep(μ, μ)::Bool)) && continue
     X = frame_operator(representation, μ)
     Xd = adjoint(X)
     for (m, _) in Xd.terms
@@ -227,13 +229,15 @@ function hermitian_generators(representation::AlgebraicLiouvilleRepresentation, 
 end
 
 function algebraic_gauge_directions(
-  representation::AlgebraicLiouvilleRepresentation{T,R}, keep
+  representation::AlgebraicLiouvilleRepresentation{T,R}, @nospecialize(keep)
 ) where {T,R}
   return algebraic_gauge_directions(representation, keep, representation.gauge_degree)
 end
 
 function algebraic_gauge_directions(
-  representation::AlgebraicLiouvilleRepresentation{T,R}, keep, gauge_degree::Int
+  representation::AlgebraicLiouvilleRepresentation{T,R},
+  @nospecialize(keep),
+  gauge_degree::Int,
 ) where {T,R}
   algebra = representation.algebra
   n = length(representation.frame)
@@ -248,7 +252,7 @@ function algebraic_gauge_directions(
   end
   empty_hamiltonian = AlgebraOperator{T,R}(algebra, Dict{Monomial,T}())
   for (i, μ) in pairs(small), ν in small[i:end]
-    keep(μ, ν) || continue
+    keep(μ, ν)::Bool || continue
     if μ == ν
       unit = copy(zero_frame)
       unit[μ, μ] = one(T)
@@ -404,11 +408,11 @@ function AlgebraicChargeInverse(
     push!(rows, c)
   end
   kernel = if count == 0
-    Vector{Rational{BigInt}}[]
+    Vector{R}[]
   elseif isempty(rows)
-    [Rational{BigInt}.(Matrix{Int}(LinearAlgebra.I, count, count)[:, k]) for k in 1:count]
+    [R.(Matrix{Int}(LinearAlgebra.I, count, count)[:, k]) for k in 1:count]
   else
-    exact_nullspace(Rational{BigInt}[row[j] for row in collect(rows), j in 1:count])
+    exact_nullspace(R[row[j] for row in collect(rows), j in 1:count])
   end
   weights = zeros(Int, length(kernel), count)
   for (r, v) in pairs(kernel)

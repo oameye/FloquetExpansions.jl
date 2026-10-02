@@ -109,3 +109,43 @@ end
     f.residual, f.known, f.B, R[1], f.images, G, Γ
   )
 end
+
+@testset "explicit exact kernels agree with the LinearAlgebra operations they replace" begin
+  A = Q[1 2im 0; 1//2 -1 3; 0 1im 1//3]
+  B = Q[2 0 1im; 1 1//5 0; -1 2 1]
+  x = Q[1, 1im, -1 // 2]
+  @test FE.exact_mul(A, B) == A * B
+  @test FE.exact_mul(A, x) == A * x
+  @test FE.exact_mul(A, B, A) == A * B * A
+  @test FE.exact_mul(A[:, 1:2], B[1:2, :]) == A[:, 1:2] * B[1:2, :]
+  @test FE.exact_adjoint(A) == Matrix(A')
+  @test FE.exact_adjoint(A[:, 1:2]) == Matrix(A[:, 1:2]')
+  @test FE.exact_diagonal(Q, R[2, 3 // 5]) == Matrix(Diagonal(Q[2, 3 // 5]))
+  @test_throws DimensionMismatch FE.exact_mul(A, B[1:2, :])
+
+  # Solves with matrix and vector right-hand sides, including a row interchange.
+  P = Q[0 1 1im; 2 0 1; 1 1 1//4]
+  @test P * FE.exact_solve(P, B) == B
+  @test P * FE.exact_solve(P, x) == x
+  @test_throws ArgumentError FE.exact_solve(Q[1 2 3; 2 4 6; 0 1 1], B)
+  input = copy(B)
+  FE.exact_solve(P, input)
+  @test input == B
+
+  # Nullspace and row basis of a rank-two matrix over both the complex and real scalar rings.
+  N = Q[1 2 3; 2 4 6; 1im 2im 3im + 1]
+  kernel = FE.exact_nullspace(N)
+  @test length(kernel) == 1
+  @test all(iszero, N * kernel[1])
+  @test FE.exact_nullspace(R[1 2 3; 2 4 6]) == [R[-2, 1, 0], R[-3, 0, 1]]
+  @test FE.exact_row_basis(N) == [1, 3]
+  @test FE.exact_row_basis(R[1 2; 2 4; 0 1; 1 3]) == [1, 3]
+end
+
+@testset "exact PSD factor does not modify its input" begin
+  P = Q[2 1im; -1im 1]
+  copied = copy(P)
+  newborn, weights = FE.exact_psd_factor(P, R)
+  @test P == copied
+  @test newborn * Diagonal(Q.(weights)) * newborn' == P
+end
