@@ -43,6 +43,7 @@ include("native/sqa_lowering.jl")
 include("native/virtual_gauge.jl")
 include("native/recurrence.jl")
 include("native/driver.jl")
+include("native/rational_reconstruction.jl")
 include("native/symbolic_parameters.jl")
 include("native/realization.jl")
 

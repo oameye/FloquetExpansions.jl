@@ -82,35 +82,45 @@ function native_expansion_data(
   end
 end
 
-function lift_monomial!(cache::Dict{Monomial,SQA.QAdd}, lowering::SQALowering, X::Monomial)
-  return get!(cache, X) do
-    return lift_operator(lowering, algebra_operator(lowering.algebra, [(X, 1)]))
+struct ExactCoefficients end
+
+(::ExactCoefficients)(c) = sqa_scalar(c)
+
+struct CoefficientLift{L<:SQALowering,F}
+  lowering::L
+  coefficient::F
+  monomials::Dict{Monomial,SQA.QAdd}
+end
+
+function CoefficientLift(lowering::SQALowering, coefficient)
+  return CoefficientLift(lowering, coefficient, Dict{Monomial,SQA.QAdd}())
+end
+
+lifted_coefficient(lift::CoefficientLift, c) = convert(SQA.CNum, lift.coefficient(c))
+
+function lift_monomial!(lift::CoefficientLift, X::Monomial)
+  return get!(lift.monomials, X) do
+    return lift_operator(lift.lowering, algebra_operator(lift.lowering.algebra, [(X, 1)]))
   end
+end
+
+function lift_operator(lift::CoefficientLift, X::AlgebraOperator)
+  return lift_operator(lift.lowering, X, lift.coefficient)::SQA.QAdd
 end
 
 # Accumulates `scale * S` into `target` term by term, so no SQA product of two exact
 # coefficients is formed and large rationals cannot overflow SQA's `Rational{Int}`.
 function lift_superoperator!(
-  target::Liouvillian,
-  cache::Dict{Monomial,SQA.QAdd},
-  lowering::SQALowering,
-  S::AlgebraSuperoperator,
-  scale::SQA.CNum,
+  target::Liouvillian, lift::CoefficientLift, S::AlgebraSuperoperator, scale::SQA.CNum
 )
   for ((X, Y), c) in S.terms
-    left = lift_monomial!(cache, lowering, X)
-    right = lift_monomial!(cache, lowering, Y)
-    add_term!(target, left, right, convert(SQA.CNum, sqa_scalar(c)) * scale)
+    left = lift_monomial!(lift, X)
+    right = lift_monomial!(lift, Y)
+    add_term!(target, left, right, lifted_coefficient(lift, c) * scale)
   end
   return target
 end
 
-function lift_superoperator(lowering::SQALowering, S::AlgebraSuperoperator)
-  return lift_superoperator!(
-    Liouvillian(LiouvillianTerms()),
-    Dict{Monomial,SQA.QAdd}(),
-    lowering,
-    S,
-    convert(SQA.CNum, 1),
-  )
+function lift_superoperator(lift::CoefficientLift, S::AlgebraSuperoperator)
+  return lift_superoperator!(Liouvillian(LiouvillianTerms()), lift, S, convert(SQA.CNum, 1))
 end

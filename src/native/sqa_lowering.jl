@@ -275,6 +275,10 @@ end
 sqa_scalar(x::Number) = x
 
 function lift_operator(lowering::SQALowering, X::AlgebraOperator)
+  return lift_operator(lowering, X, sqa_scalar)
+end
+
+function lift_operator(lowering::SQALowering, X::AlgebraOperator, coefficient)
   result = zero(SQA.QAdd)
   for (monomial, c) in X.terms
     product = one(SQA.QAdd)
@@ -282,7 +286,7 @@ function lift_operator(lowering::SQALowering, X::AlgebraOperator)
       slots = monomial[site_slots(lowering.algebra, s)]
       product = product * site_operator(lowering, s, slots...)
     end
-    result = result + sqa_scalar(c) * product
+    result = result + coefficient(c) * product
   end
   return SQA.simplify(result)
 end

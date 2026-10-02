@@ -61,10 +61,14 @@ new channel is born with an exact rate ``\propto \omega_d^{-n}``. The finite gen
 from the graded jump amplitudes, so it agrees with the retained series through the retained order
 and differs from it only by a positive remainder beyond it. Bosonic modes are treated without a
 Fock cutoff, spins as the size-independent ``\mathfrak{su}(2)`` algebra, and all coefficients
-are exact rationals. With symbolic parameters the expansion
-is returned symbolically, with its positivity conditions, when no static gauge is needed through
-the requested order, which is then the [`Gram`](@ref) completion of the van Vleck expansion.
-An order that needs a static gauge requires numeric parameter values.
+are exact rationals. With symbolic parameters the expansion is returned symbolically, with its
+positivity conditions. When no static gauge is needed through the requested order it is the
+[`Gram`](@ref) completion of the van Vleck expansion. Otherwise every exact coefficient is
+reconstructed as a rational function of the parameters from exact evaluations at sample points
+and checked exactly at fresh points. Positivity, pivot and birth decisions are sign decisions,
+so the result is piecewise in the parameters: it holds on the sign region of a generic positive
+reference point, and [`positivity_conditions`](@ref) list the parameters themselves together with
+the channel rates. A sample at which the structure changes raises an `ArgumentError`.
 
 For a single bosonic mode with number-diagonal averaged generator and loss, the last retained
 order may have no polynomial static gauge. It is then realized with a virtual gauge: the
