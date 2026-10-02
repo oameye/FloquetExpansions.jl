@@ -51,7 +51,14 @@ end
   Cbright = active * correction' + correction * active'
   residual = FE.native_gksl(rep, zeros(ComplexF64, d, d), Cbright)
   step = FE.native_static_step(
-    rep, FE.NoHomologicalInverse(), L0, residual, zeros(ComplexF64, 3, 3), active, 1e-8
+    rep,
+    FE.NoHomologicalInverse(),
+    L0,
+    residual,
+    zeros(ComplexF64, 3, 3),
+    active,
+    ComplexF64[1],
+    1e-8,
   )
   @test step isa FE.NativeStaticStep{Matrix{ComplexF64},Matrix{ComplexF64}}
   @test size(step.solution.newborn, 2) == 0

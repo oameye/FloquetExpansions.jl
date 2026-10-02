@@ -35,7 +35,7 @@ end
   @test indices == [1]
   @test active == reshape(T[1, 0], :, 1)
 
-  FE.store_births!(channels, reshape(T[0, 2], :, 1), 1)
+  FE.store_births!(channels, reshape(T[0, 2], :, 1), T[1], 1)
   @test [channel.onset for channel in channels] == [0, 1]
   # A newborn is not active at its own birth order.
   @test first(FE.active_channels(channels, 1, 2)) == [1]

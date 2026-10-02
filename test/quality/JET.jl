@@ -84,7 +84,7 @@ end
     channels, 2, 3
   )
   JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.store_births!(
-    copy(channels), zeros(T, 3, 1), 2
+    copy(channels), zeros(T, 3, 1), T[1], 2
   )
 end
 
@@ -112,6 +112,7 @@ end
     residual,
     zeros(T, 3, 3),
     active,
+    T[1],
     1e-8,
   )
 end

@@ -218,11 +218,18 @@ const NativeNoInverse = FloquetExpansions.NoHomologicalInverse
 
 function native_static_step(L0, Vhat, known, active, d; tol=1e-8, inverse=NativeNoInverse())
   step = FloquetExpansions.native_static_step(
-    native_dense_representation(d), inverse, L0, Vhat, known, active, tol
+    native_dense_representation(d),
+    inverse,
+    L0,
+    Vhat,
+    known,
+    active,
+    ones(ComplexF64, size(active, 2)),
+    tol,
   )
   solution = step.solution
   return (;
-    step.E, step.S, step.H, solution.correction, solution.newborn, C=solution.coefficient
+    step.E, step.S, step.H, step.correction, solution.newborn, C=solution.coefficient
   )
 end
 
