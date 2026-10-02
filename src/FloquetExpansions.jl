@@ -42,6 +42,7 @@ include("native/algebraic_representation.jl")
 include("native/sqa_lowering.jl")
 include("native/recurrence.jl")
 include("native/driver.jl")
+include("native/symbolic_parameters.jl")
 include("native/realization.jl")
 
 include("completion/types.jl")

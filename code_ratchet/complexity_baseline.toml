@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "efa54b1"
+commit = "ed23a99"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -192,9 +192,9 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 44
-cog_sum = 20
-arg_sum = 47
+cyc_sum = 58
+cog_sum = 27
+arg_sum = 59
 
 [files."src/generators/periodic_generator.jl"]
 cyc = 5
@@ -236,7 +236,7 @@ arg = 3
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 77
+cyc_sum = 76
 cog_sum = 46
 arg_sum = 36
 
@@ -269,8 +269,8 @@ arg = 7
 cyc_over = 2
 cog_over = 1
 arg_over = 0
-cyc_sum = 110
-cog_sum = 112
+cyc_sum = 112
+cog_sum = 115
 arg_sum = 76
 
 [files."src/native/charge_grading.jl"]
@@ -302,9 +302,9 @@ arg = 6
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 13
+cyc_sum = 15
 cog_sum = 10
-arg_sum = 17
+arg_sum = 25
 
 [files."src/native/exact_representation.jl"]
 cyc = 4
@@ -342,13 +342,13 @@ arg_sum = 22
 [files."src/native/operator_algebra.jl"]
 cyc = 7
 cog = 7
-arg = 4
+arg = 5
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 71
-cog_sum = 39
-arg_sum = 66
+cyc_sum = 96
+cog_sum = 57
+arg_sum = 92
 
 [files."src/native/realization.jl"]
 cyc = 5
@@ -357,9 +357,9 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 16
-cog_sum = 9
-arg_sum = 27
+cyc_sum = 41
+cog_sum = 27
+arg_sum = 52
 
 [files."src/native/recurrence.jl"]
 cyc = 7
@@ -373,15 +373,15 @@ cog_sum = 43
 arg_sum = 94
 
 [files."src/native/sqa_lowering.jl"]
-cyc = 8
+cyc = 9
 cog = 10
-arg = 4
+arg = 5
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 76
-cog_sum = 60
-arg_sum = 51
+cyc_sum = 84
+cog_sum = 66
+arg_sum = 58
 
 [files."src/native/static_solve.jl"]
 cyc = 6

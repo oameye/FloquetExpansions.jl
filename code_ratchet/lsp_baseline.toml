@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "c52f30e"
+commit = "ed23a99"
 entry = ["src/FloquetExpansions.jl"]
 full_analysis = true
 metric = "lsp"

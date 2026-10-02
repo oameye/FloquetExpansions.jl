@@ -23,25 +23,26 @@ function site_monomials(site::AlgebraSite, degree::Int)
     end
     return monomials
   end
+  if site.kind == SPIN_SITE
+    return [
+      (a, b, total - a - b) for total in 0:degree for a in 0:total for b in 0:(total - a)
+    ]
+  end
   return [(k, total - k) for total in 0:degree for k in 0:total]
 end
 
 function algebra_monomials(algebra::OperatorAlgebra, degree::Int)
-  monomials = [Int[]]
+  monomials = Tuple{Monomial,Int}[(Int[], 0)]
   for site in algebra.sites
-    next = Monomial[]
-    for monomial in monomials, (p, q) in site_monomials(site, degree)
-      candidate = vcat(monomial, [p, q])
-      partial = 0
-      for (s, other) in pairs(algebra.sites[1:(length(candidate) ÷ 2)])
-        other.kind == LEVEL_SITE || (partial += candidate[2s - 1] + candidate[2s])
-      end
-      partial <= degree && push!(next, candidate)
+    next = Tuple{Monomial,Int}[]
+    for (monomial, partial) in monomials, slots in site_monomials(site, degree)
+      total = site.kind == LEVEL_SITE ? partial : partial + sum(slots)
+      total <= degree && push!(next, (append!(copy(monomial), slots), total))
     end
     monomials = next
   end
   identity = identity_monomial(algebra)
-  return sort!(filter(!=(identity), monomials))
+  return sort!(Monomial[m for (m, _) in monomials if m != identity])
 end
 
 function AlgebraicLiouvilleRepresentation(
@@ -331,7 +332,7 @@ function charge_variables(algebra::OperatorAlgebra)
   count = 0
   for site in algebra.sites
     push!(offsets, count)
-    site.kind == BOSON_SITE && (count += 1)
+    (site.kind == BOSON_SITE || site.kind == SPIN_SITE) && (count += 1)
     site.kind == LEVEL_SITE && (count += site.levels)
   end
   return offsets, count
@@ -342,9 +343,11 @@ function monomial_charge(
 )
   charge = zeros(Int, count)
   for (s, site) in pairs(algebra.sites)
-    p, q = M[2s - 1], M[2s]
+    p, q = M[algebra.offsets[s] + 1], M[algebra.offsets[s] + 2]
     if site.kind == BOSON_SITE
       charge[offsets[s] + 1] += p - q
+    elseif site.kind == SPIN_SITE
+      charge[offsets[s] + 1] += p - M[algebra.offsets[s] + 3]
     elseif site.kind == LEVEL_SITE && (p, q) != (0, 0)
       charge[offsets[s] + p] += 1
       charge[offsets[s] + q] -= 1
