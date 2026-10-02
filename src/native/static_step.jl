@@ -32,6 +32,26 @@ end
 
 native_commutator(A, B) = A * B - B * A
 
+struct NativeGaugeFamily{D,I,M}
+  directions::D
+  images::I
+  metric::M
+end
+
+native_gauge_metric(::NativeRepresentation, directions) = zeros(Float64, 0, 0)
+
+function native_gauge_family(
+  representation::NativeRepresentation, inverse::HomologicalInverse, L0
+)
+  directions = singular_gauge_directions(inverse, representation)
+  images = [
+    native_kossakowski(representation, native_commutator(L0, G)) for G in directions
+  ]
+  return NativeGaugeFamily(
+    directions, images, native_gauge_metric(representation, directions)
+  )
+end
+
 function native_matches(::NativeRepresentation, A, B, tol::Real)
   return LinearAlgebra.norm(A - B) <= tol * max(1.0, LinearAlgebra.norm(B))
 end
@@ -44,10 +64,10 @@ function native_dark_target(::NativeRepresentation, residual, known, active, tol
 end
 
 function native_slot_solve(
-  ::NativeRepresentation, residual, known, active, weights, images, directions, tol::Real
+  ::NativeRepresentation, residual, known, active, weights, family, tol::Real
 )
   scale = LinearAlgebra.Diagonal(sqrt.(real.(weights)))
-  solution = native_static_solve(residual, known, active * scale, images, tol)
+  solution = native_static_solve(residual, known, active * scale, family.images, tol)
   correction = solution.correction / scale
   births = ones(ComplexF64, size(solution.newborn, 2))
   return solution, correction, births
@@ -63,21 +83,34 @@ function native_static_step(
   weights::AbstractVector{<:Number},
   tol::Real,
 )
+  family = native_gauge_family(representation, inverse, L0)
+  return native_static_step(
+    representation, inverse, family, L0, residual, known, active, weights, tol
+  )
+end
+
+function native_static_step(
+  representation::NativeRepresentation,
+  inverse::HomologicalInverse,
+  family::NativeGaugeFamily,
+  L0,
+  residual,
+  known::AbstractMatrix{<:Number},
+  active::AbstractMatrix{<:Number},
+  weights::AbstractVector{<:Number},
+  tol::Real,
+)
   C = native_kossakowski(representation, residual)
   regular = regular_gauge(inverse, representation, L0, C, known, active, tol)
   singular_residual = residual + native_commutator(L0, regular)
-  directions = singular_gauge_directions(inverse, representation)
-  images = [
-    native_kossakowski(representation, native_commutator(L0, G)) for G in directions
-  ]
+  directions = family.directions
   solution, correction, births = native_slot_solve(
     representation,
     native_kossakowski(representation, singular_residual),
     known,
     active,
     weights,
-    images,
-    directions,
+    family,
     tol,
   )
 

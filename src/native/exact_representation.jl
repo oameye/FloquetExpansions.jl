@@ -173,19 +173,21 @@ function native_slot_solve(
   known,
   active,
   weights,
-  images,
-  directions,
+  family,
   tol::Real,
 ) where {T,R}
-  gauge_metric = superoperator_metric(representation.hilbert, directions)
   solution = native_exact_static_solve(
     residual,
     known,
     active,
     R[real(weight) for weight in weights],
-    images,
+    family.images,
     representation.metric,
-    gauge_metric,
+    family.metric,
   )
   return solution, solution.correction, T.(solution.newborn_weights)
+end
+
+function native_gauge_metric(representation::ExactLiouvilleRepresentation, directions)
+  return superoperator_metric(representation.hilbert, directions)
 end
