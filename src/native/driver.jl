@@ -68,8 +68,16 @@ function native_expansion_data(
     # Int128 overflow surfaces as an OverflowError in arithmetic and as an InexactError
     # when a BigInt intermediate is converted back; both are retried in BigInt.
     error isa Union{OverflowError,InexactError} || rethrow()
-    return native_expansion_data(
-      Complex{Rational{BigInt}}, algorithm, generator, N, parameters, gauge_degree
+    # `invokelatest` keeps inference from analysing the whole BigInt pipeline when only
+    # the Int128 attempt runs; callers consume the result behind a dispatch barrier.
+    return Base.invokelatest(
+      native_expansion_data,
+      Complex{Rational{BigInt}},
+      algorithm,
+      generator,
+      N,
+      parameters,
+      gauge_degree,
     )
   end
 end

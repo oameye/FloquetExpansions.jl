@@ -23,13 +23,14 @@ function exact_nullspace(A::Matrix{R}) where {R}
   row = 1
   for column in 1:columns
     row > rows && break
-    offset = findfirst(!iszero, view(M, row:rows, column))
-    offset === nothing && continue
-    pivot = row + offset - 1
-    pivot == row || (M[[row, pivot], :] = M[[pivot, row], :])
-    M[row, :] /= M[row, column]
+    pivot = exact_find_pivot(M, row, column)
+    pivot == 0 && continue
+    exact_swap_rows!(M, row, pivot)
+    exact_scale_row!(M, row, inv(M[row, column]))
     for r in 1:rows
-      r == row || iszero(M[r, column]) || (M[r, :] -= M[r, column] * M[row, :])
+      factor = M[r, column]
+      (r == row || iszero(factor)) && continue
+      exact_row_axpy!(M, r, factor, row)
     end
     push!(pivots, column)
     row += 1
@@ -47,10 +48,10 @@ function exact_nullspace(A::Matrix{R}) where {R}
   return basis
 end
 
-function integer_vector(v::Vector{Rational{BigInt}})
-  scale = reduce(lcm, denominator.(v); init=one(BigInt))
+function integer_vector(v::Vector{Rational{I}}) where {I<:Integer}
+  scale = reduce(lcm, denominator.(v); init=one(I))
   scaled = v * scale
-  divisor = reduce(gcd, numerator.(scaled); init=zero(BigInt))
+  divisor = reduce(gcd, numerator.(scaled); init=zero(I))
   iszero(divisor) && return zeros(Int, length(v))
   return Int[Int(numerator(x) ÷ divisor) for x in scaled]
 end

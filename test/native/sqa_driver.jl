@@ -60,3 +60,18 @@ end
   incomplete = FE.SQALowering{Complex{Rational{Int128}}}(G, Dict(Δ => 1 // 2))
   @test_throws ArgumentError FE.lower_generator(incomplete, G)
 end
+
+@testset "the exact driver falls back to BigInt scalars when Int128 overflows" begin
+  h = FockSpace(:c)
+  a = Destroy(h, :a)
+  H = Δ * a' * a + χ * a' * a * a' * a + (2 // 1000009) * (a + a') * cos(ω * t)
+  G = harmonics(liouvillian(H; channels=(jump(a, κ),)), ω, t)
+  values = Dict(Δ => 1 // 1000000, χ => 3 // 1000007, κ => 4 // 1000011)
+  @test_throws OverflowError FE.native_expansion_data(
+    Complex{Rational{Int128}}, HoriDeprit(), G, 2, values, 3
+  )
+  data = FE.native_expansion_data(HoriDeprit(), G, 2, values, 3)
+  exact = FE.native_expansion_data(Complex{Rational{BigInt}}, HoriDeprit(), G, 2, values, 3)
+  @test data isa FE.NativeExpansionData{Complex{Rational{BigInt}},Rational{BigInt}}
+  @test data.recurrence.E == exact.recurrence.E
+end

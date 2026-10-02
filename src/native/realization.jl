@@ -192,9 +192,19 @@ function floquet_expansion_impl(
   parameters = native_parameters(generator)
   isempty(parameters) ||
     return symbolic_gksl_normal_form(generator, gauge, order, provenance, parameters)
+  data = native_expansion_data(gauge.algorithm, generator, order - 1, Dict{Any,Any}(), 3)
+  return native_floquet_expansion(data, generator, gauge, provenance)
+end
+
+function native_floquet_expansion(
+  data::NativeExpansionData,
+  generator::PeriodicGenerator{Liouvillian},
+  gauge::GKSLNormalForm,
+  provenance::R,
+) where {R<:FloquetProvenance}
+  order = length(data.recurrence.E)
   N = order - 1
   wd = generator.wd
-  data = native_expansion_data(gauge.algorithm, generator, N, Dict{Any,Any}(), 3)
   effective = Liouvillian[lift_superoperator(data.lowering, E) for E in data.recurrence.E]
   micromotion = native_micromotion(data, gauge.algorithm, wd, N)
   H = zero(SQA.QAdd)

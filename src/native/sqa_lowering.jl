@@ -194,17 +194,20 @@ function lower_qadd(lowering::SQALowering{T,R}, q::SQA.QAdd) where {T,R}
   return result
 end
 
-function lowered_monomials(lowering::SQALowering, q::SQA.QAdd)
-  return [
-    (
-      foldl(
-        *,
-        (lower_operator(lowering, op) for op in term.ops);
-        init=algebra_identity(lowering.algebra),
-      ),
-      c,
-    ) for (term, c) in q.arguments
-  ]
+function lower_term(lowering::SQALowering{T,R}, term::SQA.QTerm) where {T,R}
+  product = algebra_identity(lowering.algebra)
+  for op in term.ops
+    product = product * lower_operator(lowering, op)
+  end
+  return product
+end
+
+function lowered_monomials(lowering::SQALowering{T,R}, q::SQA.QAdd) where {T,R}
+  result = Tuple{AlgebraOperator{T,R},SQA.Coeff}[]
+  for (term, c) in q.arguments
+    push!(result, (lower_term(lowering, term), c))
+  end
+  return result
 end
 
 function lower_liouvillian(lowering::SQALowering{T,R}, L::Liouvillian) where {T,R}

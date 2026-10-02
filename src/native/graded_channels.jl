@@ -28,22 +28,41 @@ function active_channels(
   return indices, active
 end
 
-hermitian_part(X::AbstractMatrix) = (X + adjoint(X)) / 2
+function hermitian_part(X::AbstractMatrix)
+  S = typeof((zero(eltype(X)) + zero(eltype(X))) / 2)
+  result = Matrix{S}(undef, size(X))
+  for j in axes(X, 2), i in axes(X, 1)
+    result[i, j] = (X[i, j] + conj(X[j, i])) / 2
+  end
+  return result
+end
+
+# result += weight * u * v'
+function add_outer!(
+  result::AbstractMatrix{T}, weight::T, u::AbstractVector{T}, v::AbstractVector{T}
+) where {T}
+  for j in eachindex(v)
+    conjugate = conj(v[j])
+    for i in eachindex(u)
+      result[i, j] += (weight * u[i]) * conjugate
+    end
+  end
+  return result
+end
 
 function known_gram(
   channels::AbstractVector{GradedChannel{T}}, order::Int, dimension::Int
 ) where {T}
-  result = zeros(T, dimension, dimension)
+  result = exact_zeros(T, dimension, dimension)
   for channel in channels
     q = order - channel.onset
     q >= 2 || continue
     length(channel.coefficients) >= q ||
       throw(ArgumentError("graded channel is missing a lower-order amplitude"))
     for k in 1:(q - 1)
-      result +=
-        channel.weight *
-        channel.coefficients[k + 1] *
-        adjoint(channel.coefficients[q - k + 1])
+      add_outer!(
+        result, channel.weight, channel.coefficients[k + 1], channel.coefficients[q - k + 1]
+      )
     end
   end
   return hermitian_part(result)
@@ -52,15 +71,14 @@ end
 function gram_coefficient(
   channels::AbstractVector{GradedChannel{T}}, order::Int, dimension::Int
 ) where {T}
-  result = zeros(T, dimension, dimension)
+  result = exact_zeros(T, dimension, dimension)
   for channel in channels
     q = order - channel.onset
     stored = length(channel.coefficients)
     for k in max(0, q + 1 - stored):min(q, stored - 1)
-      result +=
-        channel.weight *
-        channel.coefficients[k + 1] *
-        adjoint(channel.coefficients[q - k + 1])
+      add_outer!(
+        result, channel.weight, channel.coefficients[k + 1], channel.coefficients[q - k + 1]
+      )
     end
   end
   return hermitian_part(result)

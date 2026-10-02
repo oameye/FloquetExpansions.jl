@@ -256,10 +256,12 @@ function Base.:+(A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}) where {T,R}
   return AlgebraOperator{T,R}(A.algebra, terms)
 end
 
-function Base.:*(c::Number, A::AlgebraOperator{T,R}) where {T,R}
+Base.:*(c::Number, A::AlgebraOperator{T}) where {T} = scale_operator(T(c), A)
+
+function scale_operator(c::T, A::AlgebraOperator{T,R}) where {T,R}
   terms = Dict{Monomial,T}()
   for (k, v) in A.terms
-    accumulate!(terms, k, T(c) * v)
+    accumulate!(terms, k, c * v)
   end
   return AlgebraOperator{T,R}(A.algebra, terms)
 end
@@ -315,9 +317,10 @@ function Base.:+(A::AlgebraSuperoperator{T,R}, B::AlgebraSuperoperator{T,R}) whe
   return AlgebraSuperoperator{T,R}(A.algebra, terms)
 end
 
-function Base.:*(c::Number, A::AlgebraSuperoperator{T,R}) where {T,R}
+Base.:*(c::Number, A::AlgebraSuperoperator{T}) where {T} = scale_superoperator(T(c), A)
+
+function scale_superoperator(scale::T, A::AlgebraSuperoperator{T,R}) where {T,R}
   terms = Dict{Tuple{Monomial,Monomial},T}()
-  scale = T(c)
   iszero(scale) && return AlgebraSuperoperator{T,R}(A.algebra, terms)
   for (k, v) in A.terms
     terms[k] = scale * v
