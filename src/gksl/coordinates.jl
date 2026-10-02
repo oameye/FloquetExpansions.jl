@@ -148,7 +148,9 @@ function monomial_constant(term)::Tuple{Float64,Bool}
   return magnitude, inexact
 end
 
-function monomial_constants!(constants::Vector{Tuple{Float64,Bool}}, part::Symbolics.Num)
+function monomial_constants!(
+  constants::Vector{Tuple{Float64,Bool}}, part::Symbolics.Num
+)::Vector{Tuple{Float64,Bool}}
   expanded = Symbolics.unwrap(Symbolics.expand(part))
   terms = if Symbolics.iscall(expanded) && Symbolics.operation(expanded) === (+)
     Symbolics.arguments(expanded)
@@ -176,10 +178,11 @@ end
 function floating_roundoff(value::SQA.CNum, scale::Float64)::Bool
   constants = monomial_constants(value)
   isempty(constants) && return false
-  return all(
-    inexact && magnitude <= FLOAT_ROUNDOFF_TOLERANCE * scale for
-    (magnitude, inexact) in constants
-  )
+  threshold = FLOAT_ROUNDOFF_TOLERANCE * scale
+  for (magnitude, inexact) in constants
+    (inexact && magnitude <= threshold) || return false
+  end
+  return true
 end
 
 function coefficient_scale(values)::Float64
