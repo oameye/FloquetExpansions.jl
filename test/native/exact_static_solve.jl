@@ -102,7 +102,7 @@ end
   G = Matrix{Q}(I, 4, 4)
   Γ = Matrix{R}(I, 3, 3)
   shifted = f.residual - Q[0 0 0 0; 0 0 0 0; 0 0 3 0; 0 0 0 0]
-  @test_throws ArgumentError FE.native_exact_static_solve(
+  @test_throws FE.NativePositivityError FE.native_exact_static_solve(
     shifted, f.known, f.B, f.weights, f.images, G, Γ
   )
   @test_throws DimensionMismatch FE.native_exact_static_solve(

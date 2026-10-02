@@ -1,3 +1,9 @@
+struct NativePositivityError <: Exception
+  message::String
+end
+
+Base.showerror(io::IO, error::NativePositivityError) = print(io, error.message)
+
 struct ExactStaticSolution{T,R}
   coordinates::Vector{R}
   newborn::Matrix{T}
@@ -162,12 +168,17 @@ function exact_psd_factor(P::AbstractMatrix{T}, ::Type{R}) where {T,R}
   weights = R[]
   for _ in 1:n
     diagonal = R[real(work[i, i]) for i in 1:n]
-    any(<(0), diagonal) &&
-      throw(ArgumentError("the exact canonical dark residual is not positive semidefinite"))
+    any(<(0), diagonal) && throw(
+      NativePositivityError(
+        "the exact canonical dark residual is not positive semidefinite"
+      ),
+    )
     pivot = findfirst(>(0), diagonal)
     if pivot === nothing
       iszero(work) || throw(
-        ArgumentError("the exact canonical dark residual is not positive semidefinite")
+        NativePositivityError(
+          "the exact canonical dark residual is not positive semidefinite"
+        ),
       )
       break
     end
@@ -299,8 +310,8 @@ function exact_facial_constraints(
     try
       exact_psd_factor(block, R)
     catch error
-      error isa ArgumentError || rethrow()
-      throw(ArgumentError("no PSD lift exists in this static gauge family"))
+      error isa NativePositivityError || rethrow()
+      throw(NativePositivityError("no PSD lift exists in this static gauge family"))
     end
     kernel = exact_nullspace(block)
     isempty(kernel) && break
@@ -311,7 +322,12 @@ function exact_facial_constraints(
       init=exact_zeros(R, 2 * n * size(N, 2), 0),
     )
     rhs = -exact_complex_coordinates(current[:, fixed] * N, R)
-    y = exact_min_norm_solve(rows, rhs, Matrix{R}(LinearAlgebra.I, size(Z, 2), size(Z, 2)))
+    y = try
+      exact_min_norm_solve(rows, rhs, Matrix{R}(LinearAlgebra.I, size(Z, 2), size(Z, 2)))
+    catch error
+      error isa ArgumentError || rethrow()
+      throw(NativePositivityError("no PSD lift exists in this static gauge family"))
+    end
     constraint = if free === J
       rows
     else
@@ -343,7 +359,7 @@ function exact_is_psd(P::AbstractMatrix, ::Type{R}) where {R}
     exact_psd_factor(P, R)
     return true
   catch error
-    error isa ArgumentError || rethrow()
+    error isa NativePositivityError || rethrow()
     return false
   end
 end
