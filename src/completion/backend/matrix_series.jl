@@ -210,6 +210,20 @@ function structurally_nonpositive_product(
   return !isnothing(coefficient) && coefficient < 0
 end
 
+# Sign implied by `x` matching ± an asserted positivity condition, or `nothing`.
+function asserted_condition_sign(
+  x::CompletionScalar, conditions::CompletionConditions
+)::Union{Nothing,StructuralSign}
+  for p in conditions.positivity
+    if structurally_equal(x, p)
+      return condition_contains(conditions.regularity, p) ? SIGN_POSITIVE : SIGN_NONNEGATIVE
+    elseif structurally_equal(x, -p)
+      return condition_contains(conditions.regularity, p) ? SIGN_NEGATIVE : SIGN_NONPOSITIVE
+    end
+  end
+  return nothing
+end
+
 function structural_sign(x::CompletionScalar, conditions::CompletionConditions)
   real_x = hermitian_real(x)
   structurally_zero(real_x) && return SIGN_ZERO
@@ -218,13 +232,8 @@ function structural_sign(x::CompletionScalar, conditions::CompletionConditions)
   symbolically_positive(real_value) && return SIGN_POSITIVE
   symbolically_negative(real_value) && return SIGN_NEGATIVE
 
-  for p in conditions.positivity
-    if structurally_equal(real_x, p)
-      return condition_contains(conditions.regularity, p) ? SIGN_POSITIVE : SIGN_NONNEGATIVE
-    elseif structurally_equal(real_x, -p)
-      return condition_contains(conditions.regularity, p) ? SIGN_NEGATIVE : SIGN_NONPOSITIVE
-    end
-  end
+  asserted = asserted_condition_sign(real_x, conditions)
+  asserted === nothing || return asserted
 
   structurally_nonpositive_product(real_value, conditions) && return SIGN_NONPOSITIVE
 
