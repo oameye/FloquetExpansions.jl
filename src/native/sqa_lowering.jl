@@ -58,7 +58,7 @@ function SQALowering{T}(
   sites = sort!(collect(values(found)); by=site -> site.space_index)
   algebra_sites = AlgebraSite{R}[
     if site.kind == LEVEL_SITE
-      level_site(ones(R, site.levels))
+      level_site(fill(one(R), site.levels))
     elseif site.kind == PHASE_SITE
       phase_site(R)
     else

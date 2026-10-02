@@ -15,6 +15,14 @@ end
 
 exact_zeros(::Type{S}, dims::Int...) where {S} = fill!(Array{S}(undef, dims...), zero(S))
 
+function exact_columns(::Type{S}, height::Int, columns::AbstractVector) where {S}
+  result = exact_zeros(S, height, length(columns))
+  for (j, column) in pairs(columns)
+    result[:, j] = column
+  end
+  return result
+end
+
 function exact_solve(A::AbstractMatrix{S}, B::AbstractVecOrMat{S}) where {S}
   n = size(A, 1)
   size(A, 2) == n || throw(DimensionMismatch("exact solve needs a square matrix"))
@@ -188,7 +196,7 @@ function exact_psd_factor(P::AbstractMatrix{T}, ::Type{R}) where {T,R}
     push!(weights, weight)
     work -= weight * column * adjoint(column)
   end
-  newborn = isempty(columns) ? exact_zeros(T, n, 0) : reduce(hcat, columns)
+  newborn = exact_columns(T, n, columns)
   return newborn, weights
 end
 
@@ -256,23 +264,13 @@ end
 function exact_row_cancellation(P0, J, C, c, ::Type{R}) where {R}
   n = size(P0, 1)
   for i in 1:n
-    rows = reduce(
-      hcat,
-      [exact_complex_coordinates(Jk[:, i:i], R) for Jk in J];
-      init=exact_zeros(R, 2 * n, 0),
-    )
+    rows = exact_columns(R, 2 * n, [exact_complex_coordinates(Jk[:, i:i], R) for Jk in J])
     rhs = -exact_complex_coordinates(P0[:, i:i], R)
     iszero(rows) && iszero(rhs) && continue
     trialC = vcat(C, rows)
     trialc = vcat(c, rhs)
-    consistent = try
-      exact_min_norm_solve(trialC, trialc, Matrix{R}(LinearAlgebra.I, size(C, 2), size(C, 2)))
-      true
-    catch error
-      error isa ArgumentError || rethrow()
-      false
-    end
-    consistent && ((C, c) = (trialC, trialc))
+    exact_consistent_solve(trialC, trialc, size(C, 2)) === nothing ||
+      ((C, c) = (trialC, trialc))
   end
   return C, c
 end
@@ -288,6 +286,59 @@ function exact_fixed_block(free, n::Int)
   return fixed
 end
 
+function exact_free_directions(J::Vector{Matrix{T}}, Z::Matrix, n::Int) where {T}
+  Z == LinearAlgebra.I && return J
+  free = Matrix{T}[]
+  for j in axes(Z, 2)
+    push!(free, exact_combination(J, view(Z, :, j), n))
+  end
+  return free
+end
+
+function exact_coordinate_columns(
+  matrices::Vector{Matrix{T}}, fixed::Vector{Int}, N::Matrix{T}, ::Type{R}, height::Int
+) where {T,R}
+  result = exact_zeros(R, height, length(matrices))
+  for (j, F) in pairs(matrices)
+    result[:, j] = exact_complex_coordinates(exact_column_product(F, fixed, N), R)
+  end
+  return result
+end
+
+function exact_facial_step(
+  P0::Matrix{T}, J::Vector{Matrix{T}}, x0::Vector{R}, Z::Matrix{R}, ::Type{R}
+) where {T,R}
+  n = size(P0, 1)
+  free = exact_free_directions(J, Z, n)
+  fixed = exact_fixed_block(free, n)
+  isempty(fixed) && return nothing
+  current = P0 + exact_combination(J, x0, n)
+  block = current[fixed, fixed]
+  exact_is_psd(block, R) ||
+    throw(NativePositivityError("no PSD lift exists in this static gauge family"))
+  kernel = exact_nullspace(block)
+  isempty(kernel) && return nothing
+  N = exact_columns(T, length(fixed), kernel)
+  height = 2 * n * size(N, 2)
+  rows = exact_coordinate_columns(free, fixed, N, R, height)
+  rhs = -exact_complex_coordinates(current[:, fixed] * N, R)
+  y = exact_consistent_solve(rows, rhs, size(Z, 2))
+  y === nothing &&
+    throw(NativePositivityError("no PSD lift exists in this static gauge family"))
+  constraint = free === J ? rows : exact_coordinate_columns(J, fixed, N, R, height)
+  constraint_rhs = -exact_complex_coordinates(P0[:, fixed] * N, R)
+  return constraint, constraint_rhs, y, exact_nullspace(rows)
+end
+
+function exact_consistent_solve(A::Matrix{R}, b::Vector{R}, unknowns::Int) where {R}
+  try
+    return exact_min_norm_solve(A, b, Matrix{R}(LinearAlgebra.I, unknowns, unknowns))
+  catch error
+    error isa ArgumentError || rethrow()
+    return nothing
+  end
+end
+
 function exact_facial_constraints(
   P0::Matrix{T}, J::Vector{Matrix{T}}, ::Type{R}
 ) where {T,R}
@@ -298,51 +349,14 @@ function exact_facial_constraints(
   C = exact_zeros(R, 0, p)
   c = R[]
   while true
-    free = if Z == LinearAlgebra.I
-      J
-    else
-      [exact_combination(J, view(Z, :, j), n) for j in axes(Z, 2)]
-    end
-    fixed = exact_fixed_block(free, n)
-    isempty(fixed) && break
-    current = P0 + exact_combination(J, x0, n)
-    block = current[fixed, fixed]
-    try
-      exact_psd_factor(block, R)
-    catch error
-      error isa NativePositivityError || rethrow()
-      throw(NativePositivityError("no PSD lift exists in this static gauge family"))
-    end
-    kernel = exact_nullspace(block)
-    isempty(kernel) && break
-    N = reduce(hcat, kernel)
-    rows = reduce(
-      hcat,
-      [exact_complex_coordinates(exact_column_product(F, fixed, N), R) for F in free];
-      init=exact_zeros(R, 2 * n * size(N, 2), 0),
-    )
-    rhs = -exact_complex_coordinates(current[:, fixed] * N, R)
-    y = try
-      exact_min_norm_solve(rows, rhs, Matrix{R}(LinearAlgebra.I, size(Z, 2), size(Z, 2)))
-    catch error
-      error isa ArgumentError || rethrow()
-      throw(NativePositivityError("no PSD lift exists in this static gauge family"))
-    end
-    constraint = if free === J
-      rows
-    else
-      reduce(
-        hcat,
-        [exact_complex_coordinates(exact_column_product(Jk, fixed, N), R) for Jk in J];
-        init=exact_zeros(R, 2 * n * size(N, 2), 0),
-      )
-    end
+    step = exact_facial_step(P0, J, x0, Z, R)
+    step === nothing && break
+    constraint, rhs, y, reduced = step
     C = vcat(C, constraint)
-    c = vcat(c, -exact_complex_coordinates(P0[:, fixed] * N, R))
+    c = vcat(c, rhs)
     x0 += Z * y
-    reduced = exact_nullspace(rows)
     length(reduced) == size(Z, 2) && break
-    Z = isempty(reduced) ? exact_zeros(R, p, 0) : Z * reduce(hcat, reduced)
+    Z = Z * exact_columns(R, size(Z, 2), reduced)
   end
   return C, c, Z
 end
@@ -402,7 +416,7 @@ function native_exact_static_solve(
   if !exact_is_psd(P0 + exact_combination(J, coordinates, n), R)
     C, c = exact_row_cancellation(P0, J, C, c, R)
     kernel = exact_nullspace(C)
-    Z = isempty(kernel) ? exact_zeros(R, p, 0) : reduce(hcat, kernel)
+    Z = exact_columns(R, p, kernel)
     coordinates = exact_section(C, c, Z, normal_matrix, normal_rhs, gauge_metric)
   end
 

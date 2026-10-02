@@ -172,3 +172,23 @@ function positive_completion(
 ) where {G,P,E,C<:PositiveCompletion,R}
   return throw(ArgumentError("the Floquet expansion is already positively completed"))
 end
+
+function positive_completion(
+  ::FloquetExpansion{G,P,E,C,R}, ::CompletionAlgorithm
+) where {G,P,E,C<:NativeRealization,R}
+  return throw(
+    ArgumentError(
+      "a GKSLNormalForm expansion is already of GKSL form; positive completion does not apply",
+    ),
+  )
+end
+
+function positive_completion(
+  ::FloquetExpansion{G,P,E,C,R}, ::CompletionAlgorithm, ::DissipativeFrame
+) where {G,P,E,C<:NativeRealization,R}
+  return throw(
+    ArgumentError(
+      "a GKSLNormalForm expansion is already of GKSL form; positive completion does not apply",
+    ),
+  )
+end
