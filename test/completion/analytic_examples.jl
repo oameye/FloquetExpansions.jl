@@ -21,6 +21,10 @@ function analytic_matrix_equal(left, right)
   return all(iszero(SQA.simplify(left[index] - right[index])) for index in eachindex(left))
 end
 
+function trigonometric_matrix_equal(left, right)
+  return analytic_matrix_equal(trigonometric_form.(left), trigonometric_form.(right))
+end
+
 @testset "analytical driven-qubit root and HCM completions" begin
   pauli = PauliSpace(:cp_analytic_qubit)
   σx = Pauli(pauli, :sigma, 1)
@@ -159,4 +163,41 @@ end
   @test length(gram_data.amplitudes) == 2
   @test liouvillian(hamiltonian(gram); channels=channels(gram)) == effective_generator(gram)
   @test micromotion(gram) == micromotion(expansion)
+end
+
+@testset "
+
+analytical modulated loss closure with symbolic reservoir phase" begin
+  fock = FockSpace(:cp_analytic_bosonic_loss_phase)
+  a = Destroy(fock, :a)
+  frame = DissipativeFrame(a, a^2, a' * a^2)
+  @variables ω::Real t::Real κ1::Real κ2::Real r1::Real r2::Real φ::Real
+
+  generator = liouvillian(
+    0 * (a' * a);
+    channels=(
+      jump(a, κ1 * (1 + r1 * cos(ω * t))), jump(a^2, κ2 * (1 + r2 * cos(ω * t - φ)))
+    ),
+  )
+  expansion = floquet_expansion(generator, ω, t, VanVleck(), 2)
+  c = κ1 * κ2 * r1 * r2 * sin(φ) / (2ω)
+
+  expected_first_order = analytic_matrix((0, 0, c), (0, -2c, 0), (c, 0, 0))
+  @test trigonometric_matrix_equal(
+    kossakowski_component(expansion, frame, 1), expected_first_order
+  )
+
+  expected_completion = analytic_matrix(
+    (κ1, 0, c), (0, κ2 - 2c + c^2 / κ2, 0), (c, 0, c^2 / κ1)
+  )
+  expected_closure = analytic_matrix((0, 0, 0), (0, c^2 / κ2, 0), (0, 0, c^2 / κ1))
+  gram = positive_completion(expansion, Gram(), frame)
+  @test trigonometric_matrix_equal(kossakowski(gram), expected_completion)
+  @test trigonometric_matrix_equal(
+    kossakowski(gram) - kossakowski(expansion, frame), expected_closure
+  )
+  spectral = positive_completion(expansion, Spectral(), frame)
+  @test trigonometric_matrix_equal(
+    kossakowski_component(spectral, frame, 1), expected_first_order
+  )
 end
