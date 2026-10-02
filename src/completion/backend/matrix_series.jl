@@ -160,6 +160,70 @@ function structurally_nonzero(x::CompletionScalar, conditions::CompletionConditi
   return condition_contains(conditions.regularity, simplified)
 end
 
+function exact_rational(node)::Union{Nothing,Rational{Int}}
+  value = Symbolics.unwrap_const(node)
+  value isa Int && return Rational{Int}(value, 1)
+  value isa Rational{Int} && return value
+  return nothing
+end
+
+function nonnegative_factor(factor, conditions::CompletionConditions)::Bool
+  value = Symbolics.unwrap(factor)
+  for p in conditions.positivity
+    structurally_equal(completion_scalar(Symbolics.Num(value)), p) && return true
+  end
+  Symbolics.iscall(value) && Symbolics.operation(value) === (^) || return false
+  base, exponent = Symbolics.arguments(value)
+  power = Symbolics.unwrap_const(exponent)
+  power isa Int || return false
+  iseven(power) && return completion_symbolic_zero(imag(Symbolics.Num(base)))
+  return power > 0 && any(
+    p -> structurally_equal(completion_scalar(Symbolics.Num(base)), p),
+    conditions.positivity,
+  )
+end
+
+"""
+Decide whether `x` is provably nonpositive: a negative rational coefficient times factors that
+are even powers of real symbols or quantities already asserted nonnegative. Conservative:
+any other form returns `false`.
+"""
+function structurally_nonpositive_product(
+  x::Symbolics.Num, conditions::CompletionConditions
+)::Bool
+  node = Symbolics.unwrap(Symbolics.simplify(x))
+  factors = if Symbolics.iscall(node) && Symbolics.operation(node) === (*)
+    Symbolics.arguments(node)
+  else
+    [node]
+  end
+  coefficient = nothing
+  for factor in factors
+    constant = exact_rational(factor)
+    if !isnothing(constant)
+      isnothing(coefficient) || return false
+      coefficient = constant
+    elseif !nonnegative_factor(factor, conditions)
+      return false
+    end
+  end
+  return !isnothing(coefficient) && coefficient < 0
+end
+
+# Sign implied by `x` matching ± an asserted positivity condition, or `nothing`.
+function asserted_condition_sign(
+  x::CompletionScalar, conditions::CompletionConditions
+)::Union{Nothing,StructuralSign}
+  for p in conditions.positivity
+    if structurally_equal(x, p)
+      return condition_contains(conditions.regularity, p) ? SIGN_POSITIVE : SIGN_NONNEGATIVE
+    elseif structurally_equal(x, -p)
+      return condition_contains(conditions.regularity, p) ? SIGN_NEGATIVE : SIGN_NONPOSITIVE
+    end
+  end
+  return nothing
+end
+
 function structural_sign(x::CompletionScalar, conditions::CompletionConditions)
   real_x = hermitian_real(x)
   structurally_zero(real_x) && return SIGN_ZERO
@@ -168,13 +232,10 @@ function structural_sign(x::CompletionScalar, conditions::CompletionConditions)
   symbolically_positive(real_value) && return SIGN_POSITIVE
   symbolically_negative(real_value) && return SIGN_NEGATIVE
 
-  for p in conditions.positivity
-    if structurally_equal(real_x, p)
-      return condition_contains(conditions.regularity, p) ? SIGN_POSITIVE : SIGN_NONNEGATIVE
-    elseif structurally_equal(real_x, -p)
-      return condition_contains(conditions.regularity, p) ? SIGN_NEGATIVE : SIGN_NONPOSITIVE
-    end
-  end
+  asserted = asserted_condition_sign(real_x, conditions)
+  asserted === nothing || return asserted
+
+  structurally_nonpositive_product(real_value, conditions) && return SIGN_NONPOSITIVE
 
   return SIGN_UNKNOWN
 end

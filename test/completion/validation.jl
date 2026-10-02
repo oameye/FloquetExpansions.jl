@@ -339,6 +339,63 @@ end
   end
 end
 
+function rate_modulated_cascade(phase_sign, κ, r, ω, t)
+  space = NLevelSpace(:cp_validation_cascade, 3)
+  J10 = Transition(space, :s, 1, 2)
+  J21 = Transition(space, :s, 2, 3)
+  J20 = Transition(space, :s, 1, 3)
+  frame = DissipativeFrame(J10, J21, J20)
+  generator = liouvillian(
+    0 * Transition(space, :s, 1, 1);
+    channels=(
+      jump(J10, κ * (1 + r * cos(ω * t))), jump(J21, κ * (1 + phase_sign * r * sin(ω * t)))
+    ),
+  )
+  return floquet_expansion(generator, ω, t, VanVleck(), 2), frame
+end
+
+function completion_error(expansion, method, frame)
+  try
+    positive_completion(expansion, method, frame)
+    return nothing
+  catch caught
+    return caught
+  end
+end
+
+@testset "structurally negative symbolic leading rate is an obstruction" begin
+  @variables ω::Real t::Real κ::Real r::Real
+  expansion, frame = rate_modulated_cascade(+1, κ, r, ω, t)
+  for method in (Gram(), Spectral())
+    error = completion_error(expansion, method, frame)
+    @test error isa FloquetExpansions.CompletionObstruction
+    @test error.rate_order == 1
+  end
+
+  numeric, numeric_frame = rate_modulated_cascade(+1, 1, 1 // 2, ω, t)
+  for method in (Gram(), Spectral())
+    error = completion_error(numeric, method, numeric_frame)
+    @test error isa FloquetExpansions.CompletionObstruction
+    @test error.rate_order == 1
+    @test iszero(SQA.simplify(error.obstruction + 1 // 8))
+  end
+end
+
+@testset "opposite symbolic orientation remains a Puiseux onset" begin
+  @variables ω::Real t::Real κ::Real r::Real
+  expansion, frame = rate_modulated_cascade(-1, κ, r, ω, t)
+  @test completion_error(expansion, Gram(), frame) isa FloquetExpansions.FractionalJumpOnset
+  spectral = positive_completion(expansion, Spectral(), frame)
+  spectral_data = factorization(spectral)
+  @test spectral_data.puiseux == [false, false, true]
+
+  numeric, numeric_frame = rate_modulated_cascade(-1, 1, 1 // 2, ω, t)
+  @test completion_error(numeric, Gram(), numeric_frame) isa
+    FloquetExpansions.FractionalJumpOnset
+  @test factorization(positive_completion(numeric, Spectral(), numeric_frame)).puiseux ==
+    [false, false, true]
+end
+
 @testset "zero diagonal with Hermitian coupling is a PSD obstruction" begin
   fock = FockSpace(:cp_validation_zero_diagonal)
   a = Destroy(fock, :a)
