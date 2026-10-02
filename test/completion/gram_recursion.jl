@@ -49,3 +49,21 @@ end
   @test all(FloquetExpansions.structurally_zero, factor[2][:, 3])
   @test !all(FloquetExpansions.structurally_zero, factor[3][:, 3])
 end
+
+@testset "structural sign of negative products" begin
+  FE = FloquetExpansions
+  @variables κ::Real r::Real x::Real
+  conditions = FE.CompletionConditions()
+  FE.require_positivity!(conditions, FE.completion_scalar(κ))
+  sign_of(value) = FE.structural_sign(FE.completion_scalar(value), conditions)
+
+  # Negative exact coefficient times nonnegative factors.
+  @test sign_of(-(1 // 2) * r^2 * κ^2) == FE.SIGN_NONPOSITIVE
+  @test sign_of(-2 * κ * r^2) == FE.SIGN_NONPOSITIVE
+  @test sign_of(-3 * κ^3) == FE.SIGN_NONPOSITIVE
+
+  # Anything not provably nonpositive stays unknown.
+  @test sign_of(-r^3) == FE.SIGN_UNKNOWN
+  @test sign_of(-(1 // 2) * r^2 * x) == FE.SIGN_UNKNOWN
+  @test sign_of(r^2 * x) == FE.SIGN_UNKNOWN
+end
