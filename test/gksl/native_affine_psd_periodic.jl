@@ -1,6 +1,6 @@
 include("native_hd_arbitrary.jl")
 
-@testset "native GKLS affine PSD branch: periodic qutrit BF equals HD" begin
+@testset "native GKSL affine PSD branch: periodic qutrit BF equals HD" begin
   d = 3
   H0 = Diagonal(ComplexF64[0, 0.7, 1.9]) |> Matrix
   H1 = ComplexF64[

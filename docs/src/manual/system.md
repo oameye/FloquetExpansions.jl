@@ -125,7 +125,7 @@ Liouvillian
 liouvillian
 ```
 
-### GKLS (Lindblad) form
+### GKSL (Lindblad) form
 
 A [Lindblad generator](https://en.wikipedia.org/wiki/Lindbladian), also called a
 Gorini–Kossakowski–Sudarshan–Lindblad generator (GKSL or GKLS), is the physically constrained

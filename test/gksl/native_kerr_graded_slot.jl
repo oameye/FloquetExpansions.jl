@@ -226,7 +226,7 @@ end
   @test_throws ErrorException NativeKerrLadderInverse(3, -0.3, 0.3, 0.8)
 end
 
-@testset "graded native slot through order 4 on driven Kerr" begin
+@testset "truncated model: graded native slot through order 4 on driven Kerr" begin
   (; Δ, χ, κ, F) = NATIVE_KERR
   d = 3
   model = native_kerr_model(d, Δ, χ, κ, F)
@@ -304,7 +304,7 @@ end
     -2e-8
 end
 
-@testset "graded native slot at a larger Fock cutoff" begin
+@testset "truncated model: graded native slot at a larger Fock cutoff" begin
   (; Δ, χ, κ, F) = NATIVE_KERR
   d = 4
   model = native_kerr_model(d, Δ, χ, κ, F)
@@ -323,7 +323,7 @@ end
   end
 end
 
-@testset "graded native slot keeps the Hamiltonian branch" begin
+@testset "truncated model: graded native slot keeps the Hamiltonian branch" begin
   (; Δ, χ, F) = NATIVE_KERR
   d = 3
   model = native_kerr_model(d, Δ, χ, 0.0, F)

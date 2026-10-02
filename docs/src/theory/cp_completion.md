@@ -7,7 +7,7 @@ CollapsedDocStrings = true
 
 For a periodically driven open system, a finite-order effective Liouvillian obtained from a
 high-frequency expansion need not remain inside the Gorini--Kossakowski--Sudarshan--Lindblad
-(GKLS) cone [Ikeda2021, Schnell2021](@cite). The completion problem is to preserve every retained
+(GKSL) cone [Ikeda2021, Schnell2021](@cite). The completion problem is to preserve every retained
 perturbative coefficient while choosing the first unfixed higher-order dissipative terms so that
 the finite effective generator is completely positive.
 

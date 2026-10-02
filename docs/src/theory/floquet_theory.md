@@ -40,7 +40,7 @@ e^{(t_2-t_1)\mathcal{G}_{\mathrm{F}}}
 Equivalently, ``\mathcal{G}_{\mathrm{F}}`` is a choice of logarithm of the one-period propagator
 up to a similarity transformation. The periodic factor contains micromotion, while the constant
 factor describes the stroboscopic evolution. For an open system, ``\mathcal{G}_{\mathrm{F}}`` may
-be a general effective Liouvillian rather than a generator in GKLS form.
+be a general effective Liouvillian rather than a generator in GKSL form.
 
 We use the Fourier convention
 
@@ -133,9 +133,9 @@ requires ``m\mapsto-m``.
 
 For a periodic Markovian master equation, the propagator over each finite time interval is a
 completely positive trace-preserving map. This does **not** imply that an arbitrary logarithm of the
-one-period channel is a time-independent GKLS generator. The exact Floquet logarithm depends on a
+one-period channel is a time-independent GKSL generator. The exact Floquet logarithm depends on a
 logarithm branch and on the periodic similarity gauge, and the resulting effective Liouvillian need
-not lie inside the GKLS cone [Schnell2021](@cite).
+not lie inside the GKSL cone [Schnell2021](@cite).
 
 The same distinction appears perturbatively. A high-frequency expansion constructs a formal
 Floquet Liouvillian
@@ -159,7 +159,7 @@ positive Kossakowski form while preserving every retained coefficient,
 ~~~
 
 This is a perturbative completion, not an assertion that
-``\mathcal L_{\mathrm{CP}}^{[N]}`` equals an exact Floquet GKLS logarithm. It also does not promote
+``\mathcal L_{\mathrm{CP}}^{[N]}`` equals an exact Floquet GKSL logarithm. It also does not promote
 the asymptotic high-frequency expansion into a convergent series. What is controlled is the
 retained perturbative data: the completed and raw models agree through the claimed order.
 

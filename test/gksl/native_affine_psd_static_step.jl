@@ -1,6 +1,6 @@
 include("native_bf_prototype.jl")
 
-@testset "native GKLS static step uses full affine PSD slice" begin
+@testset "native GKSL static step uses full affine PSD slice" begin
   d = 3
   H0 = ComplexF64[0 0 0; 0 0.7 0; 0 0 1.9]
   R = zeros(ComplexF64, d, d)

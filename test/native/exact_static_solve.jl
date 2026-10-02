@@ -80,7 +80,7 @@ end
   @test transformed.correction == Ainv * reference.correction
 end
 
-@testset "exact static slot is covariant under a gauge reparametrization" begin
+@testset "exact static slot is covariant under a gauge reparameterization" begin
   f = exact_fixture(1)
   G = Matrix{Q}(I, 4, 4)
   Γ = Matrix{R}(I, 3, 3)

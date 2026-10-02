@@ -159,7 +159,7 @@ function native_compare_arbitrary_states(bf::NativeBFState, hd::NativeHDState, N
   end
 end
 
-@testset "arbitrary native GKLS HD reproduces the frozen low-order oracle" begin
+@testset "arbitrary native GKSL HD reproduces the frozen low-order oracle" begin
   γ = 0.63
   model = NativeModel(
     2,
@@ -176,7 +176,7 @@ end
   @test maximum(native_hd_intrinsic_defects(hd, 2, model.d^2)) <= 2e-7
 end
 
-@testset "arbitrary native GKLS HD equals BF through order 4: full-rank sidebands" begin
+@testset "arbitrary native GKSL HD equals BF through order 4: full-rank sidebands" begin
   γ = 0.52
   model = NativeModel(
     2,
@@ -206,7 +206,7 @@ end
   @test norm(native_bf_finite(bf, model.d, ε) - native_hd_finite(hd, model.d, ε)) <= 1e-7
 end
 
-@testset "arbitrary native GKLS HD equals BF through order 4: Hamiltonian branch" begin
+@testset "arbitrary native GKSL HD equals BF through order 4: Hamiltonian branch" begin
   model = NativeModel(
     2,
     NativeFS(
@@ -229,7 +229,7 @@ end
   @test maximum(native_hd_intrinsic_defects(hd, 4, model.d^2)) <= 5e-7
 end
 
-@testset "arbitrary native GKLS HD is prefix stable" begin
+@testset "arbitrary native GKSL HD is prefix stable" begin
   γ = 0.48
   model = NativeModel(
     2,

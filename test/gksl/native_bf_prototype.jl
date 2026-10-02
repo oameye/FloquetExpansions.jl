@@ -5,7 +5,7 @@ using FloquetExpansions
 # Research-only dense-matrix oracle for #350/#352.
 #
 # This intentionally does not touch the public API. It implements the direct Bloch--Feshbach
-# recurrence only through generator order 2 and solves the retained m=0 coefficient in GKLS
+# recurrence only through generator order 2 and solves the retained m=0 coefficient in GKSL
 # coordinates before advancing the oscillatory recurrence.
 
 const NativeCM = Matrix{ComplexF64}
@@ -248,7 +248,7 @@ function native_bf_order02(model::NativeModel; tol=1e-8)
     error("order-zero sideband columns do not reconstruct the averaged Kossakowski tensor")
   H0 = native_hamiltonian_part(E0, d)
 
-  # Order 1: solve the static GKLS slot before computing Y2^osc.
+  # Order 1: solve the static GKSL slot before computing Y2^osc.
   V1 = native_fsavg(native_fsmul(L, Y1osc), nsuper)
   known1 = zeros(ComplexF64, d^2 - 1, d^2 - 1)
   step1 = native_static_step(L0, V1, known1, B0, d; tol)
@@ -317,7 +317,7 @@ function native_bf_order02(model::NativeModel; tol=1e-8)
   )
 end
 
-function native_effective_gkls(result::NativeOrder02, ε)
+function native_effective_gksl(result::NativeOrder02, ε)
   H = result.H[1] + ε * result.H[2] + ε^2 * result.H[3]
   jumps = NativeCM[]
   for k in 1:3:length(result.birth0)
@@ -337,7 +337,7 @@ end
 σz_native = ComplexF64[1 0; 0 -1]
 σm_native = ComplexF64[0 0; 1 0]
 
-@testset "native GKLS BF research prototype: Hamiltonian reduction through order 2" begin
+@testset "native GKSL BF research prototype: Hamiltonian reduction through order 2" begin
   model = NativeModel(
     2,
     NativeFS(
@@ -362,7 +362,7 @@ end
   )
 end
 
-@testset "native GKLS BF research prototype: static-loss dark solve" begin
+@testset "native GKSL BF research prototype: static-loss dark solve" begin
   γ = 0.63
   model = NativeModel(
     2,
@@ -377,14 +377,14 @@ end
   @test all(isfinite, result.S[2])
 
   ε = 1e-3
-  finite = native_effective_gkls(result, ε)
+  finite = native_effective_gksl(result, ε)
   truncated = result.E[1] + ε * result.E[2] + ε^2 * result.E[3]
   @test norm(finite - truncated) <= 1e3 * ε^3
   cfinite = native_hermitian(native_kossakowski(finite, 2))
   @test minimum(eigvals(Hermitian(cfinite))) >= -1e-10
 end
 
-@testset "native GKLS BF research prototype: sidebands are native columns" begin
+@testset "native GKSL BF research prototype: sidebands are native columns" begin
   γ = 0.52
   sideband_jump = NativeFS(
     -1 => sqrt(γ) * 0.31 * σx_native,

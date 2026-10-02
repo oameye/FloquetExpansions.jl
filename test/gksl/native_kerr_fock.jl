@@ -1,5 +1,9 @@
 include("native_hd_arbitrary.jl")
 
+# Truncated-model tests: the generator is the finite-Fock Kerr model with cutoff d, where
+# [a, a'] = 1 - d P_top. Results carry the cutoff artifact localized at the top level. The
+# cutoff-free reference is test/native/sqa_driver.jl.
+
 function native_fock_annihilation(d)
   a = zeros(ComplexF64, d, d)
   for n in 1:(d - 1)
@@ -8,7 +12,7 @@ function native_fock_annihilation(d)
   return a
 end
 
-@testset "native GKLS BF/HD finite-Fock driven Kerr" begin
+@testset "truncated model: native GKSL BF/HD finite-Fock driven Kerr" begin
   d = 3
   Δ = 1 / 2
   χ = 3 / 10

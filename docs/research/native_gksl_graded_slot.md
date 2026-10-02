@@ -1,4 +1,4 @@
-# Native-GKLS resolvent section on charged sectors
+# Native-GKSL resolvent section on charged sectors
 
 This research note records the static-slot section used by `test/gksl/native_kerr_graded_slot.jl`. It connects the localized Kerr inverse of #376/#377 to the generic native BF/HD recurrence.
 
@@ -33,11 +33,11 @@ For driven Kerr with loss every charged Bohr multiplier is nonzero on the physic
 ## Certified on finite-Fock driven Kerr
 
 - The localized ladder agrees with a dense LU of `ad_Lbar` restricted to `Q != 0`, both as an inverse and inside the full recurrence through order 4, at cutoffs 3 and 4.
-- BF equals the independent HD recurrence through order 4, together with prefix stability, coefficientwise Gram reconstruction, TP and finite-truncation GKLS positivity.
+- BF equals the independent HD recurrence through order 4, together with prefix stability, coefficientwise Gram reconstruction, TP and finite-truncation GKSL positivity.
 - No charged dark-dark target survives in any `E_n`.
 - Through order 3 the charged target vanishes and the section equals the minimum-norm one. At order 4 the two sections share the neutral gauge, the newborn Gram form and the dark-dark coefficient. They differ by `\delta S \in \ker\Phi_4`, with `E_4 - E_4^{\rm mn} = [\bar{\mathcal L}, \delta S]`, and the spectra of their truncated generators agree to `O(\varepsilon^5)` or better.
 - The Hamiltonian branch (`\kappa = 0`) reproduces the ordinary result.
 
-The section is therefore a different but orbit-equivalent GKLS representative. It replaces "minimum-norm on the charged blocks" in Theorem 12, item 3 of the derivation note. That note still states the minimum-norm convention and should be updated if this section is adopted.
+The section is therefore a different but orbit-equivalent GKSL representative. It replaces "minimum-norm on the charged blocks" in Theorem 12, item 3 of the derivation note. That note still states the minimum-norm convention and should be updated if this section is adopted.
 
 This is research test infrastructure only. No public API is added and positive completion is never called.

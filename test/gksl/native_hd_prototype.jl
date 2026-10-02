@@ -1,7 +1,7 @@
 using Test
 using LinearAlgebra
 
-# Reuse only the dense GKLS coordinate/static-solve oracle. The Floquet recurrence below is an
+# Reuse only the dense GKSL coordinate/static-solve oracle. The Floquet recurrence below is an
 # independent Hori--Deprit construction and is compared against the BF recurrence coefficient by
 # coefficient in the same intrinsic total-kick gauge.
 include("native_bf_prototype.jl")
@@ -149,7 +149,7 @@ function native_compare_order02(bf::NativeOrder02, hd::NativeOrder02; tol=2e-7)
   @test norm(bf.K2known - hd.K2known) <= tol * max(1.0, norm(bf.K2known))
 end
 
-@testset "native GKLS HD/BF equality: Hamiltonian reduction through order 2" begin
+@testset "native GKSL HD/BF equality: Hamiltonian reduction through order 2" begin
   model = NativeModel(
     2,
     NativeFS(
@@ -173,7 +173,7 @@ end
   @test isempty(hd.birth2)
 end
 
-@testset "native GKLS HD/BF equality: driven qubit with static loss" begin
+@testset "native GKSL HD/BF equality: driven qubit with static loss" begin
   γ = 0.63
   model = NativeModel(
     2,
@@ -186,10 +186,10 @@ end
   native_compare_order02(bf, hd)
 
   ε = 1e-3
-  @test norm(native_effective_gkls(bf, ε) - native_effective_gkls(hd, ε)) <= 1e-9
+  @test norm(native_effective_gksl(bf, ε) - native_effective_gksl(hd, ε)) <= 1e-9
 end
 
-@testset "native GKLS HD/BF equality: full-rank physical sidebands" begin
+@testset "native GKSL HD/BF equality: full-rank physical sidebands" begin
   γ = 0.52
   sideband_jump = NativeFS(
     -1 => sqrt(γ) * 0.31 * σx_native,
@@ -210,7 +210,7 @@ end
   @test isempty(hd.birth2)
 end
 
-@testset "native GKLS static solve: positive order-one channel birth" begin
+@testset "native GKSL static solve: positive order-one channel birth" begin
   d = 2
   L0 = zeros(ComplexF64, d^2, d^2)
   born_jump = 0.37 * σx_native
