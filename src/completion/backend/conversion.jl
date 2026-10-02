@@ -1,5 +1,5 @@
 function completion_scalar(x::SQA.CNum)::CompletionScalar
-  value = SQA.to_num(x)::Complex{Symbolics.Num}
+  value = SQA.to_num(SQA.trigonometric_form(x))::Complex{Symbolics.Num}
   return completion_scalar(value)
 end
 
