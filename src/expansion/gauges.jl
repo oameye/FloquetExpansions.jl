@@ -96,6 +96,12 @@ vanishes, which is always the case without dissipation. The finite generator is 
 graded jump amplitudes, so it equals the retained series up to a positive remainder beyond the
 retained order.
 
+The expansion runs in an exact operator algebra without truncation: bosonic modes, position
+and momentum, `NLevelSpace` and `PauliSpace` levels, and spins as the size-independent
+``\\mathfrak{su}(2)`` algebra. Numeric coefficients stay exact rationals. With symbolic
+parameters the result is returned symbolically, with its positivity conditions, when no static
+gauge is needed through the requested order; an order that needs one requires numeric values.
+
 `algorithm` selects [`HoriDeprit`](@ref), the default, or [`BlochFeshbach`](@ref); both return
 the same coefficients.
 """

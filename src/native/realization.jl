@@ -8,6 +8,7 @@ struct NativeRealization{F<:DissipativeFrame,J<:RateWeightedJump,X} <: Completio
   factorization::X
   hamiltonian::SQA.QAdd
   generator::Liouvillian
+  virtual_orders::Vector{Int}
 end
 
 function lift_harmonics(lowering::SQALowering, harmonics::Dict, wd::Symbolics.Num)
@@ -17,14 +18,29 @@ function lift_harmonics(lowering::SQALowering, harmonics::Dict, wd::Symbolics.Nu
   return PeriodicGenerator(components, wd, zero(Liouvillian))
 end
 
+# At a virtual order the static gauge S_n is a formal operator that is never stored, so the
+# static harmonic of the micromotion generator is omitted and only the oscillatory harmonics
+# are returned.
+function micromotion_harmonics(data::NativeExpansionData, harmonics::Dict, n::Int)
+  haskey(data.recurrence.virtual, n) || return harmonics
+  return filter(pair -> first(pair) != 0, harmonics)
+end
+
 function native_micromotion(data::NativeExpansionData, ::HoriDeprit, wd, N::Int)
-  return [lift_harmonics(data.lowering, data.recurrence.kick[n + 1], wd) for n in 1:N]
+  return [
+    lift_harmonics(
+      data.lowering, micromotion_harmonics(data, data.recurrence.kick[n + 1], n), wd
+    ) for n in 1:N
+  ]
 end
 
 function native_micromotion(data::NativeExpansionData, ::BlochFeshbach, wd, N::Int)
   L0 = data.recurrence.E[1]
   generator = kick_log(data.recurrence.kick, one(L0), N)
-  return [lift_harmonics(data.lowering, generator[n + 1], wd) for n in 1:N]
+  return [
+    lift_harmonics(data.lowering, micromotion_harmonics(data, generator[n + 1], n), wd) for
+    n in 1:N
+  ]
 end
 
 function native_channel_operator(
@@ -202,6 +218,7 @@ function floquet_expansion_impl(
     data,
     H,
     finite,
+    sort!(collect(keys(data.recurrence.virtual))),
   )
   return FloquetExpansion(
     generator, micromotion, effective, gauge, order, realization, provenance
