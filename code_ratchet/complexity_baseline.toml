@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "266efca"
+commit = "2c260e0"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -269,18 +269,18 @@ arg = 7
 cyc_over = 2
 cog_over = 1
 arg_over = 0
-cyc_sum = 112
+cyc_sum = 113
 cog_sum = 115
-arg_sum = 76
+arg_sum = 78
 
 [files."src/native/charge_grading.jl"]
-cyc = 10
+cyc = 9
 cog = 10
 arg = 7
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 58
+cyc_sum = 57
 cog_sum = 48
 arg_sum = 49
 
@@ -302,9 +302,9 @@ arg = 6
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 15
-cog_sum = 10
-arg_sum = 25
+cyc_sum = 19
+cog_sum = 12
+arg_sum = 30
 
 [files."src/native/exact_representation.jl"]
 cyc = 4
@@ -324,9 +324,9 @@ arg = 7
 cyc_over = 1
 cog_over = 0
 arg_over = 0
-cyc_sum = 101
-cog_sum = 84
-arg_sum = 85
+cyc_sum = 129
+cog_sum = 109
+arg_sum = 113
 
 [files."src/native/graded_channels.jl"]
 cyc = 5
@@ -335,9 +335,9 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 22
-cog_sum = 16
-arg_sum = 22
+cyc_sum = 26
+cog_sum = 20
+arg_sum = 26
 
 [files."src/native/operator_algebra.jl"]
 cyc = 7
@@ -346,20 +346,31 @@ arg = 5
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 96
+cyc_sum = 98
 cog_sum = 57
-arg_sum = 92
+arg_sum = 96
 
-[files."src/native/realization.jl"]
-cyc = 5
-cog = 4
+[files."src/native/rational_reconstruction.jl"]
+cyc = 6
+cog = 5
 arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 43
+cyc_sum = 111
+cog_sum = 70
+arg_sum = 91
+
+[files."src/native/realization.jl"]
+cyc = 5
+cog = 4
+arg = 5
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 50
 cog_sum = 28
-arg_sum = 55
+arg_sum = 82
 
 [files."src/native/recurrence.jl"]
 cyc = 6
@@ -379,9 +390,9 @@ arg = 5
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 84
-cog_sum = 66
-arg_sum = 58
+cyc_sum = 88
+cog_sum = 69
+arg_sum = 63
 
 [files."src/native/static_solve.jl"]
 cyc = 6
@@ -407,14 +418,14 @@ arg_sum = 64
 
 [files."src/native/symbolic_parameters.jl"]
 cyc = 5
-cog = 4
+cog = 5
 arg = 5
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 13
-cog_sum = 8
-arg_sum = 12
+cyc_sum = 61
+cog_sum = 33
+arg_sum = 69
 
 [files."src/native/virtual_gauge.jl"]
 cyc = 13

@@ -99,8 +99,11 @@ retained order.
 The expansion runs in an exact operator algebra without truncation: bosonic modes, position
 and momentum, `NLevelSpace` and `PauliSpace` levels, and spins as the size-independent
 ``\\mathfrak{su}(2)`` algebra. Numeric coefficients stay exact rationals. With symbolic
-parameters the result is returned symbolically, with its positivity conditions, when no static
-gauge is needed through the requested order; an order that needs one requires numeric values.
+parameters the result is returned symbolically, with its positivity conditions. Without a static
+gauge it is the [`Gram`](@ref) completion of the van Vleck expansion; with one, every exact
+coefficient is reconstructed as a rational function of the parameters from exact evaluations
+and verified exactly at fresh points. The result holds on the sign region of a positive
+reference point, whose parameter signs are part of the positivity conditions.
 
 `algorithm` selects [`HoriDeprit`](@ref), the default, or [`BlochFeshbach`](@ref); both return
 the same coefficients.

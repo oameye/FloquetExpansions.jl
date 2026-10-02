@@ -228,6 +228,15 @@ function hermitian_generators(
   return generators
 end
 
+# Restricts a direction filter to frame indices of bounded degree. A callable struct rather
+# than a closure, so the captured filter stays a concrete type parameter.
+struct RestrictedKeep{K}
+  small::Vector{Int}
+  keep::K
+end
+
+(r::RestrictedKeep)(μ::Int, ν::Int) = μ in r.small && r.keep(μ, ν)::Bool
+
 function algebraic_gauge_directions(
   representation::AlgebraicLiouvilleRepresentation{T,R}, @nospecialize(keep)
 ) where {T,R}
@@ -245,9 +254,7 @@ function algebraic_gauge_directions(
   small = Int[μ for μ in 1:n if degree(μ) <= gauge_degree]
   directions = AlgebraSuperoperator{T,R}[]
   zero_frame = exact_zeros(T, n, n)
-  for h in hermitian_generators(
-    representation, (μ::Int, ν::Int) -> μ in small && keep(μ, ν)::Bool
-  )
+  for h in hermitian_generators(representation, RestrictedKeep(small, keep))
     push!(directions, native_gksl(representation, h, zero_frame))
   end
   empty_hamiltonian = AlgebraOperator{T,R}(algebra, Dict{Monomial,T}())

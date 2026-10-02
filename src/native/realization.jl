@@ -11,9 +11,9 @@ struct NativeRealization{F<:DissipativeFrame,J<:RateWeightedJump,X} <: Completio
   virtual_orders::Vector{Int}
 end
 
-function lift_harmonics(lowering::SQALowering, harmonics::Dict, wd::Symbolics.Num)
+function lift_harmonics(lift::CoefficientLift, harmonics::Dict, wd::Symbolics.Num)
   components = Dict{Int,Liouvillian}(
-    k => lift_superoperator(lowering, X) for (k, X) in harmonics if !iszero(X)
+    k => lift_superoperator(lift, X) for (k, X) in harmonics if !iszero(X)
   )
   return PeriodicGenerator(components, wd, zero(Liouvillian))
 end
@@ -26,41 +26,44 @@ function micromotion_harmonics(data::NativeExpansionData, harmonics::Dict, n::In
   return filter(pair -> first(pair) != 0, harmonics)
 end
 
-function native_micromotion(data::NativeExpansionData, ::HoriDeprit, wd, N::Int)
-  return [
-    lift_harmonics(
-      data.lowering, micromotion_harmonics(data, data.recurrence.kick[n + 1], n), wd
-    ) for n in 1:N
-  ]
+function native_micromotion_harmonics(data::NativeExpansionData, ::HoriDeprit, N::Int)
+  return [micromotion_harmonics(data, data.recurrence.kick[n + 1], n) for n in 1:N]
 end
 
-function native_micromotion(data::NativeExpansionData, ::BlochFeshbach, wd, N::Int)
+function native_micromotion_harmonics(data::NativeExpansionData, ::BlochFeshbach, N::Int)
   L0 = data.recurrence.E[1]
   generator = kick_log(data.recurrence.kick, one(L0), N)
+  return [micromotion_harmonics(data, generator[n + 1], n) for n in 1:N]
+end
+
+function native_micromotion(
+  data::NativeExpansionData, lift::CoefficientLift, algorithm, wd, N::Int
+)
   return [
-    lift_harmonics(data.lowering, micromotion_harmonics(data, generator[n + 1], n), wd) for
-    n in 1:N
+    lift_harmonics(lift, harmonics, wd) for
+    harmonics in native_micromotion_harmonics(data, algorithm, N)
   ]
 end
 
 function native_channel_operator(
-  data::NativeExpansionData, channel::GradedChannel, wd, N::Int
+  data::NativeExpansionData, lift::CoefficientLift, channel::GradedChannel, wd, N::Int
 )
   operator = zero(SQA.QAdd)
   for (k, coefficients) in pairs(channel.coefficients)
     order = k - 1
     order + channel.onset > N && break
-    lifted = lift_operator(data.lowering, frame_operator(data.representation, coefficients))
+    lifted = lift_operator(lift, frame_operator(data.representation, coefficients))
     operator = operator + reattach(lifted, wd, order)
   end
   return SQA.simplify(operator)
 end
 
-function native_channels(data::NativeExpansionData, wd, N::Int)
+function native_channels(data::NativeExpansionData, lift::CoefficientLift, wd, N::Int)
   return RateWeightedJump{SQA.QAdd}[
     jump(
-      native_channel_operator(data, channel, wd, N),
-      sqa_scalar(channel.weight) * inverse_drive_power(wd, channel.onset),
+      native_channel_operator(data, lift, channel, wd, N),
+      lifted_coefficient(lift, channel.weight) *
+      convert(SQA.CNum, inverse_drive_power(wd, channel.onset)),
     ) for channel in data.recurrence.channels if channel.onset <= N
   ]
 end
@@ -116,22 +119,22 @@ function native_finite_kossakowski(data::NativeExpansionData{T}, N::Int) where {
   return graded
 end
 
-function graded_coefficient(entries, wd::Symbolics.Num)
+function graded_coefficient(entries, wd::Symbolics.Num, coefficient)
   result = convert(SQA.CNum, 0)
   for (order, c) in entries
     iszero(c) && continue
     scale = convert(SQA.CNum, inverse_drive_power(wd, order))
-    result = result + convert(SQA.CNum, sqa_scalar(c)) * scale
+    result = result + convert(SQA.CNum, coefficient(c)) * scale
   end
   return result
 end
 
-function support_matrix(graded, support::Vector{Int}, wd::Symbolics.Num)
+function support_matrix(graded, support::Vector{Int}, wd::Symbolics.Num, coefficient)
   m = length(support)
   K = KossakowskiMatrix(undef, m, m)
   for j in 1:m, i in 1:m
     K[i, j] = graded_coefficient(
-      ((order, C[support[i], support[j]]) for (order, C) in graded), wd
+      ((order, C[support[i], support[j]]) for (order, C) in graded), wd, coefficient
     )
   end
   return K
@@ -148,7 +151,7 @@ function check_support(C::AbstractMatrix, inside::AbstractVector{Bool})
 end
 
 function retained_native_kossakowski(
-  data::NativeExpansionData, support::Vector{Int}, wd::Symbolics.Num, N::Int
+  data::NativeExpansionData, support::Vector{Int}, wd::Symbolics.Num, N::Int, coefficient
 )
   inside = falses(length(data.representation.frame))
   inside[support] .= true
@@ -161,23 +164,33 @@ function retained_native_kossakowski(
       ),
       support,
       wd,
+      coefficient,
     ) for n in 0:N
   ]
 end
 
-function native_finite_generator(
-  data::NativeExpansionData{T,R}, graded, wd, N::Int
+function native_finite_superoperators(
+  data::NativeExpansionData{T,R}, graded, N::Int
 ) where {T,R}
   representation = data.representation
   zero_frame = exact_zeros(T, length(representation.frame), length(representation.frame))
   zero_hamiltonian = AlgebraOperator{T,R}(representation.algebra, Dict{Monomial,T}())
+  return Dict(
+    order => native_gksl(
+      representation,
+      order <= N ? data.recurrence.H[order + 1] : zero_hamiltonian,
+      get(graded, order, zero_frame),
+    ) for order in union(0:N, keys(graded))
+  )
+end
+
+function native_finite_generator(
+  data::NativeExpansionData, lift::CoefficientLift, graded, wd, N::Int
+)
   generator = Liouvillian(LiouvillianTerms())
-  cache = Dict{Monomial,SQA.QAdd}()
-  for order in union(0:N, keys(graded))
-    H = order <= N ? data.recurrence.H[order + 1] : zero_hamiltonian
-    G = native_gksl(representation, H, get(graded, order, zero_frame))
+  for (order, G) in native_finite_superoperators(data, graded, N)
     scale = convert(SQA.CNum, inverse_drive_power(wd, order))
-    lift_superoperator!(generator, cache, data.lowering, G, scale)
+    lift_superoperator!(generator, lift, G, scale)
   end
   return generator
 end
@@ -196,36 +209,55 @@ function floquet_expansion_impl(
   return native_floquet_expansion(data, generator, gauge, provenance)
 end
 
+native_positivity_conditions(::ExactCoefficients) = SQA.CNum[]
+
+native_factorization(data::NativeExpansionData, ::ExactCoefficients) = data
+
+function native_hamiltonian_series(data::NativeExpansionData, lift::CoefficientLift, wd)
+  H = zero(SQA.QAdd)
+  for (n, Hn) in pairs(data.recurrence.H)
+    H = H + reattach(lift_operator(lift, Hn), wd, n - 1)
+  end
+  return SQA.simplify(H)
+end
+
 function native_floquet_expansion(
   data::NativeExpansionData,
   generator::PeriodicGenerator{Liouvillian},
   gauge::GKSLNormalForm,
   provenance::R,
 ) where {R<:FloquetProvenance}
+  return native_floquet_expansion(data, generator, gauge, provenance, ExactCoefficients())
+end
+
+function native_floquet_expansion(
+  data::NativeExpansionData,
+  generator::PeriodicGenerator{Liouvillian},
+  gauge::GKSLNormalForm,
+  provenance::R,
+  coefficients,
+) where {R<:FloquetProvenance}
   order = length(data.recurrence.E)
   N = order - 1
   wd = generator.wd
-  effective = Liouvillian[lift_superoperator(data.lowering, E) for E in data.recurrence.E]
-  micromotion = native_micromotion(data, gauge.algorithm, wd, N)
-  H = zero(SQA.QAdd)
-  for (n, Hn) in pairs(data.recurrence.H)
-    H = H + reattach(lift_operator(data.lowering, Hn), wd, n - 1)
-  end
-  H = SQA.simplify(H)
-  jumps = native_channels(data, wd, N)
+  lift = CoefficientLift(data.lowering, coefficients)
+  effective = Liouvillian[lift_superoperator(lift, E) for E in data.recurrence.E]
+  micromotion = native_micromotion(data, lift, gauge.algorithm, wd, N)
+  H = native_hamiltonian_series(data, lift, wd)
+  jumps = native_channels(data, lift, wd, N)
   support = native_support(data)
   frame = native_frame(data, support)
   graded = native_finite_kossakowski(data, N)
-  finite = native_finite_generator(data, graded, wd, N)
-  retained = retained_native_kossakowski(data, support, wd, N)
+  finite = native_finite_generator(data, lift, graded, wd, N)
+  retained = retained_native_kossakowski(data, support, wd, N, coefficients)
   realization = NativeRealization(
     frame,
     retained,
-    support_matrix(graded, support, wd),
+    support_matrix(graded, support, wd, coefficients),
     jumps,
+    native_positivity_conditions(coefficients),
     SQA.CNum[],
-    SQA.CNum[],
-    data,
+    native_factorization(data, coefficients),
     H,
     finite,
     sort!(collect(keys(data.recurrence.virtual))),

@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "266efca"
+commit = "2c260e0"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -129,6 +129,10 @@ undocumented = 0
 public = 0
 
 [files."src/native/operator_algebra.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/rational_reconstruction.jl"]
 undocumented = 0
 public = 0
 

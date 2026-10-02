@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "266efca"
+commit = "2c260e0"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -101,6 +101,9 @@ boxes = 0
 boxes = 0
 
 [files."src/native/operator_algebra.jl"]
+boxes = 0
+
+[files."src/native/rational_reconstruction.jl"]
 boxes = 0
 
 [files."src/native/realization.jl"]

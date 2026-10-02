@@ -45,13 +45,76 @@ end
   end
 end
 
-@testset "symbolic GKSLNormalForm reports an order that needs a static gauge" begin
+function nearly_same(A::FE.SQA.QAdd, B::FE.SQA.QAdd)
+  return nearly_same(FE.action(A, one(A)), FE.action(B, one(B)))
+end
+
+function nearly_same_micromotion(A::FloquetExpansion, B::FloquetExpansion, n::Int)
+  m, r = micromotion(A, n), micromotion(B, n)
+  return all(
+    nearly_same(
+      get(m.components, k, zero(m.zero_component)),
+      get(r.components, k, zero(r.zero_component)),
+    ) for k in union(keys(m.components), keys(r.components))
+  )
+end
+
+symbolically_same(x, y) = isequal(FE.SQA.simplify(x - y), 0)
+
+function same_liouvillian(A::Liouvillian, B::Liouvillian)
+  return FE.liouvillian_iszero(FE.canonical_liouvillian(FE.SQA.simplify(A - B)))
+end
+
+function newborn_channel(expansion::FloquetExpansion)
+  return only(c for c in channels(expansion) if !symbolically_same(c.rate, κ))
+end
+
+@testset "symbolic GKSLNormalForm reconstructs the order-four static gauge" begin
   H, a = kerr(F)
-  error = try
-    floquet_expansion(H, ω, t, GKSLNormalForm(), 5; channels=(jump(a, κ),))
-  catch caught
-    caught
+  symbolic = floquet_expansion(H, ω, t, GKSLNormalForm(), 5; channels=(jump(a, κ),))
+  @test getfield(symbolic, :completion) isa FE.NativeRealization
+  @test length(channels(symbolic)) == 2
+  newborn = newborn_channel(symbolic)
+  @test symbolically_same(newborn.rate, convert(FE.SQA.CNum, 2 * χ^2 * κ * F^2 / ω^4))
+  @test iszero(FE.SQA.simplify(newborn.operator - (a * a - 2 * a' * a)))
+  conditions = positivity_conditions(symbolic)
+  for c in (Δ, χ, κ, F, 2 * χ^2 * κ * F^2)
+    @test any(d -> symbolically_same(d, convert(FE.SQA.CNum, c)), conditions)
   end
-  @test error isa ArgumentError
-  @test occursin("static gauge at order 4", sprint(showerror, error))
+
+  Hn = 1 // 2 * a' * a + 3 // 10 * a' * a * a' * a + 2 // 5 * (a + a') * cos(ω * t)
+  exact = floquet_expansion(Hn, ω, t, GKSLNormalForm(), 5; channels=(jump(a, 4 // 5),))
+  @test nearly_same(effective_generator(symbolic), effective_generator(exact))
+  @test nearly_same(hamiltonian(symbolic), hamiltonian(exact))
+  for n in 0:4
+    @test nearly_same(effective_component(symbolic, n), effective_component(exact, n))
+  end
+  for n in 1:4
+    @test nearly_same_micromotion(symbolic, exact, n)
+  end
+  @test sort(numeric.(c.rate for c in channels(symbolic)); by=real) ≈
+    sort(numeric.(c.rate for c in channels(exact)); by=real)
+
+  bloch = floquet_expansion(
+    H, ω, t, GKSLNormalForm(; algorithm=BlochFeshbach()), 5; channels=(jump(a, κ),)
+  )
+  for n in 0:4
+    @test same_liouvillian(effective_component(bloch, n), effective_component(symbolic, n))
+  end
+  @test same_liouvillian(effective_generator(bloch), effective_generator(symbolic))
+  @test symbolically_same(newborn_channel(bloch).rate, newborn.rate)
+end
+
+@testset "symbolic GKSLNormalForm with some parameters exact" begin
+  h = FockSpace(:c)
+  a = Destroy(h, :a)
+  H = 1 // 2 * a' * a + 3 // 10 * a' * a * a' * a + F * (a + a') * cos(ω * t)
+  symbolic = floquet_expansion(H, ω, t, GKSLNormalForm(), 5; channels=(jump(a, κ),))
+  newborn = newborn_channel(symbolic)
+  @test symbolically_same(newborn.rate, convert(FE.SQA.CNum, 9 // 50 * κ * F^2 / ω^4))
+  @test iszero(FE.SQA.simplify(newborn.operator - (a * a - 2 * a' * a)))
+
+  Hn = 1 // 2 * a' * a + 3 // 10 * a' * a * a' * a + 2 // 5 * (a + a') * cos(ω * t)
+  exact = floquet_expansion(Hn, ω, t, GKSLNormalForm(), 5; channels=(jump(a, 4 // 5),))
+  @test nearly_same(effective_generator(symbolic), effective_generator(exact))
 end
