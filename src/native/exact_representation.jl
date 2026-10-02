@@ -189,6 +189,8 @@ function native_slot_solve(
   return solution, solution.correction, T.(solution.newborn_weights)
 end
 
-function native_gauge_metric(representation::ExactLiouvilleRepresentation, directions)
+function native_gauge_metric(
+  representation::ExactLiouvilleRepresentation, directions::AbstractVector{<:AbstractMatrix}
+)
   return superoperator_metric(representation.hilbert, directions)
 end

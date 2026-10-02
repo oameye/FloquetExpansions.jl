@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "9bdc380"
+commit = "c52f30e"
 entry = ["src/FloquetExpansions.jl"]
 full_analysis = true
 metric = "lsp"
@@ -21,10 +21,6 @@ raw = 0
 reviewed = 0
 
 [files."src/completion/backend/conversion.jl"]
-raw = 0
-reviewed = 0
-
-[files."src/completion/backend/gram_kernel.jl"]
 raw = 0
 reviewed = 0
 
@@ -101,6 +97,62 @@ raw = 0
 reviewed = 0
 
 [files."src/gksl/floquet.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/gksl/gram_kernel.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/algebraic_representation.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/charge_grading.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/dense_representation.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/driver.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/exact_representation.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/exact_static_solve.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/graded_channels.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/operator_algebra.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/realization.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/recurrence.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/sqa_lowering.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/static_solve.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/static_step.jl"]
 raw = 0
 reviewed = 0
 
