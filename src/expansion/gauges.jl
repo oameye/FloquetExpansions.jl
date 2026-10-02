@@ -83,6 +83,38 @@ end
 VanVleck(; algorithm::ExpansionAlgorithm=HoriDeprit()) = VanVleck(algorithm)
 
 """
+    GKSLNormalForm(; algorithm=HoriDeprit())
+
+Select the GKSL normal-form gauge for Liouvillian expansions. The oscillatory part of the
+micromotion is fixed as in [`VanVleck`](@ref); its static part is a similarity
+``W = e^{S}``, ``S = \\sum_n S_n/ω^n``, chosen order by order so that every truncation of the
+effective generator is of GKSL form and therefore completely positive.
+
+The effective generator is ``W^{-1} \\mathcal{L}_{\\mathrm{VV}} W``. It has the van Vleck spectrum
+through the retained order and coincides with the van Vleck generator wherever every ``S_n``
+vanishes, which is always the case without dissipation. The finite generator is assembled from
+graded jump amplitudes, so it equals the retained series up to a positive remainder beyond the
+retained order.
+
+The expansion runs in an exact operator algebra without truncation: bosonic modes, position
+and momentum, `NLevelSpace` and `PauliSpace` levels, and spins as the size-independent
+``\\mathfrak{su}(2)`` algebra. Numeric coefficients stay exact rationals. With symbolic
+parameters the result is returned symbolically, with its positivity conditions. Without a static
+gauge it is the [`Gram`](@ref) completion of the van Vleck expansion; with one, every exact
+coefficient is reconstructed as a rational function of the parameters from exact evaluations
+and verified exactly at fresh points. The result holds on the sign region of a positive
+reference point, whose parameter signs are part of the positivity conditions.
+
+`algorithm` selects [`HoriDeprit`](@ref), the default, or [`BlochFeshbach`](@ref); both return
+the same coefficients.
+"""
+struct GKSLNormalForm{A<:ExpansionAlgorithm} <: Gauge
+  algorithm::A
+end
+
+GKSLNormalForm(; algorithm::ExpansionAlgorithm=HoriDeprit()) = GKSLNormalForm(algorithm)
+
+"""
     antiderivative(X::PeriodicGenerator, gauge::Gauge) -> PeriodicGenerator
 
 Integrate `X` with respect to dimensionless drive time, with `gauge` fixing the free

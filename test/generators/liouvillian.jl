@@ -405,3 +405,14 @@ end
   @test native_matrix ≈ expected
   @test periodic_matrix ≈ expected
 end
+
+@testset "exact drive amplitudes stay exact through harmonics" begin
+  h = FockSpace(:c)
+  a = Destroy(h, :a)
+  drive = (3 // 5) * cos(ω * t) - (4 // 5) * sin(ω * t)
+  G = harmonics(liouvillian((2 // 5) * (a + a') * drive), ω, t)
+  for (left, right, c) in FloquetExpansions.terms(G[1])
+    expected = isone(left) ? (4 // 25) + (3 // 25) * im : -(4 // 25) - (3 // 25) * im
+    @test iszero(FloquetExpansions.SQA.simplify(c - expected))
+  end
+end

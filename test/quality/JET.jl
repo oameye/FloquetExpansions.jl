@@ -67,3 +67,90 @@ end
   JET.@test_opt target_modules=(FloquetExpansions,) hamiltonian(completion)
   JET.@test_opt target_modules=(FloquetExpansions,) kossakowski_component(completion, 0)
 end
+
+@testset "native graded channel optimizer stability" begin
+  T = ComplexF64
+  channels = [
+    FloquetExpansions.GradedChannel{T}(0, [T[1, 0, 0], T[0, 1, 0], T[0, 0, 1]]),
+    FloquetExpansions.GradedChannel{T}(1, [T[0, 1, 1]]),
+  ]
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.active_channels(
+    channels, 2, 3
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.known_gram(
+    channels, 2, 3
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.gram_coefficient(
+    channels, 2, 3
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.store_births!(
+    copy(channels), zeros(T, 3, 1), T[1], 2
+  )
+end
+
+@testset "native static slot optimizer stability" begin
+  T = ComplexF64
+  residual = T[2 1im 0; -1im 1 0; 0 0 0.5]
+  active = reshape(T[1, 0, 0], :, 1)
+  images = [Matrix{T}(FloquetExpansions.LinearAlgebra.I, 3, 3)]
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_static_solve(
+    residual, zeros(T, 3, 3), active, images, 1e-8
+  )
+end
+
+@testset "native static step optimizer stability" begin
+  rep = FloquetExpansions.DenseLiouvilleRepresentation(2)
+  T = ComplexF64
+  σm = T[0 0; 1 0]
+  L0 = FloquetExpansions.native_gksl(rep, T[0.5 0; 0 -0.5], zeros(T, 3, 3))
+  active = reshape(T[0.5, 0.5im, 0], :, 1)
+  residual = FloquetExpansions.native_gksl(rep, zeros(T, 2, 2), active * active')
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_static_step(
+    rep,
+    FloquetExpansions.NoHomologicalInverse(),
+    L0,
+    residual,
+    zeros(T, 3, 3),
+    active,
+    T[1],
+    1e-8,
+  )
+end
+
+@testset "native recurrence optimizer stability" begin
+  rep = FloquetExpansions.DenseLiouvilleRepresentation(2)
+  T = ComplexF64
+  σx = T[0 1; 1 0]
+  σm = T[0 0; 1 0]
+  c = [FloquetExpansions.LinearAlgebra.tr(F' * σm) for F in rep.basis]
+  L = Dict{Int,Matrix{T}}(
+    0 => FloquetExpansions.native_gksl(rep, zeros(T, 2, 2), c * c'),
+    1 => FloquetExpansions.native_gksl(rep, σx, zeros(T, 3, 3)),
+    -1 => FloquetExpansions.native_gksl(rep, σx, zeros(T, 3, 3)),
+  )
+  leading = reshape(c, :, 1)
+  inverse = FloquetExpansions.NoHomologicalInverse()
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_recurrence(
+    FloquetExpansions.BlochFeshbach(), rep, inverse, L, leading, 2, 1e-8
+  )
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_recurrence(
+    FloquetExpansions.HoriDeprit(), rep, inverse, L, leading, 2, 1e-8
+  )
+end
+
+@testset "native exact static slot optimizer stability" begin
+  T = Complex{Rational{BigInt}}
+  R = Rational{BigInt}
+  B = T[1 0; 0 1; 0 0]
+  residual = T[1 0 0; 0 1 0; 0 0 2]
+  images = [T[0 0 0; 0 0 0; 0 0 1]]
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_exact_static_solve(
+    residual,
+    zeros(T, 3, 3),
+    B,
+    R[1, 1],
+    images,
+    Matrix{T}(FloquetExpansions.LinearAlgebra.I, 3, 3),
+    Matrix{R}(FloquetExpansions.LinearAlgebra.I, 1, 1),
+  )
+end

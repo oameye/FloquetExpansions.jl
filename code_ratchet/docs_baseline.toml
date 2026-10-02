@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "8fe4108"
+commit = "2c260e0"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -62,7 +62,7 @@ public = 8
 
 [files."src/expansion/gauges.jl"]
 undocumented = 0
-public = 6
+public = 7
 
 [files."src/expansion/hori_deprit.jl"]
 undocumented = 0
@@ -95,6 +95,74 @@ public = 1
 [files."src/gksl/floquet.jl"]
 undocumented = 0
 public = 4
+
+[files."src/gksl/gram_kernel.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/algebraic_representation.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/charge_grading.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/dense_representation.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/driver.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/exact_representation.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/exact_static_solve.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/graded_channels.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/operator_algebra.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/rational_reconstruction.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/realization.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/recurrence.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/sqa_lowering.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/static_solve.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/static_step.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/symbolic_parameters.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/virtual_gauge.jl"]
+undocumented = 0
+public = 0
 
 [files."src/words/lyndon_words.jl"]
 undocumented = 0

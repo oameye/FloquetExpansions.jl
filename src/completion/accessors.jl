@@ -11,7 +11,7 @@ end
 
 function effective_generator(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P,E,C<:PositiveCompletion,R}
+) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
   return getfield(expansion, :completion).generator
 end
 
@@ -21,7 +21,7 @@ function hamiltonian(
   G,
   P<:PeriodicGenerator{Liouvillian},
   E<:Liouvillian,
-  C<:PositiveCompletion,
+  C<:Union{PositiveCompletion,NativeRealization},
   R<:FloquetProvenance,
 }
   return stored_completion_hamiltonian(expansion)::SQA.QAdd
@@ -35,7 +35,7 @@ Floquet expansion.
 """
 function dissipative_frame(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P,E,C<:PositiveCompletion,R}
+) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
   return copy(stored_dissipative_frame(expansion))
 end
 
@@ -47,7 +47,7 @@ reconstruct [`effective_generator`](@ref) exactly.
 """
 function channels(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P,E,C<:PositiveCompletion,R}
+) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
   return copy(stored_completion(expansion).channels)
 end
 
@@ -59,7 +59,7 @@ completion.
 """
 function positivity_conditions(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P,E,C<:PositiveCompletion,R}
+) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
   return copy(stored_completion(expansion).positivity_conditions)
 end
 
@@ -71,7 +71,7 @@ positive completion.
 """
 function regularity_conditions(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P,E,C<:PositiveCompletion,R}
+) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
   return copy(stored_completion(expansion).regularity_conditions)
 end
 
@@ -87,6 +87,12 @@ function factorization(
   return copy(stored_completion(expansion).factorization)
 end
 
+function factorization(
+  expansion::FloquetExpansion{G,P,E,C,R}
+) where {G,P,E,C<:NativeRealization,R}
+  return stored_completion(expansion).factorization
+end
+
 """
     kossakowski(expansion::FloquetExpansion)
 
@@ -95,7 +101,13 @@ form is defined for positively completed Liouvillian expansions.
 """
 function kossakowski(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian,C<:PositiveCompletion,R}
+) where {
+  G,
+  P<:PeriodicGenerator{Liouvillian},
+  E<:Liouvillian,
+  C<:Union{PositiveCompletion,NativeRealization},
+  R,
+}
   return copy(stored_completion(expansion).kossakowski)
 end
 
@@ -107,7 +119,13 @@ stored dissipative frame. Positive completion does not alter retained components
 """
 function kossakowski_component(
   expansion::FloquetExpansion{G,P,E,C,R}, n::Int
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian,C<:PositiveCompletion,R}
+) where {
+  G,
+  P<:PeriodicGenerator{Liouvillian},
+  E<:Liouvillian,
+  C<:Union{PositiveCompletion,NativeRealization},
+  R,
+}
   retained = stored_retained_kossakowski(expansion)
   0 <= n < length(retained) || throw(BoundsError(retained, n + 1))
   return copy(retained[n + 1])

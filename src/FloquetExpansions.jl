@@ -28,6 +28,24 @@ include("expansion/bloch_feshbach.jl")
 include("gksl/dissipative_frame.jl")
 include("gksl/coordinates.jl")
 include("gksl/floquet.jl")
+include("gksl/gram_kernel.jl")
+
+include("native/graded_channels.jl")
+include("native/static_solve.jl")
+include("native/exact_static_solve.jl")
+include("native/static_step.jl")
+include("native/dense_representation.jl")
+include("native/exact_representation.jl")
+include("native/charge_grading.jl")
+include("native/operator_algebra.jl")
+include("native/algebraic_representation.jl")
+include("native/sqa_lowering.jl")
+include("native/virtual_gauge.jl")
+include("native/recurrence.jl")
+include("native/driver.jl")
+include("native/rational_reconstruction.jl")
+include("native/symbolic_parameters.jl")
+include("native/realization.jl")
 
 include("completion/types.jl")
 include("completion/backend/matrix_series.jl")
@@ -41,7 +59,8 @@ include("completion/spectral.jl")
 include("completion/positive_completion.jl")
 
 export BlochFeshbach, HoriDeprit
-export Gauge, PeriodicGenerator, QuasienergyOperator, VanVleck, harmonic_range
+export GKSLNormalForm,
+  Gauge, PeriodicGenerator, QuasienergyOperator, VanVleck, harmonic_range
 export antiderivative, derivative, harmonics, support, time_average
 export FloquetExpansion,
   effective_component, effective_generator, floquet_expansion, micromotion, order

@@ -46,6 +46,10 @@ The effective generator and the micromotion generator of the van Vleck gauge, ta
 **Gauge**:
 The convention fixing the free integration constant of the micromotion generator, and with it which effective generator and micromotion a Floquet expansion represents. The van Vleck gauge requires the micromotion generator to have zero period average.
 
+**GKSL normal form**:
+The gauge whose micromotion is the van Vleck micromotion followed by a static similarity ``W = e^{S}``, with the order-``n`` static gauge ``S_n`` fixed by a normal-form condition on the dark Kossakowski quotient so that every truncation of the effective generator is of GKSL form. It has the van Vleck spectrum through the retained order and equals the van Vleck gauge wherever every ``S_n`` vanishes. Selected by `GKSLNormalForm`.
+_Avoid_: calling it a van Vleck expansion or a positive completion; it changes the retained coefficients, and completion never does.
+
 **Expansion algorithm**:
 The procedure that computes the coefficients a gauge fixes. Algorithms for the same gauge produce identical retained effective components and micromotion; they differ only in intermediate quantities and cost.
 _Avoid_: calling an algorithm a gauge, or confusing it with a positive-completion algorithm, which changes the finite effective generator.
@@ -122,6 +126,12 @@ The radical of the current leading dissipative Hermitian form. Its directions ha
 
 **Feshbach residual**:
 For a reduced block form ``d = [A X; X† C]`` with active ``A``, the induced dark-sector Hermitian form ``Σ = C - X†A⁻¹X``. It determines whether dark directions open, remain unresolved beyond truncation, or obstruct a positive continuation.
+
+**Graded native channel**:
+A jump amplitude of the GKSL normal form, ``R_α(ε) = ε^{ν_α} Σ_k ε^k R_{α,k}`` with onset grade ``ν_α = n/2`` for a channel whose rate first appears at generator order ``n``. Its coefficients are state of the BF/HD recurrence, not the output of positive completion. A channel is active, and spans the bright space, from the order after its birth.
+
+**Homological inverse**:
+An algebra-specific right inverse of ``\operatorname{ad}_{\bar{\mathcal L}}`` on the sectors where it is regular, used by the native static slot to cancel the dark Kossakowski target there exactly. For a U(1)-symmetric averaged generator these are the charged sectors, where the inverse lives in a localized coefficient algebra such as ``\mathfrak A_{\rm poly}[d_q^{-1}]``. A non-polynomial inverse is not a resonance; a physical zero of a Bohr multiplier is.
 
 **Dissipative onset filtration**:
 The nested sequence of dark sectors exposed by recursively resolving Feshbach residuals. Its successive quotients collect channels that open at successive perturbative orders and replace perturbative eigenvalue branches as the general algebraic organizing structure.
