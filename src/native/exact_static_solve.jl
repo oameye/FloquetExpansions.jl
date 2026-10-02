@@ -119,6 +119,42 @@ function exact_dark_projector(B::AbstractMatrix{T}, G::AbstractMatrix{T}) where 
          B * exact_solve(adjoint(B) * G * B, adjoint(B) * G)
 end
 
+struct ExactDarkMap{T}
+  B::Matrix{T}
+  C::Matrix{T}
+end
+
+function exact_dark_map(B::AbstractMatrix{T}, G::AbstractMatrix{T}) where {T}
+  size(B, 2) == 0 && return ExactDarkMap{T}(Matrix{T}(B), exact_zeros(T, 0, size(G, 1)))
+  return ExactDarkMap{T}(Matrix{T}(B), exact_solve(adjoint(B) * G * B, adjoint(B) * G))
+end
+
+function dark_sandwich(map::ExactDarkMap, X::AbstractMatrix)
+  size(map.C, 1) == 0 && return Matrix(X)
+  Y = X - map.B * (map.C * X)
+  return Y - (Y * adjoint(map.C)) * adjoint(map.B)
+end
+
+function exact_isidentity(G::AbstractMatrix)
+  return all(
+    G[i, j] == (i == j ? one(eltype(G)) : zero(eltype(G))) for
+    j in axes(G, 2), i in axes(G, 1)
+  )
+end
+
+function exact_nonzeros(X::AbstractMatrix)
+  return [(a, b, X[a, b]) for b in axes(X, 2) for a in axes(X, 1) if !iszero(X[a, b])]
+end
+
+function exact_trace_product(entries, Y::AbstractMatrix{T}) where {T}
+  value = zero(T)
+  for (a, b, x) in entries
+    y = Y[b, a]
+    iszero(y) || (value += x * y)
+  end
+  return real(value)
+end
+
 function exact_psd_factor(P::AbstractMatrix{T}, ::Type{R}) where {T,R}
   work = Matrix{T}(P)
   n = size(work, 1)
@@ -179,6 +215,79 @@ function exact_tangent_lift(
   return Y
 end
 
+function exact_complex_coordinates(X::AbstractMatrix, ::Type{R}) where {R}
+  return vcat(R[real(x) for x in vec(X)], R[imag(x) for x in vec(X)])
+end
+
+function exact_combination(J::Vector{Matrix{T}}, x::AbstractVector, n::Int) where {T}
+  result = exact_zeros(T, n, n)
+  for (k, xk) in pairs(x)
+    iszero(xk) && continue
+    result += xk * J[k]
+  end
+  return result
+end
+
+function exact_fixed_block(free, n::Int)
+  fixed = [i for i in 1:n if all(iszero(F[i, i]) for F in free)]
+  while !isempty(fixed)
+    violations = [count(j -> any(!iszero(F[i, j]) for F in free), fixed) for i in fixed]
+    worst = argmax(violations)
+    violations[worst] == 0 && return fixed
+    deleteat!(fixed, worst)
+  end
+  return fixed
+end
+
+function exact_facial_constraints(
+  P0::Matrix{T}, J::Vector{Matrix{T}}, ::Type{R}
+) where {T,R}
+  n = size(P0, 1)
+  p = length(J)
+  x0 = exact_zeros(R, p)
+  Z = Matrix{R}(LinearAlgebra.I, p, p)
+  C = exact_zeros(R, 0, p)
+  c = R[]
+  while true
+    free = if Z == LinearAlgebra.I
+      J
+    else
+      [exact_combination(J, view(Z, :, j), n) for j in axes(Z, 2)]
+    end
+    fixed = exact_fixed_block(free, n)
+    isempty(fixed) && break
+    current = P0 + exact_combination(J, x0, n)
+    block = current[fixed, fixed]
+    exact_psd_factor(block, R)
+    kernel = exact_nullspace(block)
+    isempty(kernel) && break
+    N = reduce(hcat, kernel)
+    rows = reduce(
+      hcat,
+      [exact_complex_coordinates(F[:, fixed] * N, R) for F in free];
+      init=exact_zeros(R, 2 * n * size(N, 2), 0),
+    )
+    rhs = -exact_complex_coordinates(current[:, fixed] * N, R)
+    y = exact_min_norm_solve(rows, rhs, Matrix{R}(LinearAlgebra.I, size(Z, 2), size(Z, 2)))
+    constraint = if free === J
+      rows
+    else
+      reduce(
+        hcat,
+        [exact_complex_coordinates(Jk[:, fixed] * N, R) for Jk in J];
+        init=exact_zeros(R, 2 * n * size(N, 2), 0),
+      )
+    end
+    C = vcat(C, constraint)
+    c = vcat(c, -exact_complex_coordinates(P0[:, fixed] * N, R))
+    x0 += Z * y
+    reduced = exact_nullspace(rows)
+    length(reduced) == size(Z, 2) && break
+    Z = isempty(reduced) ? exact_zeros(R, p, 0) : Z * reduce(hcat, reduced)
+  end
+  return C, c, Z
+end
+
 function native_exact_static_solve(
   residual::Matrix{T},
   known::Matrix{T},
@@ -197,22 +306,32 @@ function native_exact_static_solve(
   size(gauge_metric) == (length(gauge_images), length(gauge_images)) ||
     throw(DimensionMismatch("the gauge metric must match the number of gauge directions"))
 
-  Q = exact_dark_projector(active, metric)
-  units = exact_hermitian_units(T, n)
-  M = exact_form_metric(metric, units, R)
-  dark(X) = exact_hermitian_coordinates(Q * X * adjoint(Q), R)
-  b = dark(residual - known)
-  A =
-    isempty(gauge_images) ? exact_zeros(R, length(b), 0) : reduce(hcat, dark.(gauge_images))
+  dark = exact_dark_map(active, metric)
+  P0 = dark_sandwich(dark, residual - known)
+  J = [dark_sandwich(dark, image) for image in gauge_images]
+  identity_metric = exact_isidentity(metric)
+  GJ = identity_metric ? J : [metric * X for X in J]
+  GP = identity_metric ? P0 : metric * P0
+  entries = [exact_nonzeros(X) for X in GJ]
+  p = length(J)
+  normal_matrix = exact_zeros(R, p, p)
+  for i in 1:p, j in i:p
+    value = exact_trace_product(entries[i], GJ[j])
+    normal_matrix[i, j] = value
+    normal_matrix[j, i] = value
+  end
+  normal_rhs = R[-exact_trace_product(entries[i], GP) for i in 1:p]
+  C, c, Z = exact_facial_constraints(P0, J, R)
+  Zt = Matrix(transpose(Z))
   coordinates = exact_min_norm_solve(
-    Matrix(transpose(A)) * M * A, -(Matrix(transpose(A)) * M * b), gauge_metric
+    vcat(C, Zt * normal_matrix), vcat(c, Zt * normal_rhs), gauge_metric
   )
 
   solved = copy(residual)
   for (coordinate, image) in zip(coordinates, gauge_images)
     solved += coordinate * image
   end
-  P = Q * (solved - known) * adjoint(Q)
+  P = dark_sandwich(dark, solved - known)
   newborn, newborn_weights = exact_psd_factor(P, R)
   born = newborn * LinearAlgebra.Diagonal(Vector{T}(newborn_weights)) * adjoint(newborn)
   correction = exact_tangent_lift(active, weights, solved - known - born, metric)

@@ -156,8 +156,7 @@ native_matches(::AlgebraicLiouvilleRepresentation, A, B, tol::Real) = A == B
 function native_dark_target(
   representation::AlgebraicLiouvilleRepresentation, residual, known, active, tol::Real
 )
-  Q = exact_dark_projector(active, representation.metric)
-  return Q * (residual - known) * adjoint(Q)
+  return dark_sandwich(exact_dark_map(active, representation.metric), residual - known)
 end
 
 function native_slot_solve(
