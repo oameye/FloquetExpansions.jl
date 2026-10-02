@@ -16,14 +16,40 @@ struct Liouvillian
   terms::LiouvillianTerms
 end
 
-@inline function add_term!(
-  L::Liouvillian, left::SQA.QAdd, right::SQA.QAdd, coefficient::SQA.CNum
-)
-  (iszero(left) || iszero(right) || iszero(coefficient)) && return L
-  key = (left, right)
+function monomial_operator(term::SQA.QTerm)::SQA.QAdd
+  arguments = SQA.QTermDict()
+  arguments[term] = convert(SQA.CNum, 1)
+  return SQA.QAdd(arguments, SQA.Index[])
+end
+
+@inline function add_action!(L::Liouvillian, key::LiouvillianAction, coefficient::SQA.CNum)
   updated = get(L.terms, key, convert(SQA.CNum, 0)) + coefficient
   iszero(updated) ? delete!(L.terms, key) : (L.terms[key] = updated)
   return L
+end
+
+function add_monomial_actions!(
+  L::Liouvillian, left::SQA.QAdd, right::SQA.QAdd, coefficient::SQA.CNum
+)
+  for (left_term, left_coefficient) in SQA.expand_completeness(left),
+    (right_term, right_coefficient) in SQA.expand_completeness(right)
+
+    add_action!(
+      L,
+      (monomial_operator(left_term), monomial_operator(right_term)),
+      coefficient * left_coefficient * right_coefficient,
+    )
+  end
+  return L
+end
+
+@inline has_bound_sums(left::SQA.QAdd, right::SQA.QAdd) =
+  !(isempty(left.indices) && isempty(right.indices))
+
+function add_term!(L::Liouvillian, left::SQA.QAdd, right::SQA.QAdd, coefficient::SQA.CNum)
+  (iszero(left) || iszero(right) || iszero(coefficient)) && return L
+  has_bound_sums(left, right) && return add_action!(L, (left, right), coefficient)
+  return add_monomial_actions!(L, left, right, coefficient)
 end
 
 function raw_liouvillian(terms::LiouvillianTerms)

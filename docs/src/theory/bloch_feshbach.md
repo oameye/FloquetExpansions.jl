@@ -197,6 +197,38 @@ completely positive dynamics by construction [Chruscinski2013](@cite). See also
 The projection trades the commutator recursion for a product recurrence followed by a
 normalization. Usage is described in [Expansion algorithms](@ref expansion-algorithms-manual).
 
+The two recurrences have different costs as the number of retained orders grows. Count each product
+or commutator of periodic operators as one recurrence operation. The Lie-transform recurrence fills
+two triangular tables: one for the dressed generator and one for the dressed micromotion derivative.
+At order ``n`` and depth ``j``, each table entry requires ``n-j+1`` commutators. Summing over both
+tables for ``N`` retained orders gives ``N(N^2-1)/3`` commutators.
+
+The Bloch recurrence uses products instead. At order ``n``, it forms one product
+``\mathcal{G}\,\Omega^{(n)}`` and ``n`` products in the sum
+``\sum_{j=1}^{n}\Omega^{(j)}\mathcal{B}^{(n-j)}``, for ``n+1`` products total. Summing over orders
+``1`` through ``N-1`` gives ``(N-1)(N+2)/2`` products. Thus the Bloch recurrence requires a linear
+number of products at each order and a quadratic number through order ``N``. Araya Day et al. compare
+Pymablock's scaling with Bloch's non-orthogonal perturbation theory. Both have linear work per
+added order, but they are different algorithms [ArayaDay2025](@cite).
+
+```@example bloch-feshbach-cost
+using Plots
+N = 2:12
+lie_transform = @. N * (N^2 - 1) ÷ 3
+bloch = @. (N - 1) * (N + 2) ÷ 2
+plot(N, [lie_transform bloch];
+  xscale=:log10, yscale=:log10, xticks=(N, string.(N)), marker=:circle,
+  label=["Lie transform (commutators)" "Bloch recurrence (products)"],
+  xlabel="retained orders N", ylabel="counted recurrence operations", legend=:topleft)
+plot!(N, [N .^ 3 ./ 3 N .^ 2 ./ 2]; linestyle=:dash, color=:gray, label=["N³/3" "N²/2"])
+```
+
+These are bookkeeping counts, not run-time estimates. They count each product and each commutator
+as one operation, regardless of the work inside it. In particular, multiplying periodic operators
+convolves their Fourier harmonics, whose support grows with order. The normalization
+``\Omega N=e^{\Lambda}`` also introduces nested commutators, whose number grows faster than any
+power of the truncation order.
+
 Mikami et al. use the Fourier convention of this page. Sources that write
 ``H(t)=\sum_m H_m e^{+im\omega t}``, such as Eckardt and Anisimovas, require ``m\mapsto-m``
 [Eckardt2015](@cite).
