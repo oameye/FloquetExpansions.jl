@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "efa54b1"
+commit = "266efca"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -116,6 +116,12 @@ boxes = 0
 boxes = 0
 
 [files."src/native/static_step.jl"]
+boxes = 0
+
+[files."src/native/symbolic_parameters.jl"]
+boxes = 0
+
+[files."src/native/virtual_gauge.jl"]
 boxes = 0
 
 [files."src/words/lyndon_words.jl"]

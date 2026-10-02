@@ -19,6 +19,9 @@ function singular_gauge_directions(
   return native_gauge_directions(representation)
 end
 
+# `defect` is E - V̂, the change of the static residual. For an ordinary step it equals
+# [L0, S]; for a virtual step no S is stored (`S` is zero) and `defect` is the polynomial
+# superoperator whose lattice invariants vanish.
 struct NativeStaticStep{X,O,S,C,B}
   E::X
   S::X
@@ -26,6 +29,8 @@ struct NativeStaticStep{X,O,S,C,B}
   solution::S
   correction::C
   births::B
+  virtual::Bool
+  defect::X
 end
 
 native_commutator(A, B) = A * B - B * A
@@ -140,7 +145,7 @@ function native_static_step(
   ) || throw(
     ArgumentError("native static step failed its Hamiltonian/Kossakowski reconstruction")
   )
-  return NativeStaticStep(E, S, H, solution, correction, births)
+  return NativeStaticStep(E, S, H, solution, correction, births, false, E - residual)
 end
 
 function native_static_step(

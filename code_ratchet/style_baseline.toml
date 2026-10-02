@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "efa54b1"
+commit = "266efca"
 metric = "style"
 rules = ["implicit_kwarg", "underscore_name"]
 binding = ["underscore_name", "implicit_kwarg"]
@@ -149,6 +149,14 @@ underscore_name = 0
 implicit_kwarg = 0
 
 [files."src/native/static_step.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/native/symbolic_parameters.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/native/virtual_gauge.jl"]
 underscore_name = 0
 implicit_kwarg = 0
 

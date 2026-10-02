@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "ed23a99"
+commit = "266efca"
 entry = ["src/FloquetExpansions.jl"]
 full_analysis = true
 metric = "lsp"
@@ -153,6 +153,14 @@ raw = 0
 reviewed = 0
 
 [files."src/native/static_step.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/symbolic_parameters.jl"]
+raw = 0
+reviewed = 0
+
+[files."src/native/virtual_gauge.jl"]
 raw = 0
 reviewed = 0
 

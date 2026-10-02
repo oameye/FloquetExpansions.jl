@@ -8,6 +8,7 @@ struct NativeRecurrence{X,O,T}
   kick::Vector{Harmonics{X}}
   channels::Vector{GradedChannel{T}}
   known_gram::Vector{Matrix{T}}
+  virtual::Dict{Int,X}
 end
 
 function harmonic_combine(A::Harmonics{X}, B::Harmonics{X}, α::Number, β::Number) where {X}
@@ -204,6 +205,21 @@ function accept_native_step!(channels, indices, step, order)
   return channels
 end
 
+function record_virtual!(virtual::Dict, step::NativeStaticStep, order::Int)
+  step.virtual && (virtual[order] = step.defect)
+  return virtual
+end
+
+# At a virtual order the retained coefficient differs from the Hori-Deprit average by the
+# commutator with a formal static gauge, so the check applies to stored slots only.
+function check_hd_slot(representation, average, step::NativeStaticStep, tolerance)
+  step.virtual && return nothing
+  native_matches(representation, average, step.E, 20 * tolerance) || throw(
+    ArgumentError("HD accepted static slot does not reproduce the retained coefficient")
+  )
+  return nothing
+end
+
 function native_recurrence(
   algorithm::Union{BlochFeshbach,HoriDeprit},
   representation::NativeRepresentation,
@@ -243,8 +259,9 @@ function native_recurrence(
   S = X[]
   slots = X[]
   known_products = Matrix{T}[]
+  virtual = Dict{Int,X}()
   Y = Harmonics{X}[Harmonics{X}(0 => identity)]
-  N == 0 && return NativeRecurrence(E, S, slots, H, Y, channels, known_products)
+  N == 0 && return NativeRecurrence(E, S, slots, H, Y, channels, known_products, virtual)
   families = native_gauge_families(representation, inverse, L0)
   push!(Y, harmonic_integral(L))
 
@@ -257,9 +274,10 @@ function native_recurrence(
     known = known_gram(channels, order, dimension)
     indices, active = active_channels(channels, order, dimension)
     rates = active_weights(channels, indices)
-    step = native_static_step(
-      representation, inverse, families, L0, Vhat, known, active, rates, tolerance
+    step = native_order_step(
+      representation, inverse, families, L0, Vhat, known, active, rates, tolerance, order, N
     )
+    record_virtual!(virtual, step, order)
 
     push!(S, step.S)
     push!(slots, base + step.S)
@@ -275,7 +293,7 @@ function native_recurrence(
       push!(Y, harmonic_integral(bf_static_residual(L, Y, E, order, Y[order + 1])))
     end
   end
-  return NativeRecurrence(E, S, slots, H, Y, channels, known_products)
+  return NativeRecurrence(E, S, slots, H, Y, channels, known_products, virtual)
 end
 
 function native_recurrence(
@@ -302,8 +320,9 @@ function native_recurrence(
   S = X[]
   slots = X[]
   known_products = Matrix{T}[]
+  virtual = Dict{Int,X}()
   G = Harmonics{X}[Harmonics{X}(), harmonic_integral(L)]
-  N == 0 && return NativeRecurrence(E, S, slots, H, G, channels, known_products)
+  N == 0 && return NativeRecurrence(E, S, slots, H, G, channels, known_products, virtual)
   families = native_gauge_families(representation, inverse, L0)
 
   for order in 1:N
@@ -316,9 +335,10 @@ function native_recurrence(
     known = known_gram(channels, order, dimension)
     indices, active = active_channels(channels, order, dimension)
     rates = active_weights(channels, indices)
-    step = native_static_step(
-      representation, inverse, families, L0, Vhat, known, active, rates, tolerance
+    step = native_order_step(
+      representation, inverse, families, L0, Vhat, known, active, rates, tolerance, order, N
     )
+    record_virtual!(virtual, step, order)
 
     push!(S, step.S)
     push!(slots, base + step.S)
@@ -331,12 +351,8 @@ function native_recurrence(
     check_native_coefficient(representation, step.E, channels, order, dimension, tolerance)
 
     W = hd_generator_series(L, G, order)[order + 1]
-    native_matches(
-      representation, harmonic_average(W, zero_element), step.E, 20 * tolerance
-    ) || throw(
-      ArgumentError("HD accepted static slot does not reproduce the retained coefficient")
-    )
+    check_hd_slot(representation, harmonic_average(W, zero_element), step, tolerance)
     order < N && push!(G, harmonic_integral(W))
   end
-  return NativeRecurrence(E, S, slots, H, G, channels, known_products)
+  return NativeRecurrence(E, S, slots, H, G, channels, known_products, virtual)
 end

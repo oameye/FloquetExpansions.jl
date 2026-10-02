@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "efa54b1"
+commit = "266efca"
 metric = "docs"
 public = "export_public_and_at_public"
 binding = ["undocumented"]
@@ -149,6 +149,14 @@ undocumented = 0
 public = 0
 
 [files."src/native/static_step.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/symbolic_parameters.jl"]
+undocumented = 0
+public = 0
+
+[files."src/native/virtual_gauge.jl"]
 undocumented = 0
 public = 0
 

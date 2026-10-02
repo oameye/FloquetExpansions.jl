@@ -5,7 +5,7 @@ function collect_native_parameters!(found::Vector{Any}, c::SQA.CNum)
     ArgumentError("the native expansion supports polynomial coefficients only, got $c")
   )
   for monomial in tail.terms, symbol in monomial.syms
-    any(s -> isequal(s, symbol), found) || push!(found, symbol)
+    any(s -> isequal(s, symbol)::Bool, found) || push!(found, symbol)
   end
   return found
 end
@@ -50,7 +50,10 @@ function symbolic_gksl_normal_form(
   for k in 1:2
     point = structure_point(parameters, k)
     data = native_expansion_data(gauge.algorithm, generator, N, point, 3)
-    n = findfirst(!iszero, data.recurrence.S)
+    n = findfirst(
+      n -> !iszero(data.recurrence.S[n]) || haskey(data.recurrence.virtual, n),
+      eachindex(data.recurrence.S),
+    )
     n === nothing || throw(symbolic_static_gauge_error(parameters, n))
   end
   reference = floquet_expansion_impl(
