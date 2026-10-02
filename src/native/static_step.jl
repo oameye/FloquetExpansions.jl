@@ -43,7 +43,18 @@ native_gauge_metric(::NativeRepresentation, directions) = zeros(Float64, 0, 0)
 function native_gauge_family(
   representation::NativeRepresentation, inverse::HomologicalInverse, L0
 )
-  directions = singular_gauge_directions(inverse, representation)
+  return native_gauge_family(
+    representation, singular_gauge_directions(inverse, representation), L0
+  )
+end
+
+function native_gauge_families(
+  representation::NativeRepresentation, inverse::HomologicalInverse, L0
+)
+  return [native_gauge_family(representation, inverse, L0)]
+end
+
+function native_gauge_family(representation::NativeRepresentation, directions, L0)
   images = [
     native_kossakowski(representation, native_commutator(L0, G)) for G in directions
   ]
@@ -132,4 +143,29 @@ function native_static_step(
     ArgumentError("native static step failed its Hamiltonian/Kossakowski reconstruction")
   )
   return NativeStaticStep(E, S, H, solution, correction, births)
+end
+
+function native_static_step(
+  representation::NativeRepresentation,
+  inverse::HomologicalInverse,
+  families::AbstractVector{<:NativeGaugeFamily},
+  L0,
+  residual,
+  known::AbstractMatrix{<:Number},
+  active::AbstractMatrix{<:Number},
+  weights::AbstractVector{<:Number},
+  tol::Real,
+)
+  for family in families[1:(end - 1)]
+    try
+      return native_static_step(
+        representation, inverse, family, L0, residual, known, active, weights, tol
+      )
+    catch error
+      error isa NativePositivityError || rethrow()
+    end
+  end
+  return native_static_step(
+    representation, inverse, families[end], L0, residual, known, active, weights, tol
+  )
 end

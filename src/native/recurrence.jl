@@ -245,7 +245,7 @@ function native_recurrence(
   known_products = Matrix{T}[]
   Y = Harmonics{X}[Harmonics{X}(0 => identity)]
   N == 0 && return NativeRecurrence(E, S, slots, H, Y, channels, known_products)
-  family = native_gauge_family(representation, inverse, L0)
+  families = native_gauge_families(representation, inverse, L0)
   push!(Y, harmonic_integral(L))
 
   for order in 1:N
@@ -258,7 +258,7 @@ function native_recurrence(
     indices, active = active_channels(channels, order, dimension)
     rates = active_weights(channels, indices)
     step = native_static_step(
-      representation, inverse, family, L0, Vhat, known, active, rates, tolerance
+      representation, inverse, families, L0, Vhat, known, active, rates, tolerance
     )
 
     push!(S, step.S)
@@ -304,7 +304,7 @@ function native_recurrence(
   known_products = Matrix{T}[]
   G = Harmonics{X}[Harmonics{X}(), harmonic_integral(L)]
   N == 0 && return NativeRecurrence(E, S, slots, H, G, channels, known_products)
-  family = native_gauge_family(representation, inverse, L0)
+  families = native_gauge_families(representation, inverse, L0)
 
   for order in 1:N
     truncated = hd_truncated_generator(G, order)
@@ -317,7 +317,7 @@ function native_recurrence(
     indices, active = active_channels(channels, order, dimension)
     rates = active_weights(channels, indices)
     step = native_static_step(
-      representation, inverse, family, L0, Vhat, known, active, rates, tolerance
+      representation, inverse, families, L0, Vhat, known, active, rates, tolerance
     )
 
     push!(S, step.S)

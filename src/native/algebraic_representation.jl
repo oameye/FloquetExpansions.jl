@@ -1,3 +1,9 @@
+struct NativeFrameError <: Exception
+  message::String
+end
+
+Base.showerror(io::IO, error::NativeFrameError) = print(io, error.message)
+
 struct AlgebraicLiouvilleRepresentation{T,R} <: NativeRepresentation
   algebra::OperatorAlgebra{T,R}
   frame::Vector{Monomial}
@@ -76,7 +82,7 @@ function frame_coordinates(
   for (m, c) in X.terms
     m == identity && continue
     k = get(representation.index, m, 0)
-    k == 0 && throw(ArgumentError("operator has a monomial outside the algebraic frame"))
+    k == 0 && throw(NativeFrameError("operator has a monomial outside the algebraic frame"))
     coordinates[k] = c
   end
   return coordinates
@@ -101,8 +107,9 @@ function native_kossakowski(
     (X == identity || M == identity) && continue
     μ = get(representation.index, X, 0)
     k = get(representation.index, M, 0)
-    (μ == 0 || k == 0) &&
-      throw(ArgumentError("superoperator has a sandwich term outside the algebraic frame"))
+    (μ == 0 || k == 0) && throw(
+      NativeFrameError("superoperator has a sandwich term outside the algebraic frame")
+    )
     for ν in 1:n
       w = representation.right_basis[ν, k]
       iszero(w) || (C[μ, ν] += c * w)
@@ -121,7 +128,9 @@ function native_hamiltonian(
     if M == identity
       accumulate!(K, X, c)
     elseif X != identity
-      k = representation.index[M]
+      k = get(representation.index, M, 0)
+      k == 0 &&
+        throw(NativeFrameError("superoperator has a term outside the algebraic frame"))
       accumulate!(K, X, c * representation.right_identity[k])
     end
   end
@@ -218,10 +227,16 @@ end
 function algebraic_gauge_directions(
   representation::AlgebraicLiouvilleRepresentation{T,R}, keep
 ) where {T,R}
+  return algebraic_gauge_directions(representation, keep, representation.gauge_degree)
+end
+
+function algebraic_gauge_directions(
+  representation::AlgebraicLiouvilleRepresentation{T,R}, keep, gauge_degree::Int
+) where {T,R}
   algebra = representation.algebra
   n = length(representation.frame)
   degree(μ) = monomial_degree(algebra, representation.frame[μ])
-  small = [μ for μ in 1:n if degree(μ) <= representation.gauge_degree]
+  small = [μ for μ in 1:n if degree(μ) <= gauge_degree]
   directions = AlgebraSuperoperator{T,R}[]
   zero_frame = exact_zeros(T, n, n)
   for h in hermitian_generators(representation, (μ, ν) -> μ in small && keep(μ, ν))
@@ -250,6 +265,16 @@ end
 
 function native_gauge_directions(representation::AlgebraicLiouvilleRepresentation)
   return algebraic_gauge_directions(representation, (μ, ν) -> true)
+end
+
+function native_gauge_families(
+  representation::AlgebraicLiouvilleRepresentation, ::NoHomologicalInverse, L0
+)
+  return [
+    native_gauge_family(
+      representation, algebraic_gauge_directions(representation, (μ, ν) -> true, degree), L0
+    ) for degree in 1:(representation.gauge_degree)
+  ]
 end
 
 function sparse_exact_solve(columns::Vector{Dict{K,T}}, target::Dict{K,T}) where {K,T}

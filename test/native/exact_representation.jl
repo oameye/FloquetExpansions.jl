@@ -121,7 +121,7 @@ end
   rep = FE.ExactLiouvilleRepresentation{Q}(2)
   L0 = FE.native_gksl(rep, Q[1 0; 0 -1], zeros(Q, 3, 3))
   residual = FE.native_gksl(rep, zeros(Q, 2, 2), Q[1 0 0; 0 -1 0; 0 0 0])
-  @test_throws ArgumentError FE.native_static_step(
+  @test_throws FE.NativePositivityError FE.native_static_step(
     rep, FE.NoHomologicalInverse(), L0, residual, zeros(Q, 3, 3), zeros(Q, 3, 0), Q[], 1e-8
   )
 end
