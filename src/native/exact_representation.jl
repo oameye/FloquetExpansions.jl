@@ -10,7 +10,7 @@ struct ExactLiouvilleRepresentation{T,R} <: NativeRepresentation
 end
 
 function ExactLiouvilleRepresentation{T}(d::Int) where {T}
-  return ExactLiouvilleRepresentation{T}(ones(real(T), d))
+  return ExactLiouvilleRepresentation{T}(fill(one(real(T)), d))
 end
 
 function ExactLiouvilleRepresentation{T}(hilbert::Vector{R}) where {T,R<:Real}
