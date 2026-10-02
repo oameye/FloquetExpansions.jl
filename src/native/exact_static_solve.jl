@@ -99,9 +99,15 @@ function exact_form_metric(
   G::AbstractMatrix{T}, units::Vector{Matrix{T}}, ::Type{R}
 ) where {T,R}
   n = length(units)
+  supports = [Tuple.(findall(!iszero, E)) for E in units]
   M = exact_zeros(R, n, n)
-  for k in 1:n, l in 1:n
-    M[k, l] = real(LinearAlgebra.tr(G * units[k] * G * units[l]))
+  for k in 1:n, l in k:n
+    value = zero(T)
+    for (b, c) in supports[k], (e, a) in supports[l]
+      value += G[a, b] * units[k][b, c] * G[c, e] * units[l][e, a]
+    end
+    M[k, l] = real(value)
+    M[l, k] = real(value)
   end
   return M
 end

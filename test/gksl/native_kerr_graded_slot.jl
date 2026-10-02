@@ -60,6 +60,15 @@ function native_charged_dark_target(Vhat, known, P, d)
   return -native_charged_part(dissipator, Q)
 end
 
+function native_charged_dark_kossakowski(C, known, active, d)
+  Q = native_superoperator_charge(d)
+  P = FloquetExpansions.gram_active_frame(Matrix{ComplexF64}(active); rtol=1e-8).dark
+  size(P, 2) == 0 && return zeros(ComplexF64, d^2, d^2)
+  delta = native_hermitian(P' * (C - known) * P)
+  dissipator = native_from_Hc(zeros(ComplexF64, d, d), P * delta * P', d)
+  return -native_charged_part(dissipator, Q)
+end
+
 function native_checked_charged_solve(inverse, L0, Y, tol)
   S = native_charged_solve(inverse, Y)
   defect = norm(L0 * S - S * L0 - Y)
@@ -151,14 +160,15 @@ function FloquetExpansions.regular_gauge(
   section::NativeChargedSection,
   representation::FloquetExpansions.DenseLiouvilleRepresentation,
   L0,
-  Vhat,
+  C,
   known,
-  P,
+  active,
+  tol,
 )
   d = representation.d
   norm(L0 - section.L0) <= section.tol * max(1.0, norm(L0)) ||
     error("charged section was built for a different averaged generator")
-  Y = native_charged_dark_target(Vhat, known, P, d)
+  Y = native_charged_dark_kossakowski(C, known, active, d)
   return native_checked_charged_solve(section.inverse, L0, Y, section.tol)
 end
 

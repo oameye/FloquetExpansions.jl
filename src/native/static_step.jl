@@ -10,7 +10,7 @@ function native_gauge_directions end
 struct NoHomologicalInverse <: HomologicalInverse end
 
 function regular_gauge(
-  ::NoHomologicalInverse, ::NativeRepresentation, L0, residual, known, dark
+  ::NoHomologicalInverse, ::NativeRepresentation, L0, residual, known, active, tol
 )
   return zero(L0)
 end
@@ -21,14 +21,37 @@ function singular_gauge_directions(
   return native_gauge_directions(representation)
 end
 
-struct NativeStaticStep{X,O}
+struct NativeStaticStep{X,O,S,C,B}
   E::X
   S::X
   H::O
-  solution::NativeStaticSolution
+  solution::S
+  correction::C
+  births::B
 end
 
 native_commutator(A, B) = A * B - B * A
+
+function native_matches(::NativeRepresentation, A, B, tol::Real)
+  return LinearAlgebra.norm(A - B) <= tol * max(1.0, LinearAlgebra.norm(B))
+end
+
+function native_dark_target(::NativeRepresentation, residual, known, active, tol::Real)
+  dark = Matrix{ComplexF64}(gram_active_frame(Matrix{ComplexF64}(active); rtol=tol).dark)
+  size(dark, 2) == 0 && return zeros(ComplexF64, size(residual))
+  delta = hermitian_part(adjoint(dark) * (residual - known) * dark)
+  return dark * delta * adjoint(dark)
+end
+
+function native_slot_solve(
+  ::NativeRepresentation, residual, known, active, weights, images, directions, tol::Real
+)
+  scale = LinearAlgebra.Diagonal(sqrt.(real.(weights)))
+  solution = native_static_solve(residual, known, active * scale, images, tol)
+  correction = solution.correction / scale
+  births = ones(ComplexF64, size(solution.newborn, 2))
+  return solution, correction, births
+end
 
 function native_static_step(
   representation::NativeRepresentation,
@@ -37,17 +60,25 @@ function native_static_step(
   residual,
   known::AbstractMatrix{<:Number},
   active::AbstractMatrix{<:Number},
+  weights::AbstractVector{<:Number},
   tol::Real,
 )
-  dark = gram_active_frame(Matrix{ComplexF64}(active); rtol=tol).dark
-  regular = regular_gauge(inverse, representation, L0, residual, known, dark)
+  C = native_kossakowski(representation, residual)
+  regular = regular_gauge(inverse, representation, L0, C, known, active, tol)
   singular_residual = residual + native_commutator(L0, regular)
   directions = singular_gauge_directions(inverse, representation)
-  images = Matrix{ComplexF64}[
+  images = [
     native_kossakowski(representation, native_commutator(L0, G)) for G in directions
   ]
-  solution = native_static_solve(
-    native_kossakowski(representation, singular_residual), known, active, images, tol
+  solution, correction, births = native_slot_solve(
+    representation,
+    native_kossakowski(representation, singular_residual),
+    known,
+    active,
+    weights,
+    images,
+    directions,
+    tol,
   )
 
   S = regular
@@ -57,16 +88,15 @@ function native_static_step(
   E = residual + native_commutator(L0, S)
 
   coefficient = solution.coefficient
-  scale = max(1.0, LinearAlgebra.norm(coefficient))
-  LinearAlgebra.norm(native_kossakowski(representation, E) - coefficient) <= tol * scale ||
+  native_matches(representation, native_kossakowski(representation, E), coefficient, tol) ||
     throw(
       ArgumentError("native static step failed to reconstruct its Kossakowski coefficient")
     )
   H = native_hamiltonian(representation, E)
-  reconstruction = native_gksl(representation, H, coefficient)
-  LinearAlgebra.norm(E - reconstruction) <= 20 * tol * max(1.0, LinearAlgebra.norm(E)) ||
-    throw(
-      ArgumentError("native static step failed its Hamiltonian/Kossakowski reconstruction")
-    )
-  return NativeStaticStep(E, S, H, solution)
+  native_matches(
+    representation, E, native_gksl(representation, H, coefficient), 20 * tol
+  ) || throw(
+    ArgumentError("native static step failed its Hamiltonian/Kossakowski reconstruction")
+  )
+  return NativeStaticStep(E, S, H, solution, correction, births)
 end

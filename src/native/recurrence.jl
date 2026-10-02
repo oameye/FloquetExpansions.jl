@@ -1,13 +1,13 @@
 const Harmonics{X} = Dict{Int,X}
 
-struct NativeRecurrence{X,O}
+struct NativeRecurrence{X,O,T}
   E::Vector{X}
   S::Vector{X}
   slots::Vector{X}
   H::Vector{O}
   kick::Vector{Harmonics{X}}
-  channels::Vector{GradedChannel{ComplexF64}}
-  known_gram::Vector{Matrix{ComplexF64}}
+  channels::Vector{GradedChannel{T}}
+  known_gram::Vector{Matrix{T}}
 end
 
 function harmonic_combine(A::Harmonics{X}, B::Harmonics{X}, α::Number, β::Number) where {X}
@@ -33,7 +33,7 @@ end
 harmonic_average(A::Harmonics{X}, zero_element::X) where {X} = get(A, 0, zero_element)
 
 function harmonic_integral(A::Harmonics{X}) where {X}
-  return Harmonics{X}(k => (im / k) * value for (k, value) in A if k != 0)
+  return Harmonics{X}(k => (im // k) * value for (k, value) in A if k != 0)
 end
 
 function harmonic_derivative(A::Harmonics{X}) where {X}
@@ -92,7 +92,7 @@ function kick_exp(A::Vector{Harmonics{X}}, identity::X, N::Int) where {X}
   power = kick_identity(identity, N)
   for p in 1:N
     power = kick_mul(power, A, N)
-    result = kick_add(result, kick_scale(power, N, inv(factorial(p))), N, 1, 1)
+    result = kick_add(result, kick_scale(power, N, 1 // factorial(p)), N, 1, 1)
   end
   return result
 end
@@ -102,13 +102,13 @@ function kick_log(K::Vector{Harmonics{X}}, identity::X, N::Int) where {X}
   result = kick_zero(X, N)
   power = A
   for p in 1:N
-    result = kick_add(result, kick_scale(power, N, (-1.0)^(p + 1) / p), N, 1, 1)
+    result = kick_add(result, kick_scale(power, N, (-1)^(p + 1) // p), N, 1, 1)
     p == N || (power = kick_mul(power, A, N))
   end
   return result
 end
 
-function static_exp(S::Vector{X}, identity::X, N::Int, sign::Float64) where {X}
+function static_exp(S::Vector{X}, identity::X, N::Int, sign::Int) where {X}
   A = kick_zero(X, N)
   for n in 1:min(N, length(S))
     A[n + 1] = Harmonics{X}(0 => sign * S[n])
@@ -119,7 +119,7 @@ end
 function intrinsic_offset(
   kick::Vector{Harmonics{X}}, S::Vector{X}, order::Int, identity::X, zero_element::X
 ) where {X}
-  K = kick_mul(kick, static_exp(S, identity, order, -1.0), order)
+  K = kick_mul(kick, static_exp(S, identity, order, -1), order)
   return harmonic_average(kick_log(K, identity, order)[order + 1], zero_element)
 end
 
@@ -161,7 +161,7 @@ function hd_generator_series(L::Harmonics{X}, G::Vector{Harmonics{X}}, N::Int) w
   term = Lseries
   for k in 1:N
     term = kick_commutator(generator, term, N)
-    effective = kick_add(effective, kick_scale(term, N, (-1.0)^k / factorial(k)), N, 1, 1)
+    effective = kick_add(effective, kick_scale(term, N, (-1)^k // factorial(k)), N, 1, 1)
   end
 
   drift = kick_zero(X, N)
@@ -174,32 +174,49 @@ function hd_generator_series(L::Harmonics{X}, G::Vector{Harmonics{X}}, N::Int) w
   for k in 1:N
     term = kick_commutator(generator, term, N)
     effective = kick_add(
-      effective, kick_scale(term, N, -(-1.0)^k / factorial(k + 1)), N, 1, 1
+      effective, kick_scale(term, N, -(-1)^k // factorial(k + 1)), N, 1, 1
     )
   end
   return effective
 end
 
-function initial_native_channels(leading::AbstractMatrix{<:Number})
-  return GradedChannel{ComplexF64}[
-    GradedChannel{ComplexF64}(0, [Vector{ComplexF64}(leading[:, j])]) for
-    j in axes(leading, 2)
+function initial_native_channels(
+  leading::AbstractMatrix{T}, weights::AbstractVector
+) where {T<:Number}
+  length(weights) == size(leading, 2) ||
+    throw(DimensionMismatch("one rate weight is required per leading channel"))
+  return GradedChannel{T}[
+    GradedChannel{T}(0, T(weights[j]), [Vector{T}(leading[:, j])]) for j in axes(leading, 2)
   ]
 end
 
 function check_native_coefficient(representation, E, channels, order, dimension, tolerance)
   reconstructed = gram_coefficient(channels, order, dimension)
-  scale = max(1.0, LinearAlgebra.norm(reconstructed))
-  LinearAlgebra.norm(native_kossakowski(representation, E) - reconstructed) <=
-  20 * tolerance * scale ||
-    throw(ArgumentError("graded channel state failed coefficient reconstruction"))
+  native_matches(
+    representation, native_kossakowski(representation, E), reconstructed, 20 * tolerance
+  ) || throw(ArgumentError("graded channel state failed coefficient reconstruction"))
   return nothing
 end
 
 function accept_native_step!(channels, indices, step, order)
-  store_corrections!(channels, indices, step.solution.correction, order)
-  store_births!(channels, step.solution.newborn, order)
+  store_corrections!(channels, indices, step.correction, order)
+  store_births!(channels, step.solution.newborn, step.births, order)
   return channels
+end
+
+function native_recurrence(
+  algorithm::Union{BlochFeshbach,HoriDeprit},
+  representation::NativeRepresentation,
+  inverse::HomologicalInverse,
+  L::Harmonics,
+  leading::AbstractMatrix{<:Number},
+  N::Int,
+  tolerance::Float64,
+)
+  weights = ones(eltype(leading), size(leading, 2))
+  return native_recurrence(
+    algorithm, representation, inverse, L, leading, weights, N, tolerance
+  )
 end
 
 function native_recurrence(
@@ -207,24 +224,25 @@ function native_recurrence(
   representation::NativeRepresentation,
   inverse::HomologicalInverse,
   L::Harmonics{X},
-  leading::AbstractMatrix{<:Number},
+  leading::AbstractMatrix{T},
+  weights::AbstractVector{<:Number},
   N::Int,
   tolerance::Float64,
-) where {X}
+) where {X,T<:Number}
   N >= 0 || throw(ArgumentError("retained order must be nonnegative"))
   haskey(L, 0) || throw(ArgumentError("the averaged generator harmonic L_0 is required"))
   L0 = L[0]
   identity = one(L0)
   zero_element = zero(L0)
   dimension = size(leading, 1)
-  channels = initial_native_channels(leading)
+  channels = initial_native_channels(leading, weights)
   check_native_coefficient(representation, L0, channels, 0, dimension, tolerance)
 
   E = X[L0]
   H = [native_hamiltonian(representation, L0)]
   S = X[]
   slots = X[]
-  known_products = Matrix{ComplexF64}[]
+  known_products = Matrix{T}[]
   Y = Harmonics{X}[Harmonics{X}(0 => identity)]
   N == 0 && return NativeRecurrence(E, S, slots, H, Y, channels, known_products)
   push!(Y, harmonic_integral(L))
@@ -237,7 +255,10 @@ function native_recurrence(
 
     known = known_gram(channels, order, dimension)
     indices, active = active_channels(channels, order, dimension)
-    step = native_static_step(representation, inverse, L0, Vhat, known, active, tolerance)
+    rates = active_weights(channels, indices)
+    step = native_static_step(
+      representation, inverse, L0, Vhat, known, active, rates, tolerance
+    )
 
     push!(S, step.S)
     push!(slots, base + step.S)
@@ -261,24 +282,25 @@ function native_recurrence(
   representation::NativeRepresentation,
   inverse::HomologicalInverse,
   L::Harmonics{X},
-  leading::AbstractMatrix{<:Number},
+  leading::AbstractMatrix{T},
+  weights::AbstractVector{<:Number},
   N::Int,
   tolerance::Float64,
-) where {X}
+) where {X,T<:Number}
   N >= 0 || throw(ArgumentError("retained order must be nonnegative"))
   haskey(L, 0) || throw(ArgumentError("the averaged generator harmonic L_0 is required"))
   L0 = L[0]
   identity = one(L0)
   zero_element = zero(L0)
   dimension = size(leading, 1)
-  channels = initial_native_channels(leading)
+  channels = initial_native_channels(leading, weights)
   check_native_coefficient(representation, L0, channels, 0, dimension, tolerance)
 
   E = X[L0]
   H = [native_hamiltonian(representation, L0)]
   S = X[]
   slots = X[]
-  known_products = Matrix{ComplexF64}[]
+  known_products = Matrix{T}[]
   G = Harmonics{X}[Harmonics{X}(), harmonic_integral(L)]
   N == 0 && return NativeRecurrence(E, S, slots, H, G, channels, known_products)
 
@@ -291,7 +313,10 @@ function native_recurrence(
     Vhat = harmonic_average(hd_generator_series(L, G, order)[order + 1], zero_element)
     known = known_gram(channels, order, dimension)
     indices, active = active_channels(channels, order, dimension)
-    step = native_static_step(representation, inverse, L0, Vhat, known, active, tolerance)
+    rates = active_weights(channels, indices)
+    step = native_static_step(
+      representation, inverse, L0, Vhat, known, active, rates, tolerance
+    )
 
     push!(S, step.S)
     push!(slots, base + step.S)
@@ -304,8 +329,9 @@ function native_recurrence(
     check_native_coefficient(representation, step.E, channels, order, dimension, tolerance)
 
     W = hd_generator_series(L, G, order)[order + 1]
-    LinearAlgebra.norm(harmonic_average(W, zero_element) - step.E) <=
-    20 * tolerance * max(1.0, LinearAlgebra.norm(step.E)) || throw(
+    native_matches(
+      representation, harmonic_average(W, zero_element), step.E, 20 * tolerance
+    ) || throw(
       ArgumentError("HD accepted static slot does not reproduce the retained coefficient")
     )
     order < N && push!(G, harmonic_integral(W))

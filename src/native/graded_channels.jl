@@ -1,6 +1,17 @@
 struct GradedChannel{T}
   onset::Int
+  weight::T
   coefficients::Vector{Vector{T}}
+end
+
+function GradedChannel{T}(onset::Int, coefficients::Vector{Vector{T}}) where {T}
+  return GradedChannel{T}(onset, one(T), coefficients)
+end
+
+function active_weights(
+  channels::AbstractVector{GradedChannel{T}}, indices::AbstractVector{Int}
+) where {T}
+  return T[channels[index].weight for index in indices]
 end
 
 function active_channels(
@@ -29,7 +40,10 @@ function known_gram(
     length(channel.coefficients) >= q ||
       throw(ArgumentError("graded channel is missing a lower-order amplitude"))
     for k in 1:(q - 1)
-      result += channel.coefficients[k + 1] * adjoint(channel.coefficients[q - k + 1])
+      result +=
+        channel.weight *
+        channel.coefficients[k + 1] *
+        adjoint(channel.coefficients[q - k + 1])
     end
   end
   return hermitian_part(result)
@@ -43,7 +57,10 @@ function gram_coefficient(
     q = order - channel.onset
     stored = length(channel.coefficients)
     for k in max(0, q + 1 - stored):min(q, stored - 1)
-      result += channel.coefficients[k + 1] * adjoint(channel.coefficients[q - k + 1])
+      result +=
+        channel.weight *
+        channel.coefficients[k + 1] *
+        adjoint(channel.coefficients[q - k + 1])
     end
   end
   return hermitian_part(result)
@@ -67,10 +84,17 @@ function store_corrections!(
 end
 
 function store_births!(
-  channels::AbstractVector{GradedChannel{T}}, newborn::AbstractMatrix, order::Int
+  channels::AbstractVector{GradedChannel{T}},
+  newborn::AbstractMatrix,
+  weights::AbstractVector,
+  order::Int,
 ) where {T}
+  length(weights) == size(newborn, 2) ||
+    throw(DimensionMismatch("one rate weight is required per newborn channel"))
   for column in axes(newborn, 2)
-    push!(channels, GradedChannel{T}(order, [Vector{T}(newborn[:, column])]))
+    push!(
+      channels, GradedChannel{T}(order, T(weights[column]), [Vector{T}(newborn[:, column])])
+    )
   end
   return channels
 end
