@@ -342,7 +342,6 @@ end
 function exact_facial_constraints(
   P0::Matrix{T}, J::Vector{Matrix{T}}, ::Type{R}
 ) where {T,R}
-  n = size(P0, 1)
   p = length(J)
   x0 = exact_zeros(R, p)
   Z = Matrix{R}(LinearAlgebra.I, p, p)
@@ -399,7 +398,7 @@ function native_exact_static_solve(
   dark = exact_dark_map(active, metric)
   P0 = dark_sandwich(dark, residual - known)
   J = [dark_sandwich(dark, image) for image in gauge_images]
-  identity_metric = exact_isidentity(metric)
+  identity_metric = exact_isidentity(metric)::Bool
   GJ = identity_metric ? J : [metric * X for X in J]
   GP = identity_metric ? P0 : metric * P0
   entries = [exact_nonzeros(X) for X in GJ]

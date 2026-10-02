@@ -16,7 +16,7 @@ end
 function ExactLiouvilleRepresentation{T}(hilbert::Vector{R}) where {T,R<:Real}
   d = length(hilbert)
   d >= 2 || throw(ArgumentError("an exact Liouville representation needs dimension d >= 2"))
-  all(>(0), hilbert) ||
+  all(>(0), hilbert)::Bool ||
     throw(ArgumentError("the Hilbert metric of an exact representation must be positive"))
   g = Vector{real(T)}(hilbert)
   frame = exact_traceless_frame(T, d)
@@ -36,7 +36,9 @@ function hilbert_adjoint(g::AbstractVector, X::AbstractMatrix{T}) where {T}
   return T[conj(X[b, a]) * g[b] / g[a] for a in 1:d, b in 1:d]
 end
 
-function superoperator_metric(g::AbstractVector{R}, directions) where {R}
+function superoperator_metric(
+  g::AbstractVector{R}, directions::AbstractVector{<:AbstractMatrix}
+) where {R}
   d = length(g)
   weight = R[g[(p - 1) % d + 1] / g[(p - 1) ÷ d + 1] for p in 1:(d ^ 2)]
   supports = [findall(!iszero, A) for A in directions]
@@ -85,7 +87,6 @@ end
 
 function exact_hermitian_frame(g::AbstractVector, frame::Vector{Matrix{T}}) where {T}
   hermitian = Matrix{T}[]
-  d = length(g)
   for F in frame
     Fd = hilbert_adjoint(g, F)
     if Fd == F
@@ -159,10 +160,10 @@ end
 
 native_gauge_directions(representation::ExactLiouvilleRepresentation) = representation.gauge
 
-native_matches(::ExactLiouvilleRepresentation, A, B, tol::Real) = A == B
+native_matches(::ExactLiouvilleRepresentation, A, B, ::Real) = A == B
 
 function native_dark_target(
-  representation::ExactLiouvilleRepresentation, residual, known, active, tol::Real
+  representation::ExactLiouvilleRepresentation, residual, known, active, ::Real
 )
   return dark_sandwich(exact_dark_map(active, representation.metric), residual - known)
 end
@@ -174,7 +175,7 @@ function native_slot_solve(
   active,
   weights,
   family,
-  tol::Real,
+  ::Real,
 ) where {T,R}
   solution = native_exact_static_solve(
     residual,

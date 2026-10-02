@@ -56,8 +56,8 @@ include("completion/spectral.jl")
 include("completion/positive_completion.jl")
 
 export BlochFeshbach, HoriDeprit
-export Gauge,
-  GKSLNormalForm, PeriodicGenerator, QuasienergyOperator, VanVleck, harmonic_range
+export GKSLNormalForm,
+  Gauge, PeriodicGenerator, QuasienergyOperator, VanVleck, harmonic_range
 export antiderivative, derivative, harmonics, support, time_average
 export FloquetExpansion,
   effective_component, effective_generator, floquet_expansion, micromotion, order

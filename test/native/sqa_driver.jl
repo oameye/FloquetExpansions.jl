@@ -17,6 +17,11 @@ end
 
 const KERR_VALUES = Dict(Δ => 1 // 2, χ => 3 // 10, κ => 4 // 5)
 
+# The Van Vleck reference is computed in Float64, so its lowering is compared with a tolerance.
+function nearly_same(A::FE.AlgebraSuperoperator, B::FE.AlgebraSuperoperator)
+  return all(abs(ComplexF64(c)) <= 1e-12 for c in values((A + (-1) * B).terms))
+end
+
 @testset "native expansion equals Van Vleck wherever no static gauge is needed" begin
   for dissipative in (false, true), algorithm in (BlochFeshbach(), HoriDeprit())
     G, _ = driven_kerr(dissipative)
@@ -24,8 +29,10 @@ const KERR_VALUES = Dict(Δ => 1 // 2, χ => 3 // 10, κ => 4 // 5)
     reference = floquet_expansion(G, VanVleck(; algorithm), 4)
     @test all(iszero, data.recurrence.S)
     for n in 0:3
-      @test data.recurrence.E[n + 1] ==
-        FE.lower_liouvillian(data.lowering, reference.effective_components[n + 1])
+      @test nearly_same(
+        data.recurrence.E[n + 1],
+        FE.lower_liouvillian(data.lowering, reference.effective_components[n + 1]),
+      )
     end
   end
 end

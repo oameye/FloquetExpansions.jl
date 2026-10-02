@@ -160,10 +160,10 @@ function native_gksl(
   return result
 end
 
-native_matches(::AlgebraicLiouvilleRepresentation, A, B, tol::Real) = A == B
+native_matches(::AlgebraicLiouvilleRepresentation, A, B, ::Real) = A == B
 
 function native_dark_target(
-  representation::AlgebraicLiouvilleRepresentation, residual, known, active, tol::Real
+  representation::AlgebraicLiouvilleRepresentation, residual, known, active, ::Real
 )
   return dark_sandwich(exact_dark_map(active, representation.metric), residual - known)
 end
@@ -175,7 +175,7 @@ function native_slot_solve(
   active,
   weights,
   family,
-  tol::Real,
+  ::Real,
 ) where {T,R}
   solution = native_exact_static_solve(
     residual,
@@ -190,7 +190,8 @@ function native_slot_solve(
 end
 
 function native_gauge_metric(
-  ::AlgebraicLiouvilleRepresentation{T,R}, directions
+  ::AlgebraicLiouvilleRepresentation{T,R},
+  directions::AbstractVector{<:AlgebraSuperoperator},
 ) where {T,R}
   n = length(directions)
   metric = exact_zeros(R, n, n)
@@ -219,7 +220,7 @@ function hermitian_generators(representation::AlgebraicLiouvilleRepresentation, 
       push!(seen, m)
     end
     push!(generators, X + Xd)
-    X == Xd || push!(generators, im * (X - Xd))
+    isequal(X, Xd) || push!(generators, im * (X - Xd))
   end
   return generators
 end
@@ -239,7 +240,7 @@ function algebraic_gauge_directions(
   small = [μ for μ in 1:n if degree(μ) <= gauge_degree]
   directions = AlgebraSuperoperator{T,R}[]
   zero_frame = exact_zeros(T, n, n)
-  for h in hermitian_generators(representation, (μ, ν) -> μ in small && keep(μ, ν))
+  for h in hermitian_generators(representation, (μ, ν) -> μ in small && keep(μ, ν)::Bool)
     push!(directions, native_gksl(representation, h, zero_frame))
   end
   empty_hamiltonian = AlgebraOperator{T,R}(algebra, Dict{Monomial,T}())
@@ -264,7 +265,7 @@ function algebraic_gauge_directions(
 end
 
 function native_gauge_directions(representation::AlgebraicLiouvilleRepresentation)
-  return algebraic_gauge_directions(representation, (μ, ν) -> true)
+  return algebraic_gauge_directions(representation, (_, _) -> true)
 end
 
 function native_gauge_families(
@@ -272,7 +273,7 @@ function native_gauge_families(
 )
   return [
     native_gauge_family(
-      representation, algebraic_gauge_directions(representation, (μ, ν) -> true, degree), L0
+      representation, algebraic_gauge_directions(representation, (_, _) -> true, degree), L0
     ) for degree in 1:(representation.gauge_degree)
   ]
 end
