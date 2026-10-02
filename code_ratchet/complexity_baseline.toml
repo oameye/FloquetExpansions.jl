@@ -4,7 +4,7 @@
 
 [provenance]
 aggregation = "max_and_count_over_threshold"
-commit = "0278bac"
+commit = "efa54b1"
 metric = "complexity"
 tool = "CodeComplexity"
 binding = ["cyc", "cog", "arg", "cyc_over", "cog_over", "arg_over"]
@@ -27,9 +27,9 @@ arg = 2
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 14
+cyc_sum = 15
 cog_sum = 1
-arg_sum = 14
+arg_sum = 15
 
 [files."src/completion/backend/conversion.jl"]
 cyc = 7
@@ -104,9 +104,9 @@ arg = 8
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 13
+cyc_sum = 15
 cog_sum = 1
-arg_sum = 35
+arg_sum = 40
 
 [files."src/completion/spectral.jl"]
 cyc = 7
@@ -159,9 +159,9 @@ arg = 2
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 3
-cog_sum = 2
-arg_sum = 3
+cyc_sum = 4
+cog_sum = 3
+arg_sum = 4
 
 [files."src/expansion/hori_deprit.jl"]
 cyc = 6
@@ -262,6 +262,28 @@ cyc_sum = 43
 cog_sum = 34
 arg_sum = 35
 
+[files."src/native/algebraic_representation.jl"]
+cyc = 14
+cog = 22
+arg = 7
+cyc_over = 2
+cog_over = 1
+arg_over = 0
+cyc_sum = 110
+cog_sum = 112
+arg_sum = 76
+
+[files."src/native/charge_grading.jl"]
+cyc = 10
+cog = 10
+arg = 7
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 58
+cog_sum = 48
+arg_sum = 49
+
 [files."src/native/dense_representation.jl"]
 cyc = 4
 cog = 4
@@ -273,16 +295,38 @@ cyc_sum = 26
 cog_sum = 13
 arg_sum = 26
 
-[files."src/native/exact_static_solve.jl"]
-cyc = 8
-cog = 9
+[files."src/native/driver.jl"]
+cyc = 5
+cog = 5
+arg = 6
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 13
+cog_sum = 10
+arg_sum = 17
+
+[files."src/native/exact_representation.jl"]
+cyc = 4
+cog = 5
 arg = 7
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 46
-cog_sum = 45
-arg_sum = 30
+cyc_sum = 39
+cog_sum = 20
+arg_sum = 54
+
+[files."src/native/exact_static_solve.jl"]
+cyc = 11
+cog = 12
+arg = 7
+cyc_over = 1
+cog_over = 0
+arg_over = 0
+cyc_sum = 101
+cog_sum = 84
+arg_sum = 85
 
 [files."src/native/graded_channels.jl"]
 cyc = 5
@@ -291,20 +335,53 @@ arg = 4
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 19
-cog_sum = 15
-arg_sum = 17
+cyc_sum = 22
+cog_sum = 16
+arg_sum = 22
+
+[files."src/native/operator_algebra.jl"]
+cyc = 7
+cog = 7
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 71
+cog_sum = 39
+arg_sum = 66
+
+[files."src/native/realization.jl"]
+cyc = 5
+cog = 4
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 16
+cog_sum = 9
+arg_sum = 27
 
 [files."src/native/recurrence.jl"]
 cyc = 7
 cog = 6
-arg = 7
+arg = 8
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 59
-cog_sum = 41
-arg_sum = 84
+cyc_sum = 61
+cog_sum = 43
+arg_sum = 94
+
+[files."src/native/sqa_lowering.jl"]
+cyc = 8
+cog = 10
+arg = 4
+cyc_over = 0
+cog_over = 0
+arg_over = 0
+cyc_sum = 76
+cog_sum = 60
+arg_sum = 51
 
 [files."src/native/static_solve.jl"]
 cyc = 6
@@ -319,14 +396,14 @@ arg_sum = 10
 
 [files."src/native/static_step.jl"]
 cyc = 4
-cog = 3
-arg = 7
+cog = 5
+arg = 9
 cyc_over = 0
 cog_over = 0
 arg_over = 0
-cyc_sum = 11
-cog_sum = 3
-arg_sum = 17
+cyc_sum = 24
+cog_sum = 11
+arg_sum = 64
 
 [files."src/words/lyndon_words.jl"]
 cyc = 5

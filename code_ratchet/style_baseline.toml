@@ -3,7 +3,7 @@
 # judgements live in rulings.toml beside it.
 
 [provenance]
-commit = "0278bac"
+commit = "efa54b1"
 metric = "style"
 rules = ["implicit_kwarg", "underscore_name"]
 binding = ["underscore_name", "implicit_kwarg"]
@@ -100,7 +100,23 @@ implicit_kwarg = 0
 underscore_name = 0
 implicit_kwarg = 0
 
+[files."src/native/algebraic_representation.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/native/charge_grading.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
 [files."src/native/dense_representation.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/native/driver.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/native/exact_representation.jl"]
 underscore_name = 0
 implicit_kwarg = 0
 
@@ -112,7 +128,19 @@ implicit_kwarg = 0
 underscore_name = 0
 implicit_kwarg = 0
 
+[files."src/native/operator_algebra.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/native/realization.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
 [files."src/native/recurrence.jl"]
+underscore_name = 0
+implicit_kwarg = 0
+
+[files."src/native/sqa_lowering.jl"]
 underscore_name = 0
 implicit_kwarg = 0
 

@@ -4,7 +4,7 @@
 
 [provenance]
 attribution = "method_definition_file"
-commit = "0278bac"
+commit = "efa54b1"
 julia = "1.13"
 metric = "boxes"
 package = "FloquetExpansions"
@@ -79,7 +79,19 @@ boxes = 0
 [files."src/gksl/gram_kernel.jl"]
 boxes = 0
 
+[files."src/native/algebraic_representation.jl"]
+boxes = 0
+
+[files."src/native/charge_grading.jl"]
+boxes = 0
+
 [files."src/native/dense_representation.jl"]
+boxes = 0
+
+[files."src/native/driver.jl"]
+boxes = 0
+
+[files."src/native/exact_representation.jl"]
 boxes = 0
 
 [files."src/native/exact_static_solve.jl"]
@@ -88,7 +100,16 @@ boxes = 0
 [files."src/native/graded_channels.jl"]
 boxes = 0
 
+[files."src/native/operator_algebra.jl"]
+boxes = 0
+
+[files."src/native/realization.jl"]
+boxes = 0
+
 [files."src/native/recurrence.jl"]
+boxes = 0
+
+[files."src/native/sqa_lowering.jl"]
 boxes = 0
 
 [files."src/native/static_solve.jl"]
