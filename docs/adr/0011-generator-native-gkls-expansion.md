@@ -23,7 +23,7 @@ The implementation lives in `src/native/`, after `gksl/` and independent of `com
 
 The native expansion is internal and has no public entry point yet. The research oracles under `test/gksl/native_*` are thin wrappers around the `src/native` driver. The independent order-2 BF oracle and the HD Lie-transform defect checks stay in the tests as separate implementations.
 
-`native_static_solve` uses floating-point eigen- and Dykstra-based geometry. A symbolic representation over `Liouvillian` therefore needs three further pieces before it can run: an exact static solve for the canonical branch (``\Delta_n \in -\operatorname{Ran}\Phi_n``, with Hermitian congruence in place of eigendecomposition), a finite family of static gauge directions generated from the problem, and a localized coefficient algebra ``\mathfrak A_{\rm poly}[d_q^{-1}]`` for the homological inverse. Physical resonances, zeros of a Bohr multiplier on the physical spectrum, must be rejected rather than localized.
+`native_static_solve` uses floating-point eigen- and Dykstra-based geometry. `native_exact_static_solve` is its exact counterpart for the canonical branch, generic over the scalar field. It takes the operator and gauge metrics explicitly, because an exact frame is not orthonormal. It births channels in rate-weighted form ``P_n = \sum_j d_j l_j l_j^\dagger`` by Hermitian congruence, so no square roots appear, and it rejects an indefinite canonical residual rather than projecting onto the PSD cone. A symbolic representation over `Liouvillian` still needs two further pieces: a finite family of static gauge directions generated from the problem, and a localized coefficient algebra ``\mathfrak A_{\rm poly}[d_q^{-1}]`` for the homological inverse. Physical resonances, zeros of a Bohr multiplier on the physical spectrum, must be rejected rather than localized.
 
 The charged section supersedes the minimum-norm convention for charged sectors in item 3 of Theorem 12 of the native GKLS derivation note.
 
@@ -33,6 +33,7 @@ The charged section supersedes the minimum-norm convention for charged sectors i
 
 - `test/native/recurrence.jl`: "native recurrence: BF and HD agree through order 4"
 - `test/native/static_solve.jl`: "native static slot uses the full affine PSD slice"
+- `test/native/exact_static_solve.jl`: "exact static slot matches the float core in orthonormal coordinates" and "exact static slot is covariant under a non-orthonormal frame"
 - `test/gksl/native_kerr_fock.jl`: "native GKLS BF/HD finite-Fock driven Kerr"
 - `test/gksl/native_kerr_graded_slot.jl`: "graded native slot through order 4 on driven Kerr" and "graded native slot keeps the Hamiltonian branch"
 
