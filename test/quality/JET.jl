@@ -136,3 +136,20 @@ end
     FloquetExpansions.HoriDeprit(), rep, inverse, L, leading, 2, 1e-8
   )
 end
+
+@testset "native exact static slot optimizer stability" begin
+  T = Complex{Rational{BigInt}}
+  R = Rational{BigInt}
+  B = T[1 0; 0 1; 0 0]
+  residual = T[1 0 0; 0 1 0; 0 0 2]
+  images = [T[0 0 0; 0 0 0; 0 0 1]]
+  JET.@test_opt target_modules=(FloquetExpansions,) FloquetExpansions.native_exact_static_solve(
+    residual,
+    zeros(T, 3, 3),
+    B,
+    R[1, 1],
+    images,
+    Matrix{T}(FloquetExpansions.LinearAlgebra.I, 3, 3),
+    Matrix{R}(FloquetExpansions.LinearAlgebra.I, 1, 1),
+  )
+end

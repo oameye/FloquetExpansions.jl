@@ -32,6 +32,7 @@ include("gksl/gram_kernel.jl")
 
 include("native/graded_channels.jl")
 include("native/static_solve.jl")
+include("native/exact_static_solve.jl")
 include("native/static_step.jl")
 include("native/dense_representation.jl")
 include("native/recurrence.jl")
