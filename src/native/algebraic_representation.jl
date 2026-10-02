@@ -237,10 +237,12 @@ function algebraic_gauge_directions(
   algebra = representation.algebra
   n = length(representation.frame)
   degree(μ) = monomial_degree(algebra, representation.frame[μ])
-  small = [μ for μ in 1:n if degree(μ) <= gauge_degree]
+  small = Int[μ for μ in 1:n if degree(μ) <= gauge_degree]
   directions = AlgebraSuperoperator{T,R}[]
   zero_frame = exact_zeros(T, n, n)
-  for h in hermitian_generators(representation, (μ, ν) -> μ in small && keep(μ, ν)::Bool)
+  for h in hermitian_generators(
+    representation, (μ::Int, ν::Int) -> μ in small && keep(μ, ν)::Bool
+  )
     push!(directions, native_gksl(representation, h, zero_frame))
   end
   empty_hamiltonian = AlgebraOperator{T,R}(algebra, Dict{Monomial,T}())
