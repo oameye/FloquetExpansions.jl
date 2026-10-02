@@ -60,7 +60,10 @@ generators. When the order-``n`` coefficient has a dark part that no static gaug
 new channel is born with an exact rate ``\propto \omega_d^{-n}``. The finite generator is assembled
 from the graded jump amplitudes, so it agrees with the retained series through the retained order
 and differs from it only by a positive remainder beyond it. Bosonic modes are treated without a
-Fock cutoff, and all coefficients are exact rationals, so model parameters must be numeric.
+Fock cutoff, and all coefficients are exact rationals. With symbolic parameters the expansion
+is returned symbolically, with its positivity conditions, when no static gauge is needed through
+the requested order, which is then the [`Gram`](@ref) completion of the van Vleck expansion.
+An order that needs a static gauge requires numeric parameter values.
 
 ```@docs
 GKSLNormalForm

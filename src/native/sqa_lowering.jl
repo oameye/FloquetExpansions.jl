@@ -17,6 +17,7 @@ function lowered_site_kind(op::SQA.Op)
   (SQA.is_destroy(op) || SQA.is_create(op)) && return BOSON_SITE
   (SQA.is_position(op) || SQA.is_momentum(op)) && return PHASE_SITE
   (SQA.is_transition(op) || SQA.is_pauli(op)) && return LEVEL_SITE
+  SQA.is_spin(op) && return SPIN_SITE
   return throw(
     ArgumentError(
       "operator kind $(SQA.optype(op)) is not supported by the native expansion"
@@ -61,6 +62,8 @@ function SQALowering{T}(
       level_site(fill(one(R), site.levels))
     elseif site.kind == PHASE_SITE
       phase_site(R)
+    elseif site.kind == SPIN_SITE
+      spin_site(R)
     else
       boson_site(R)
     end for site in sites
@@ -76,10 +79,9 @@ function site_position(lowering::SQALowering, op::SQA.Op)
   return position
 end
 
-function site_monomial(lowering::SQALowering, s::Int, p::Int, q::Int)
+function site_monomial(lowering::SQALowering, s::Int, exponents::Int...)
   monomial = identity_monomial(lowering.algebra)
-  monomial[2s - 1] = p
-  monomial[2s] = q
+  monomial[site_slots(lowering.algebra, s)] .= exponents
   return monomial
 end
 
@@ -90,6 +92,17 @@ function level_unit(lowering::SQALowering{T}, s::Int, i::Int, j::Int) where {T}
     (m, c) in site_identity_reduction(site, i, j, T)
   ]
   return algebra_operator(lowering.algebra, pairs)
+end
+
+# S_x = (S₊ + S₋) / 2, S_y = (S₊ - S₋) / 2i, with S± = S_x ± i S_y
+function lower_spin(lowering::SQALowering{T}, s::Int, axis::Int) where {T}
+  algebra = lowering.algebra
+  axis == 3 && return algebra_operator(algebra, [(site_monomial(lowering, s, 0, 1, 0), 1)])
+  raising = site_monomial(lowering, s, 1, 0, 0)
+  lowered = site_monomial(lowering, s, 0, 0, 1)
+  half = T(1 // 2)
+  axis == 1 && return algebra_operator(algebra, [(raising, half), (lowered, half)])
+  return algebra_operator(algebra, [(raising, -im * half), (lowered, im * half)])
 end
 
 function lower_operator(lowering::SQALowering{T}, op::SQA.Op) where {T}
@@ -104,6 +117,7 @@ function lower_operator(lowering::SQALowering{T}, op::SQA.Op) where {T}
   SQA.is_momentum(op) &&
     return algebra_operator(algebra, [(site_monomial(lowering, s, 0, 1), 1)])
   SQA.is_transition(op) && return level_unit(lowering, s, Int(op.l1), Int(op.l2))
+  SQA.is_spin(op) && return lower_spin(lowering, s, Int(op.l1))
   up = level_unit(lowering, s, 1, 2)
   down = level_unit(lowering, s, 2, 1)
   axis = Int(op.l1)
@@ -213,7 +227,16 @@ function lower_generator(
   )
 end
 
-function site_operator(lowering::SQALowering, s::Int, p::Int, q::Int)
+function spin_site_operator(site::LoweredSite, a::Int, b::Int, c::Int)
+  name = SQA.name_from_id(site.name_id)
+  index = Int(site.space_index)
+  x = qadd(SQA.Spin(name, 1, index))
+  y = qadd(SQA.Spin(name, 2, index))
+  z = qadd(SQA.Spin(name, 3, index))
+  return (x + im * y)^a * z^b * (x - im * y)^c
+end
+
+function site_operator(lowering::SQALowering, s::Int, p::Int, q::Int, r::Int...)
   site = lowering.sites[s]
   name = SQA.name_from_id(site.name_id)
   index = Int(site.space_index)
@@ -222,6 +245,8 @@ function site_operator(lowering::SQALowering, s::Int, p::Int, q::Int)
     return qadd(adjoint(a))^p * qadd(a)^q
   elseif site.kind == PHASE_SITE
     return qadd(SQA.Position(name, index))^p * qadd(SQA.Momentum(name, index))^q
+  elseif site.kind == SPIN_SITE
+    return spin_site_operator(site, p, q, r[1])
   end
   (p, q) == (0, 0) && return one(SQA.QAdd)
   if site.pauli
@@ -251,7 +276,8 @@ function lift_operator(lowering::SQALowering, X::AlgebraOperator)
   for (monomial, c) in X.terms
     product = one(SQA.QAdd)
     for s in eachindex(lowering.sites)
-      product = product * site_operator(lowering, s, monomial[2s - 1], monomial[2s])
+      slots = monomial[site_slots(lowering.algebra, s)]
+      product = product * site_operator(lowering, s, slots...)
     end
     result = result + sqa_scalar(c) * product
   end

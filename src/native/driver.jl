@@ -65,19 +65,44 @@ function native_expansion_data(
       Complex{Rational{Int128}}, algorithm, generator, N, parameters, gauge_degree
     )
   catch error
-    error isa OverflowError || rethrow()
+    # Int128 overflow surfaces as an OverflowError in arithmetic and as an InexactError
+    # when a BigInt intermediate is converted back; both are retried in BigInt.
+    error isa Union{OverflowError,InexactError} || rethrow()
     return native_expansion_data(
       Complex{Rational{BigInt}}, algorithm, generator, N, parameters, gauge_degree
     )
   end
 end
 
-function lift_superoperator(lowering::SQALowering, S::AlgebraSuperoperator)
-  result = zero(Liouvillian)
-  for ((X, Y), c) in S.terms
-    left = lift_operator(lowering, algebra_operator(lowering.algebra, [(X, 1)]))
-    right = lift_operator(lowering, algebra_operator(lowering.algebra, [(Y, 1)]))
-    result = result + sqa_scalar(c) * action(left, right)
+function lift_monomial!(cache::Dict{Monomial,SQA.QAdd}, lowering::SQALowering, X::Monomial)
+  return get!(cache, X) do
+    return lift_operator(lowering, algebra_operator(lowering.algebra, [(X, 1)]))
   end
-  return result
+end
+
+# Accumulates `scale * S` into `target` term by term, so no SQA product of two exact
+# coefficients is formed and large rationals cannot overflow SQA's `Rational{Int}`.
+function lift_superoperator!(
+  target::Liouvillian,
+  cache::Dict{Monomial,SQA.QAdd},
+  lowering::SQALowering,
+  S::AlgebraSuperoperator,
+  scale::SQA.CNum,
+)
+  for ((X, Y), c) in S.terms
+    left = lift_monomial!(cache, lowering, X)
+    right = lift_monomial!(cache, lowering, Y)
+    add_term!(target, left, right, convert(SQA.CNum, sqa_scalar(c)) * scale)
+  end
+  return target
+end
+
+function lift_superoperator(lowering::SQALowering, S::AlgebraSuperoperator)
+  return lift_superoperator!(
+    Liouvillian(LiouvillianTerms()),
+    Dict{Monomial,SQA.QAdd}(),
+    lowering,
+    S,
+    convert(SQA.CNum, 1),
+  )
 end

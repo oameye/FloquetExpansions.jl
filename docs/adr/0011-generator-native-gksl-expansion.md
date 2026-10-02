@@ -18,7 +18,7 @@ The construction is exposed as its own gauge, `GKSLNormalForm(; algorithm)`, not
 
 ## Exact cutoff-free representation
 
-The production backend is `AlgebraicLiouvilleRepresentation` over an exact `OperatorAlgebra` of boson, phase-space, and finite-level sites. `SQALowering` maps Fock, position and momentum, NLevel, and Pauli operators onto it and lifts results back to SQA expressions. Bosonic modes are never truncated. Coefficients are exact rationals; the driver runs in checked `Rational{Int128}` and repeats the expansion in `Rational{BigInt}` only on `OverflowError`. The frame of monomials grows on demand.
+The production backend is `AlgebraicLiouvilleRepresentation` over an exact `OperatorAlgebra` of boson, phase-space, finite-level, and spin sites. A spin site is the size-independent universal enveloping algebra of su(2) in the PBW basis S₊^a S_z^b S₋^c, stored in three monomial slots where every other site uses two. `SQALowering` maps Fock, position and momentum, NLevel, Pauli, and Spin operators onto it and lifts results back to SQA expressions. Bosonic modes are never truncated. Coefficients are exact rationals; the driver runs in checked `Rational{Int128}` and repeats the expansion in `Rational{BigInt}` only on `OverflowError`. The frame of monomials grows on demand.
 
 Finite Fock truncations are not a substitute. In a truncated space ``[a, a^\dagger] = 1 - d\,|d-1\rangle\langle d-1|``, and for driven Kerr with loss the order-two dark target is then localized on the top Fock levels with a norm that grows with the cutoff. The dense backends remain certified oracles for finite algebras and for the truncated models themselves.
 
@@ -33,6 +33,12 @@ The dark equation ``\Delta_n + \Phi_n(S_n) = P_n \succeq 0`` is solved in exact 
 The static gauge is polynomial. Per order the smallest gauge degree that admits a certified lift is used, so the section is unique given the frame order. This convention changes only ``O(\varepsilon^{N+1})`` data and never the spectrum through the retained order.
 
 For driven Kerr with static loss the native coefficients equal the van Vleck coefficients through order three, a single channel ``a^2 - 2a^\dagger a`` is born at order four, order five adds none, and order six has no polynomial lift for static gauges up to degree three. That is the polynomial obstruction of the derivation note; resolving it requires the localized coefficient algebra and is not implemented.
+
+## Symbolic parameters
+
+The exact section runs over numbers. For a model with symbolic parameters `GKSLNormalForm` first runs the exact expansion at two generic rational points, ratios of distinct primes, to decide the structure. If every static gauge vanishes there, the native expansion is the graded positive completion of the van Vleck expansion, so the symbolic result is `positive_completion` of the symbolic van Vleck expansion with `Gram()`, carrying its positivity conditions on the parameters. If some ``S_n`` is nonzero the expansion throws and names the order. An exact symbolic static gauge needs either arithmetic over a field of rational functions of the parameters or a verified rational reconstruction from exact evaluations; neither is implemented.
+
+Exact inputs must reach the expansion exactly. SQA stores a native factor of a raw symbolic coefficient as `ComplexF64`, so the `-i` of a Hamiltonian action would turn the `2//5` of `(2//5) cos(\omega t)` into a float before `harmonics` splits the phase. `Liouvillian` therefore promotes Gaussian-integer native factors to exact constants before they meet a raw coefficient. The native lowering still accepts floats through `rationalize`, but a float input is not an exact model.
 
 ## Considered options
 
