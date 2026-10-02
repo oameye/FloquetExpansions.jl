@@ -28,6 +28,23 @@ end
   return L
 end
 
+# SQA embeds a native factor of a raw symbolic coefficient as `ComplexF64`, which turns an
+# exact rational such as the `2//5` of `(2//5) * cos(ω * t)` into a float. Gaussian-integer
+# native factors, such as the `-im` of a Hamiltonian action, are promoted to exact constants
+# before they meet a raw coefficient, so exact inputs stay exact through `harmonics`.
+function exact_factor(c::SQA.CNum)
+  c.tail isa SQA.Native || return c
+  re, im = real(c.z), imag(c.z)
+  (isinteger(re) && isinteger(im)) || return c
+  scalar = Complex{Rational{Int}}(Int(re), Int(im))
+  return SQA.poly_coeff(SQA.Poly([SQA.Monomial(scalar, SQA.EMPTY_SYMS, SQA.EMPTY_EXPS)]))
+end
+
+function exact_product(a::SQA.CNum, b::SQA.CNum)
+  (a.tail isa SQA.RawSymbolicCoeff || b.tail isa SQA.RawSymbolicCoeff) || return a * b
+  return exact_factor(a) * exact_factor(b)
+end
+
 function add_monomial_actions!(
   L::Liouvillian, left::SQA.QAdd, right::SQA.QAdd, coefficient::SQA.CNum
 )
@@ -37,7 +54,7 @@ function add_monomial_actions!(
     add_action!(
       L,
       (monomial_operator(left_term), monomial_operator(right_term)),
-      coefficient * left_coefficient * right_coefficient,
+      exact_product(exact_product(coefficient, left_coefficient), right_coefficient),
     )
   end
   return L
@@ -162,7 +179,7 @@ function scale(coefficient::SQA.CNum, L::Liouvillian)
   iszero(L) && return zero(L)
   iszero(coefficient) && return zero(L)
   return raw_liouvillian(
-    LiouvillianTerms(key => coefficient * value for (key, value) in L.terms)
+    LiouvillianTerms(key => exact_product(coefficient, value) for (key, value) in L.terms)
   )
 end
 
@@ -185,7 +202,12 @@ function compose(A::Liouvillian, B::Liouvillian)
   for ((left_A, right_A), coefficient_A) in term_pairs(A),
     ((left_B, right_B), coefficient_B) in term_pairs(B)
 
-    add_term!(result, left_A * left_B, right_B * right_A, coefficient_A * coefficient_B)
+    add_term!(
+      result,
+      left_A * left_B,
+      right_B * right_A,
+      exact_product(coefficient_A, coefficient_B),
+    )
   end
   return result
 end
