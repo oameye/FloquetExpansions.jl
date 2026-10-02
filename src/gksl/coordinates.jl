@@ -117,13 +117,121 @@ function dissipative_liouvillian(
   return canonical_liouvillian(result)
 end
 
-function matrix_is_hermitian(matrix::KossakowskiMatrix)::Bool
-  size(matrix, 1) == size(matrix, 2) || return false
+const FLOAT_ROUNDOFF_TOLERANCE = 1.0e-10
+
+# Magnitude of a numeric constant and whether it is floating point; `nothing` if symbolic.
+@inline function constant_magnitude(value)::Union{Nothing,Tuple{Float64,Bool}}
+  value isa Int && return abs(Float64(value)), false
+  value isa Rational{Int} && return abs(Float64(value)), false
+  value isa Float64 && return abs(value), true
+  value isa Complex{Int} && return abs(ComplexF64(value)), false
+  value isa Complex{Rational{Int}} && return abs(ComplexF64(value)), false
+  value isa ComplexF64 && return abs(value), true
+  return nothing
+end
+
+function monomial_constant(term)::Tuple{Float64,Bool}
+  constant = constant_magnitude(Symbolics.unwrap_const(term))
+  constant === nothing || return constant
+  Symbolics.iscall(term) || return 1.0, false
+  # A monomial divided by a power of a symbol carries its prefactor in the numerator.
+  Symbolics.operation(term) === (/) &&
+    return monomial_constant(first(Symbolics.arguments(term)))
+  Symbolics.operation(term) === (*) || return 1.0, false
+  magnitude, inexact = 1.0, false
+  for factor in Symbolics.arguments(term)
+    factor_constant = constant_magnitude(Symbolics.unwrap_const(factor))
+    factor_constant === nothing && continue
+    magnitude *= first(factor_constant)
+    inexact |= last(factor_constant)
+  end
+  return magnitude, inexact
+end
+
+function monomial_constants!(constants::Vector{Tuple{Float64,Bool}}, part::Symbolics.Num)
+  expanded = Symbolics.unwrap(Symbolics.expand(part))
+  terms = if Symbolics.iscall(expanded) && Symbolics.operation(expanded) === (+)
+    Symbolics.arguments(expanded)
+  else
+    [expanded]
+  end
+  for term in terms
+    constant = constant_magnitude(Symbolics.unwrap_const(term))
+    constant !== nothing && iszero(first(constant)) && continue
+    push!(constants, monomial_constant(term))
+  end
+  return constants
+end
+
+# Numeric prefactors of the monomials of a coefficient, with a flag for floating-point values.
+function monomial_constants(value::SQA.CNum)::Vector{Tuple{Float64,Bool}}
+  number = SQA.to_num(value)::Complex{Symbolics.Num}
+  constants = Tuple{Float64,Bool}[]
+  monomial_constants!(constants, real(number))
+  monomial_constants!(constants, imag(number))
+  return constants
+end
+
+# A difference is floating roundoff when every monomial carries a tiny floating prefactor.
+function floating_roundoff(value::SQA.CNum, scale::Float64)::Bool
+  constants = monomial_constants(value)
+  isempty(constants) && return false
+  return all(
+    inexact && magnitude <= FLOAT_ROUNDOFF_TOLERANCE * scale for
+    (magnitude, inexact) in constants
+  )
+end
+
+function coefficient_scale(values)::Float64
+  scale = 0.0
+  for value in values
+    for (magnitude, _) in monomial_constants(value)
+      scale = max(scale, magnitude)
+    end
+  end
+  return iszero(scale) ? 1.0 : scale
+end
+
+function hermitize_floating_roundoff!(matrix::KossakowskiMatrix)::KossakowskiMatrix
+  scale = coefficient_scale(matrix)
   for row in axes(matrix, 1), column in row:size(matrix, 2)
     difference = simplify_coefficient(matrix[row, column] - conj(matrix[column, row]))
-    iszero(difference) || return false
+    (iszero(difference) || !floating_roundoff(difference, scale)) && continue
+    average = simplify_coefficient((matrix[row, column] + conj(matrix[column, row])) / 2)
+    matrix[row, column] = average
+    matrix[column, row] = simplify_coefficient(conj(average))
+  end
+  return matrix
+end
+
+# Cheap sufficient test: the expanded difference vanishes term by term. This avoids the
+# gcd-based `simplify`, which can overflow on large rational coefficients.
+function expanded_conjugate_pair(left::SQA.CNum, right::SQA.CNum)::Bool
+  difference =
+    SQA.to_num(left)::Complex{Symbolics.Num} -
+    conj(SQA.to_num(right)::Complex{Symbolics.Num})
+  return iszero(Symbolics.expand(real(difference))) &&
+         iszero(Symbolics.expand(imag(difference)))
+end
+
+function matrix_is_hermitian(matrix::KossakowskiMatrix)::Bool
+  size(matrix, 1) == size(matrix, 2) || return false
+  scale = coefficient_scale(matrix)
+  for row in axes(matrix, 1), column in row:size(matrix, 2)
+    expanded_conjugate_pair(matrix[row, column], matrix[column, row]) && continue
+    difference = simplify_coefficient(matrix[row, column] - conj(matrix[column, row]))
+    iszero(difference) || floating_roundoff(difference, scale) || return false
   end
   return true
+end
+
+function drop_floating_roundoff(residual::Liouvillian, scale::Float64)::Liouvillian
+  result = zero(residual)
+  for (left, right, coefficient) in terms(residual)
+    floating_roundoff(coefficient, scale) && continue
+    add_term!(result, left, right, coefficient)
+  end
+  return result
 end
 
 function canonical_has_two_sided_terms(canonical::Liouvillian)::Bool
@@ -200,6 +308,7 @@ function extract_gksl_canonical(
   left = multiply_coefficients(frame.pivot_inverse, sandwich)
   matrix = multiply_coefficients(left, adjoint_coefficients(frame.pivot_inverse))
   simplify_matrix!(matrix)
+  hermitize_floating_roundoff!(matrix)
   matrix_is_hermitian(matrix) || throw(
     GKSLCoordinateError(
       "extracted Kossakowski matrix is not Hermitian in the supplied frame"
@@ -208,6 +317,8 @@ function extract_gksl_canonical(
 
   dissipative = dissipative_liouvillian(frame, matrix)
   residual = canonical_liouvillian((canonical - dissipative)::Liouvillian)
+  scale = coefficient_scale(coefficient for (_, _, coefficient) in terms(canonical))
+  residual = drop_floating_roundoff(residual, scale)
   canonical_has_two_sided_terms(residual) && throw(
     ArgumentError("Liouvillian contains dissipative directions outside the supplied frame"),
   )
