@@ -139,7 +139,7 @@ function block_factorization(A::Matrix{ComplexF64}, tol::Real)
   return LinearAlgebra.lu(A)
 end
 
-function block_factorization(A::Matrix{T}, tol::Real) where {T}
+function block_factorization(A::Matrix{T}, ::Real) where {T}
   length(exact_row_basis(A)) == size(A, 1) || return nothing
   return exact_solve(A, Matrix{T}(LinearAlgebra.I, size(A)...))
 end
@@ -157,7 +157,7 @@ function independent_directions(projected::Vector{Matrix{ComplexF64}}, tol::Real
   ]
 end
 
-function independent_directions(projected::Vector{Matrix{T}}, tol::Real) where {T}
+function independent_directions(projected::Vector{Matrix{T}}, ::Real) where {T}
   nonzero = filter(!iszero, projected)
   isempty(nonzero) && return nonzero
   coordinates = reduce(

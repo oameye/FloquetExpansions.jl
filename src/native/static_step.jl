@@ -9,9 +9,7 @@ function native_gauge_directions end
 
 struct NoHomologicalInverse <: HomologicalInverse end
 
-function regular_gauge(
-  ::NoHomologicalInverse, ::NativeRepresentation, L0, residual, known, active, tol
-)
+function regular_gauge(::NoHomologicalInverse, ::NativeRepresentation, L0, _, _, _, _)
   return zero(L0)
 end
 
@@ -38,7 +36,7 @@ struct NativeGaugeFamily{D,I,M}
   metric::M
 end
 
-native_gauge_metric(::NativeRepresentation, directions) = zeros(Float64, 0, 0)
+native_gauge_metric(::NativeRepresentation, _) = zeros(Float64, 0, 0)
 
 function native_gauge_family(
   representation::NativeRepresentation, inverse::HomologicalInverse, L0

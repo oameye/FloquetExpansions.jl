@@ -12,7 +12,8 @@ boson_site(::Type{R}) where {R} = AlgebraSite{R}(BOSON_SITE, 0, R[])
 phase_site(::Type{R}) where {R} = AlgebraSite{R}(PHASE_SITE, 0, R[])
 function level_site(hilbert::Vector{R}) where {R}
   length(hilbert) >= 2 || throw(ArgumentError("a level site needs at least two levels"))
-  all(>(0), hilbert) || throw(ArgumentError("a level site needs a positive Hilbert metric"))
+  all(>(0), hilbert)::Bool ||
+    throw(ArgumentError("a level site needs a positive Hilbert metric"))
   return AlgebraSite{R}(LEVEL_SITE, length(hilbert), hilbert)
 end
 
@@ -77,7 +78,7 @@ function site_adjoint(site::AlgebraSite, monomial::Tuple{Int,Int}, ::Type{T}) wh
   return site_product(site, (0, l), (k, 0), T)
 end
 
-function tensor_terms(algebra::OperatorAlgebra{T}, local_terms) where {T}
+function tensor_terms(::OperatorAlgebra{T}, local_terms) where {T}
   result = MonomialTerms{T}([(Int[], one(T))])
   for terms in local_terms
     isempty(terms) && return MonomialTerms{T}()
