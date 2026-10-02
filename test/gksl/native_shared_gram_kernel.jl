@@ -37,7 +37,7 @@ function native_shared_state_equal(a, b, order; tol=2e-7)
   return native_channel_prefix_equal(a, b, order; atol=tol)
 end
 
-@testset "native GKLS reuses shared Gram kernel" begin
+@testset "native GKSL reuses shared Gram kernel" begin
   bf = native_bf_arbitrary(shared_gram_model, 4)
   hd = native_hd_arbitrary(shared_gram_model, 4)
 

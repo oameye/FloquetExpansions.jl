@@ -196,7 +196,7 @@ function native_channel_prefix_equal(a, b, order; atol=1e-8)
   return true
 end
 
-@testset "arbitrary native GKLS BF reproduces frozen orders 0-2" begin
+@testset "arbitrary native GKSL BF reproduces frozen orders 0-2" begin
   γ = 0.63
   model = NativeModel(
     2,
@@ -214,7 +214,7 @@ end
   @test all(isapprox(result.H[n], oracle.H[n]; atol=1e-8, rtol=1e-8) for n in 1:3)
 end
 
-@testset "arbitrary native GKLS BF is prefix stable through order 4" begin
+@testset "arbitrary native GKSL BF is prefix stable through order 4" begin
   γ = 0.52
   sideband_jump = NativeFS(
     -1 => sqrt(γ) * 0.31 * σx_native,
@@ -276,7 +276,7 @@ end
   @test isapprox(native_known_gram(channels, 3, dim), expected3; atol=1e-12)
 end
 
-@testset "arbitrary native GKLS BF preserves the Hamiltonian branch through order 4" begin
+@testset "arbitrary native GKSL BF preserves the Hamiltonian branch through order 4" begin
   model = NativeModel(
     2,
     NativeFS(

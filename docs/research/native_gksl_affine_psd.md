@@ -1,4 +1,4 @@
-# Native-GKLS affine PSD static section
+# Native-GKSL affine PSD static section
 
 This research note records the finite-dimensional retained-block problem used by #368.
 
@@ -24,4 +24,4 @@ The internal `positive_affine_section` helper preserves the old minimum-norm bra
 
 Once a feasible residual `P_n` is found, newborn jump amplitudes are still obtained by the shared `positive_gram_factor` kernel. No post-hoc positive-completion workflow is involved.
 
-This is research/internal infrastructure only. It does not yet constitute the full production native-GKLS static solver; BF/HD recurrence integration and physical qutrit/Kerr certification remain follow-up steps.
+This is research/internal infrastructure only. It does not yet constitute the full production native-GKSL static solver; BF/HD recurrence integration and physical qutrit/Kerr certification remain follow-up steps.

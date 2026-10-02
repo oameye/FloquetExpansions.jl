@@ -1,6 +1,6 @@
 # The GKSL normal form solves its jump amplitudes inside the BF/HD recurrence
 
-The generator-native GKLS expansion does not compute an ordinary Liouvillian Van Vleck expansion and repair its Kossakowski matrix afterwards. At every order the static slot of the Bloch–Feshbach or Hori–Deprit recurrence is chosen so that the order-``n`` coefficient already has the graded Gram form ``c(E_n) = K_n^< + K_n^{\rm lin} + P_n``, and the accepted ``E_n`` is fed back into the same recurrence. The static gauge ``S_n``, the coherent part ``H_n``, and the graded jump amplitudes are therefore state of the recurrence. Every finite truncation is GKLS by construction, and positive completion (ADR 0009) is never called.
+The generator-native GKSL expansion does not compute an ordinary Liouvillian Van Vleck expansion and repair its Kossakowski matrix afterwards. At every order the static slot of the Bloch–Feshbach or Hori–Deprit recurrence is chosen so that the order-``n`` coefficient already has the graded Gram form ``c(E_n) = K_n^< + K_n^{\rm lin} + P_n``, and the accepted ``E_n`` is fed back into the same recurrence. The static gauge ``S_n``, the coherent part ``H_n``, and the graded jump amplitudes are therefore state of the recurrence. Every finite truncation is GKSL by construction, and positive completion (ADR 0009) is never called.
 
 The implementation lives in `src/native/`, after `gksl/` and independent of `completion/`:
 
@@ -49,7 +49,7 @@ The public entry point is `GKSLNormalForm`. The research oracles under `test/gks
 
 `native_static_solve` uses floating-point eigen- and Dykstra-based geometry. `native_exact_static_solve` is its exact counterpart for the canonical branch, generic over the scalar field. It takes the operator and gauge metrics explicitly, because an exact frame is not orthonormal. It births channels in rate-weighted form ``P_n = \sum_j d_j l_j l_j^\dagger`` by Hermitian congruence, so no square roots appear, and it rejects an indefinite canonical residual rather than projecting onto the PSD cone. A symbolic representation over `Liouvillian` still needs two further pieces: a finite family of static gauge directions generated from the problem, and a localized coefficient algebra ``\mathfrak A_{\rm poly}[d_q^{-1}]`` for the homological inverse. Physical resonances, zeros of a Bohr multiplier on the physical spectrum, must be rejected rather than localized.
 
-The charged section supersedes the minimum-norm convention for charged sectors in item 3 of Theorem 12 of the native GKLS derivation note.
+The charged section supersedes the minimum-norm convention for charged sectors in item 3 of Theorem 12 of the native GKSL derivation note.
 
 ## Gate
 
@@ -58,7 +58,7 @@ The charged section supersedes the minimum-norm convention for charged sectors i
 - `test/native/recurrence.jl`: "native recurrence: BF and HD agree through order 4"
 - `test/native/static_solve.jl`: "native static slot uses the full affine PSD slice"
 - `test/native/exact_static_solve.jl`: "exact static slot matches the float core in orthonormal coordinates" and "exact static slot is covariant under a non-orthonormal frame"
-- `test/gksl/native_kerr_fock.jl`: "native GKLS BF/HD finite-Fock driven Kerr"
+- `test/gksl/native_kerr_fock.jl`: "native GKSL BF/HD finite-Fock driven Kerr"
 - `test/gksl/native_kerr_graded_slot.jl`: "graded native slot through order 4 on driven Kerr" and "graded native slot keeps the Hamiltonian branch" (finite-Fock truncated model)
 - `test/native/gksl_normal_form.jl`: "GKSLNormalForm coincides with VanVleck wherever no static gauge is needed" and "GKSLNormalForm driven Kerr is GKSL with a drive-induced channel"
 - `test/native/sqa_driver.jl`: "cutoff-free driven Kerr births one exact channel at order four"

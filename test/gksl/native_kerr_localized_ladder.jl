@@ -3,7 +3,7 @@ include("native_kerr_localized.jl")
 # Research-only exact Kerr specialization of the native static homological solve.
 #
 # For the U(1)-symmetric averaged Kerr generator the charged static map is triangular in the
-# two-leg charge level t (native GKLS derivation note, Kerr section):
+# two-leg charge level t (native GKSL derivation note, Kerr section):
 #
 #   y_t = d_t s_t + J s_{t+1}.
 #

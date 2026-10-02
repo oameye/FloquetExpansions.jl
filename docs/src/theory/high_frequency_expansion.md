@@ -184,11 +184,11 @@ block-diagonal normal form [Eckardt2015, Rahav2003, SchriefferWolff1966](@cite).
 For a Liouvillian, the Sambe blocks contain ``i\mathcal{L}_m`` instead of ``H_m``. Mapping the
 Hamiltonian-like block diagonalization back to ``\mathcal L`` produces the Liouvillian Lie-transform
 phase above. A finite-order effective Liouvillian is algebraically well defined but is not
-automatically in GKLS form [Ikeda2021, Schnell2021](@cite).
+automatically in GKSL form [Ikeda2021, Schnell2021](@cite).
 
 ## Complete positivity after truncation
 
-The loss of GKLS form at finite order is a property of the truncated effective Liouvillian, not a
+The loss of GKSL form at finite order is a property of the truncated effective Liouvillian, not a
 failure of the Floquet construction. One can instead ask for a positive finite continuation that
 agrees with the retained Kossakowski series through the claimed order. The active/dark Gram
 construction, recursive onset filtration, parameter strata, and spectral/HCM realization are

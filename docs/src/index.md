@@ -89,7 +89,7 @@ materializing a Floquet-Sambe matrix.
 
 ### CP-preserving open-system completion
 
-A finite-order Floquet-Lindblad expansion can leave the GKLS cone even when the microscopic
+A finite-order Floquet-Lindblad expansion can leave the GKSL cone even when the microscopic
 dynamics is completely positive. [`positive_completion`](@ref) constructs a finite positive
 continuation while preserving the retained effective coefficients and micromotion. See
 [Positive completion](@ref positive-completion-manual) for the Gram and spectral/HCM workflows.

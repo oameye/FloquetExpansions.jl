@@ -5,7 +5,7 @@ CurrentModule = FloquetExpansions
 # [Positive completion](@id positive-completion-manual)
 
 A finite-order high-frequency expansion of a periodic Lindblad generator need not itself be a
-GKLS generator, even when the microscopic dynamics is Markovian and completely positive
+GKSL generator, even when the microscopic dynamics is Markovian and completely positive
 [Schnell2021, Ikeda2021, Haddadfarshi2015](@cite). Positive completion supplies a finite completely positive continuation
 without changing the retained Floquet coefficients or micromotion. It only fixes dissipative information beyond
 the retained order. Different completion methods can therefore agree with the same retained

@@ -6,7 +6,7 @@ using FloquetExpansions
 # tests; this file certifies the new affine-cone section independently before it is wired into the
 # native static step.
 
-@testset "native GKLS affine static section geometry" begin
+@testset "native GKSL affine static section geometry" begin
   delta = ComplexF64[-2 0; 0 1]
   phi = reshape(Float64[1, 1, 0, 0], 4, 1)
 

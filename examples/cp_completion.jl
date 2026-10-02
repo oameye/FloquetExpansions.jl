@@ -71,7 +71,7 @@ d_sprectral = kossakowski(spectral)
 
 # Note that the correction are all of higher order than the retained Floquet expansion. Hence the completed generator is a valid finite-order Floquet expansion of the original Lindblad generator.
 
-# The completed channels make the continuation into a finite GKLS generator. Spectral completion
+# The completed channels make the continuation into a finite GKSL generator. Spectral completion
 # naturally presents them as rate-weighted jump channels.
 
 channels(spectral)
