@@ -19,6 +19,14 @@ required.
 `Gram()` can be used with any independent [`DissipativeFrame`](@ref). Supplying the frame
 explicitly fixes the dissipative coordinates; otherwise [`positive_completion`](@ref) derives a
 frame from the available Floquet data.
+
+`Gram()` is the perturbative Cholesky gauge: each order's factor coefficient in the active block
+is lower triangular in the frame ordering. The completed generator beyond the retained order
+therefore depends on the order of the frame vectors whenever the active block has rank at least
+two with off-diagonal data, whereas the retained coefficients and positivity do not. Permuting
+`(σ₋, σ₊, σz)` to `(σ₊, σ₋, σz)` for a full-rank driven qubit changes the completion at a
+higher order in the inverse drive frequency, for instance. The frame is thus part of the choice of
+continuation, beyond the channel gauge.
 """
 struct Gram <: CompletionAlgorithm end
 
@@ -38,6 +46,12 @@ high-frequency construction of Haddadfarshi, Cui, and Mintert [Haddadfarshi2015]
 frame already satisfies this condition; it does not diagonalize the leading Kossakowski form.
 Degenerate leading sectors must first be resolved by an adapted degenerate perturbative basis
 rather than by nondegenerate branch recursion.
+
+The spectral decomposition is taken with respect to the coordinate inner product of the frame, in
+which the frame vectors are treated as orthonormal. Rescaling a single frame vector therefore
+changes the completed generator beyond the retained order, and so does any other change of frame
+that is not unitary in these coordinates. The retained coefficients and positivity are preserved
+for every admissible frame.
 """
 struct Spectral <: CompletionAlgorithm end
 
