@@ -215,13 +215,6 @@ function accept_native_step!(channels, indices, step, order)
   return channels
 end
 
-function check_hd_slot(representation, average, step::NativeStaticStep)
-  native_matches(representation, average, step.E) || throw(
-    ArgumentError("HD accepted static slot does not reproduce the retained coefficient")
-  )
-  return true
-end
-
 function native_recurrence(
   algorithm::Union{BlochFeshbach,HoriDeprit},
   representation::NativeRepresentation,
@@ -233,30 +226,54 @@ function native_recurrence(
   return native_recurrence(algorithm, representation, L, leading, weights, N)
 end
 
-function native_recurrence(
-  ::BlochFeshbach,
-  representation::NativeRepresentation,
-  L::Harmonics{X},
-  leading::AbstractMatrix{T},
-  weights::AbstractVector{<:Number},
-  N::Int,
-) where {X,T<:Number}
-  N >= 0 || throw(ArgumentError("retained order must be nonnegative"))
-  haskey(L, 0) || throw(ArgumentError("the averaged generator harmonic L_0 is required"))
+struct VanVleckSlot end
+
+static_slot!(::VanVleckSlot, ::Int, Vhat) = (Vhat, zero(Vhat))
+check_slot(::VanVleckSlot, average, E) = true
+
+struct GKSLSlot{P<:NativeRepresentation,F,X,O,T}
+  representation::P
+  families::F
+  L0::X
+  H::Vector{O}
+  channels::Vector{GradedChannel{T}}
+  dimension::Int
+end
+
+function static_slot!(slot::GKSLSlot, order::Int, Vhat)
+  (; representation, channels, dimension) = slot
+  known = known_gram(channels, order, dimension)
+  indices, active = active_channels(channels, order, dimension)
+  rates = active_weights(channels, indices)
+  step = native_static_step(
+    representation, slot.families, slot.L0, Vhat, known, active, rates
+  )
+  push!(slot.H, step.H)
+  accept_native_step!(channels, indices, step, order)
+  check_native_coefficient(representation, step.E, channels, order, dimension)
+  return step.E, step.S
+end
+
+function check_slot(slot::GKSLSlot, average, E)
+  native_matches(slot.representation, average, E) || throw(
+    ArgumentError("HD accepted static slot does not reproduce the retained coefficient")
+  )
+  return true
+end
+
+initial_kick(::BlochFeshbach, L::Harmonics{X}) where {X} = [Harmonics{X}(0 => one(L[0]))]
+function initial_kick(::HoriDeprit, L::Harmonics{X}) where {X}
+  return [Harmonics{X}(), harmonic_integral(L)]
+end
+
+function floquet_recurrence(::BlochFeshbach, L::Harmonics{X}, N::Int, slot) where {X}
   L0 = L[0]
   identity = one(L0)
   zero_element = zero(L0)
-  dimension = size(leading, 1)
-  channels = initial_native_channels(leading, weights)
-  check_native_coefficient(representation, L0, channels, 0, dimension)
-  check_gksl_form(representation, L0)
-
   E = X[L0]
-  H = [native_hamiltonian(representation, L0)]
   S = X[]
-  Y = Harmonics{X}[Harmonics{X}(0 => identity)]
-  N == 0 && return NativeRecurrence(E, S, H, Y, channels)
-  families = native_gauge_families(representation, L0)
+  Y = initial_kick(BlochFeshbach(), L)
+  N == 0 && return E, S, Y
   push!(Y, harmonic_integral(L))
 
   for order in 1:N
@@ -264,29 +281,45 @@ function native_recurrence(
     base = -offset
     trial = harmonic_with_static(Y[order + 1], base)
     Vhat = harmonic_average(bf_static_residual(L, Y, E, order, trial), zero_element)
-
-    known = known_gram(channels, order, dimension)
-    indices, active = active_channels(channels, order, dimension)
-    rates = active_weights(channels, indices)
-    step = native_static_step(representation, families, L0, Vhat, known, active, rates)
-
-    push!(S, step.S)
-    push!(E, step.E)
-    push!(H, step.H)
-
-    Y[order + 1] = harmonic_with_static(Y[order + 1], base + step.S)
-    accept_native_step!(channels, indices, step, order)
-    check_native_coefficient(representation, step.E, channels, order, dimension)
-
+    En, Sn = static_slot!(slot, order, Vhat)
+    push!(S, Sn)
+    push!(E, En)
+    Y[order + 1] = harmonic_with_static(Y[order + 1], base + Sn)
     if order < N
       push!(Y, harmonic_integral(bf_static_residual(L, Y, E, order, Y[order + 1])))
     end
   end
-  return NativeRecurrence(E, S, H, Y, channels)
+  return E, S, Y
+end
+
+function floquet_recurrence(::HoriDeprit, L::Harmonics{X}, N::Int, slot) where {X}
+  L0 = L[0]
+  identity = one(L0)
+  zero_element = zero(L0)
+  E = X[L0]
+  S = X[]
+  G = initial_kick(HoriDeprit(), L)
+  N == 0 && return E, S, G
+
+  for order in 1:N
+    truncated = hd_truncated_generator(G, order)
+    kick = kick_exp(truncated, identity, order)
+    base = -intrinsic_offset(kick, S, order, identity, zero_element)
+    G[order + 1] = harmonic_with_static(G[order + 1], base)
+    Vhat = harmonic_average(hd_generator_series(L, G, order)[order + 1], zero_element)
+    En, Sn = static_slot!(slot, order, Vhat)
+    push!(S, Sn)
+    push!(E, En)
+    G[order + 1] = harmonic_with_static(G[order + 1], base + Sn)
+    W = hd_generator_series(L, G, order)[order + 1]
+    check_slot(slot, harmonic_average(W, zero_element), En)
+    order < N && push!(G, harmonic_integral(W))
+  end
+  return E, S, G
 end
 
 function native_recurrence(
-  ::HoriDeprit,
+  algorithm::Union{BlochFeshbach,HoriDeprit},
   representation::NativeRepresentation,
   L::Harmonics{X},
   leading::AbstractMatrix{T},
@@ -296,43 +329,15 @@ function native_recurrence(
   N >= 0 || throw(ArgumentError("retained order must be nonnegative"))
   haskey(L, 0) || throw(ArgumentError("the averaged generator harmonic L_0 is required"))
   L0 = L[0]
-  identity = one(L0)
-  zero_element = zero(L0)
   dimension = size(leading, 1)
   channels = initial_native_channels(leading, weights)
   check_native_coefficient(representation, L0, channels, 0, dimension)
   check_gksl_form(representation, L0)
 
-  E = X[L0]
   H = [native_hamiltonian(representation, L0)]
-  S = X[]
-  G = Harmonics{X}[Harmonics{X}(), harmonic_integral(L)]
-  N == 0 && return NativeRecurrence(E, S, H, G, channels)
+  N == 0 && return NativeRecurrence(X[L0], X[], H, initial_kick(algorithm, L), channels)
   families = native_gauge_families(representation, L0)
-
-  for order in 1:N
-    truncated = hd_truncated_generator(G, order)
-    kick = kick_exp(truncated, identity, order)
-    base = -intrinsic_offset(kick, S, order, identity, zero_element)
-    G[order + 1] = harmonic_with_static(G[order + 1], base)
-
-    Vhat = harmonic_average(hd_generator_series(L, G, order)[order + 1], zero_element)
-    known = known_gram(channels, order, dimension)
-    indices, active = active_channels(channels, order, dimension)
-    rates = active_weights(channels, indices)
-    step = native_static_step(representation, families, L0, Vhat, known, active, rates)
-
-    push!(S, step.S)
-    push!(E, step.E)
-    push!(H, step.H)
-
-    G[order + 1] = harmonic_with_static(G[order + 1], base + step.S)
-    accept_native_step!(channels, indices, step, order)
-    check_native_coefficient(representation, step.E, channels, order, dimension)
-
-    W = hd_generator_series(L, G, order)[order + 1]
-    check_hd_slot(representation, harmonic_average(W, zero_element), step)
-    order < N && push!(G, harmonic_integral(W))
-  end
-  return NativeRecurrence(E, S, H, G, channels)
+  slot = GKSLSlot(representation, families, L0, H, channels, dimension)
+  E, S, kick = floquet_recurrence(algorithm, L, N, slot)
+  return NativeRecurrence(E, S, H, kick, channels)
 end

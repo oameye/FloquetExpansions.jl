@@ -288,6 +288,8 @@ function algebra_identity(algebra::OperatorAlgebra{T,R}) where {T,R}
   return AlgebraOperator{T,R}(algebra, Dict(identity_monomial(algebra) => one(T)))
 end
 
+Base.one(A::AlgebraOperator) = algebra_identity(A.algebra)
+
 function sandwich(A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}) where {T,R}
   terms = Dict{Tuple{Monomial,Monomial},T}()
   for (a, ca) in A.terms, (b, cb) in B.terms
