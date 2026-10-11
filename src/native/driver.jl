@@ -107,9 +107,7 @@ end
 
 function lift_monomial!(lift::CoefficientLift, X::Monomial)
   return get!(lift.monomials, X) do
-    return lift_operator(
-      lift.lowering, algebra_operator(lift.lowering.algebra, [(X, 1)]), lift.coefficient
-    )
+    return lift_operator(lift, algebra_operator(lift.lowering.algebra, [(X, 1)]))
   end
 end
 

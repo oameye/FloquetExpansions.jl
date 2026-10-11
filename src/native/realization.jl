@@ -29,15 +29,6 @@ function native_micromotion_harmonics(data::NativeExpansionData, ::BlochFeshbach
   return [generator[n + 1] for n in 1:N]
 end
 
-function native_micromotion(
-  data::NativeExpansionData, lift::CoefficientLift, algorithm, wd::Symbolics.Num, N::Int
-)
-  return [
-    lift_harmonics(lift, harmonics, wd) for
-    harmonics in native_micromotion_harmonics(data, algorithm, N)
-  ]
-end
-
 function native_channel_operator(
   data::NativeExpansionData,
   lift::CoefficientLift,
@@ -77,12 +68,12 @@ function native_support(data::NativeExpansionData)
   return sort!(support)
 end
 
-function native_frame(data::NativeExpansionData, support::Vector{Int}, coefficients)
+function native_frame(
+  data::NativeExpansionData, support::Vector{Int}, lift::CoefficientLift
+)
   operators = [
     lift_operator(
-      data.lowering,
-      algebra_operator(data.lowering.algebra, [(data.representation.frame[k], 1)]),
-      coefficients,
+      lift, algebra_operator(data.lowering.algebra, [(data.representation.frame[k], 1)])
     ) for k in support
   ]
   return assemble_dissipative_frame(Tuple(operators))
@@ -230,11 +221,12 @@ function native_floquet_expansion(
   wd = generator.wd
   lift = CoefficientLift(data.lowering, coefficients)
   effective = Liouvillian[lift_superoperator(lift, E) for E in data.recurrence.E]
-  micromotion = native_micromotion(data, lift, gauge.algorithm, wd, N)
+  harmonics = native_micromotion_harmonics(data, gauge.algorithm, N)
+  micromotion = [lift_harmonics(lift, X, wd) for X in harmonics]
   H = native_hamiltonian_series(data, lift, wd)
   jumps = native_channels(data, lift, wd, N)
   support = native_support(data)
-  frame = native_frame(data, support, coefficients)
+  frame = native_frame(data, support, lift)
   graded = native_finite_kossakowski(data, N)
   finite = native_finite_generator(data, lift, graded, wd, N)
   retained = retained_native_kossakowski(data, support, wd, N, coefficients)
@@ -243,8 +235,8 @@ function native_floquet_expansion(
     retained,
     support_matrix(graded, support, wd, coefficients),
     jumps,
-    native_positivity_conditions(coefficients, jumps, wd),
-    SQA.CNum[],
+    native_positivity_conditions(coefficients, wd),
+    native_regularity_conditions(coefficients, data, harmonics),
     data,
     H,
     finite,

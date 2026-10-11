@@ -7,12 +7,14 @@ The implementation lives in `src/native/parameter_field.jl`:
 - `ParameterScalar <: Real` wraps an element of the fraction field of the cached Nemo polynomial ring in at most eight variables. The native solver uses `Complex{ParameterScalar}` as its scalar, as it uses `Complex{Rational{Int128}}` for numeric input.
 - `native_coefficients` reads the parameters of a generator and returns `ExactCoefficients()` when there are none, so numeric input takes the existing checked-`Int128` path without change.
 - A parameter declared negative is lowered as ``p = -x``. Every field variable is then positive.
+- SQA splits a complex parameter ``\alpha`` into the real symbols `real(α)` and `imag(α)`, which become two field variables.
+- The drive frequency may not appear in a coefficient. The recurrence orders terms by explicit powers of ``1/\omega``, so an ``\omega`` inside an order-zero coefficient would silently break that ordering.
 
 ## Sign decisions
 
-The exact static solve decides signs only in its rate-weighted ``LDL^\dagger`` certificate. A sign is decided when the numerator and the denominator of the rational function each have coefficients of one sign. Every field variable is positive, so the sign then holds throughout the sign region. Any other sign throws an `ArgumentError` that names the expression, for instance `κ - γ`, rather than deciding it at a sample point. For driven Kerr with loss and for the driven qubit every sign decision is a monomial.
+The exact static solve decides signs only in its rate-weighted ``LDL^\dagger`` certificate. A sign is decided when the numerator and the denominator of the rational function each have coefficients of one sign. Every field variable is positive, so the sign then holds throughout the sign region. A gauge family whose certificate meets any other sign is treated as having no lift throughout the region, and the next family is tried, so the symbolic section is the first family certified on the whole region. Where no family is, the expansion throws an `ArgumentError` that names the expression, for instance `κ - γ`, rather than deciding it at a sample point. For driven Kerr, the driven qubit, and their variants with dephasing or pumping every sign decision is a monomial and no family is skipped.
 
-The result further assumes generic parameters. Divisions by a non-constant rational function are not recorded as conditions, as in Symbolics' `symbolic_solve`. `positivity_conditions` returns the signed parameters, the drive frequency, and the channel rates; `regularity_conditions` returns none.
+Pivots are chosen for generic parameters, but no pivot is recorded. On the dense open set where every pivot is nonzero the returned generator is of GKSL form, its rates are nonnegative, and its spectrum agrees with van Vleck. These are closed conditions on the returned coefficients, so they extend by continuity to every point where the coefficients are finite. `regularity_conditions` therefore returns the irreducible factors of the coefficient denominators, for instance ``\kappa`` for driven Kerr with loss and dephasing, and `positivity_conditions` returns the signed parameters and the drive frequency.
 
 ## Considered options
 
@@ -30,4 +32,4 @@ Nemo is a direct dependency, which adds the FLINT binaries to every installation
 
 `make test` runs the testsets that hold this decision:
 
-- `test/native/gksl_symbolic.jl`: "symbolic GKSLNormalForm equals the numeric expansion at substituted points", "symbolic GKSLNormalForm states its sign region" and "symbolic GKSLNormalForm rejects what it cannot decide"
+- `test/native/gksl_symbolic.jl`: "symbolic GKSLNormalForm equals the numeric expansion at substituted points", "symbolic GKSLNormalForm states where it holds" and "symbolic GKSLNormalForm rejects what it cannot decide"

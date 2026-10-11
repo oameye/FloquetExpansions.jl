@@ -4,6 +4,10 @@ end
 
 Base.showerror(io::IO, error::NativePositivityError) = print(io, error.message)
 
+struct ParameterSignError{T} <: Exception
+  value::T
+end
+
 struct ExactStaticSolution{T,R}
   coordinates::Vector{R}
   newborn::Matrix{T}

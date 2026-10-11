@@ -225,7 +225,7 @@ end
 
 function accumulate!(terms::Dict{K,T}, key::K, value) where {K,T}
   iszero(value) && return terms
-  updated = get(terms, key, zero(T)) + value
+  updated = haskey(terms, key) ? terms[key] + value : value
   iszero(updated) ? delete!(terms, key) : (terms[key] = updated)
   return terms
 end

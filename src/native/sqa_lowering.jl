@@ -155,14 +155,18 @@ function exact_scalar(::Type{T}, x::Complex) where {T}
   return T(exact_real(real(T), real(x)), exact_real(real(T), imag(x)))
 end
 
-function lower_coefficient(lowering::SQALowering{T}, c::SQA.CNum) where {T}
+function polynomial_tail(c::SQA.CNum)
   tail = c.tail
-  tail isa SQA.Native && return exact_scalar(T, SQA.native_scalar(c))
   tail isa SQA.Poly || throw(
     ArgumentError("the native expansion supports polynomial coefficients only, got $c")
   )
+  return tail
+end
+
+function lower_coefficient(lowering::SQALowering{T}, c::SQA.CNum) where {T}
+  c.tail isa SQA.Native && return exact_scalar(T, SQA.native_scalar(c))
   value = zero(T)
-  for monomial in tail.terms
+  for monomial in polynomial_tail(c).terms
     term = exact_scalar(T, monomial.scalar)
     for (symbol, exponent) in zip(monomial.syms, monomial.exps)
       term *= parameter_value(lowering, symbol)^Int(exponent)

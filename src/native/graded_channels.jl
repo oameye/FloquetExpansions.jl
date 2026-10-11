@@ -31,8 +31,9 @@ end
 function hermitian_part(X::AbstractMatrix)
   S = typeof((zero(eltype(X)) + zero(eltype(X))) / 2)
   result = Matrix{S}(undef, size(X))
+  half = one(S) / 2
   for j in axes(X, 2), i in axes(X, 1)
-    result[i, j] = (X[i, j] + conj(X[j, i])) / 2
+    result[i, j] = (X[i, j] + conj(X[j, i])) * half
   end
   return result
 end

@@ -7,7 +7,10 @@ struct ParameterScalar <: Real
   ParameterScalar(value::ParameterFraction) = new(value)
 end
 
-parameter_ring() = Nemo.QQMPolyRing(Nemo.QQ, PARAMETER_NAMES, :lex, true)
+function parameter_ring()
+  ring, _ = Nemo.polynomial_ring(Nemo.QQ, PARAMETER_NAMES; cached=true)
+  return ring
+end
 
 parameter_field() = Nemo.fraction_field(parameter_ring(); cached=true)
 
@@ -15,7 +18,6 @@ function parameter_variable(i::Int)
   return ParameterScalar(parameter_field()(Nemo.gen(parameter_ring(), i)))
 end
 
-ParameterScalar(x::Bool) = ParameterScalar(Int(x))
 ParameterScalar(x::Integer) = ParameterScalar(parameter_field()(Nemo.QQ(x)))
 function ParameterScalar(x::Rational)
   return ParameterScalar(parameter_field()(Nemo.QQ(numerator(x), denominator(x))))
@@ -47,7 +49,11 @@ function Base.:*(a::ParameterScalar, b::ParameterScalar)
   return ParameterScalar(a.value * b.value)
 end
 
-Base.:/(a::ParameterScalar, b::ParameterScalar) = ParameterScalar(a.value // b.value)
+function Base.:/(a::ParameterScalar, b::ParameterScalar)
+  (iszero(a) || isone(b)) && return a
+  return ParameterScalar(a.value // b.value)
+end
+
 Base.:-(a::ParameterScalar) = ParameterScalar(-a.value)
 Base.inv(a::ParameterScalar) = ParameterScalar(inv(a.value))
 Base.:^(a::ParameterScalar, n::Integer) = ParameterScalar(a.value^Int(n))
@@ -55,21 +61,23 @@ Base.:^(a::ParameterScalar, n::Integer) = ParameterScalar(a.value^Int(n))
 Base.iszero(a::ParameterScalar) = iszero(a.value)
 Base.isone(a::ParameterScalar) = isone(a.value)
 Base.:(==)(a::ParameterScalar, b::ParameterScalar) = a.value == b.value
-Base.isequal(a::ParameterScalar, b::ParameterScalar) = a.value == b.value
-Base.hash(a::ParameterScalar, h::UInt) = hash(a.value, h)
-Base.isfinite(::ParameterScalar) = true
-Base.isinf(::ParameterScalar) = false
-Base.isnan(::ParameterScalar) = false
-Base.show(io::IO, a::ParameterScalar) = print(io, a.value)
+function Base.hash(a::ParameterScalar, h::UInt)
+  is_constant_fraction(a) || return hash(a.value, h)
+  return hash(
+    Rational{BigInt}(Nemo.constant_coefficient(numerator(a.value))) //
+    Rational{BigInt}(Nemo.constant_coefficient(denominator(a.value))),
+    h,
+  )
+end
 
-struct ParameterSignError <: Exception
-  value::ParameterScalar
+function is_constant_fraction(a::ParameterScalar)
+  return Nemo.is_constant(numerator(a.value)) && Nemo.is_constant(denominator(a.value))
 end
 
 function definite_sign(p::Nemo.QQMPolyRingElem, a::ParameterScalar)
-  signs = unique(Nemo.sign(Int, c) for c in Nemo.coefficients(p))
-  length(signs) == 1 || throw(ParameterSignError(a))
-  return only(signs)
+  s = Nemo.sign(Int, Nemo.leading_coefficient(p))
+  all(c -> Nemo.sign(Int, c) == s, Nemo.coefficients(p)) || throw(ParameterSignError(a))
+  return s
 end
 
 function parameter_sign(a::ParameterScalar)
@@ -78,11 +86,17 @@ function parameter_sign(a::ParameterScalar)
 end
 
 Base.:<(a::ParameterScalar, b::ParameterScalar) = parameter_sign(b - a) > 0
-Base.:<=(a::ParameterScalar, b::ParameterScalar) = parameter_sign(b - a) >= 0
-Base.isless(a::ParameterScalar, b::ParameterScalar) = a < b
 
-Base.inv(z::Complex{ParameterScalar}) = conj(z) / abs2(z)
-Base.:/(a::Complex{ParameterScalar}, b::Complex{ParameterScalar}) = a * inv(b)
+function Base.inv(z::Complex{ParameterScalar})
+  iszero(imag(z)) && return Complex(inv(real(z)), imag(z))
+  n = abs2(z)
+  return Complex(real(z) / n, -imag(z) / n)
+end
+
+function Base.:/(a::Complex{ParameterScalar}, b::Complex{ParameterScalar})
+  iszero(imag(b)) && return Complex(real(a) / real(b), imag(a) / real(b))
+  return a * inv(b)
+end
 function Base.:^(z::Complex{ParameterScalar}, n::Int)
   n >= 0 && return Base.power_by_squaring(z, n)
   return inv(Base.power_by_squaring(z, -n))
@@ -94,12 +108,10 @@ struct ParameterCoefficients
 end
 
 function collect_parameters!(found::Vector{Symbolics.Num}, c::SQA.CNum)
-  tail = c.tail
-  tail isa SQA.Native && return found
-  tail isa SQA.Poly || throw(
-    ArgumentError("the native expansion supports polynomial coefficients only, got $c")
-  )
-  for monomial in tail.terms, (symbol, exponent) in zip(monomial.syms, monomial.exps)
+  c.tail isa SQA.Native && return found
+  for monomial in polynomial_tail(c).terms,
+    (symbol, exponent) in zip(monomial.syms, monomial.exps)
+
     isinteger(exponent) || throw(
       ArgumentError(
         "the native expansion supports integer powers of a parameter only, found " *
@@ -130,9 +142,15 @@ function native_parameters(generator::PeriodicGenerator{Liouvillian})
 end
 
 function native_coefficients(
-  generator::PeriodicGenerator{Liouvillian}, negative::Vector{Symbolics.Num}
+  generator::PeriodicGenerator{Liouvillian}, negative::Tuple{Vararg{Symbolics.Num}}
 )
   parameters = native_parameters(generator)
+  any(p -> isequal(p, generator.wd), parameters) && throw(
+    ArgumentError(
+      "the drive frequency $(generator.wd) appears in a coefficient; the expansion is in " *
+      "powers of 1/$(generator.wd), so write every coefficient without it",
+    ),
+  )
   for p in negative
     isequal(p, generator.wd) && throw(
       ArgumentError("the drive frequency is positive and cannot be declared negative")
@@ -217,18 +235,50 @@ function lift_coefficient(coefficients::ParameterCoefficients, c::Complex{Parame
   return real_part + convert(SQA.CNum, im) * imaginary_part
 end
 
-native_positivity_conditions(::ExactCoefficients, jumps, wd::Symbolics.Num) = SQA.CNum[]
+native_positivity_conditions(::ExactCoefficients, wd::Symbolics.Num) = SQA.CNum[]
 
 function native_positivity_conditions(
-  coefficients::ParameterCoefficients, jumps, wd::Symbolics.Num
+  coefficients::ParameterCoefficients, wd::Symbolics.Num
 )
-  conditions = SQA.CNum[
-    parameter_term(coefficients, i) for i in eachindex(coefficients.parameters)
+  return SQA.CNum[
+    (parameter_term(coefficients, i) for i in eachindex(coefficients.parameters))...,
+    convert(SQA.CNum, wd),
   ]
-  any(p -> isequal(p, wd), coefficients.parameters) ||
-    push!(conditions, convert(SQA.CNum, wd))
-  for jump in jumps
-    any(c -> isequal(c, jump.rate), conditions) || push!(conditions, jump.rate)
+end
+
+native_regularity_conditions(::ExactCoefficients, data, micromotion) = SQA.CNum[]
+
+function native_regularity_conditions(
+  coefficients::ParameterCoefficients, data, micromotion
+)
+  factors = Nemo.QQMPolyRingElem[]
+  for E in data.recurrence.E
+    collect_denominators!(factors, values(E.terms))
   end
-  return conditions
+  for H in data.recurrence.H
+    collect_denominators!(factors, values(H.terms))
+  end
+  for harmonics in micromotion, X in values(harmonics)
+    collect_denominators!(factors, values(X.terms))
+  end
+  for channel in data.recurrence.channels
+    collect_denominators!(factors, (channel.weight,))
+    for amplitudes in channel.coefficients
+      collect_denominators!(factors, amplitudes)
+    end
+  end
+  return SQA.CNum[parameter_polynomial(coefficients, f) for f in factors]
+end
+
+function collect_denominators!(factors::Vector{Nemo.QQMPolyRingElem}, values)
+  for z in values, x in (real(z), imag(z))
+    d = denominator(x.value)
+    Nemo.is_constant(d) && continue
+    for (f, _) in Nemo.factor(d)
+      Nemo.is_constant(f) && continue
+      g = f * inv(Nemo.leading_coefficient(f))
+      any(==(g), factors) || push!(factors, g)
+    end
+  end
+  return factors
 end

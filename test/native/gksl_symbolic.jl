@@ -1,12 +1,12 @@
 using Test
-using Symbolics: @variables
+using Symbolics: Symbolics, @variables
 using FloquetExpansions
 using FloquetExpansions: FloquetExpansions
 
 const FE = FloquetExpansions
 const SQA = FE.SQA
 
-@variables ω::Real t::Real Δ::Real χ::Real F::Real κ::Real γ::Real Ω::Real
+@variables ω::Real t::Real Δ::Real χ::Real F::Real κ::Real γ::Real Ω::Real α::Complex
 
 const CAVITY = FockSpace(:gksl_symbolic_cavity)
 const A = Destroy(CAVITY, :a)
@@ -69,6 +69,24 @@ end
     )
     @test agree(symbolic, numeric, point)
   end
+  value = 1 // 3 + (2 // 7) * im
+  displaced(α, Δ, χ, F) = α * A' + conj(α) * A + kerr(Δ, χ, F)
+  re, ie = (Symbolics.wrap(f(Symbolics.unwrap(α))) for f in (real, imag))
+  point = Dict(
+    re => 1 // 3, ie => 2 // 7, Δ => 3 // 7, χ => 2 // 9, F => 5 // 11, κ => 7 // 5, ω => 13
+  )
+  symbolic = floquet_expansion(
+    displaced(α, Δ, χ, F), ω, t, GKSLNormalForm(), 4; channels=(jump(A, κ),)
+  )
+  numeric = floquet_expansion(
+    displaced(value, 3 // 7, 2 // 9, 5 // 11),
+    ω,
+    t,
+    GKSLNormalForm(),
+    4;
+    channels=(jump(A, 7 // 5),),
+  )
+  @test agree(symbolic, numeric, point)
   qubit = PauliSpace(:gksl_symbolic_qubit)
   σx = Pauli(qubit, :σ, 1)
   σy = Pauli(qubit, :σ, 2)
@@ -90,18 +108,23 @@ end
   @test agree(symbolic, numeric, point)
 end
 
-@testset "symbolic GKSLNormalForm states its sign region" begin
-  expansion = floquet_expansion(
-    kerr(Δ, χ, F), ω, t, GKSLNormalForm(; negative=(Δ,)), 5; channels=(jump(A, κ),)
-  )
-  rate = 2 * F^2 * κ * χ^2 / ω^4
-  expected = (F, -Δ, κ, χ, ω, rate)
-  conditions = positivity_conditions(expansion)
-  @test length(conditions) == length(expected)
-  @test all(
+function same(conditions, expected)
+  return length(conditions) == length(expected) && all(
     iszero(SQA.simplify(c - convert(SQA.CNum, e))) for (c, e) in zip(conditions, expected)
   )
-  @test iszero(SQA.simplify(channels(expansion)[2].rate - convert(SQA.CNum, rate)))
+end
+
+@testset "symbolic GKSLNormalForm states where it holds" begin
+  gauge = GKSLNormalForm(; negative=(Δ,))
+  @test gauge == GKSLNormalForm(; negative=(Δ,))
+  @test hash(FE.ParameterScalar(3 // 7)) == hash(3 // 7)
+  loss = floquet_expansion(kerr(Δ, χ, F), ω, t, gauge, 5; channels=(jump(A, κ),))
+  @test same(positivity_conditions(loss), (F, -Δ, κ, χ, ω))
+  @test isempty(regularity_conditions(loss))
+  dephased = floquet_expansion(
+    kerr(Δ, χ, F), ω, t, GKSLNormalForm(), 4; channels=(jump(A, κ), jump(A' * A, γ))
+  )
+  @test same(regularity_conditions(dephased), (κ,))
 end
 
 @testset "symbolic GKSLNormalForm rejects what it cannot decide" begin
@@ -114,6 +137,14 @@ end
   )
   @test_throws "drive frequency is positive" floquet_expansion(
     H, ω, t, GKSLNormalForm(; negative=(ω,)), 3; channels=(jump(A, κ),)
+  )
+  @test_throws "drive frequency ω appears in a coefficient" floquet_expansion(
+    (1 // 2) * ω * A' * A + F * (A + A') * cos(ω * t),
+    ω,
+    t,
+    GKSLNormalForm(),
+    3;
+    channels=(jump(A, κ),),
   )
   @test_throws "integer powers of a parameter" floquet_expansion(
     H, ω, t, GKSLNormalForm(), 3; channels=(jump(A, sqrt(κ)),)

@@ -104,14 +104,17 @@ Hamiltonian it holds the van Vleck coefficients and no completed model, so `chan
 
 Coefficients may be polynomials in at most eight symbolic parameters with exact rational
 coefficients. The expansion is then computed exactly over the field of rational functions in
-those parameters, and the channel rates are rational functions. Every parameter and the drive
-frequency are taken positive, except those listed in `negative`, which are taken negative. The
-[`positivity_conditions`](@ref) of the result list these signs and the channel rates.
+those parameters, and the channel rates are rational functions. A complex parameter `α` enters
+as the two real parameters `real(α)` and `imag(α)`. The drive frequency may not appear in a
+coefficient. Every parameter and the drive frequency are taken positive, except those listed in
+`negative`, which are taken negative; [`positivity_conditions`](@ref) lists these signs.
 
 Every sign the construction decides must follow from these signs alone, so the result holds
 throughout the sign region. A sign that does not, such as that of `κ - γ`, throws an
-`ArgumentError`. The result further assumes generic parameters: no expression the expansion
-divides by vanishes. At an exceptional point substitute the values before expanding.
+`ArgumentError`. The result holds wherever every [`regularity_conditions`](@ref) entry is
+nonzero: these are the irreducible denominators of the returned coefficients, and where they
+are nonzero the GKSL form and the van Vleck spectrum extend from generic parameters by
+continuity.
 
 # Restrictions
 
@@ -167,13 +170,13 @@ julia> channels(x)[2]
 ((2(F^2)*κ*(χ^2)) / (ω^4))𝒟[a * a - 2 * a' * a]
 ```
 """
-struct GKSLNormalForm{A<:ExpansionAlgorithm} <: Gauge
+struct GKSLNormalForm{A<:ExpansionAlgorithm,N<:Tuple{Vararg{Symbolics.Num}}} <: Gauge
   algorithm::A
-  negative::Vector{Symbolics.Num}
+  negative::N
 end
 
 function GKSLNormalForm(; algorithm::ExpansionAlgorithm=HoriDeprit(), negative=())
-  return GKSLNormalForm(algorithm, Symbolics.Num[negative...])
+  return GKSLNormalForm(algorithm, Tuple(Symbolics.Num(p) for p in negative))
 end
 
 """
