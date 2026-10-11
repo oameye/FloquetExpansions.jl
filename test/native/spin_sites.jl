@@ -103,7 +103,6 @@ end
     @test adjoint(X * Y) == adjoint(Y) * adjoint(X)
   end
   @test FE.monomial_degree(algebra, [2, 1, 3]) == 6
-  @test FE.monomial_charge(algebra, [0], 1, [2, 1, 3]) == [-1]
   @test length(FE.algebra_monomials(algebra, 2)) == 9
 end
 

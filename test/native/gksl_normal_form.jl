@@ -64,3 +64,29 @@ end
   )
   @test all(same(effective_component(bf, n), effective_component(native, n)) for n in 0:4)
 end
+
+@testset "GKSLNormalForm on a driven oscillator in position and momentum" begin
+  phase = PhaseSpace(:q)
+  x = Position(phase, :q)
+  p = Momentum(phase, :q)
+  H0 = (1 // 2) * p * p + (1 // 2) * x * x
+  H = H0 + (1 // 5) * x * cos(ω * t)
+  jumps = (jump(x + im * p, 1 // 5),)
+  native = floquet_expansion(H, ω, t, GKSLNormalForm(), 3; channels=jumps)
+  reference = floquet_expansion(H, ω, t, VanVleck(), 3; channels=jumps)
+  @test same(effective_component(native, 0), liouvillian(H0; channels=jumps))
+  @test all(
+    same(effective_component(native, n), effective_component(reference, n)) for n in 0:2
+  )
+  @test same(
+    effective_generator(native),
+    liouvillian(hamiltonian(native); channels=Tuple(channels(native))),
+  )
+  C = kossakowski(native)
+  for value in (3.0, 10.0)
+    numeric = [
+      ComplexF64(FE.SQA.to_complex(FE.SQA.substitute(c, Dict(ω => value)))) for c in C
+    ]
+    @test eigmin(Hermitian(numeric)) >= -1e-12
+  end
+end
