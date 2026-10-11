@@ -119,29 +119,28 @@ end
 
 const FLOAT_ROUNDOFF_TOLERANCE = 1.0e-10
 
-@inline function constant_magnitude(value)::Union{Nothing,Tuple{Float64,Bool}}
-  value isa Int && return abs(Float64(value)), false
-  value isa Rational{Int} && return abs(Float64(value)), false
-  value isa Float64 && return abs(value), true
-  value isa Complex{Int} && return abs(ComplexF64(value)), false
-  value isa Complex{Rational{Int}} && return abs(ComplexF64(value)), false
-  value isa ComplexF64 && return abs(value), true
-  return nothing
-end
+const ExactConstant = Union{Int,Rational{Int},Complex{Int},Complex{Rational{Int}}}
+const FloatConstant = Union{Float64,ComplexF64}
+const NumericConstant = Union{ExactConstant,FloatConstant}
+
+constant_magnitude(value::ExactConstant)::Tuple{Float64,Bool} =
+  abs(ComplexF64(value)), false
+constant_magnitude(value::FloatConstant)::Tuple{Float64,Bool} = abs(value), true
 
 function monomial_constant(term)::Tuple{Float64,Bool}
-  constant = constant_magnitude(Symbolics.unwrap_const(term))
-  constant === nothing || return constant
+  value = Symbolics.unwrap_const(term)
+  value isa NumericConstant && return constant_magnitude(value)
   Symbolics.iscall(term) || return 1.0, false
   Symbolics.operation(term) === (/) &&
     return monomial_constant(first(Symbolics.arguments(term)))
   Symbolics.operation(term) === (*) || return 1.0, false
   magnitude, inexact = 1.0, false
   for factor in Symbolics.arguments(term)
-    factor_constant = constant_magnitude(Symbolics.unwrap_const(factor))
-    factor_constant === nothing && continue
-    magnitude *= first(factor_constant)
-    inexact |= last(factor_constant)
+    value = Symbolics.unwrap_const(factor)
+    value isa NumericConstant || continue
+    factor_magnitude, factor_inexact = constant_magnitude(value)
+    magnitude *= factor_magnitude
+    inexact |= factor_inexact
   end
   return magnitude, inexact
 end
@@ -156,8 +155,8 @@ function monomial_constants!(
     [expanded]
   end
   for term in terms
-    constant = constant_magnitude(Symbolics.unwrap_const(term))
-    constant !== nothing && iszero(first(constant)) && continue
+    value = Symbolics.unwrap_const(term)
+    value isa NumericConstant && iszero(value) && continue
     push!(constants, monomial_constant(term))
   end
   return constants

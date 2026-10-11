@@ -160,11 +160,8 @@ function structurally_nonzero(x::CompletionScalar, conditions::CompletionConditi
   return condition_contains(conditions.regularity, simplified)
 end
 
-function exact_rational(node)::Union{Nothing,Rational{Int}}
-  value = Symbolics.unwrap_const(node)
-  value isa Int && return Rational{Int}(value, 1)
-  value isa Rational{Int} && return value
-  return nothing
+function is_exact_rational(node)::Bool
+  return Symbolics.unwrap_const(node) isa Union{Int,Rational{Int}}
 end
 
 function nonnegative_factor(factor, conditions::CompletionConditions)::Bool
@@ -197,22 +194,16 @@ function structurally_nonpositive_product(
   else
     [node]
   end
-  coefficient = nothing
-  for factor in factors
-    constant = exact_rational(factor)
-    if !isnothing(constant)
-      isnothing(coefficient) || return false
-      coefficient = constant
-    elseif !nonnegative_factor(factor, conditions)
-      return false
-    end
-  end
-  return !isnothing(coefficient) && coefficient < 0
+  constants = [
+    Symbolics.unwrap_const(factor) for factor in factors if is_exact_rational(factor)
+  ]
+  length(constants) == 1 && only(constants) < 0 || return false
+  return all(
+    factor -> is_exact_rational(factor) || nonnegative_factor(factor, conditions), factors
+  )
 end
 
-function asserted_condition_sign(
-  x::CompletionScalar, conditions::CompletionConditions
-)::Union{Nothing,StructuralSign}
+function asserted_condition_sign(x::CompletionScalar, conditions::CompletionConditions)
   for p in conditions.positivity
     if structurally_equal(x, p)
       return condition_contains(conditions.regularity, p) ? SIGN_POSITIVE : SIGN_NONNEGATIVE
@@ -220,7 +211,7 @@ function asserted_condition_sign(
       return condition_contains(conditions.regularity, p) ? SIGN_NEGATIVE : SIGN_NONPOSITIVE
     end
   end
-  return nothing
+  return SIGN_UNKNOWN
 end
 
 function structural_sign(x::CompletionScalar, conditions::CompletionConditions)
@@ -232,7 +223,7 @@ function structural_sign(x::CompletionScalar, conditions::CompletionConditions)
   symbolically_negative(real_value) && return SIGN_NEGATIVE
 
   asserted = asserted_condition_sign(real_x, conditions)
-  asserted === nothing || return asserted
+  asserted == SIGN_UNKNOWN || return asserted
 
   structurally_nonpositive_product(real_value, conditions) && return SIGN_NONPOSITIVE
 

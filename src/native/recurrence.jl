@@ -195,7 +195,7 @@ function check_native_coefficient(representation, E, channels, order, dimension,
   native_matches(
     representation, native_kossakowski(representation, E), reconstructed, 20 * tolerance
   ) || throw(ArgumentError("graded channel state failed coefficient reconstruction"))
-  return nothing
+  return true
 end
 
 function check_gksl_form(representation, E, tolerance)
@@ -208,7 +208,7 @@ function check_gksl_form(representation, E, tolerance)
         "or its jump part is not a dissipator",
       ),
     )
-  return nothing
+  return true
 end
 
 function accept_native_step!(channels, indices, step, order)
@@ -221,7 +221,7 @@ function check_hd_slot(representation, average, step::NativeStaticStep, toleranc
   native_matches(representation, average, step.E, 20 * tolerance) || throw(
     ArgumentError("HD accepted static slot does not reproduce the retained coefficient")
   )
-  return nothing
+  return true
 end
 
 function native_recurrence(

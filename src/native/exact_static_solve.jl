@@ -129,8 +129,8 @@ function exact_row_basis(A::AbstractMatrix{T}) where {T}
         v[c] -= factor * b[c]
       end
     end
-    p = findfirst(!iszero, v)
-    p === nothing && continue
+    all(iszero, v) && continue
+    p = findfirst(!iszero, v)::Int
     push!(basis, v)
     push!(pivots, p)
     push!(selected, r)
@@ -200,8 +200,7 @@ function exact_psd_factor(P::AbstractMatrix{T}, ::Type{R}) where {T,R}
         "the exact canonical dark residual is not positive semidefinite"
       ),
     )
-    pivot = findfirst(>(0), diagonal)
-    if pivot === nothing
+    if !any(>(0), diagonal)
       iszero(work) || throw(
         NativePositivityError(
           "the exact canonical dark residual is not positive semidefinite"
@@ -209,6 +208,7 @@ function exact_psd_factor(P::AbstractMatrix{T}, ::Type{R}) where {T,R}
       )
       break
     end
+    pivot = findfirst(>(0), diagonal)::Int
     weight = diagonal[pivot]
     column = T[work[i, pivot] / weight for i in 1:n]
     push!(columns, column)
@@ -302,8 +302,7 @@ function exact_row_cancellation(P0, J, C, c, ::Type{R}) where {R}
     iszero(rows) && iszero(rhs) && continue
     trialC = vcat(C, rows)
     trialc = vcat(c, rhs)
-    exact_consistent_solve(trialC, trialc, size(C, 2)) === nothing ||
-      ((C, c) = (trialC, trialc))
+    exact_is_consistent(trialC, trialc) && ((C, c) = (trialC, trialc))
   end
   return C, c
 end
@@ -338,38 +337,40 @@ function exact_coordinate_columns(
   return result
 end
 
-function exact_facial_step(
-  P0::Matrix{T}, J::Vector{Matrix{T}}, x0::Vector{R}, Z::Matrix{R}, ::Type{R}
-) where {T,R}
-  n = size(P0, 1)
-  free = exact_free_directions(J, Z, n)
-  fixed = exact_fixed_block(free, n)
-  isempty(fixed) && return nothing
-  current = P0 + exact_combination(J, x0, n)
+function exact_facial_kernel(
+  current::Matrix{T}, fixed::Vector{Int}, ::Type{R}
+)::Matrix{T} where {T,R}
+  isempty(fixed) && return exact_zeros(T, 0, 0)
   block = current[fixed, fixed]
   exact_is_psd(block, R) ||
     throw(NativePositivityError("no PSD lift exists in this static gauge family"))
-  kernel = exact_nullspace(block)
-  isempty(kernel) && return nothing
-  N = exact_columns(T, length(fixed), kernel)
+  return exact_columns(T, length(fixed), exact_nullspace(block))
+end
+
+function exact_facial_step(
+  P0::Matrix{T},
+  J::Vector{Matrix{T}},
+  free::Vector{Matrix{T}},
+  fixed::Vector{Int},
+  current::Matrix{T},
+  N::Matrix{T},
+  ::Type{R},
+) where {T,R}
+  n = size(P0, 1)
   height = 2 * n * size(N, 2)
   rows = exact_coordinate_columns(free, fixed, N, R, height)
   rhs = -exact_complex_coordinates(exact_mul(current[:, fixed], N), R)
-  y = exact_consistent_solve(rows, rhs, size(Z, 2))
-  y === nothing &&
+  exact_is_consistent(rows, rhs) ||
     throw(NativePositivityError("no PSD lift exists in this static gauge family"))
+  unknowns = length(free)
+  y = exact_min_norm_solve(rows, rhs, Matrix{R}(LinearAlgebra.I, unknowns, unknowns))
   constraint = free === J ? rows : exact_coordinate_columns(J, fixed, N, R, height)
   constraint_rhs = -exact_complex_coordinates(exact_mul(P0[:, fixed], N), R)
   return constraint, constraint_rhs, y, exact_nullspace(rows)
 end
 
-function exact_consistent_solve(A::Matrix{R}, b::Vector{R}, unknowns::Int) where {R}
-  try
-    return exact_min_norm_solve(A, b, Matrix{R}(LinearAlgebra.I, unknowns, unknowns))
-  catch error
-    error isa ArgumentError || rethrow()
-    return nothing
-  end
+function exact_is_consistent(A::Matrix{R}, b::Vector{R})::Bool where {R}
+  return length(exact_row_basis(A)) == length(exact_row_basis(hcat(A, b)))
 end
 
 function exact_facial_constraints(
@@ -381,9 +382,13 @@ function exact_facial_constraints(
   C = exact_zeros(R, 0, p)
   c = R[]
   while true
-    step = exact_facial_step(P0, J, x0, Z, R)
-    step === nothing && break
-    constraint, rhs, y, reduced = step
+    n = size(P0, 1)
+    free = exact_free_directions(J, Z, n)
+    fixed = exact_fixed_block(free, n)
+    current = P0 + exact_combination(J, x0, n)
+    N = exact_facial_kernel(current, fixed, R)
+    size(N, 2) == 0 && break
+    constraint, rhs, y, reduced = exact_facial_step(P0, J, free, fixed, current, N, R)
     C = vcat(C, constraint)
     c = vcat(c, rhs)
     x0 += exact_mul(Z, y)

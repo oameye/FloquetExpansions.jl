@@ -276,28 +276,21 @@ function collapse(operator::SQA.QField)
   return CollapseChannel(operator)
 end
 
-function known_numeric_real(value)::Union{Nothing,Float64}
-  value isa Int && return Float64(value)
-  value isa Rational{Int} && return Float64(value)
-  value isa Float64 && return value
-  value isa Bool && return Float64(value)
-  return nothing
+function known_negative_real(value)::Bool
+  return value isa Union{Int,Rational{Int},Float64,Bool} && value < 0
 end
 
-function known_numeric_jump_rate(rate::LiouvillianScalar)
+function known_negative_jump_rate(rate::LiouvillianScalar)::Bool
   if rate isa Symbolics.Num
-    return known_numeric_real(Symbolics.value(rate))
+    return known_negative_real(Symbolics.value(rate))
   elseif rate isa Real
-    return rate
+    return rate < 0
   elseif rate isa Complex && iszero(imag(rate))
     real_rate = real(rate)
-    if real_rate isa Symbolics.Num
-      return known_numeric_real(Symbolics.value(real_rate))
-    elseif real_rate isa Real
-      return real_rate
-    end
+    real_rate isa Symbolics.Num && return known_negative_real(Symbolics.value(real_rate))
+    real_rate isa Real && return real_rate < 0
   end
-  return nothing
+  return false
 end
 
 function validated_jump_rate(rate::LiouvillianScalar)
@@ -308,9 +301,7 @@ function validated_jump_rate(rate::LiouvillianScalar)
     coefficient == conj(coefficient)
   real_valued || throw(ArgumentError("jump rate must be provably real; got `$rate`"))
 
-  numeric_rate = known_numeric_jump_rate(rate)
-  numeric_rate !== nothing &&
-    numeric_rate < 0 &&
+  known_negative_jump_rate(rate) &&
     throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
 
   return coefficient
