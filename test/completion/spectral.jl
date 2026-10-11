@@ -1,7 +1,8 @@
 using Test
 using FloquetExpansions
 using SecondQuantizedAlgebra: SecondQuantizedAlgebra
-using Symbolics: @variables
+using Symbolics: Symbolics, @variables
+using LinearAlgebra: LinearAlgebra
 
 const SQA = SecondQuantizedAlgebra
 
@@ -208,4 +209,63 @@ end
     0 * a, ω, t, VanVleck(), 1; channels=(collapse(a + a^2), collapse(a + im * a^2))
   )
   @test_throws ArgumentError positive_completion(expansion, Spectral(), frame)
+end
+
+function spectral_numeric_matrix(matrix, substitutions)
+  return [
+    let z = SQA.to_num(entry)
+      value(part) = ComplexF64(Symbolics.value(Symbolics.substitute(part, substitutions)))
+      value(real(z)) + im * value(imag(z))
+    end for entry in matrix
+  ]
+end
+
+function spectral_numeric_checks(completion, expansion, frame, N, substitutions)
+  errors = Float64[]
+  for frequency in (8.0, 16.0)
+    values = merge(substitutions, Dict(ω => frequency))
+    completed = spectral_numeric_matrix(kossakowski(completion), values)
+    retained = spectral_numeric_matrix(kossakowski(expansion, frame), values)
+    @test minimum(LinearAlgebra.eigvals(LinearAlgebra.Hermitian(completed))) >= -1e-12
+    push!(errors, LinearAlgebra.opnorm(completed - retained))
+  end
+  @test log2(errors[1] / errors[2]) >= N + 1 - 0.1
+end
+
+@testset "spectral completion of driven qubits beyond the analytic order" begin
+  pauli = PauliSpace(:spectral_driven_qubits)
+  σx = Pauli(pauli, :sigma, 1)
+  σy = Pauli(pauli, :sigma, 2)
+  σz = Pauli(pauli, :sigma, 3)
+  σm = (1 // 2) * (σx - im * σy)
+  σp = (1 // 2) * (σx + im * σy)
+  frame = DissipativeFrame(σm, σp, σz)
+  @variables E::Real
+
+  symbolic = floquet_expansion(
+    (1 // 2) * σz + E * cos(ω * t) * σx, ω, t, VanVleck(), 5; channels=(jump(σm, γ),)
+  )
+  completion = positive_completion(symbolic, Spectral(), frame)
+  @test factorization(completion).onsets == [0, 4, 2]
+  spectral_numeric_checks(completion, symbolic, frame, 4, Dict(E => 0.6, γ => 0.3))
+
+  full_rank = floquet_expansion(
+    (1 // 2) * σz + (1 // 2) * cos(ω * t) * σx,
+    ω,
+    t,
+    VanVleck(),
+    3;
+    channels=(jump(σm, 1 // 5), jump(σp, 1 // 10), jump(σz, 1 // 20)),
+  )
+  completion = positive_completion(full_rank, Spectral(), frame)
+  @test factorization(completion).onsets == [0, 0, 0]
+  spectral_numeric_checks(completion, full_rank, frame, 2, Dict{Symbolics.Num,Float64}())
+
+  floating = floquet_expansion(
+    (1 // 2) * σz + 0.5 * cos(ω * t) * σx, ω, t, VanVleck(), 5; channels=(jump(σm, 0.2),)
+  )
+  completion = positive_completion(floating, Spectral(), frame)
+  spectral_numeric_checks(completion, floating, frame, 4, Dict{Symbolics.Num,Float64}())
+  @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+    effective_generator(completion)
 end

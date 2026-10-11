@@ -9,8 +9,8 @@ See also [`DissipativeFrame`](@ref), [`kossakowski_component`](@ref), [`hamilton
 function kossakowski(
   expansion::FloquetExpansion{G,P,E}, frame::DissipativeFrame
 ) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
-  generator = effective_generator(expansion)::E
-  return kossakowski(generator, frame)::KossakowskiMatrix
+  generator = effective_generator(expansion)
+  return kossakowski(generator, frame)
 end
 
 """
@@ -56,8 +56,8 @@ See also [`DissipativeFrame`](@ref), [`kossakowski`](@ref), [`effective_componen
 function kossakowski_component(
   expansion::FloquetExpansion{G,P,E}, frame::DissipativeFrame, n::Int
 ) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
-  generator = effective_component(expansion, n)::E
-  return kossakowski(generator, frame)::KossakowskiMatrix
+  generator = effective_component(expansion, n)
+  return kossakowski(generator, frame)
 end
 
 """
@@ -76,14 +76,14 @@ See also [`hamiltonian_component`](@ref), [`effective_generator`](@ref).
 function hamiltonian(
   expansion::FloquetExpansion{G,P,E}
 ) where {G,P<:PeriodicGenerator{SQA.QAdd},E<:SQA.QAdd}
-  return effective_generator(expansion)::E
+  return effective_generator(expansion)
 end
 
 function hamiltonian(
   expansion::FloquetExpansion{G,P,E}
 ) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
-  generator = effective_generator(expansion)::E
-  return hamiltonian(generator)::SQA.QAdd
+  generator = effective_generator(expansion)
+  return hamiltonian(generator)
 end
 
 """
@@ -98,12 +98,12 @@ See also [`hamiltonian`](@ref), [`effective_component`](@ref).
 function hamiltonian_component(
   expansion::FloquetExpansion{G,P,E}, n::Int
 ) where {G,P<:PeriodicGenerator{SQA.QAdd},E<:SQA.QAdd}
-  return effective_component(expansion, n)::E
+  return effective_component(expansion, n)
 end
 
 function hamiltonian_component(
   expansion::FloquetExpansion{G,P,E}, n::Int
 ) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
-  generator = effective_component(expansion, n)::E
-  return hamiltonian(generator)::SQA.QAdd
+  generator = effective_component(expansion, n)
+  return hamiltonian(generator)
 end

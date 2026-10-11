@@ -46,6 +46,10 @@ The effective generator and the micromotion generator of the van Vleck gauge, ta
 **Gauge**:
 The convention fixing the free integration constant of the micromotion generator, and with it which effective generator and micromotion a Floquet expansion represents. The van Vleck gauge requires the micromotion generator to have zero period average.
 
+**GKSL normal form**:
+The gauge whose micromotion is the van Vleck micromotion followed by a static similarity ``W = e^{S}``, with the order-``n`` static gauge ``S_n`` fixed by a normal-form condition on the dark Kossakowski quotient so that every truncation of the effective generator is of GKSL form. It has the van Vleck spectrum through the retained order and equals the van Vleck gauge wherever every ``S_n`` vanishes. Selected by `GKSLNormalForm`.
+_Avoid_: calling it a van Vleck expansion or a positive completion; it changes the retained coefficients, and completion never does.
+
 **Expansion algorithm**:
 The procedure that computes the coefficients a gauge fixes. Algorithms for the same gauge produce identical retained effective components and micromotion; they differ only in intermediate quantities and cost.
 _Avoid_: calling an algorithm a gauge, or confusing it with a positive-completion algorithm, which changes the finite effective generator.
@@ -74,7 +78,7 @@ _Avoid_: calling it the logarithm of the wave operator, which differs from it by
 The finite-order result of applying a high-frequency expansion to a periodic generator, including its retained effective-generator coefficients, micromotion, and completion state.
 
 **Effective generator**:
-The time-independent generator that approximates the slow dynamics after the expansion. For an uncompleted Floquet expansion this is the raw algebraic truncation; for a positively completed expansion it is the selected finite positive continuation.
+The time-independent generator that approximates the slow dynamics after the expansion. For an uncompleted Floquet expansion this is the raw algebraic truncation; for a positively completed expansion it is the selected finite positive continuation; for a GKSL normal form it is the finite generator assembled from the graded channels.
 
 **Effective component**:
 A retained order-by-order coefficient of the Floquet effective generator. Positive completion does not rewrite retained effective components.
@@ -93,7 +97,7 @@ _Avoid_: assuming dissipative quasienergies are real or that every Liouvillian i
 ## GKSL coordinates and positive completion
 
 **Dissipative frame**:
-An ordered finite set of operator directions ``(F₁, …, F_q)`` used to represent the dissipative Hermitian form. The frame need not be complete, traceless, or Hilbert-Schmidt orthonormal. Ordering is part of the representation and affects coordinate matrices, deterministic pivot choices, and channel gauge.
+An ordered finite set of operator directions ``(F₁, …, F_q)`` used to represent the dissipative Hermitian form. The frame need not be complete, traceless, or Hilbert-Schmidt orthonormal. Ordering and scaling are part of the representation and affect coordinate matrices, deterministic pivot choices, and channel gauge. The frame also selects the positive continuation beyond the retained order. `Gram()` is the perturbative Cholesky gauge (graded LDL†, lower triangular factor coefficients in the active block). Its completion is invariant under lower-triangular frame changes, rescaling included, but depends on frame ordering whenever the active block has rank at least two with off-diagonal data. `Spectral()` depends on the coordinate inner product of the frame, so rescaling one frame vector changes it. Retained coefficients and positivity do not depend on the frame.
 _Avoid_: treating two differently ordered frames as identical merely because they span the same subspace.
 
 **Kossakowski matrix**:
@@ -103,7 +107,7 @@ The Hermitian coordinate matrix ``d`` of the dissipative form in a specified dis
 An explicit post-processing step that selects a finite positive Kossakowski continuation while preserving every retained Floquet coefficient. It is not implicit in `floquet_expansion` and is generally nonunique beyond the retained order.
 
 **Completion state**:
-The type-level state carried by a `FloquetExpansion`, distinguishing an uncompleted expansion from a selected positive continuation. Completing an already completed expansion is an error.
+The type-level state carried by a `FloquetExpansion`, distinguishing an uncompleted expansion from a selected positive continuation. Completing an already completed expansion is an error, as is completing a GKSL normal form, which carries its own finite generator.
 
 **Gram completion**:
 An algebraic positive-completion algorithm that constructs a graded Gram factor ``B`` with retained coefficient matching ``Π_N(BB†) = d^[N]`` and uses the untruncated finite product ``BB†`` as the positive continuation. The construction uses Hermitian congruence, graded ``LDL†`` factorization, and recursive Feshbach/Schur reduction rather than symbolic eigendecomposition.
@@ -122,6 +126,9 @@ The radical of the current leading dissipative Hermitian form. Its directions ha
 
 **Feshbach residual**:
 For a reduced block form ``d = [A X; X† C]`` with active ``A``, the induced dark-sector Hermitian form ``Σ = C - X†A⁻¹X``. It determines whether dark directions open, remain unresolved beyond truncation, or obstruct a positive continuation.
+
+**Graded native channel**:
+A jump amplitude of the GKSL normal form, ``R_α(ε) = ε^{ν_α} Σ_k ε^k R_{α,k}`` with onset grade ``ν_α = n/2`` for a channel whose rate first appears at generator order ``n``. Its coefficients are state of the BF/HD recurrence, not the output of positive completion. A channel is active, and spans the bright space, from the order after its birth.
 
 **Dissipative onset filtration**:
 The nested sequence of dark sectors exposed by recursively resolving Feshbach residuals. Its successive quotients collect channels that open at successive perturbative orders and replace perturbative eigenvalue branches as the general algebraic organizing structure.

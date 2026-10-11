@@ -1,0 +1,120 @@
+struct NativeExpansionData{T,R,X,O}
+  lowering::SQALowering{T,R}
+  representation::AlgebraicLiouvilleRepresentation{T,R}
+  recurrence::NativeRecurrence{X,O,T}
+end
+
+function native_leading_channels(
+  representation::AlgebraicLiouvilleRepresentation{T,R}, L0
+) where {T,R}
+  C0 = native_kossakowski(representation, L0)
+  exact_is_psd(C0, R) || throw(
+    ArgumentError(
+      "the averaged generator is not of GKSL form; its Kossakowski matrix is not " *
+      "positive semidefinite",
+    ),
+  )
+  columns, weights = exact_psd_factor(C0, R)
+  return Matrix{T}(columns), T.(weights)
+end
+
+function native_input_degree(lowering::SQALowering, L::Dict)
+  degree = 0
+  for (_, X) in L, ((left, right), _) in X.terms
+    degree = max(
+      degree,
+      monomial_degree(lowering.algebra, left),
+      monomial_degree(lowering.algebra, right),
+    )
+  end
+  return degree
+end
+
+function native_expansion_data(
+  ::Type{T},
+  algorithm::Union{BlochFeshbach,HoriDeprit},
+  generator::PeriodicGenerator{Liouvillian},
+  N::Int,
+  gauge_degree::Int,
+) where {T}
+  lowering = SQALowering{T}(generator)
+  L = lower_generator(lowering, generator)
+  haskey(L, 0) || (L[0] = lower_liouvillian(lowering, zero(Liouvillian)))
+  input_degree = native_input_degree(lowering, L)
+  bound = (N + 1) * (input_degree + gauge_degree)
+  for degree in (input_degree + N):2:bound
+    representation = AlgebraicLiouvilleRepresentation(
+      lowering.algebra, degree, gauge_degree
+    )
+    leading, weights = native_leading_channels(representation, L[0])
+    try
+      recurrence = native_recurrence(algorithm, representation, L, leading, weights, N)
+      return NativeExpansionData(lowering, representation, recurrence)
+    catch error
+      error isa NativeFrameError || rethrow()
+    end
+  end
+  return throw(ArgumentError("the native operator frame did not close below degree $bound"))
+end
+
+function native_expansion_data(
+  algorithm::Union{BlochFeshbach,HoriDeprit},
+  generator::PeriodicGenerator{Liouvillian},
+  N::Int,
+  gauge_degree::Int,
+)
+  try
+    return native_expansion_data(
+      Complex{Rational{Int128}}, algorithm, generator, N, gauge_degree
+    )
+  catch error
+    error isa Union{OverflowError,InexactError} || rethrow()
+    return Base.invokelatest(
+      native_expansion_data,
+      Complex{Rational{BigInt}},
+      algorithm,
+      generator,
+      N,
+      gauge_degree,
+    )
+  end
+end
+
+struct ExactCoefficients end
+
+lift_coefficient(::ExactCoefficients, c::Complex{<:Rational}) = convert(SQA.CNum, c)
+
+struct CoefficientLift{L<:SQALowering,F}
+  lowering::L
+  coefficient::F
+  monomials::Dict{Monomial,SQA.QAdd}
+end
+
+function CoefficientLift(lowering::SQALowering, coefficient)
+  return CoefficientLift(lowering, coefficient, Dict{Monomial,SQA.QAdd}())
+end
+
+function lift_monomial!(lift::CoefficientLift, X::Monomial)
+  return get!(lift.monomials, X) do
+    return lift_operator(lift.lowering, algebra_operator(lift.lowering.algebra, [(X, 1)]))
+  end
+end
+
+function lift_operator(lift::CoefficientLift, X::AlgebraOperator)
+  return lift_operator(lift.lowering, X, lift.coefficient)
+end
+
+function lift_superoperator!(
+  target::Liouvillian, lift::CoefficientLift, S::AlgebraSuperoperator, scale::SQA.CNum
+)
+  for ((X, Y), c) in S.terms
+    left = lift_monomial!(lift, X)
+    right = lift_monomial!(lift, Y)
+    add_term!(target, left, right, lift_coefficient(lift.coefficient, c) * scale)
+  end
+  return target
+end
+
+function lift_superoperator(lift::CoefficientLift, S::AlgebraSuperoperator)
+  return lift_superoperator!(Liouvillian(LiouvillianTerms()), lift, S, convert(SQA.CNum, 1))
+end

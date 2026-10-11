@@ -125,7 +125,7 @@ Liouvillian
 liouvillian
 ```
 
-### GKLS (Lindblad) form
+### GKSL (Lindblad) form
 
 A [Lindblad generator](https://en.wikipedia.org/wiki/Lindbladian), also called a
 Gorini–Kossakowski–Sudarshan–Lindblad generator (GKSL or GKLS), is the physically constrained
@@ -203,7 +203,7 @@ The [`terms`](@ref) iterator exposes each contribution as a semantic triple
 on its sparse storage.
 
 ```@docs
-terms
+terms(::Liouvillian)
 ```
 
 Liouvillian maps compose as ordinary linear maps: in `compose(A, B)`, `B` acts first and `A` acts

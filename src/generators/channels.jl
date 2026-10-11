@@ -276,22 +276,14 @@ function collapse(operator::SQA.QField)
   return CollapseChannel(operator)
 end
 
-function known_numeric_jump_rate(rate::LiouvillianScalar)
-  if rate isa Symbolics.Num
-    value = Symbolics.value(rate)
-    return value isa Real ? value : nothing
-  elseif rate isa Real
-    return rate
-  elseif rate isa Complex && iszero(imag(rate))
-    real_rate = real(rate)
-    if real_rate isa Symbolics.Num
-      value = Symbolics.value(real_rate)
-      return value isa Real ? value : nothing
-    elseif real_rate isa Real
-      return real_rate
-    end
-  end
-  return nothing
+function numeric_coefficient(coefficient::SQA.CNum)
+  SQA.is_native(coefficient) && return true
+  tail = coefficient.tail
+  return tail isa SQA.Poly && all(SQA.is_constant_term, tail.terms)
+end
+
+function known_negative_jump_rate(coefficient::SQA.CNum)
+  return numeric_coefficient(coefficient) && SQA.is_real_negative(coefficient)
 end
 
 function validated_jump_rate(rate::LiouvillianScalar)
@@ -302,9 +294,7 @@ function validated_jump_rate(rate::LiouvillianScalar)
     coefficient == conj(coefficient)
   real_valued || throw(ArgumentError("jump rate must be provably real; got `$rate`"))
 
-  numeric_rate = known_numeric_jump_rate(rate)
-  numeric_rate !== nothing &&
-    numeric_rate < 0 &&
+  known_negative_jump_rate(coefficient) &&
     throw(ArgumentError("jump rate must be nonnegative; got `$rate`"))
 
   return coefficient

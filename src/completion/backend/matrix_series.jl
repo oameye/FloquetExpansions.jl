@@ -71,10 +71,16 @@ function simplify_scalar(z::CompletionScalar)
   )
 end
 
+function scalar_quotient(numerator::CompletionScalar, denominator::CompletionScalar)
+  product = numerator * conj(denominator)
+  norm = abs2(denominator)
+  return complex(real(product) / norm, imag(product) / norm)
+end
+
 structurally_zero(x::Real) = iszero(x)
 
-function completion_symbolic_zero(x::Symbolics.Num)::Bool
-  simplified = Symbolics.simplify(x)::Symbolics.Num
+function completion_symbolic_zero(x::Symbolics.Num)
+  simplified = Symbolics.simplify(x)
   return isequal(simplified, completion_num(0))
 end
 
@@ -112,16 +118,16 @@ end
 
 symbolic_truth(value::Bool) = value
 
-function symbolic_truth(value::Symbolics.Num)::Bool
-  simplified = Symbolics.simplify(value)::Symbolics.Num
+function symbolic_truth(value::Symbolics.Num)
+  simplified = Symbolics.simplify(value)
   return Symbolics.value(simplified) === true
 end
 
-function symbolically_positive(value::Symbolics.Num)::Bool
+function symbolically_positive(value::Symbolics.Num)
   return symbolic_truth(value > 0)
 end
 
-function symbolically_negative(value::Symbolics.Num)::Bool
+function symbolically_negative(value::Symbolics.Num)
   return symbolic_truth(value < 0)
 end
 
@@ -160,6 +166,64 @@ function structurally_nonzero(x::CompletionScalar, conditions::CompletionConditi
   return condition_contains(conditions.regularity, simplified)
 end
 
+function nonnegative_factor(factor, conditions::CompletionConditions)
+  value = Symbolics.unwrap(factor)
+  for p in conditions.positivity
+    structurally_equal(completion_scalar(Symbolics.Num(value)), p) && return true
+  end
+  Symbolics.iscall(value) && Symbolics.operation(value) === (^) || return false
+  base, exponent = Symbolics.arguments(value)
+  power = Symbolics.unwrap_const(exponent)
+  power isa Int || return false
+  iseven(power) && return completion_symbolic_zero(imag(Symbolics.Num(base)))
+  return power > 0 && any(
+    p -> structurally_equal(completion_scalar(Symbolics.Num(base)), p),
+    conditions.positivity,
+  )
+end
+
+"""
+Decide whether `x` is provably nonpositive: a negative rational coefficient times factors that
+are even powers of real symbols or quantities already asserted nonnegative. Conservative:
+any other form returns `false`.
+"""
+function structurally_nonpositive_product(
+  x::Symbolics.Num, conditions::CompletionConditions
+)
+  node = Symbolics.unwrap(Symbolics.simplify(x))
+  factors = if Symbolics.iscall(node) && Symbolics.operation(node) === (*)
+    Symbolics.arguments(node)
+  else
+    [node]
+  end
+  constants = Rational{Int}[]
+  for factor in factors
+    value = Symbolics.unwrap_const(factor)
+    if value isa Union{Int,Rational{Int}}
+      push!(constants, value)
+    elseif !nonnegative_factor(factor, conditions)
+      return false
+    end
+  end
+  return length(constants) == 1 && only(constants) < 0
+end
+
+function condition_sign(
+  p::CompletionScalar, conditions::CompletionConditions, positive::Bool
+)
+  strict = condition_contains(conditions.regularity, p)
+  positive && return strict ? SIGN_POSITIVE : SIGN_NONNEGATIVE
+  return strict ? SIGN_NEGATIVE : SIGN_NONPOSITIVE
+end
+
+function asserted_condition_sign(x::CompletionScalar, conditions::CompletionConditions)
+  for p in conditions.positivity
+    structurally_equal(x, p) && return condition_sign(p, conditions, true)
+    structurally_equal(x, -p) && return condition_sign(p, conditions, false)
+  end
+  return SIGN_UNKNOWN
+end
+
 function structural_sign(x::CompletionScalar, conditions::CompletionConditions)
   real_x = hermitian_real(x)
   structurally_zero(real_x) && return SIGN_ZERO
@@ -168,13 +232,10 @@ function structural_sign(x::CompletionScalar, conditions::CompletionConditions)
   symbolically_positive(real_value) && return SIGN_POSITIVE
   symbolically_negative(real_value) && return SIGN_NEGATIVE
 
-  for p in conditions.positivity
-    if structurally_equal(real_x, p)
-      return condition_contains(conditions.regularity, p) ? SIGN_POSITIVE : SIGN_NONNEGATIVE
-    elseif structurally_equal(real_x, -p)
-      return condition_contains(conditions.regularity, p) ? SIGN_NEGATIVE : SIGN_NONPOSITIVE
-    end
-  end
+  asserted = asserted_condition_sign(real_x, conditions)
+  asserted == SIGN_UNKNOWN || return asserted
+
+  structurally_nonpositive_product(real_value, conditions) && return SIGN_NONPOSITIVE
 
   return SIGN_UNKNOWN
 end
@@ -504,7 +565,7 @@ end
 
 function graded_ldl_diagonal(
   A::MatrixSeries, lower::MatrixSeries, diagonal::Vector{ScalarSeries}, j::Int, N::Int
-)::ScalarSeries
+)
   delta = scalar_series_entry(A, j, j, N)
   for k in 1:(j - 1)
     lower_jk = scalar_series_entry(lower, j, k, N)
@@ -539,7 +600,7 @@ function graded_ldl_numerator(
   diagonal::Vector{ScalarSeries},
   position::CartesianIndex{2},
   N::Int,
-)::ScalarSeries
+)
   i, j = Tuple(position)
   numerator = scalar_series_entry(A, i, j, N)
   for k in 1:(j - 1)

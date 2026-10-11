@@ -48,6 +48,15 @@ Gauge
 VanVleck
 ```
 
+A truncated van Vleck Liouvillian need not be completely positive. [`GKSLNormalForm`](@ref) is
+the gauge whose effective Liouvillian is of GKSL form at every order. Unlike
+[`positive_completion`](@ref), which keeps every retained coefficient, it changes them relative
+to [`VanVleck`](@ref) wherever a static gauge is needed.
+
+```@docs
+GKSLNormalForm
+```
+
 ## Computing an expansion
 
 Prepare the time dependence as a [`PeriodicGenerator`](@ref), or pass a symbolic Hamiltonian or

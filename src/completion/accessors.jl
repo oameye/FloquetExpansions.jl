@@ -11,7 +11,7 @@ end
 
 function effective_generator(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P,E,C<:PositiveCompletion,R}
+) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
   return getfield(expansion, :completion).generator
 end
 
@@ -21,33 +21,34 @@ function hamiltonian(
   G,
   P<:PeriodicGenerator{Liouvillian},
   E<:Liouvillian,
-  C<:PositiveCompletion,
+  C<:Union{PositiveCompletion,NativeRealization},
   R<:FloquetProvenance,
 }
-  return stored_completion_hamiltonian(expansion)::SQA.QAdd
+  return stored_completion_hamiltonian(expansion)
 end
 
 """
     dissipative_frame(expansion::FloquetExpansion)
 
-Return an independent copy of the ordered dissipative frame owned by a positively completed
-Floquet expansion.
+Return an independent copy of the ordered dissipative frame owned by a positively completed or
+[`GKSLNormalForm`](@ref) Floquet expansion.
 """
 function dissipative_frame(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P,E,C<:PositiveCompletion,R}
+) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
   return copy(stored_dissipative_frame(expansion))
 end
 
 """
     channels(expansion::FloquetExpansion)
 
-Return the completed physical channels. Together with [`hamiltonian`](@ref), these channels
-reconstruct [`effective_generator`](@ref) exactly.
+Return the physical channels of a positively completed or [`GKSLNormalForm`](@ref) Floquet
+expansion. Together with [`hamiltonian`](@ref), these channels reconstruct
+[`effective_generator`](@ref) exactly.
 """
 function channels(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P,E,C<:PositiveCompletion,R}
+) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
   return copy(stored_completion(expansion).channels)
 end
 
@@ -55,11 +56,11 @@ end
     positivity_conditions(expansion::FloquetExpansion)
 
 Return scalar conditions assumed nonnegative on the symbolic stratum used by positive
-completion.
+completion. A [`GKSLNormalForm`](@ref) expansion has numeric coefficients and returns none.
 """
 function positivity_conditions(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P,E,C<:PositiveCompletion,R}
+) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
   return copy(stored_completion(expansion).positivity_conditions)
 end
 
@@ -67,11 +68,12 @@ end
     regularity_conditions(expansion::FloquetExpansion)
 
 Return scalar conditions assumed nonzero to remain on the fixed-rank symbolic stratum used by
-positive completion.
+positive completion. A [`GKSLNormalForm`](@ref) expansion has numeric coefficients and returns
+none.
 """
 function regularity_conditions(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P,E,C<:PositiveCompletion,R}
+) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
   return copy(stored_completion(expansion).regularity_conditions)
 end
 
@@ -79,7 +81,8 @@ end
     factorization(expansion::FloquetExpansion)
 
 Return the algorithm-specific factorization data stored by a positively completed expansion.
-For [`Gram`](@ref) completion this is a [`GramFactorization`](@ref).
+For [`Gram`](@ref) completion this is a [`GramFactorization`](@ref). A [`GKSLNormalForm`](@ref)
+expansion returns internal expansion data, which is not part of the public interface.
 """
 function factorization(
   expansion::FloquetExpansion{G,P,E,C,R}
@@ -87,27 +90,46 @@ function factorization(
   return copy(stored_completion(expansion).factorization)
 end
 
+function factorization(
+  expansion::FloquetExpansion{G,P,E,C,R}
+) where {G,P,E,C<:NativeRealization,R}
+  return stored_completion(expansion).factorization
+end
+
 """
     kossakowski(expansion::FloquetExpansion)
 
 Return the finite completed Kossakowski matrix in [`dissipative_frame`](@ref). This no-frame
-form is defined for positively completed Liouvillian expansions.
+form is defined for positively completed and [`GKSLNormalForm`](@ref) Liouvillian expansions.
 """
 function kossakowski(
   expansion::FloquetExpansion{G,P,E,C,R}
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian,C<:PositiveCompletion,R}
+) where {
+  G,
+  P<:PeriodicGenerator{Liouvillian},
+  E<:Liouvillian,
+  C<:Union{PositiveCompletion,NativeRealization},
+  R,
+}
   return copy(stored_completion(expansion).kossakowski)
 end
 
 """
     kossakowski_component(expansion::FloquetExpansion, n::Int)
 
-Return the cached retained order-`n` Kossakowski contribution in the completed expansion's
-stored dissipative frame. Positive completion does not alter retained components.
+Return the cached retained order-`n` Kossakowski contribution in the stored dissipative frame of
+a positively completed or [`GKSLNormalForm`](@ref) expansion. Positive completion does not alter
+retained components.
 """
 function kossakowski_component(
   expansion::FloquetExpansion{G,P,E,C,R}, n::Int
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian,C<:PositiveCompletion,R}
+) where {
+  G,
+  P<:PeriodicGenerator{Liouvillian},
+  E<:Liouvillian,
+  C<:Union{PositiveCompletion,NativeRealization},
+  R,
+}
   retained = stored_retained_kossakowski(expansion)
   0 <= n < length(retained) || throw(BoundsError(retained, n + 1))
   return copy(retained[n + 1])
