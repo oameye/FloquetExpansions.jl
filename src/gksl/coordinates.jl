@@ -151,7 +151,7 @@ function monomial_constants!(constants::Vector{Tuple{Float64,Bool}}, part::Symbo
 end
 
 function monomial_constants(value::SQA.CNum)
-  number = SQA.to_num(value)
+  number = coefficient_number(value)
   constants = Tuple{Float64,Bool}[]
   monomial_constants!(constants, real(number))
   monomial_constants!(constants, imag(number))
@@ -165,7 +165,7 @@ function has_floating_constant(node)
 end
 
 function has_floating_constant(value::SQA.CNum)
-  number = SQA.to_num(value)
+  number = coefficient_number(value)
   return has_floating_constant(Symbolics.unwrap(real(number))) ||
          has_floating_constant(Symbolics.unwrap(imag(number)))
 end
@@ -204,7 +204,7 @@ function hermitize_floating_roundoff!(matrix::KossakowskiMatrix)
 end
 
 function expanded_conjugate_pair(left::SQA.CNum, right::SQA.CNum)
-  difference = SQA.to_num(left) - conj(SQA.to_num(right))
+  difference = coefficient_number(left) - conj(coefficient_number(right))
   return iszero(Symbolics.expand(real(difference))) &&
          iszero(Symbolics.expand(imag(difference)))
 end
