@@ -235,7 +235,7 @@ function lift_coefficient(coefficients::ParameterCoefficients, c::Complex{Parame
   return real_part + convert(SQA.CNum, im) * imaginary_part
 end
 
-native_positivity_conditions(::ExactCoefficients, wd::Symbolics.Num) = SQA.CNum[]
+native_positivity_conditions(::ExactCoefficients, ::Symbolics.Num) = SQA.CNum[]
 
 function native_positivity_conditions(
   coefficients::ParameterCoefficients, wd::Symbolics.Num
@@ -246,7 +246,7 @@ function native_positivity_conditions(
   ]
 end
 
-native_regularity_conditions(::ExactCoefficients, data, micromotion) = SQA.CNum[]
+native_regularity_conditions(::ExactCoefficients, ::Any, ::Any) = SQA.CNum[]
 
 function native_regularity_conditions(
   coefficients::ParameterCoefficients, data, micromotion
