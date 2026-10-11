@@ -9,6 +9,7 @@ struct NativeStaticStep{X,O,S}
   S::X
   H::O
   solution::S
+  virtual::Bool
 end
 
 native_commutator(A, B) = A * B - B * A
@@ -64,7 +65,7 @@ function native_static_step(
   native_matches(representation, E, native_gksl(representation, H, coefficient)) || throw(
     ArgumentError("native static step failed its Hamiltonian/Kossakowski reconstruction")
   )
-  return NativeStaticStep(E, S, H, solution)
+  return NativeStaticStep(E, S, H, solution, false)
 end
 
 function native_static_step(

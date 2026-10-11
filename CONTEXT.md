@@ -127,6 +127,10 @@ The radical of the current leading dissipative Hermitian form. Its directions ha
 **Feshbach residual**:
 For a reduced block form ``d = [A X; X† C]`` with active ``A``, the induced dark-sector Hermitian form ``Σ = C - X†A⁻¹X``. It determines whether dark directions open, remain unresolved beyond truncation, or obstruct a positive continuation.
 
+**Virtual gauge**:
+The static gauge of the last retained order of a GKSL normal form when no polynomial static gauge exists there. It is never stored: the retained coefficient differs from the van Vleck residual by a defect whose lattice invariants vanish, so it has the van Vleck spectrum, and the static micromotion harmonic of that order is omitted. Reported by `virtual_orders`.
+_Avoid_: calling it a static gauge; no operator ``S_n`` exists for it.
+
 **Graded native channel**:
 A jump amplitude of the GKSL normal form, ``R_α(ε) = ε^{ν_α} Σ_k ε^k R_{α,k}`` with onset grade ``ν_α = n/2`` for a channel whose rate first appears at generator order ``n``. Its coefficients are state of the BF/HD recurrence, not the output of positive completion. A channel is active, and spans the bright space, from the order after its birth.
 

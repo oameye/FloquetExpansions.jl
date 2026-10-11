@@ -10,6 +10,7 @@ struct NativeRealization{F<:DissipativeFrame,J<:RateWeightedJump,X} <: Completio
   factorization::X
   hamiltonian::SQA.QAdd
   generator::Liouvillian
+  virtual_orders::Vector{Int}
 end
 
 function lift_harmonics(lift::CoefficientLift, harmonics::Dict, wd::Symbolics.Num)
@@ -19,14 +20,19 @@ function lift_harmonics(lift::CoefficientLift, harmonics::Dict, wd::Symbolics.Nu
   return PeriodicGenerator(components, wd, zero(Liouvillian))
 end
 
+function micromotion_harmonics(data::NativeExpansionData, harmonics::Dict, n::Int)
+  data.recurrence.virtual && n == length(data.recurrence.E) - 1 || return harmonics
+  return filter(pair -> first(pair) != 0, harmonics)
+end
+
 function native_micromotion_harmonics(data::NativeExpansionData, ::HoriDeprit, N::Int)
-  return [data.recurrence.kick[n + 1] for n in 1:N]
+  return [micromotion_harmonics(data, data.recurrence.kick[n + 1], n) for n in 1:N]
 end
 
 function native_micromotion_harmonics(data::NativeExpansionData, ::BlochFeshbach, N::Int)
   L0 = data.recurrence.E[1]
   generator = kick_log(data.recurrence.kick, one(L0), N)
-  return [generator[n + 1] for n in 1:N]
+  return [micromotion_harmonics(data, generator[n + 1], n) for n in 1:N]
 end
 
 function native_micromotion(
@@ -190,17 +196,7 @@ function floquet_expansion_impl(
   provenance::R,
 ) where {R<:FloquetProvenance}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
-  data = try
-    native_expansion_data(gauge.algorithm, generator, order - 1, NATIVE_GAUGE_DEGREE)
-  catch error
-    error isa NativePositivityError || rethrow()
-    throw(
-      ArgumentError(
-        "order $order of the GKSL normal form has no static gauge of polynomial degree " *
-        "at most $NATIVE_GAUGE_DEGREE; lower the requested order",
-      ),
-    )
-  end
+  data = native_expansion_data(gauge.algorithm, generator, order - 1, NATIVE_GAUGE_DEGREE)
   return native_floquet_expansion(data, generator, gauge, provenance)
 end
 
@@ -257,6 +253,7 @@ function native_floquet_expansion(
     native_factorization(data, coefficients),
     H,
     finite,
+    data.recurrence.virtual ? [N] : Int[],
   )
   return FloquetExpansion(
     generator, micromotion, effective, gauge, order, realization, provenance
@@ -279,3 +276,17 @@ function floquet_expansion_impl(
     provenance,
   )
 end
+
+"""
+    virtual_orders(expansion::FloquetExpansion) -> Vector{Int}
+
+Return the retained orders of `expansion` whose static gauge is virtual, that is, formal and
+never stored. The result is empty unless `expansion` is a [`GKSLNormalForm`](@ref) expansion
+whose last retained order has no polynomial static gauge.
+"""
+function virtual_orders(expansion::FloquetExpansion)
+  return completion_virtual_orders(getfield(expansion, :completion))
+end
+
+completion_virtual_orders(::Completion) = Int[]
+completion_virtual_orders(completion::NativeRealization) = copy(completion.virtual_orders)

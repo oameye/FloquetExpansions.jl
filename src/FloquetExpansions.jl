@@ -34,6 +34,7 @@ include("native/exact_static_solve.jl")
 include("native/static_step.jl")
 include("native/operator_algebra.jl")
 include("native/algebraic_representation.jl")
+include("native/virtual_gauge.jl")
 include("native/sqa_lowering.jl")
 include("native/recurrence.jl")
 include("native/driver.jl")
@@ -55,7 +56,12 @@ export GKSLNormalForm,
   Gauge, PeriodicGenerator, QuasienergyOperator, VanVleck, harmonic_range
 export antiderivative, derivative, harmonics, support, time_average
 export FloquetExpansion,
-  effective_component, effective_generator, floquet_expansion, micromotion, order
+  effective_component,
+  effective_generator,
+  floquet_expansion,
+  micromotion,
+  order,
+  virtual_orders
 export Gram, Spectral
 export channels,
   dissipative_frame,

@@ -97,9 +97,6 @@ end
   @test_throws "order must be >= 1" floquet_expansion(
     H, ω, t, GKSLNormalForm(), 0; channels=jumps
   )
-  @test_throws "no static gauge of polynomial degree" floquet_expansion(
-    H, ω, t, GKSLNormalForm(), 7; channels=jumps
-  )
   @test_throws "needs numeric coefficients" floquet_expansion(
     H, ω, t, GKSLNormalForm(), 3; channels=(jump(a, κ),)
   )
