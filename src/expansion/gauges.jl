@@ -110,9 +110,27 @@ Hamiltonian it holds the van Vleck coefficients and no completed model, so `chan
   coefficient or a symbolic parameter other than the drive frequency throws an `ArgumentError`,
   so write `4 // 5` rather than `0.8`.
 - `order` must be at least `1`.
-- An order with no static gauge of polynomial degree at most three throws an `ArgumentError`;
-  lower the requested order.
+- An order with no static gauge of polynomial degree at most three throws an `ArgumentError`,
+  except the last retained order in the case described under "Virtual gauge"; lower the
+  requested order.
 - [`positive_completion`](@ref) throws on the result, which is already of GKSL form.
+
+# Virtual gauge
+
+At the last retained order the static gauge is never needed as an operator. When no static gauge
+of polynomial degree at most three exists there, the order is realized with a virtual gauge: the
+effective generator, [`hamiltonian`](@ref), [`channels`](@ref) and [`kossakowski`](@ref) of that
+order are exact and of GKSL form, but the static part of the micromotion at that order is a
+formal operator and is omitted from [`micromotion`](@ref). [`virtual_orders`](@ref) lists such
+orders.
+
+The virtual gauge requires a single bosonic site, an averaged generator that is
+number-diagonal plus loss ``a\\rho a^\\dagger`` without resonances on the Fock lattice, and the
+last retained order. Otherwise an `ArgumentError` names the assumption that failed. The
+retained generator then has the van Vleck spectrum through the retained order because the
+defect from the van Vleck residual has vanishing lattice invariants. This is certified
+empirically, not proved: the invariants are fitted on a lattice window of `2 * order` and
+verified exactly on one of `5 * order`, and resonances are excluded on the latter.
 
 # References
 
@@ -137,6 +155,29 @@ julia> length(channels(x))
 
 julia> channels(x)[2]
 ((72//3125) / (ω^4))𝒟[a * a - 2 * a' * a]
+```
+
+The same oscillator at the last retained order six has no polynomial static gauge, so the order
+is virtual and two further channels are born:
+
+```jldoctest
+julia> h = FockSpace(:cavity); a = Destroy(h, :a);
+
+julia> @variables ω::Real t::Real;
+
+julia> H = (1 // 2) * a' * a + (3 // 10) * a' * a * a' * a + (2 // 5) * (a + a') * cos(ω * t);
+
+julia> x = floquet_expansion(H, ω, t, GKSLNormalForm(), 7; channels=(jump(a, 4 // 5),));
+
+julia> virtual_orders(x)
+1-element Vector{Int64}:
+ 6
+
+julia> channels(x)[3]
+((18//78125) / (ω^6))𝒟[a']
+
+julia> channels(x)[4]
+((5832//78125) / (ω^6))𝒟[a' * a' * a * a]
 ```
 """
 struct GKSLNormalForm{A<:ExpansionAlgorithm} <: Gauge

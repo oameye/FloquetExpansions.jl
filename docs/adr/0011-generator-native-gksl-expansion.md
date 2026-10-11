@@ -30,9 +30,19 @@ The dark equation ``\Delta_n + \Phi_n(S_n) = P_n \succeq 0`` is solved in exact 
 2. Canonical cancellation: within the constrained affine family the least-squares point in the frame metric, with minimum gauge norm, is taken. If it is not PSD, rows of ``P_n`` are cancelled in frame order wherever the constraints stay consistent, and the least-squares point is recomputed.
 3. The result is certified by an exact rate-weighted LDL factor, which also returns the newborn channels ``P_n = \sum_j d_j l_j l_j^\dagger`` with rational rates, by Hermitian congruence and so without square roots.
 
-The static gauge is polynomial. The gauge directions are tried by increasing degree, and the first family that admits a certified lift is used, so the section is unique given the frame order. This convention changes only ``O(\varepsilon^{N+1})`` data and never the spectrum through the retained order. A slot that no family can lift raises `NativePositivityError`, which `floquet_expansion` reports as an order with no static gauge of polynomial degree at most three, the largest degree tried.
+The static gauge is polynomial. The gauge directions are tried by increasing degree, and the first family that admits a certified lift is used, so the section is unique given the frame order. This convention changes only ``O(\varepsilon^{N+1})`` data and never the spectrum through the retained order. A slot that no family can lift raises `NativePositivityError`. At the last retained order the terminal virtual gauge below may still resolve it; anywhere else `floquet_expansion` reports an order with no static gauge of polynomial degree at most three, the largest degree tried.
 
-For driven Kerr with static loss the native coefficients equal the van Vleck coefficients through order three, a single channel ``a^2 - 2a^\dagger a`` is born at order four, and order five adds none. Order six has no static gauge of degree at most three, so the expansion is available through retained order five and `floquet_expansion(..., 7)` throws.
+For driven Kerr with static loss the native coefficients equal the van Vleck coefficients through order three, a single channel ``a^2 - 2a^\dagger a`` is born at order four, and order five adds none. Retained order six has no polynomial static gauge among the families of degree up to three, and is resolved by the virtual gauge below.
+
+## Terminal virtual gauge
+
+At the last retained order ``N`` the static gauge ``S_N`` is never used as an operator. For a single bosonic site with an averaged generator that is number-diagonal plus loss ``a\rho a^\dagger``, ``\operatorname{ad}_{\bar{\mathcal L}}`` acts on the Fock lattice ``e_{m,m'} = |m)(m'|`` as the diagonal multiplier ``\lambda(m,m')`` plus the loss ladder ``e_{m,m'} \mapsto \kappa\, m m'\, e_{m-1,m'-1}``. The charged ladder of ``[\bar{\mathcal L}, S] = Y`` never terminates, so no polynomial ``S_N`` exists for the defect ``Y = E_N - \hat V_N`` that positivity requires.
+
+When every polynomial family fails at ``n = N``, the recurrence imposes the lattice invariants ``\ell_{m,m'}(Y) = \langle L_{m,m'}|Y|R_{m,m'}\rangle = 0`` on the neutral polynomial part of ``Y``, with ``L`` and ``R`` the left and right eigenvectors of ``\operatorname{ad}_{\bar{\mathcal L}}``, and solves the dark equation with that restricted family. Charged Kossakowski entries are cancelled and the cross units between the charges mixed by the active channels stay free. The order is recorded as virtual and the static micromotion harmonic of that order is omitted. For driven Kerr this births ``a^\dagger`` with rate ``18/78125`` and ``a^{\dagger 2} a^2`` with rate ``5832/78125``, both ``\propto \omega_d^{-6}``, for Bloch–Feshbach and Hori–Deprit alike.
+
+What is guaranteed: the accepted ``E_N`` is exactly of GKSL form, and the retained generator, Hamiltonian, channels, and Kossakowski matrix are exact rationals. What is certified empirically and not proved: the invariants are fitted on the lattice window ``0 \le m, m' \le 2N`` and verified exactly on ``0 \le m, m' \le 5N`` (`VIRTUAL_VERIFICATION_WINDOW`), and the lattice is checked on that larger window for two distinct points with one eigenvalue. A resonance beyond the window, or a vanishing invariant that fails outside it, would go undetected. A charged resonance matters because the charged part of ``Y`` must lie in the range of ``\operatorname{ad}_{\bar{\mathcal L}}``; for ``H = c_1 a^\dagger a + c_2 (a^\dagger a)^2`` it occurs at ``c_1 = -c_2 (m + m')``. The last-order representative need not be the one a polynomial gauge of higher degree would give, but it differs only at ``O(\varepsilon^{N+1})`` in the spectrum.
+
+Every unmet assumption throws an `ArgumentError` that names it: more than one site, a non-boson site, an averaged generator that is not number-diagonal plus loss, a resonance, a failed invariant check, a positivity failure, or a polynomial failure below the last order. Resolving orders above the first non-polynomial gauge needs the localized coefficient algebra and is not implemented.
 
 ## Considered options
 
@@ -49,7 +59,7 @@ The public entry point is `GKSLNormalForm`. The independent order-2 BF oracle, t
 
 ## Deferred
 
-Symbolic parameters, and a terminal virtual gauge for an order with no polynomial static gauge, are left to follow-up work. The expansion refuses such input rather than approximating it.
+Symbolic parameters are left to follow-up work. The expansion refuses such input rather than approximating it.
 
 ## Gate
 
@@ -62,6 +72,7 @@ Symbolic parameters, and a terminal virtual gauge for an order with no polynomia
 - `test/native/exact_static_solve.jl`: "exact static slot solves the orthonormal fixture", "exact static slot is covariant under a non-orthonormal frame", "exact static slot is covariant under a gauge reparameterization" and "exact static slot rejects an indefinite canonical residual"
 - `test/native/graded_channels.jl`: "graded channel Gram coefficients are exact Cauchy products" and "graded channels activate after birth and stay prefix complete"
 - `test/native/sqa_driver.jl`: "native expansion equals Van Vleck wherever no static gauge is needed", "cutoff-free driven Kerr births one exact channel at order four", "SQA lowering is exact across Fock, level and Pauli sites" and "the exact driver falls back to BigInt scalars when Int128 overflows"
+- `test/native/gksl_virtual_gauge.jl`: the virtual last order of driven Kerr, Bloch–Feshbach against Hori–Deprit, positivity, the exact Floquet exponents through order six, the lattice invariants on the range of the averaged generator, and the `ArgumentError` for every unmet assumption
 - `test/native/spin_sites.jl`: "native expansion of a driven spin equals Van Vleck" and "GKSLNormalForm on a driven spin is completely positive"
 
 `make jet` holds optimizer stability of the graded channels in `test/quality/JET.jl`, "native graded channel optimizer stability". The exact static solve is not covered.
