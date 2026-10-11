@@ -45,7 +45,7 @@ For driven Kerr with static loss the native coefficients equal the van Vleck coe
 
 The public entry point is `GKSLNormalForm`. The independent order-2 BF oracle, the finite-dimensional Floquet-exponent check, and the Gram-completion comparison stay in the tests as separate implementations.
 
-`native_exact_static_solve` takes the operator and gauge metrics explicitly, because an exact frame is not orthonormal, and it rejects an indefinite canonical residual rather than projecting onto the PSD cone. The `HomologicalInverse` seam of `native_static_step` admits an inverse that cancels the dark target exactly on the sectors where ``\operatorname{ad}_{\bar{\mathcal L}}`` is regular. Only `NoHomologicalInverse`, which has no regular sector, is implemented, so the minimum-norm section applies everywhere.
+`native_exact_static_solve` takes the operator and gauge metrics explicitly, because an exact frame is not orthonormal, and it rejects an indefinite canonical residual rather than projecting onto the PSD cone.
 
 ## Deferred
 
@@ -64,4 +64,4 @@ Symbolic parameters, and a terminal virtual gauge for an order whose static gaug
 - `test/native/sqa_driver.jl`: "native expansion equals Van Vleck wherever no static gauge is needed", "cutoff-free driven Kerr births one exact channel at order four", "SQA lowering is exact across Fock, level and Pauli sites" and "the exact driver falls back to BigInt scalars when Int128 overflows"
 - `test/native/spin_sites.jl`: "native expansion of a driven spin equals Van Vleck" and "GKSLNormalForm on a driven spin is completely positive"
 
-`make jet` holds optimizer stability of the native layer in `test/quality/JET.jl`.
+`make jet` holds optimizer stability of the graded channels in `test/quality/JET.jl`, "native graded channel optimizer stability". The exact static solve is not covered.

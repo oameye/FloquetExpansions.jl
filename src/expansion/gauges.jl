@@ -85,26 +85,27 @@ VanVleck(; algorithm::ExpansionAlgorithm=HoriDeprit()) = VanVleck(algorithm)
 """
     GKSLNormalForm(; algorithm=HoriDeprit())
 
-Select the GKSL normal-form gauge for Liouvillian expansions. The effective Liouvillian is of
-GKSL form, and therefore completely positive, at every order. The oscillatory part of the
-micromotion is fixed as in [`VanVleck`](@ref); its static part is a similarity
-``W = e^{S}``, ``S = \\sum_n S_n/ω^n``, chosen order by order so that every truncation of the
-effective generator is of GKSL form.
+Select the GKSL normal-form gauge for Liouvillian expansions. It adds a static similarity to the
+van Vleck micromotion, chosen order by order so that every truncation of the effective generator
+is of GKSL form and therefore completely positive. The effective generator keeps the van Vleck
+spectrum through the retained order, but its retained coefficients differ from those of
+[`VanVleck`](@ref) wherever the static gauge is nonzero. Without dissipation the two coincide.
 
-The effective generator is ``W^{-1} \\mathcal{L}_{\\mathrm{VV}} W``. It has the van Vleck spectrum
-through the retained order and coincides with the van Vleck generator wherever every ``S_n``
-vanishes, which is always the case without dissipation. The finite generator is assembled from
-graded jump amplitudes, so it equals the retained series up to a positive remainder beyond the
-retained order. The result is read with [`effective_generator`](@ref), [`hamiltonian`](@ref),
-[`channels`](@ref) and [`kossakowski`](@ref).
+`algorithm` selects the [`ExpansionAlgorithm`](@ref) that computes these coefficients without
+changing them: [`HoriDeprit`](@ref), the default, or [`BlochFeshbach`](@ref).
 
-The expansion runs in an exact operator algebra without truncation: bosonic modes, position
-and momentum, `NLevelSpace` and `PauliSpace` levels, and spins as the size-independent
-``\\mathfrak{su}(2)`` algebra. `algorithm` selects [`HoriDeprit`](@ref), the default, or
-[`BlochFeshbach`](@ref); both return the same coefficients.
+For a Liouvillian the result is read with [`effective_generator`](@ref), [`hamiltonian`](@ref),
+[`channels`](@ref) and [`kossakowski`](@ref), as after [`positive_completion`](@ref). For a
+Hamiltonian it holds the van Vleck coefficients and no completed model, so `channels` and
+`kossakowski` are not defined on it. The construction is described in
+[GKSL normal form](@ref gksl-normal-form-theory).
 
 # Restrictions
 
+- Supported subsystems are bosonic modes, position and momentum, `NLevelSpace` and `PauliSpace`
+  levels, and spins of any size. Bosonic modes are not truncated.
+- Operators on one Hilbert space must share one name; `Position(h, :x)` and `Momentum(h, :p)`
+  together throw an `ArgumentError`.
 - Every coefficient must be an exact `Integer` or `Rational` and numeric. A floating-point
   coefficient or a symbolic parameter other than the drive frequency throws an `ArgumentError`,
   so write `4 // 5` rather than `0.8`.
@@ -112,6 +113,11 @@ and momentum, `NLevelSpace` and `PauliSpace` levels, and spins as the size-indep
 - An order whose static gauge is not polynomial throws an `ArgumentError`; lower the requested
   order.
 - [`positive_completion`](@ref) throws on the result, which is already of GKSL form.
+
+# References
+
+The truncation problem that this gauge removes is discussed in [Schnell2021](@cite) and
+[Ikeda2021](@cite).
 
 # Examples
 

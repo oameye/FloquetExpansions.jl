@@ -11,6 +11,7 @@ pages = [
     "High-frequency expansion" => "theory/high_frequency_expansion.md",
     "Bloch/Feshbach projection" => "theory/bloch_feshbach.md",
     "CP-preserving completion" => "theory/cp_completion.md",
+    "GKSL normal form" => "theory/gksl_normal_form.md",
   ],
   "Literature" => "literature.md",
   "Examples" => [
