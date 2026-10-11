@@ -5,6 +5,7 @@ pages = [
     "Floquet expansion" => "manual/floquet_expansion.md",
     "Expansion algorithms" => "manual/expansion_algorithms.md",
     "Positive completion" => "manual/completion.md",
+    "Quantum harmonic balance" => "manual/harmonic_balance.md",
   ],
   "Theory" => [
     "Floquet theory" => "theory/floquet_theory.md",

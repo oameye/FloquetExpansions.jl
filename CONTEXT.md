@@ -137,3 +137,38 @@ Internal information retained only by the high-level physical `floquet_expansion
 
 **Completion factorization**:
 Algorithm-specific diagnostic data retained by a completed Floquet expansion and exposed through `factorization`. Gram data include the graded factor, onset information, and compact active/dark history; spectral data include completed branch rates, perturbative vectors/amplitudes, and onset information.
+
+## Harmonic balance
+
+**Quantum harmonic balance**:
+A description of one driven resonator through several carrier frequencies at once. The carrier modes are bookkeeping for one physical mode, not additional microscopic resonators, and they do not carry their own baths.
+_Avoid_: QHB as a gauge or an expansion algorithm; it is a separate model construction.
+
+**Carrier**:
+A frequency ``ω_j`` at which the physical mode is resolved. Carrier frequencies are symbolic expressions with exact coefficients, and relations between carriers are written into those expressions.
+
+**Carrier mode**:
+One of the two ladder modes of a carrier: the co-rotating mode ``a_{j+}``, which enters with the phase ``e^{-iω_j t}``, and the counter-rotating mode ``a_{j-}``, which enters with ``e^{+iω_j t}``.
+
+**Carrier embedding**:
+The map ``I_t(a) = λ_H^{-1/2} \sum_j (e^{-iω_j t} a_{j+} + e^{+iω_j t} a_{j-})`` from the physical mode into the carrier modes. It is an algebra homomorphism, a unitary change of frame on the physical mode extended by dark partners.
+
+**Harmonic normalization**:
+The number ``λ_H = 2N_h`` of carrier modes for ``N_h`` carriers. It fixes the embedding weight ``λ_H^{-1/2}`` and multiplies the resonant part of the carrier generator.
+
+**Frame Hamiltonian**:
+The rotating-frame gauge term ``H_{fr} = -\sum_j ω_j (n_{j+} - n_{j-})`` of the carrier generator.
+
+**Resonant projection**:
+The projection ``P`` that keeps the processes whose total frequency expands to zero. For a Liouvillian it acts on each ``ρ ↦ AρB`` term as a whole.
+
+**Unreduced harmonic balance**:
+The carrier generator ``λ_H P[I_t(\cdot)] + H_{fr}`` with both carrier modes of every carrier kept. It is exact for quadratic Hamiltonians and linear dissipators and approximate for nonlinear terms.
+_Avoid_: QHB-RWA, the later reduction that keeps one mode per carrier.
+
+**Reconstruction**:
+Reading a physical observable from a carrier state through ``⟨A⟩(t) = \mathrm{Tr}[I_t(A)ρ]``.
+_Avoid_: micromotion, which belongs to a Floquet expansion.
+
+**Bright and dark sectors**:
+The combination of carrier modes that the embedding assigns to the physical mode at time ``t`` is bright. Every carrier combination the reconstruction does not see is dark.
