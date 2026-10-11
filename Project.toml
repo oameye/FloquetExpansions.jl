@@ -5,6 +5,7 @@ authors = ["Orjan Ameye <orjan.ameye@hotmail.com>"]
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Nemo = "2edaba10-b0f1-5616-af89-8c11ac63239a"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SciMLPublic = "431bcebd-1456-4ced-9d72-93c2757fff0b"
 SecondQuantizedAlgebra = "f7aa4685-e143-4cb6-a7f3-073579757907"
@@ -15,6 +16,7 @@ SecondQuantizedAlgebra = {rev = "main", url = "https://github.com/qojulia/Second
 
 [compat]
 LinearAlgebra = "1"
+Nemo = "0.56, 0.57"
 Reexport = "1.2"
 SciMLPublic = "1"
 SecondQuantizedAlgebra = "0.13"

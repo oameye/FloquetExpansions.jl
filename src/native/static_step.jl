@@ -82,7 +82,7 @@ function native_static_step(
         representation, family, L0, residual, known, active, weights
       )
     catch error
-      error isa NativePositivityError || rethrow()
+      error isa Union{NativePositivityError,ParameterSignError} || rethrow()
     end
   end
   return native_static_step(

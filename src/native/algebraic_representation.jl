@@ -180,8 +180,7 @@ function native_gauge_metric(
     B = directions[l].terms
     value = zero(T)
     for (key, v) in B
-      a = get(A, key, zero(T))
-      iszero(a) || (value += conj(a) * v)
+      haskey(A, key) && (value += conj(A[key]) * v)
     end
     metric[k, l] = real(value)
     metric[l, k] = real(value)

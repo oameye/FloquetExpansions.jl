@@ -37,7 +37,18 @@ function native_expansion_data(
   N::Int,
   gauge_degree::Int,
 ) where {T}
-  lowering = SQALowering{T}(generator)
+  return native_expansion_data(
+    SQALowering{T}(generator), algorithm, generator, N, gauge_degree
+  )
+end
+
+function native_expansion_data(
+  lowering::SQALowering,
+  algorithm::Union{BlochFeshbach,HoriDeprit},
+  generator::PeriodicGenerator{Liouvillian},
+  N::Int,
+  gauge_degree::Int,
+)
   L = lower_generator(lowering, generator)
   haskey(L, 0) || (L[0] = lower_liouvillian(lowering, zero(Liouvillian)))
   input_degree = native_input_degree(lowering, L)
@@ -96,7 +107,7 @@ end
 
 function lift_monomial!(lift::CoefficientLift, X::Monomial)
   return get!(lift.monomials, X) do
-    return lift_operator(lift.lowering, algebra_operator(lift.lowering.algebra, [(X, 1)]))
+    return lift_operator(lift, algebra_operator(lift.lowering.algebra, [(X, 1)]))
   end
 end
 

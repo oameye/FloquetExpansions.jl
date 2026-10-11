@@ -29,15 +29,6 @@ function native_micromotion_harmonics(data::NativeExpansionData, ::BlochFeshbach
   return [generator[n + 1] for n in 1:N]
 end
 
-function native_micromotion(
-  data::NativeExpansionData, lift::CoefficientLift, algorithm, wd::Symbolics.Num, N::Int
-)
-  return [
-    lift_harmonics(lift, harmonics, wd) for
-    harmonics in native_micromotion_harmonics(data, algorithm, N)
-  ]
-end
-
 function native_channel_operator(
   data::NativeExpansionData,
   lift::CoefficientLift,
@@ -49,8 +40,11 @@ function native_channel_operator(
   for (k, coefficients) in pairs(channel.coefficients)
     order = k - 1
     order + channel.onset > N && break
-    lifted = lift_operator(lift, frame_operator(data.representation, coefficients))
-    operator = operator + reattach(lifted, wd, order)
+    scale = convert(SQA.CNum, inverse_drive_power(wd, order))
+    for (monomial, c) in frame_operator(data.representation, coefficients).terms
+      term = lift_coefficient(lift.coefficient, c) * scale
+      operator = operator + term * lift_monomial!(lift, monomial)
+    end
   end
   return SQA.simplify(operator)
 end
@@ -77,11 +71,12 @@ function native_support(data::NativeExpansionData)
   return sort!(support)
 end
 
-function native_frame(data::NativeExpansionData, support::Vector{Int})
+function native_frame(
+  data::NativeExpansionData, support::Vector{Int}, lift::CoefficientLift
+)
   operators = [
     lift_operator(
-      data.lowering,
-      algebra_operator(data.lowering.algebra, [(data.representation.frame[k], 1)]),
+      lift, algebra_operator(data.lowering.algebra, [(data.representation.frame[k], 1)])
     ) for k in support
   ]
   return assemble_dissipative_frame(Tuple(operators))
@@ -190,8 +185,11 @@ function floquet_expansion_impl(
   provenance::R,
 ) where {R<:FloquetProvenance}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
+  coefficients = native_coefficients(generator, gauge.negative)
   data = try
-    native_expansion_data(gauge.algorithm, generator, order - 1, NATIVE_GAUGE_DEGREE)
+    native_expansion_data(
+      coefficients, gauge.algorithm, generator, order - 1, NATIVE_GAUGE_DEGREE
+    )
   catch error
     error isa NativePositivityError || rethrow()
     throw(
@@ -201,12 +199,8 @@ function floquet_expansion_impl(
       ),
     )
   end
-  return native_floquet_expansion(data, generator, gauge, provenance)
+  return native_floquet_expansion(data, generator, gauge, provenance, coefficients)
 end
-
-native_positivity_conditions(::ExactCoefficients) = SQA.CNum[]
-
-native_factorization(data::NativeExpansionData, ::ExactCoefficients) = data
 
 function native_hamiltonian_series(
   data::NativeExpansionData, lift::CoefficientLift, wd::Symbolics.Num
@@ -223,15 +217,6 @@ function native_floquet_expansion(
   generator::PeriodicGenerator{Liouvillian},
   gauge::GKSLNormalForm,
   provenance::R,
-) where {R<:FloquetProvenance}
-  return native_floquet_expansion(data, generator, gauge, provenance, ExactCoefficients())
-end
-
-function native_floquet_expansion(
-  data::NativeExpansionData,
-  generator::PeriodicGenerator{Liouvillian},
-  gauge::GKSLNormalForm,
-  provenance::R,
   coefficients,
 ) where {R<:FloquetProvenance}
   order = length(data.recurrence.E)
@@ -239,11 +224,12 @@ function native_floquet_expansion(
   wd = generator.wd
   lift = CoefficientLift(data.lowering, coefficients)
   effective = Liouvillian[lift_superoperator(lift, E) for E in data.recurrence.E]
-  micromotion = native_micromotion(data, lift, gauge.algorithm, wd, N)
+  harmonics = native_micromotion_harmonics(data, gauge.algorithm, N)
+  micromotion = [lift_harmonics(lift, X, wd) for X in harmonics]
   H = native_hamiltonian_series(data, lift, wd)
   jumps = native_channels(data, lift, wd, N)
   support = native_support(data)
-  frame = native_frame(data, support)
+  frame = native_frame(data, support, lift)
   graded = native_finite_kossakowski(data, N)
   finite = native_finite_generator(data, lift, graded, wd, N)
   retained = retained_native_kossakowski(data, support, wd, N, coefficients)
@@ -252,9 +238,9 @@ function native_floquet_expansion(
     retained,
     support_matrix(graded, support, wd, coefficients),
     jumps,
-    native_positivity_conditions(coefficients),
-    SQA.CNum[],
-    native_factorization(data, coefficients),
+    native_positivity_conditions(coefficients, wd),
+    native_regularity_conditions(coefficients, data, harmonics),
+    data,
     H,
     finite,
   )
