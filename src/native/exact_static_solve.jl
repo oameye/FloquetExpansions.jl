@@ -188,6 +188,27 @@ function exact_trace_product(entries, Y::AbstractMatrix{T}) where {T}
   return real(value)
 end
 
+function exact_psd_exhausted(diagonal::AbstractVector, work::AbstractMatrix)::Bool
+  positive = any(>(0), diagonal)
+  (any(<(0), diagonal) || (!positive && !iszero(work))) && throw(
+    NativePositivityError("the exact canonical dark residual is not positive semidefinite"),
+  )
+  return !positive
+end
+
+function exact_rank_one_downdate!(
+  work::AbstractMatrix{T}, column::AbstractVector{T}, weight
+) where {T}
+  for j in axes(work, 2)
+    scaled = weight * conj(column[j])
+    iszero(scaled) && continue
+    for i in axes(work, 1)
+      work[i, j] -= column[i] * scaled
+    end
+  end
+  return work
+end
+
 function exact_psd_factor(P::AbstractMatrix{T}, ::Type{R}) where {T,R}
   work = Matrix{T}(P)
   n = size(work, 1)
@@ -195,34 +216,15 @@ function exact_psd_factor(P::AbstractMatrix{T}, ::Type{R}) where {T,R}
   weights = R[]
   for _ in 1:n
     diagonal = R[real(work[i, i]) for i in 1:n]
-    any(<(0), diagonal) && throw(
-      NativePositivityError(
-        "the exact canonical dark residual is not positive semidefinite"
-      ),
-    )
-    if !any(>(0), diagonal)
-      iszero(work) || throw(
-        NativePositivityError(
-          "the exact canonical dark residual is not positive semidefinite"
-        ),
-      )
-      break
-    end
+    exact_psd_exhausted(diagonal, work) && break
     pivot = findfirst(>(0), diagonal)::Int
     weight = diagonal[pivot]
     column = T[work[i, pivot] / weight for i in 1:n]
     push!(columns, column)
     push!(weights, weight)
-    for j in 1:n
-      scaled = weight * conj(column[j])
-      iszero(scaled) && continue
-      for i in 1:n
-        work[i, j] -= column[i] * scaled
-      end
-    end
+    exact_rank_one_downdate!(work, column, weight)
   end
-  newborn = exact_columns(T, n, columns)
-  return newborn, weights
+  return exact_columns(T, n, columns), weights
 end
 
 function exact_tangent_lift(
@@ -415,6 +417,24 @@ function exact_is_psd(P::AbstractMatrix, ::Type{R}) where {R}
   end
 end
 
+function exact_normal_equations(
+  P0::Matrix{T}, J::Vector{Matrix{T}}, metric::Matrix{T}, ::Type{R}
+) where {T,R}
+  identity_metric = exact_isidentity(metric)::Bool
+  GJ = identity_metric ? J : [exact_mul(metric, X) for X in J]
+  GP = identity_metric ? P0 : exact_mul(metric, P0)
+  entries = [exact_nonzeros(X) for X in GJ]
+  p = length(J)
+  normal_matrix = exact_zeros(R, p, p)
+  for i in 1:p, j in i:p
+    value = exact_trace_product(entries[i], GJ[j])
+    normal_matrix[i, j] = value
+    normal_matrix[j, i] = value
+  end
+  normal_rhs = R[-exact_trace_product(entries[i], GP) for i in 1:p]
+  return normal_matrix, normal_rhs
+end
+
 function native_exact_static_solve(
   residual::Matrix{T},
   known::Matrix{T},
@@ -436,18 +456,8 @@ function native_exact_static_solve(
   dark = exact_dark_map(active, metric)
   P0 = dark_sandwich(dark, residual - known)
   J = [dark_sandwich(dark, image) for image in gauge_images]
-  identity_metric = exact_isidentity(metric)::Bool
-  GJ = identity_metric ? J : [exact_mul(metric, X) for X in J]
-  GP = identity_metric ? P0 : exact_mul(metric, P0)
-  entries = [exact_nonzeros(X) for X in GJ]
   p = length(J)
-  normal_matrix = exact_zeros(R, p, p)
-  for i in 1:p, j in i:p
-    value = exact_trace_product(entries[i], GJ[j])
-    normal_matrix[i, j] = value
-    normal_matrix[j, i] = value
-  end
-  normal_rhs = R[-exact_trace_product(entries[i], GP) for i in 1:p]
+  normal_matrix, normal_rhs = exact_normal_equations(P0, J, metric, R)
   C, c, Z = exact_facial_constraints(P0, J, R)
   coordinates = exact_section(C, c, Z, normal_matrix, normal_rhs, gauge_metric)
   if !exact_is_psd(P0 + exact_combination(J, coordinates, n), R)

@@ -203,13 +203,18 @@ function structurally_nonpositive_product(
   )
 end
 
+function condition_sign(
+  p::CompletionScalar, conditions::CompletionConditions, positive::Bool
+)::StructuralSign
+  strict = condition_contains(conditions.regularity, p)
+  positive && return strict ? SIGN_POSITIVE : SIGN_NONNEGATIVE
+  return strict ? SIGN_NEGATIVE : SIGN_NONPOSITIVE
+end
+
 function asserted_condition_sign(x::CompletionScalar, conditions::CompletionConditions)
   for p in conditions.positivity
-    if structurally_equal(x, p)
-      return condition_contains(conditions.regularity, p) ? SIGN_POSITIVE : SIGN_NONNEGATIVE
-    elseif structurally_equal(x, -p)
-      return condition_contains(conditions.regularity, p) ? SIGN_NEGATIVE : SIGN_NONPOSITIVE
-    end
+    structurally_equal(x, p) && return condition_sign(p, conditions, true)
+    structurally_equal(x, -p) && return condition_sign(p, conditions, false)
   end
   return SIGN_UNKNOWN
 end

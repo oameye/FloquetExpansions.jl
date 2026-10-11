@@ -11,24 +11,18 @@ function completion_matrix(matrix::KossakowskiMatrix)::CompletionMatrix
   return result
 end
 
-function exact_numeric_radical_replacement(node)::Union{Nothing,Symbolics.Num}
-  Symbolics.iscall(node) || return nothing
-  Symbolics.operation(node) === sqrt || return nothing
+function is_exact_numeric_radical(node)::Bool
+  Symbolics.iscall(node) && Symbolics.operation(node) === sqrt || return false
   arguments = Symbolics.arguments(node)
-  length(arguments) == 1 || return nothing
+  length(arguments) == 1 || return false
   argument = Symbolics.unwrap_const(only(arguments))
-  rational = if argument isa Int
-    Rational{Int}(argument, 1)
-  elseif argument isa Rational{Int}
-    argument
-  else
-    return nothing
-  end
-  rational > 1 || return nothing
+  return argument isa Union{Int,Rational{Int}} && argument > 1
+end
 
-  reciprocal = inv(rational)
+function exact_numeric_radical_replacement(node)::Symbolics.Num
+  rational = Rational{Int}(Symbolics.unwrap_const(only(Symbolics.arguments(node))))
   reciprocal_root = Symbolics.Num(
-    Symbolics.term(sqrt, Symbolics.unwrap(Symbolics.Num(reciprocal)); type=Real)
+    Symbolics.term(sqrt, Symbolics.unwrap(Symbolics.Num(inv(rational))); type=Real)
   )
   return Symbolics.Num(rational) * reciprocal_root
 end
@@ -37,9 +31,8 @@ function collect_exact_numeric_radicals!(
   replacements::Dict{Symbolics.Num,Symbolics.Num}, node
 )::Dict{Symbolics.Num,Symbolics.Num}
   Symbolics.iscall(node) || return replacements
-  replacement = exact_numeric_radical_replacement(node)
-  if replacement !== nothing
-    replacements[Symbolics.Num(node)] = replacement
+  if is_exact_numeric_radical(node)
+    replacements[Symbolics.Num(node)] = exact_numeric_radical_replacement(node)
     return replacements
   end
   for argument in Symbolics.arguments(node)
