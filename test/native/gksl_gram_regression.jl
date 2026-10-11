@@ -24,10 +24,6 @@ function operator_residual(difference::SQA.QAdd, value::Real; include_identity::
   return residual
 end
 
-# The static-gauge-free GKSL normal form is the S = 0 case of graded Gram completion.
-# Both realizations are compared in one dissipative frame, where the Kossakowski matrix is the
-# complete dissipative datum. The Hamiltonians agree up to a multiple of the identity, which
-# the Liouvillian does not see and which the two constructions fix differently.
 function agrees_with_gram(H, order, model_channels, algorithm)
   native = floquet_expansion(
     H, ω, t, GKSLNormalForm(; algorithm), order; channels=model_channels

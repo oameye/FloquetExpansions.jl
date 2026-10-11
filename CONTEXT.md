@@ -78,7 +78,7 @@ _Avoid_: calling it the logarithm of the wave operator, which differs from it by
 The finite-order result of applying a high-frequency expansion to a periodic generator, including its retained effective-generator coefficients, micromotion, and completion state.
 
 **Effective generator**:
-The time-independent generator that approximates the slow dynamics after the expansion. For an uncompleted Floquet expansion this is the raw algebraic truncation; for a positively completed expansion it is the selected finite positive continuation.
+The time-independent generator that approximates the slow dynamics after the expansion. For an uncompleted Floquet expansion this is the raw algebraic truncation; for a positively completed expansion it is the selected finite positive continuation; for a GKSL normal form it is the finite generator assembled from the graded channels.
 
 **Effective component**:
 A retained order-by-order coefficient of the Floquet effective generator. Positive completion does not rewrite retained effective components.
@@ -107,7 +107,7 @@ The Hermitian coordinate matrix ``d`` of the dissipative form in a specified dis
 An explicit post-processing step that selects a finite positive Kossakowski continuation while preserving every retained Floquet coefficient. It is not implicit in `floquet_expansion` and is generally nonunique beyond the retained order.
 
 **Completion state**:
-The type-level state carried by a `FloquetExpansion`, distinguishing an uncompleted expansion from a selected positive continuation. Completing an already completed expansion is an error.
+The type-level state carried by a `FloquetExpansion`, distinguishing an uncompleted expansion from a selected positive continuation. Completing an already completed expansion is an error, as is completing a GKSL normal form, which carries its own finite generator.
 
 **Gram completion**:
 An algebraic positive-completion algorithm that constructs a graded Gram factor ``B`` with retained coefficient matching ``Π_N(BB†) = d^[N]`` and uses the untruncated finite product ``BB†`` as the positive continuation. The construction uses Hermitian congruence, graded ``LDL†`` factorization, and recursive Feshbach/Schur reduction rather than symbolic eigendecomposition.
@@ -129,9 +129,6 @@ For a reduced block form ``d = [A X; X† C]`` with active ``A``, the induced da
 
 **Graded native channel**:
 A jump amplitude of the GKSL normal form, ``R_α(ε) = ε^{ν_α} Σ_k ε^k R_{α,k}`` with onset grade ``ν_α = n/2`` for a channel whose rate first appears at generator order ``n``. Its coefficients are state of the BF/HD recurrence, not the output of positive completion. A channel is active, and spans the bright space, from the order after its birth.
-
-**Homological inverse**:
-An algebra-specific right inverse of ``\operatorname{ad}_{\bar{\mathcal L}}`` on the sectors where it is regular, used by the native static slot to cancel the dark Kossakowski target there exactly. For a U(1)-symmetric averaged generator these are the charged sectors, where the inverse lives in a localized coefficient algebra such as ``\mathfrak A_{\rm poly}[d_q^{-1}]``. A non-polynomial inverse is not a resonance; a physical zero of a Bohr multiplier is.
 
 **Dissipative onset filtration**:
 The nested sequence of dark sectors exposed by recursively resolving Feshbach residuals. Its successive quotients collect channels that open at successive perturbative orders and replace perturbative eigenvalue branches as the general algebraic organizing structure.

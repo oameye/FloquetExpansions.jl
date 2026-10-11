@@ -12,7 +12,6 @@ function same(A::Liouvillian, B::Liouvillian)
 end
 same(A, B) = iszero(FE.SQA.simplify(FE.qadd(A) - FE.qadd(B)))
 
-# cos(ωt + φ) with exp(iφ) = (3 + 4i) / 5, written with exact Gaussian-rational harmonics
 phased_cosine() = ((3 + 4im) // 10) * expim(ω * t) + ((3 - 4im) // 10) * expim(-ω * t)
 plain_cosine() = (1 // 2) * expim(ω * t) + (1 // 2) * expim(-ω * t)
 

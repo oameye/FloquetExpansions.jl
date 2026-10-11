@@ -29,10 +29,9 @@ function native_expansion_data(
   algorithm::Union{BlochFeshbach,HoriDeprit},
   generator::PeriodicGenerator{Liouvillian},
   N::Int,
-  parameters::AbstractDict,
   gauge_degree::Int,
 ) where {T}
-  lowering = SQALowering{T}(generator, parameters)
+  lowering = SQALowering{T}(generator)
   L = lower_generator(lowering, generator)
   haskey(L, 0) || (L[0] = zero(first(values(L))))
   degree = native_input_degree(lowering, L) + N
@@ -42,9 +41,7 @@ function native_expansion_data(
     )
     leading, weights = native_leading_channels(representation, L[0])
     try
-      recurrence = native_recurrence(
-        algorithm, representation, NoHomologicalInverse(), L, leading, weights, N, 0.0
-      )
+      recurrence = native_recurrence(algorithm, representation, L, leading, weights, N, 0.0)
       return NativeExpansionData(lowering, representation, recurrence)
     catch error
       error isa NativeFrameError || rethrow()
@@ -57,26 +54,20 @@ function native_expansion_data(
   algorithm::Union{BlochFeshbach,HoriDeprit},
   generator::PeriodicGenerator{Liouvillian},
   N::Int,
-  parameters::AbstractDict,
   gauge_degree::Int,
 )
   try
     return native_expansion_data(
-      Complex{Rational{Int128}}, algorithm, generator, N, parameters, gauge_degree
+      Complex{Rational{Int128}}, algorithm, generator, N, gauge_degree
     )
   catch error
-    # Int128 overflow surfaces as an OverflowError in arithmetic and as an InexactError
-    # when a BigInt intermediate is converted back; both are retried in BigInt.
     error isa Union{OverflowError,InexactError} || rethrow()
-    # `invokelatest` keeps inference from analysing the whole BigInt pipeline when only
-    # the Int128 attempt runs; callers consume the result behind a dispatch barrier.
     return Base.invokelatest(
       native_expansion_data,
       Complex{Rational{BigInt}},
       algorithm,
       generator,
       N,
-      parameters,
       gauge_degree,
     )
   end
@@ -108,8 +99,6 @@ function lift_operator(lift::CoefficientLift, X::AlgebraOperator)
   return lift_operator(lift.lowering, X, lift.coefficient)::SQA.QAdd
 end
 
-# Accumulates `scale * S` into `target` term by term, so no SQA product of two exact
-# coefficients is formed and large rationals cannot overflow SQA's `Rational{Int}`.
 function lift_superoperator!(
   target::Liouvillian, lift::CoefficientLift, S::AlgebraSuperoperator, scale::SQA.CNum
 )

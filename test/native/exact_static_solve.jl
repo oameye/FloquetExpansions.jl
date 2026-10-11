@@ -6,9 +6,6 @@ const FE = FloquetExpansions
 const Q = Complex{Rational{BigInt}}
 const R = Rational{BigInt}
 
-# Four Kossakowski directions: e1, e2 active, e3, e4 dark. The gauge images have dark-dark parts
-# orthogonal to the newborn form diag(0, 0, 2, 0), so the canonical least-squares section removes
-# them exactly and leaves a PSD residual with one channel born along e3.
 function exact_fixture(weight)
   B = Q[1 0; 1//2 1; 0 0; 0 0]
   weights = R[weight, 1]
@@ -25,9 +22,7 @@ function exact_fixture(weight)
   return (; B, weights, images, known, residual)
 end
 
-tofloat(X) = ComplexF64.(X)
-
-@testset "exact static slot matches the float core in orthonormal coordinates" begin
+@testset "exact static slot solves the orthonormal fixture" begin
   for weight in (1, 4)
     f = exact_fixture(weight)
     G = Matrix{Q}(I, 4, 4)
@@ -39,18 +34,6 @@ tofloat(X) = ComplexF64.(X)
     @test exact.coordinates == R[3, -1 // 2, 2]
     @test exact.newborn_weights == R[2]
     @test exact.dark_residual == Q[0 0 0 0; 0 0 0 0; 0 0 2 0; 0 0 0 0]
-
-    amplitudes = tofloat(f.B * Diagonal(Q.(sqrt.(f.weights))))
-    float = FE.native_static_solve(
-      tofloat(f.residual), tofloat(f.known), amplitudes, tofloat.(f.images), 1e-10
-    )
-    @test float.coordinates ≈ Float64.(exact.coordinates) atol = 1e-9
-    @test float.coefficient ≈ tofloat(exact.coefficient) atol = 1e-9
-    born = exact.newborn * Diagonal(Q.(exact.newborn_weights)) * exact.newborn'
-    @test float.newborn * float.newborn' ≈ tofloat(born) atol = 1e-9
-    # Rate-weighted corrections y_j are the physical amplitude corrections divided by √w_j.
-    @test float.correction ≈ tofloat(exact.correction * Diagonal(Q.(sqrt.(f.weights)))) atol =
-      1e-9
   end
 end
 
@@ -123,7 +106,6 @@ end
   @test FE.exact_diagonal(Q, R[2, 3 // 5]) == Matrix(Diagonal(Q[2, 3 // 5]))
   @test_throws DimensionMismatch FE.exact_mul(A, B[1:2, :])
 
-  # Solves with matrix and vector right-hand sides, including a row interchange.
   P = Q[0 1 1im; 2 0 1; 1 1 1//4]
   @test P * FE.exact_solve(P, B) == B
   @test P * FE.exact_solve(P, x) == x
@@ -132,7 +114,6 @@ end
   FE.exact_solve(P, input)
   @test input == B
 
-  # Nullspace and row basis of a rank-two matrix over both the complex and real scalar rings.
   N = Q[1 2 3; 2 4 6; 1im 2im 3im + 1]
   kernel = FE.exact_nullspace(N)
   @test length(kernel) == 1

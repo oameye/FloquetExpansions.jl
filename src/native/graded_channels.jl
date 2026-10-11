@@ -37,7 +37,6 @@ function hermitian_part(X::AbstractMatrix)
   return result
 end
 
-# result += weight * u * v'
 function add_outer!(
   result::AbstractMatrix{T}, weight::T, u::AbstractVector{T}, v::AbstractVector{T}
 ) where {T}

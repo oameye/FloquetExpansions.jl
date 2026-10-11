@@ -45,7 +45,6 @@ function exact_scale_row!(M::AbstractMatrix, row::Int, scale)
   return M
 end
 
-# M[row, :] -= factor * M[pivot, :]
 function exact_row_axpy!(M::AbstractMatrix, row::Int, factor, pivot::Int)
   for c in axes(M, 2)
     M[row, c] -= factor * M[pivot, c]
@@ -53,9 +52,6 @@ function exact_row_axpy!(M::AbstractMatrix, row::Int, factor, pivot::Int)
   return M
 end
 
-# Explicit-loop products keep the exact path off the wrapper-typed, size-specialised
-# LinearAlgebra matmul kernels, which cost far more to compile than to run on these
-# small exact matrices.
 function exact_mul(A::AbstractMatrix{S}, B::AbstractMatrix{S}) where {S}
   size(A, 2) == size(B, 1) || throw(DimensionMismatch("exact product dimension mismatch"))
   result = exact_zeros(S, size(A, 1), size(B, 2))
@@ -152,60 +148,6 @@ function exact_min_norm_solve(
   solution = exact_mul(weighted, exact_solve(exact_mul(Ar, weighted), b[rows]))
   exact_mul(A, solution) == b || throw(ArgumentError("exact linear system is inconsistent"))
   return solution
-end
-
-function exact_hermitian_units(::Type{T}, n::Int) where {T}
-  units = Matrix{T}[]
-  for i in 1:n
-    E = exact_zeros(T, n, n)
-    E[i, i] = 1
-    push!(units, E)
-  end
-  for i in 1:n, j in (i + 1):n
-    E = exact_zeros(T, n, n)
-    E[i, j] = 1
-    E[j, i] = 1
-    push!(units, E)
-    F = exact_zeros(T, n, n)
-    F[i, j] = im
-    F[j, i] = -im
-    push!(units, F)
-  end
-  return units
-end
-
-function exact_hermitian_coordinates(X::AbstractMatrix{T}, ::Type{R}) where {T,R}
-  n = size(X, 1)
-  values = R[real(X[i, i]) for i in 1:n]
-  for i in 1:n, j in (i + 1):n
-    push!(values, real(X[i, j]), imag(X[i, j]))
-  end
-  return values
-end
-
-function exact_form_metric(
-  G::AbstractMatrix{T}, units::Vector{Matrix{T}}, ::Type{R}
-) where {T,R}
-  n = length(units)
-  supports = [Tuple.(findall(!iszero, E)) for E in units]
-  M = exact_zeros(R, n, n)
-  for k in 1:n, l in k:n
-    value = zero(T)
-    for (b, c) in supports[k], (e, a) in supports[l]
-      value += G[a, b] * units[k][b, c] * G[c, e] * units[l][e, a]
-    end
-    M[k, l] = real(value)
-    M[l, k] = real(value)
-  end
-  return M
-end
-
-function exact_dark_projector(B::AbstractMatrix{T}, G::AbstractMatrix{T}) where {T}
-  n = size(G, 1)
-  size(B, 2) == 0 && return Matrix{T}(LinearAlgebra.I, n, n)
-  Bd = exact_adjoint(B)
-  return Matrix{T}(LinearAlgebra.I, n, n) -
-         exact_mul(B, exact_solve(exact_mul(Bd, G, B), exact_mul(Bd, G)))
 end
 
 struct ExactDarkMap{T}
@@ -529,4 +471,36 @@ function native_exact_static_solve(
   return ExactStaticSolution(
     coordinates, newborn, newborn_weights, correction, coefficient, P
   )
+end
+
+function exact_nullspace(A::Matrix{R}) where {R}
+  rows, columns = size(A)
+  M = copy(A)
+  pivots = Int[]
+  row = 1
+  for column in 1:columns
+    row > rows && break
+    pivot = exact_find_pivot(M, row, column)
+    pivot == 0 && continue
+    exact_swap_rows!(M, row, pivot)
+    exact_scale_row!(M, row, inv(M[row, column]))
+    for r in 1:rows
+      factor = M[r, column]
+      (r == row || iszero(factor)) && continue
+      exact_row_axpy!(M, r, factor, row)
+    end
+    push!(pivots, column)
+    row += 1
+  end
+  free = setdiff(1:columns, pivots)
+  basis = Vector{R}[]
+  for f in free
+    v = exact_zeros(R, columns)
+    v[f] = one(R)
+    for (r, p) in pairs(pivots)
+      v[p] = -M[r, f]
+    end
+    push!(basis, v)
+  end
+  return basis
 end

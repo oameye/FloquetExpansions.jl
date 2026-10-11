@@ -119,7 +119,6 @@ end
 
 const FLOAT_ROUNDOFF_TOLERANCE = 1.0e-10
 
-# Magnitude of a numeric constant and whether it is floating point; `nothing` if symbolic.
 @inline function constant_magnitude(value)::Union{Nothing,Tuple{Float64,Bool}}
   value isa Int && return abs(Float64(value)), false
   value isa Rational{Int} && return abs(Float64(value)), false
@@ -134,7 +133,6 @@ function monomial_constant(term)::Tuple{Float64,Bool}
   constant = constant_magnitude(Symbolics.unwrap_const(term))
   constant === nothing || return constant
   Symbolics.iscall(term) || return 1.0, false
-  # A monomial divided by a power of a symbol carries its prefactor in the numerator.
   Symbolics.operation(term) === (/) &&
     return monomial_constant(first(Symbolics.arguments(term)))
   Symbolics.operation(term) === (*) || return 1.0, false
@@ -165,7 +163,6 @@ function monomial_constants!(
   return constants
 end
 
-# Numeric prefactors of the monomials of a coefficient, with a flag for floating-point values.
 function monomial_constants(value::SQA.CNum)::Vector{Tuple{Float64,Bool}}
   number = SQA.to_num(value)::Complex{Symbolics.Num}
   constants = Tuple{Float64,Bool}[]
@@ -174,7 +171,6 @@ function monomial_constants(value::SQA.CNum)::Vector{Tuple{Float64,Bool}}
   return constants
 end
 
-# A difference is floating roundoff when every monomial carries a tiny floating prefactor.
 function floating_roundoff(value::SQA.CNum, scale::Float64)::Bool
   constants = monomial_constants(value)
   isempty(constants) && return false
@@ -207,8 +203,6 @@ function hermitize_floating_roundoff!(matrix::KossakowskiMatrix)::KossakowskiMat
   return matrix
 end
 
-# Cheap sufficient test: the expanded difference vanishes term by term. This avoids the
-# gcd-based `simplify`, which can overflow on large rational coefficients.
 function expanded_conjugate_pair(left::SQA.CNum, right::SQA.CNum)::Bool
   difference =
     SQA.to_num(left)::Complex{Symbolics.Num} -

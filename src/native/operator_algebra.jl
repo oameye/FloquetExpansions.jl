@@ -19,8 +19,6 @@ function level_site(hilbert::Vector{R}) where {R}
   return AlgebraSite{R}(LEVEL_SITE, length(hilbert), hilbert)
 end
 
-# A monomial stores a fixed number of exponent slots per site: two for boson, phase and
-# level sites, three for a spin site (the PBW exponents of S₊, S_z, S₋).
 site_width(site::AlgebraSite) = site.kind == SPIN_SITE ? 3 : 2
 
 const Monomial = Vector{Int}
@@ -62,7 +60,6 @@ function site_slots(algebra::OperatorAlgebra, s::Int)
   return (offset + 1):(offset + site_width(algebra.sites[s]))
 end
 
-# Polynomials in S_z are coefficient vectors in ascending powers.
 function spin_poly_mul(p::Vector{BigInt}, q::Vector{BigInt})
   product = zeros(BigInt, length(p) + length(q) - 1)
   for (i, x) in pairs(p), (j, y) in pairs(q)
@@ -71,15 +68,10 @@ function spin_poly_mul(p::Vector{BigInt}, q::Vector{BigInt})
   return product
 end
 
-# (S_z + shift)^n
 function spin_shifted_power(shift::Int, n::Int)
   return BigInt[binomial(big(n), m) * big(shift)^(n - m) for m in 0:n]
 end
 
-# S₋^c S₊^d = Σ_k S₊^(d-k) q_k(S_z) S₋^(c-k) follows from
-# S₋ S₊^d = S₊^d S₋ - d S₊^(d-1) (2 S_z + d - 1) and S₋^m p(S_z) = p(S_z + m) S₋^m, which give
-# q_{c,d,k} = q_{c-1,d,k} - d q_{c-1,d-1,k-1} (2 S_z + 2 (c - k) + d - 1).
-# The result lists q_k for k = 0:min(c, d), each of degree k in S_z.
 function spin_reordering(c::Int, d::Int)
   table = Matrix{Vector{Vector{BigInt}}}(undef, c + 1, d + 1)
   for j in 0:d, i in 0:c
@@ -140,7 +132,6 @@ function site_adjoint(site::AlgebraSite, monomial::Tuple{Int,Int}, ::Type{T}) wh
   return site_product(site, (0, l), (k, 0), T)
 end
 
-# (S₊^a S_z^b S₋^c)(S₊^d S_z^e S₋^f) = Σ_k S₊^(a+d-k) [(S_z + d - k)^b q_k(S_z) (S_z + c - k)^e] S₋^(c+f-k)
 function spin_site_product(left::NTuple{3,Int}, right::NTuple{3,Int}, ::Type{T}) where {T}
   a, b, c = left
   d, e, f = right

@@ -10,7 +10,6 @@ end
 struct SQALowering{T,R}
   algebra::OperatorAlgebra{T,R}
   sites::Vector{LoweredSite}
-  parameters::Dict{Any,Any}
 end
 
 function lowered_site_kind(op::SQA.Op)
@@ -40,16 +39,19 @@ function collect_lowered_sites!(sites::Dict{Int32,LoweredSite}, q::SQA.QAdd)
     ground = SQA.is_transition(op) ? Int(op.g) : 0
     site = LoweredSite(kind, op.space_index, op.name_id, levels, ground, SQA.is_pauli(op))
     previous = get(sites, op.space_index, site)
-    (previous.kind, previous.levels, previous.pauli) == (kind, levels, site.pauli) ||
-      throw(ArgumentError("one Hilbert subspace carries incompatible operator kinds"))
+    (previous.kind, previous.levels, previous.pauli, previous.ground, previous.name_id) ==
+    (kind, levels, site.pauli, ground, site.name_id) || throw(
+      ArgumentError(
+        "one Hilbert subspace carries operators of different kinds or names; " *
+        "the native expansion needs a single operator name per subspace",
+      ),
+    )
     sites[op.space_index] = previous
   end
   return sites
 end
 
-function SQALowering{T}(
-  generator::PeriodicGenerator{Liouvillian}, parameters::AbstractDict
-) where {T}
+function SQALowering{T}(generator::PeriodicGenerator{Liouvillian}) where {T}
   R = real(T)
   found = Dict{Int32,LoweredSite}()
   for (_, L) in generator.components, (left, right, _) in terms(L)
@@ -68,9 +70,7 @@ function SQALowering{T}(
       boson_site(R)
     end for site in sites
   ]
-  return SQALowering{T,R}(
-    OperatorAlgebra{T}(algebra_sites), sites, Dict{Any,Any}(parameters)
-  )
+  return SQALowering{T,R}(OperatorAlgebra{T}(algebra_sites), sites)
 end
 
 function site_position(lowering::SQALowering, op::SQA.Op)
@@ -94,7 +94,6 @@ function level_unit(lowering::SQALowering{T}, s::Int, i::Int, j::Int) where {T}
   return algebra_operator(lowering.algebra, pairs)
 end
 
-# S_x = (S₊ + S₋) / 2, S_y = (S₊ - S₋) / 2i, with S± = S_x ± i S_y
 function lower_spin(lowering::SQALowering{T}, s::Int, axis::Int) where {T}
   algebra = lowering.algebra
   axis == 3 && return algebra_operator(algebra, [(site_monomial(lowering, s, 0, 1, 0), 1)])
@@ -128,44 +127,19 @@ end
 
 exact_real(::Type{R}, x::Integer) where {R} = R(x)
 exact_real(::Type{R}, x::Rational) where {R} = R(x)
-exact_real(::Type{R}, x::AbstractFloat) where {R} = R(rationalize(BigInt, x))
+function exact_real(::Type{R}, x::AbstractFloat) where {R}
+  return throw(
+    ArgumentError(
+      "the native expansion needs exact Integer or Rational coefficients, found the floating-point value $x",
+    ),
+  )
+end
 exact_scalar(::Type{T}, x::Real) where {T} = T(exact_real(real(T), x))
 function exact_scalar(::Type{T}, x::SQA.GaussianRational) where {T}
   return T(exact_real(real(T), real(x)), exact_real(real(T), imag(x)))
 end
 function exact_scalar(::Type{T}, x::Complex) where {T}
   return T(exact_real(real(T), real(x)), exact_real(real(T), imag(x)))
-end
-
-function parameter_value(lowering::SQALowering{T}, symbol) where {T}
-  key = Symbolics.unwrap(symbol)
-  for (k, v) in lowering.parameters
-    isequal(Symbolics.unwrap(k), key) && return exact_scalar(T, v)
-  end
-  return throw(
-    ArgumentError("the native expansion needs a numeric value for parameter $symbol")
-  )
-end
-
-function exact_root(x::Integer, q::Int)
-  x < 0 && isodd(q) && return -exact_root(-x, q)
-  x < 0 && throw(ArgumentError("an even root of a negative parameter is not real"))
-  r = round(BigInt, big(x)^(1 / q))
-  for candidate in (r - 1, r, r + 1)
-    candidate >= 0 && candidate^q == x && return candidate
-  end
-  return throw(
-    ArgumentError("the root of a parameter is irrational; supply exact jump rates instead")
-  )
-end
-
-function exact_power(x::T, exponent::Rational) where {T}
-  denominator(exponent) == 1 && return x^numerator(exponent)
-  iszero(imag(x)) || throw(ArgumentError("fractional powers need real parameters"))
-  r = real(x)
-  q = denominator(exponent)
-  root = exact_root(numerator(r), q) // exact_root(denominator(r), q)
-  return T(root)^numerator(exponent)
 end
 
 function lower_coefficient(lowering::SQALowering{T}, c::SQA.CNum) where {T}
@@ -176,11 +150,13 @@ function lower_coefficient(lowering::SQALowering{T}, c::SQA.CNum) where {T}
   )
   value = zero(T)
   for monomial in tail.terms
-    term = exact_scalar(T, monomial.scalar)
-    for (symbol, exponent) in zip(monomial.syms, monomial.exps)
-      term *= exact_power(parameter_value(lowering, symbol), exponent)
-    end
-    value += term
+    isempty(monomial.syms) || throw(
+      ArgumentError(
+        "the native expansion needs numeric coefficients; substitute a value for " *
+        "$(first(monomial.syms))",
+      ),
+    )
+    value += exact_scalar(T, monomial.scalar)
   end
   return value
 end
@@ -267,14 +243,6 @@ function site_operator(lowering::SQALowering, s::Int, p::Int, q::Int, r::Int...)
   return qadd(SQA.Transition(name, p, q, index, SQA.NO_INDEX, site.ground, site.levels))
 end
 
-function sqa_scalar(x::Complex{<:Rational})
-  try
-    return Complex{Rational{Int}}(x)
-  catch error
-    error isa InexactError || rethrow()
-    return ComplexF64(x)
-  end
-end
 sqa_scalar(x::Number) = x
 
 function lift_operator(lowering::SQALowering, X::AlgebraOperator)

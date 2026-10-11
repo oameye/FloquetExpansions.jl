@@ -50,7 +50,6 @@ end
   @test same(
     effective_generator(native), liouvillian(hamiltonian(native); channels=Tuple(jumps))
   )
-  # Every finite truncation is completely positive: the Kossakowski matrix is PSD at any ω.
   C = kossakowski(native)
   for value in (3.0, 10.0, 100.0)
     numeric = [
@@ -89,4 +88,42 @@ end
     ]
     @test eigmin(Hermitian(numeric)) >= -1e-12
   end
+end
+
+@testset "GKSLNormalForm rejects what it cannot expand exactly" begin
+  H, a = kerr_hamiltonian()
+  jumps = (jump(a, 4 // 5),)
+  @variables κ::Real
+  @test_throws "order must be >= 1" floquet_expansion(
+    H, ω, t, GKSLNormalForm(), 0; channels=jumps
+  )
+  @test_throws "static gauge that is not polynomial" floquet_expansion(
+    H, ω, t, GKSLNormalForm(), 7; channels=jumps
+  )
+  @test_throws "needs numeric coefficients" floquet_expansion(
+    H, ω, t, GKSLNormalForm(), 3; channels=(jump(a, κ),)
+  )
+  @test_throws "floating-point" floquet_expansion(
+    H + 0.4 * (a + a') * cos(ω * t), ω, t, GKSLNormalForm(), 3; channels=jumps
+  )
+  @test_throws "floating-point" floquet_expansion(
+    H, ω, t, GKSLNormalForm(), 3; channels=(jump(a, 0.8),)
+  )
+  shared = FockSpace(:shared)
+  a = Destroy(shared, :a)
+  b = Destroy(shared, :b)
+  two_names =
+    (1 // 2) * a' * a + (3 // 10) * b' * b * b' * b + (2 // 5) * (a + a') * cos(ω * t)
+  @test_throws "single operator name" floquet_expansion(
+    two_names, ω, t, GKSLNormalForm(), 3; channels=jumps
+  )
+  not_hermitian = PeriodicGenerator(
+    Dict(
+      0 => hamiltonian_action(a),
+      1 => hamiltonian_action(a + a'),
+      -1 => hamiltonian_action(a + a'),
+    ),
+    ω,
+  )
+  @test_throws "not of GKSL form" floquet_expansion(not_hermitian, GKSLNormalForm(), 3)
 end

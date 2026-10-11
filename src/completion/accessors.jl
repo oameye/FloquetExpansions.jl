@@ -30,8 +30,8 @@ end
 """
     dissipative_frame(expansion::FloquetExpansion)
 
-Return an independent copy of the ordered dissipative frame owned by a positively completed
-Floquet expansion.
+Return an independent copy of the ordered dissipative frame owned by a positively completed or
+[`GKSLNormalForm`](@ref) Floquet expansion.
 """
 function dissipative_frame(
   expansion::FloquetExpansion{G,P,E,C,R}
@@ -42,8 +42,9 @@ end
 """
     channels(expansion::FloquetExpansion)
 
-Return the completed physical channels. Together with [`hamiltonian`](@ref), these channels
-reconstruct [`effective_generator`](@ref) exactly.
+Return the physical channels of a positively completed or [`GKSLNormalForm`](@ref) Floquet
+expansion. Together with [`hamiltonian`](@ref), these channels reconstruct
+[`effective_generator`](@ref) exactly.
 """
 function channels(
   expansion::FloquetExpansion{G,P,E,C,R}
@@ -55,7 +56,7 @@ end
     positivity_conditions(expansion::FloquetExpansion)
 
 Return scalar conditions assumed nonnegative on the symbolic stratum used by positive
-completion.
+completion. A [`GKSLNormalForm`](@ref) expansion has numeric coefficients and returns none.
 """
 function positivity_conditions(
   expansion::FloquetExpansion{G,P,E,C,R}
@@ -67,7 +68,8 @@ end
     regularity_conditions(expansion::FloquetExpansion)
 
 Return scalar conditions assumed nonzero to remain on the fixed-rank symbolic stratum used by
-positive completion.
+positive completion. A [`GKSLNormalForm`](@ref) expansion has numeric coefficients and returns
+none.
 """
 function regularity_conditions(
   expansion::FloquetExpansion{G,P,E,C,R}
@@ -79,7 +81,8 @@ end
     factorization(expansion::FloquetExpansion)
 
 Return the algorithm-specific factorization data stored by a positively completed expansion.
-For [`Gram`](@ref) completion this is a [`GramFactorization`](@ref).
+For [`Gram`](@ref) completion this is a [`GramFactorization`](@ref). A [`GKSLNormalForm`](@ref)
+expansion returns internal expansion data, which is not part of the public interface.
 """
 function factorization(
   expansion::FloquetExpansion{G,P,E,C,R}
@@ -97,7 +100,7 @@ end
     kossakowski(expansion::FloquetExpansion)
 
 Return the finite completed Kossakowski matrix in [`dissipative_frame`](@ref). This no-frame
-form is defined for positively completed Liouvillian expansions.
+form is defined for positively completed and [`GKSLNormalForm`](@ref) Liouvillian expansions.
 """
 function kossakowski(
   expansion::FloquetExpansion{G,P,E,C,R}
@@ -114,8 +117,9 @@ end
 """
     kossakowski_component(expansion::FloquetExpansion, n::Int)
 
-Return the cached retained order-`n` Kossakowski contribution in the completed expansion's
-stored dissipative frame. Positive completion does not alter retained components.
+Return the cached retained order-`n` Kossakowski contribution in the stored dissipative frame of
+a positively completed or [`GKSLNormalForm`](@ref) expansion. Positive completion does not alter
+retained components.
 """
 function kossakowski_component(
   expansion::FloquetExpansion{G,P,E,C,R}, n::Int

@@ -8,7 +8,6 @@ struct NativeRealization{F<:DissipativeFrame,J<:RateWeightedJump,X} <: Completio
   factorization::X
   hamiltonian::SQA.QAdd
   generator::Liouvillian
-  virtual_orders::Vector{Int}
 end
 
 function lift_harmonics(lift::CoefficientLift, harmonics::Dict, wd::Symbolics.Num)
@@ -18,22 +17,14 @@ function lift_harmonics(lift::CoefficientLift, harmonics::Dict, wd::Symbolics.Nu
   return PeriodicGenerator(components, wd, zero(Liouvillian))
 end
 
-# At a virtual order the static gauge S_n is a formal operator that is never stored, so the
-# static harmonic of the micromotion generator is omitted and only the oscillatory harmonics
-# are returned.
-function micromotion_harmonics(data::NativeExpansionData, harmonics::Dict, n::Int)
-  haskey(data.recurrence.virtual, n) || return harmonics
-  return filter(pair -> first(pair) != 0, harmonics)
-end
-
 function native_micromotion_harmonics(data::NativeExpansionData, ::HoriDeprit, N::Int)
-  return [micromotion_harmonics(data, data.recurrence.kick[n + 1], n) for n in 1:N]
+  return [data.recurrence.kick[n + 1] for n in 1:N]
 end
 
 function native_micromotion_harmonics(data::NativeExpansionData, ::BlochFeshbach, N::Int)
   L0 = data.recurrence.E[1]
   generator = kick_log(data.recurrence.kick, one(L0), N)
-  return [micromotion_harmonics(data, generator[n + 1], n) for n in 1:N]
+  return [generator[n + 1] for n in 1:N]
 end
 
 function native_micromotion(
@@ -102,9 +93,6 @@ function retained_amplitudes(channel::GradedChannel, N::Int)
   ]
 end
 
-# Graded Kossakowski coefficients of the finite generator, in full frame coordinates: a
-# channel with rate w ε^o and amplitude Σ_k ε^k l_k contributes w l_k l_q^† at order
-# o + k + q.
 function native_finite_kossakowski(data::NativeExpansionData{T}, N::Int) where {T}
   n = length(data.representation.frame)
   graded = Dict{Int,Matrix{T}}()
@@ -202,10 +190,17 @@ function floquet_expansion_impl(
   provenance::R,
 ) where {R<:FloquetProvenance}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
-  parameters = native_parameters(generator)
-  isempty(parameters) ||
-    return symbolic_gksl_normal_form(generator, gauge, order, provenance, parameters)
-  data = native_expansion_data(gauge.algorithm, generator, order - 1, Dict{Any,Any}(), 3)
+  data = try
+    native_expansion_data(gauge.algorithm, generator, order - 1, 3)
+  catch error
+    error isa NativePositivityError || rethrow()
+    throw(
+      ArgumentError(
+        "order $order of the GKSL normal form needs a static gauge that is not polynomial; " *
+        "lower the requested order",
+      ),
+    )
+  end
   return native_floquet_expansion(data, generator, gauge, provenance)
 end
 
@@ -260,7 +255,6 @@ function native_floquet_expansion(
     native_factorization(data, coefficients),
     H,
     finite,
-    sort!(collect(keys(data.recurrence.virtual))),
   )
   return FloquetExpansion(
     generator, micromotion, effective, gauge, order, realization, provenance

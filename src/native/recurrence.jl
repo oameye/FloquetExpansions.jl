@@ -8,7 +8,6 @@ struct NativeRecurrence{X,O,T}
   kick::Vector{Harmonics{X}}
   channels::Vector{GradedChannel{T}}
   known_gram::Vector{Matrix{T}}
-  virtual::Dict{Int,X}
 end
 
 function harmonic_combine(A::Harmonics{X}, B::Harmonics{X}, α::Number, β::Number) where {X}
@@ -199,21 +198,26 @@ function check_native_coefficient(representation, E, channels, order, dimension,
   return nothing
 end
 
+function check_gksl_form(representation, E, tolerance)
+  H = native_hamiltonian(representation, E)
+  C = native_kossakowski(representation, E)
+  native_matches(representation, E, native_gksl(representation, H, C), 20 * tolerance) ||
+    throw(
+      ArgumentError(
+        "the averaged generator is not of GKSL form; it is not trace preserving " *
+        "or its jump part is not a dissipator",
+      ),
+    )
+  return nothing
+end
+
 function accept_native_step!(channels, indices, step, order)
   store_corrections!(channels, indices, step.correction, order)
   store_births!(channels, step.solution.newborn, step.births, order)
   return channels
 end
 
-function record_virtual!(virtual::Dict, step::NativeStaticStep, order::Int)
-  step.virtual && (virtual[order] = step.defect)
-  return virtual
-end
-
-# At a virtual order the retained coefficient differs from the Hori-Deprit average by the
-# commutator with a formal static gauge, so the check applies to stored slots only.
 function check_hd_slot(representation, average, step::NativeStaticStep, tolerance)
-  step.virtual && return nothing
   native_matches(representation, average, step.E, 20 * tolerance) || throw(
     ArgumentError("HD accepted static slot does not reproduce the retained coefficient")
   )
@@ -223,22 +227,18 @@ end
 function native_recurrence(
   algorithm::Union{BlochFeshbach,HoriDeprit},
   representation::NativeRepresentation,
-  inverse::HomologicalInverse,
   L::Harmonics,
   leading::AbstractMatrix{<:Number},
   N::Int,
   tolerance::Float64,
 )
   weights = ones(eltype(leading), size(leading, 2))
-  return native_recurrence(
-    algorithm, representation, inverse, L, leading, weights, N, tolerance
-  )
+  return native_recurrence(algorithm, representation, L, leading, weights, N, tolerance)
 end
 
 function native_recurrence(
   ::BlochFeshbach,
   representation::NativeRepresentation,
-  inverse::HomologicalInverse,
   L::Harmonics{X},
   leading::AbstractMatrix{T},
   weights::AbstractVector{<:Number},
@@ -253,16 +253,16 @@ function native_recurrence(
   dimension = size(leading, 1)
   channels = initial_native_channels(leading, weights)
   check_native_coefficient(representation, L0, channels, 0, dimension, tolerance)
+  check_gksl_form(representation, L0, tolerance)
 
   E = X[L0]
   H = [native_hamiltonian(representation, L0)]
   S = X[]
   slots = X[]
   known_products = Matrix{T}[]
-  virtual = Dict{Int,X}()
   Y = Harmonics{X}[Harmonics{X}(0 => identity)]
-  N == 0 && return NativeRecurrence(E, S, slots, H, Y, channels, known_products, virtual)
-  families = native_gauge_families(representation, inverse, L0)
+  N == 0 && return NativeRecurrence(E, S, slots, H, Y, channels, known_products)
+  families = native_gauge_families(representation, L0)
   push!(Y, harmonic_integral(L))
 
   for order in 1:N
@@ -274,10 +274,9 @@ function native_recurrence(
     known = known_gram(channels, order, dimension)
     indices, active = active_channels(channels, order, dimension)
     rates = active_weights(channels, indices)
-    step = native_order_step(
-      representation, inverse, families, L0, Vhat, known, active, rates, tolerance, order, N
+    step = native_static_step(
+      representation, families, L0, Vhat, known, active, rates, tolerance
     )
-    record_virtual!(virtual, step, order)
 
     push!(S, step.S)
     push!(slots, base + step.S)
@@ -293,13 +292,12 @@ function native_recurrence(
       push!(Y, harmonic_integral(bf_static_residual(L, Y, E, order, Y[order + 1])))
     end
   end
-  return NativeRecurrence(E, S, slots, H, Y, channels, known_products, virtual)
+  return NativeRecurrence(E, S, slots, H, Y, channels, known_products)
 end
 
 function native_recurrence(
   ::HoriDeprit,
   representation::NativeRepresentation,
-  inverse::HomologicalInverse,
   L::Harmonics{X},
   leading::AbstractMatrix{T},
   weights::AbstractVector{<:Number},
@@ -314,16 +312,16 @@ function native_recurrence(
   dimension = size(leading, 1)
   channels = initial_native_channels(leading, weights)
   check_native_coefficient(representation, L0, channels, 0, dimension, tolerance)
+  check_gksl_form(representation, L0, tolerance)
 
   E = X[L0]
   H = [native_hamiltonian(representation, L0)]
   S = X[]
   slots = X[]
   known_products = Matrix{T}[]
-  virtual = Dict{Int,X}()
   G = Harmonics{X}[Harmonics{X}(), harmonic_integral(L)]
-  N == 0 && return NativeRecurrence(E, S, slots, H, G, channels, known_products, virtual)
-  families = native_gauge_families(representation, inverse, L0)
+  N == 0 && return NativeRecurrence(E, S, slots, H, G, channels, known_products)
+  families = native_gauge_families(representation, L0)
 
   for order in 1:N
     truncated = hd_truncated_generator(G, order)
@@ -335,10 +333,9 @@ function native_recurrence(
     known = known_gram(channels, order, dimension)
     indices, active = active_channels(channels, order, dimension)
     rates = active_weights(channels, indices)
-    step = native_order_step(
-      representation, inverse, families, L0, Vhat, known, active, rates, tolerance, order, N
+    step = native_static_step(
+      representation, families, L0, Vhat, known, active, rates, tolerance
     )
-    record_virtual!(virtual, step, order)
 
     push!(S, step.S)
     push!(slots, base + step.S)
@@ -354,5 +351,5 @@ function native_recurrence(
     check_hd_slot(representation, harmonic_average(W, zero_element), step, tolerance)
     order < N && push!(G, harmonic_integral(W))
   end
-  return NativeRecurrence(E, S, slots, H, G, channels, known_products, virtual)
+  return NativeRecurrence(E, S, slots, H, G, channels, known_products)
 end

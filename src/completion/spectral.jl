@@ -300,10 +300,6 @@ function expand_scalar(z::CompletionScalar)
   )
 end
 
-# Each branch contributes rate * vector * vector' / norm. The entries are kept as sums of
-# per-branch quotients with expanded numerators: a gcd-based `simplify` of such sums overflows
-# `Rational{Int}` already for the order-five driven qubit, and every later identity test is
-# structural (`expanded_conjugate_pair`).
 function spectral_completed_matrix(
   rates::Vector{SQA.CNum},
   vectors::Vector{Vector{CompletionScalar}},
@@ -352,8 +348,6 @@ function spectral_completed_channels(
     end
     operator = SQA.simplify(operator)
     iszero(operator) && continue
-    # Pass the real rational rate as a `Num`: converting a symbolic quotient to `SQA.CNum`
-    # introduces complex floating constants that defeat the provably-real rate check.
     channel_rate = real(simplify_scalar(completion_scalar(rate) / norms[branch]))
     push!(result, jump(operator, channel_rate))
   end

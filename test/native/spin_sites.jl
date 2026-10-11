@@ -9,10 +9,8 @@ const FE = FloquetExpansions
 const Q = Complex{Rational{BigInt}}
 const R = Rational{BigInt}
 
-@variables ω::Real t::Real Δ::Real
+@variables ω::Real t::Real
 
-# Normal-order a word in the letters :p (S₊), :z (S_z), :m (S₋) with the three PBW rewriting
-# rules, independently of the closed-form product under test.
 const REWRITES = Dict(
   (:z, :p) => [([:p, :z], 1), ([:p], 1)],
   (:m, :z) => [([:z, :m], 1), ([:m], 1)],
@@ -125,9 +123,9 @@ end
   h = FockSpace(:c) ⊗ SpinSpace(:S)
   a = Destroy(h, :a)
   Sx, Sy, Sz = (Spin(h, :S, k) for k in 1:3)
-  H = Δ * Sz + (2 // 5) * (a + a') * Sx * cos(ω * t)
+  H = (1 // 2) * Sz + (2 // 5) * (a + a') * Sx * cos(ω * t)
   G = harmonics(liouvillian(H; channels=(jump(Sx - im * Sy, 4 // 5),)), ω, t)
-  lowering = FE.SQALowering{Complex{Rational{Int128}}}(G, Dict(Δ => 1 // 2))
+  lowering = FE.SQALowering{Complex{Rational{Int128}}}(G)
   @test lowering.algebra.offsets == [0, 2]
   lowered(op) = FE.lower_qadd(lowering, FE.qadd(op))
   @test lowered(Sx * Sy - Sy * Sx) == im * lowered(Sz)
@@ -144,13 +142,8 @@ end
     Y = FE.algebra_operator(lowering.algebra, [(monomial, 1)])
     @test FE.lower_qadd(lowering, FE.lift_operator(lowering, Y)) == Y
   end
-  incomplete = FE.SQALowering{Complex{Rational{Int128}}}(G, Dict{Any,Any}())
-  @test_throws ArgumentError FE.lower_generator(incomplete, G)
 end
 
-# The Van Vleck reference is computed in Float64, so its lowering is compared with a tolerance.
-# Its floats lower to rationals with large denominators that overflow Int128 sums, hence the
-# reference is lowered in Rational{BigInt} and both sides are compared entrywise in ComplexF64.
 function nearly_same(A::FE.AlgebraSuperoperator, B::FE.AlgebraSuperoperator)
   difference(k) = ComplexF64(get(A.terms, k, 0)) - ComplexF64(get(B.terms, k, 0))
   return all(abs(difference(k)) <= 1e-12 for k in union(keys(A.terms), keys(B.terms)))
@@ -165,14 +158,12 @@ function driven_spin(detuning)
   return H, Sm
 end
 
-const SPIN_VALUES = Dict(Δ => 1 // 2)
-
 @testset "native expansion of a driven spin equals Van Vleck" begin
-  H, Sm = driven_spin(Δ)
+  H, Sm = driven_spin(1 // 2)
   G = harmonics(liouvillian(H; channels=(jump(Sm, 4 // 5),)), ω, t)
   for N in (2, 3), algorithm in (BlochFeshbach(), HoriDeprit())
-    data = FE.native_expansion_data(algorithm, G, N, SPIN_VALUES, 3)
-    exact = FE.SQALowering{Q}(G, SPIN_VALUES)
+    data = FE.native_expansion_data(algorithm, G, N, 3)
+    exact = FE.SQALowering{Q}(G)
     reference = floquet_expansion(G, VanVleck(; algorithm), N + 1)
     @test all(iszero, data.recurrence.S)
     for n in 0:N

@@ -210,7 +210,6 @@ function structurally_nonpositive_product(
   return !isnothing(coefficient) && coefficient < 0
 end
 
-# Sign implied by `x` matching ± an asserted positivity condition, or `nothing`.
 function asserted_condition_sign(
   x::CompletionScalar, conditions::CompletionConditions
 )::Union{Nothing,StructuralSign}

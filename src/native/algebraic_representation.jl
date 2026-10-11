@@ -75,20 +75,6 @@ function frame_operator(representation::AlgebraicLiouvilleRepresentation, μ::In
   return algebra_operator(representation.algebra, [(representation.frame[μ], 1)])
 end
 
-function frame_coordinates(
-  representation::AlgebraicLiouvilleRepresentation{T}, X::AlgebraOperator
-) where {T}
-  coordinates = exact_zeros(T, length(representation.frame))
-  identity = identity_monomial(representation.algebra)
-  for (m, c) in X.terms
-    m == identity && continue
-    k = get(representation.index, m, 0)
-    k == 0 && throw(NativeFrameError("operator has a monomial outside the algebraic frame"))
-    coordinates[k] = c
-  end
-  return coordinates
-end
-
 function frame_operator(
   representation::AlgebraicLiouvilleRepresentation, coordinates::AbstractVector
 )
@@ -163,12 +149,6 @@ end
 
 native_matches(::AlgebraicLiouvilleRepresentation, A, B, ::Real) = A == B
 
-function native_dark_target(
-  representation::AlgebraicLiouvilleRepresentation, residual, known, active, ::Real
-)
-  return dark_sandwich(exact_dark_map(active, representation.metric), residual - known)
-end
-
 function native_slot_solve(
   representation::AlgebraicLiouvilleRepresentation{T,R},
   residual,
@@ -228,8 +208,6 @@ function hermitian_generators(
   return generators
 end
 
-# Restricts a direction filter to frame indices of bounded degree. A callable struct rather
-# than a closure, so the captured filter stays a concrete type parameter.
 struct RestrictedKeep{K}
   small::Vector{Int}
   keep::K
@@ -278,13 +256,7 @@ function algebraic_gauge_directions(
   return directions
 end
 
-function native_gauge_directions(representation::AlgebraicLiouvilleRepresentation)
-  return algebraic_gauge_directions(representation, (_, _) -> true)
-end
-
-function native_gauge_families(
-  representation::AlgebraicLiouvilleRepresentation, ::NoHomologicalInverse, L0
-)
+function native_gauge_families(representation::AlgebraicLiouvilleRepresentation, L0)
   return [
     native_gauge_family(
       representation, algebraic_gauge_directions(representation, (_, _) -> true, degree), L0

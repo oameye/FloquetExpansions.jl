@@ -18,7 +18,6 @@ const R = Rational{BigInt}
   @test x * p - p * x == im * identity
   @test adjoint(x) == x
   @test adjoint(p) == p
-  # With Hilbert metric (1, 2) the adjoint of |1)(2| is (g_1 / g_2) |2)(1|.
   @test adjoint(σ) == FE.algebra_operator(algebra, [([0, 0, 0, 0, 2, 1], 1 // 2)])
   @test σ * adjoint(σ) + adjoint(σ) * σ == (1 // 2) * identity
   @test a * x == x * a

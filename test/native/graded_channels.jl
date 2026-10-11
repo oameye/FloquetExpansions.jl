@@ -14,15 +14,12 @@ const FE = FloquetExpansions
   outer(x, y) = x * y'
   hermitian(X) = (X + X') / 2
   @test @inferred(FE.gram_coefficient(channels, 0, 3)) == outer(r0, r0)
-  # The order-one rate of the channel born at order one is its leading square.
   @test FE.gram_coefficient(channels, 1, 3) == hermitian(2 * outer(r1, r0)) + outer(u0, u0)
   @test FE.gram_coefficient(channels, 2, 3) == hermitian(2 * outer(r2, r0)) + outer(r1, r1)
   @test eltype(FE.gram_coefficient(channels, 2, 3)) == T
 
-  # K_n^< excludes every product containing a leading amplitude.
   @test @inferred(FE.known_gram(channels, 2, 3)) == outer(r1, r1)
   @test FE.known_gram(channels[1:1], 3, 3) == hermitian(2 * outer(r2, r1))
-  # The order-one channel still lacks its first correction, so K_3^< is not yet defined.
   @test_throws ArgumentError FE.known_gram(channels, 3, 3)
   @test iszero(FE.known_gram(channels, 1, 3))
   @test_throws ArgumentError FE.known_gram(channels, 5, 3)
@@ -37,7 +34,6 @@ end
 
   FE.store_births!(channels, reshape(T[0, 2], :, 1), T[1], 1)
   @test [channel.onset for channel in channels] == [0, 1]
-  # A newborn is not active at its own birth order.
   @test first(FE.active_channels(channels, 1, 2)) == [1]
   @test first(FE.active_channels(channels, 2, 2)) == [1, 2]
 

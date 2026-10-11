@@ -229,7 +229,6 @@ function spectral_numeric_checks(completion, expansion, frame, N, substitutions)
     @test minimum(LinearAlgebra.eigvals(LinearAlgebra.Hermitian(completed))) >= -1e-12
     push!(errors, LinearAlgebra.opnorm(completed - retained))
   end
-  # The completion changes only terms beyond the retained order N.
   @test log2(errors[1] / errors[2]) >= N + 1 - 0.1
 end
 
@@ -243,7 +242,6 @@ end
   frame = DissipativeFrame(σm, σp, σz)
   @variables E::Real
 
-  # Symbolic decay at order 5: the dark σ₊ branch opens at rate order 4.
   symbolic = floquet_expansion(
     (1 // 2) * σz + E * cos(ω * t) * σx, ω, t, VanVleck(), 5; channels=(jump(σm, γ),)
   )
@@ -251,7 +249,6 @@ end
   @test factorization(completion).onsets == [0, 4, 2]
   spectral_numeric_checks(completion, symbolic, frame, 4, Dict(E => 0.6, γ => 0.3))
 
-  # Full-rank exact rational rates.
   full_rank = floquet_expansion(
     (1 // 2) * σz + (1 // 2) * cos(ω * t) * σx,
     ω,
@@ -264,7 +261,6 @@ end
   @test factorization(completion).onsets == [0, 0, 0]
   spectral_numeric_checks(completion, full_rank, frame, 2, Dict{Symbolics.Num,Float64}())
 
-  # Floating-point parameters leave only roundoff outside the frame.
   floating = floquet_expansion(
     (1 // 2) * σz + 0.5 * cos(ω * t) * σx, ω, t, VanVleck(), 5; channels=(jump(σm, 0.2),)
   )
