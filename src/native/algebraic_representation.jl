@@ -147,7 +147,7 @@ function native_gksl(
   return result
 end
 
-native_matches(::AlgebraicLiouvilleRepresentation, A, B, ::Real) = A == B
+native_matches(::AlgebraicLiouvilleRepresentation, A, B) = A == B
 
 function native_slot_solve(
   representation::AlgebraicLiouvilleRepresentation{T,R},
@@ -156,7 +156,6 @@ function native_slot_solve(
   active,
   weights,
   family,
-  ::Real,
 ) where {T,R}
   solution = native_exact_static_solve(
     residual,
@@ -191,12 +190,12 @@ function native_gauge_metric(
 end
 
 function hermitian_generators(
-  representation::AlgebraicLiouvilleRepresentation{T,R}, @nospecialize(keep)
+  representation::AlgebraicLiouvilleRepresentation{T,R}, selected::AbstractVector{Bool}
 ) where {T,R}
   generators = AlgebraOperator{T,R}[]
   seen = Set{Monomial}()
   for (μ, F) in pairs(representation.frame)
-    (F in seen || !(keep(μ, μ)::Bool)) && continue
+    (F in seen || !selected[μ]) && continue
     X = frame_operator(representation, μ)
     Xd = adjoint(X)
     for (m, _) in Xd.terms
@@ -208,36 +207,20 @@ function hermitian_generators(
   return generators
 end
 
-struct RestrictedKeep{K}
-  small::Vector{Int}
-  keep::K
-end
-
-(r::RestrictedKeep)(μ::Int, ν::Int) = μ in r.small && r.keep(μ, ν)::Bool
-
 function algebraic_gauge_directions(
-  representation::AlgebraicLiouvilleRepresentation{T,R}, @nospecialize(keep)
-) where {T,R}
-  return algebraic_gauge_directions(representation, keep, representation.gauge_degree)
-end
-
-function algebraic_gauge_directions(
-  representation::AlgebraicLiouvilleRepresentation{T,R},
-  @nospecialize(keep),
-  gauge_degree::Int,
+  representation::AlgebraicLiouvilleRepresentation{T,R}, gauge_degree::Int
 ) where {T,R}
   algebra = representation.algebra
   n = length(representation.frame)
-  degree(μ) = monomial_degree(algebra, representation.frame[μ])
-  small = Int[μ for μ in 1:n if degree(μ) <= gauge_degree]
+  selected = [monomial_degree(algebra, F) <= gauge_degree for F in representation.frame]
+  small = findall(selected)
   directions = AlgebraSuperoperator{T,R}[]
   zero_frame = exact_zeros(T, n, n)
-  for h in hermitian_generators(representation, RestrictedKeep(small, keep))
+  for h in hermitian_generators(representation, selected)
     push!(directions, native_gksl(representation, h, zero_frame))
   end
   empty_hamiltonian = AlgebraOperator{T,R}(algebra, Dict{Monomial,T}())
   for (i, μ) in pairs(small), ν in small[i:end]
-    keep(μ, ν)::Bool || continue
     if μ == ν
       unit = copy(zero_frame)
       unit[μ, μ] = one(T)
@@ -259,7 +242,7 @@ end
 function native_gauge_families(representation::AlgebraicLiouvilleRepresentation, L0)
   return [
     native_gauge_family(
-      representation, algebraic_gauge_directions(representation, (_, _) -> true, degree), L0
+      representation, algebraic_gauge_directions(representation, degree), L0
     ) for degree in 1:(representation.gauge_degree)
   ]
 end

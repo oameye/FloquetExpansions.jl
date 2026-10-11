@@ -67,15 +67,15 @@ end
 @inline coefficient_zero()::SQA.CNum = convert(SQA.CNum, 0)
 @inline coefficient_one()::SQA.CNum = convert(SQA.CNum, 1)
 @inline function simplify_coefficient(value::SQA.CNum)::SQA.CNum
-  return SQA.simplify(value)::SQA.CNum
+  return SQA.simplify(value)
 end
 @inline qadd_isone(value::SQA.QAdd)::Bool = isone(value)::Bool
-@inline qadd_iszero(value::SQA.QAdd)::Bool = iszero(value)::Bool
-@inline liouvillian_iszero(value::Liouvillian)::Bool = iszero(value)::Bool
+@inline qadd_iszero(value::SQA.QAdd)::Bool = iszero(value)
+@inline liouvillian_iszero(value::Liouvillian)::Bool = iszero(value)
 @inline qadd_term_pairs(value::SQA.QAdd) = pairs(getfield(value, :arguments))
 
 function canonical_qadd(operator::SQA.QField)::SQA.QAdd
-  result = SQA.simplify(SQA.expand_completeness(qadd(operator)))::SQA.QAdd
+  result = SQA.simplify(SQA.expand_completeness(qadd(operator)))
   isempty(result.indices) || throw(
     ArgumentError("GKSL coordinates do not support operators with bound symbolic sums")
   )
@@ -97,7 +97,7 @@ function projected_operator(operator::SQA.QField)::SQA.QAdd
   projected = if iszero(scalar)
     canonical
   else
-    SQA.simplify(canonical - scalar * one(canonical))::SQA.QAdd
+    SQA.simplify(canonical - scalar * one(canonical))
   end
   qadd_iszero(projected) && throw(
     ArgumentError("a dissipative-frame direction cannot be proportional to the identity")

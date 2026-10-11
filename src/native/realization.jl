@@ -30,7 +30,7 @@ function native_micromotion_harmonics(data::NativeExpansionData, ::BlochFeshbach
 end
 
 function native_micromotion(
-  data::NativeExpansionData, lift::CoefficientLift, algorithm, wd, N::Int
+  data::NativeExpansionData, lift::CoefficientLift, algorithm, wd::Symbolics.Num, N::Int
 )
   return [
     lift_harmonics(lift, harmonics, wd) for
@@ -39,7 +39,11 @@ function native_micromotion(
 end
 
 function native_channel_operator(
-  data::NativeExpansionData, lift::CoefficientLift, channel::GradedChannel, wd, N::Int
+  data::NativeExpansionData,
+  lift::CoefficientLift,
+  channel::GradedChannel,
+  wd::Symbolics.Num,
+  N::Int,
 )
   operator = zero(SQA.QAdd)
   for (k, coefficients) in pairs(channel.coefficients)
@@ -51,7 +55,9 @@ function native_channel_operator(
   return SQA.simplify(operator)
 end
 
-function native_channels(data::NativeExpansionData, lift::CoefficientLift, wd, N::Int)
+function native_channels(
+  data::NativeExpansionData, lift::CoefficientLift, wd::Symbolics.Num, N::Int
+)
   return RateWeightedJump{SQA.QAdd}[
     jump(
       native_channel_operator(data, lift, channel, wd, N),
@@ -167,7 +173,7 @@ function native_finite_superoperators(
 end
 
 function native_finite_generator(
-  data::NativeExpansionData, lift::CoefficientLift, graded, wd, N::Int
+  data::NativeExpansionData, lift::CoefficientLift, graded, wd::Symbolics.Num, N::Int
 )
   generator = Liouvillian(LiouvillianTerms())
   for (order, G) in native_finite_superoperators(data, graded, N)
@@ -202,7 +208,9 @@ native_positivity_conditions(::ExactCoefficients) = SQA.CNum[]
 
 native_factorization(data::NativeExpansionData, ::ExactCoefficients) = data
 
-function native_hamiltonian_series(data::NativeExpansionData, lift::CoefficientLift, wd)
+function native_hamiltonian_series(
+  data::NativeExpansionData, lift::CoefficientLift, wd::Symbolics.Num
+)
   H = zero(SQA.QAdd)
   for (n, Hn) in pairs(data.recurrence.H)
     H = H + reattach(lift_operator(lift, Hn), wd, n - 1)

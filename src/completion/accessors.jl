@@ -24,7 +24,7 @@ function hamiltonian(
   C<:Union{PositiveCompletion,NativeRealization},
   R<:FloquetProvenance,
 }
-  return stored_completion_hamiltonian(expansion)::SQA.QAdd
+  return stored_completion_hamiltonian(expansion)
 end
 
 """

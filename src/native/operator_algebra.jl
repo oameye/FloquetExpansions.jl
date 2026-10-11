@@ -14,8 +14,7 @@ phase_site(::Type{R}) where {R} = AlgebraSite{R}(PHASE_SITE, 0, R[])
 spin_site(::Type{R}) where {R} = AlgebraSite{R}(SPIN_SITE, 0, R[])
 function level_site(hilbert::Vector{R}) where {R}
   length(hilbert) >= 2 || throw(ArgumentError("a level site needs at least two levels"))
-  all(>(0), hilbert)::Bool ||
-    throw(ArgumentError("a level site needs a positive Hilbert metric"))
+  all(>(0), hilbert) || throw(ArgumentError("a level site needs a positive Hilbert metric"))
   return AlgebraSite{R}(LEVEL_SITE, length(hilbert), hilbert)
 end
 

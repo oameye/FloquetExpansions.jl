@@ -11,16 +11,7 @@ function completion_matrix(matrix::KossakowskiMatrix)::CompletionMatrix
   return result
 end
 
-function is_exact_numeric_radical(node)::Bool
-  Symbolics.iscall(node) && Symbolics.operation(node) === sqrt || return false
-  arguments = Symbolics.arguments(node)
-  length(arguments) == 1 || return false
-  argument = Symbolics.unwrap_const(only(arguments))
-  return argument isa Union{Int,Rational{Int}} && argument > 1
-end
-
-function exact_numeric_radical_replacement(node)::Symbolics.Num
-  rational = Rational{Int}(Symbolics.unwrap_const(only(Symbolics.arguments(node))))
+function exact_numeric_radical_replacement(rational::Rational{Int})::Symbolics.Num
   reciprocal_root = Symbolics.Num(
     Symbolics.term(sqrt, Symbolics.unwrap(Symbolics.Num(inv(rational))); type=Real)
   )
@@ -31,22 +22,28 @@ function collect_exact_numeric_radicals!(
   replacements::Dict{Symbolics.Num,Symbolics.Num}, node
 )::Dict{Symbolics.Num,Symbolics.Num}
   Symbolics.iscall(node) || return replacements
-  if is_exact_numeric_radical(node)
-    replacements[Symbolics.Num(node)] = exact_numeric_radical_replacement(node)
-    return replacements
+  arguments = Symbolics.arguments(node)
+  if Symbolics.operation(node) === sqrt && length(arguments) == 1
+    radicand = Symbolics.unwrap_const(only(arguments))
+    if radicand isa Union{Int,Rational{Int}} && radicand > 1
+      replacements[Symbolics.Num(node)] = exact_numeric_radical_replacement(
+        Rational{Int}(radicand)
+      )
+      return replacements
+    end
   end
-  for argument in Symbolics.arguments(node)
+  for argument in arguments
     collect_exact_numeric_radicals!(replacements, argument)
   end
   return replacements
 end
 
 function preserve_exact_numeric_radicals(value::Symbolics.Num)::Symbolics.Num
-  simplified = Symbolics.simplify(value)::Symbolics.Num
+  simplified = Symbolics.simplify(value)
   replacements = Dict{Symbolics.Num,Symbolics.Num}()
   collect_exact_numeric_radicals!(replacements, Symbolics.unwrap(simplified))
   isempty(replacements) && return simplified
-  return Symbolics.substitute(simplified, replacements)::Symbolics.Num
+  return Symbolics.substitute(simplified, replacements)
 end
 
 function coefficient_from_completion(value::CompletionScalar)::SQA.CNum
@@ -98,10 +95,10 @@ function retained_gksl_data(
   sizehint!(matrices, length(components))
   for index in eachindex(components)
     hamiltonian, matrix = extract_gksl(components[index], frame)
-    coherent = (coherent + reattach(hamiltonian, drive_frequency, index - 1))::SQA.QAdd
+    coherent = coherent + reattach(hamiltonian, drive_frequency, index - 1)
     push!(matrices, matrix)
   end
-  return RetainedGKSLData(SQA.simplify(coherent)::SQA.QAdd, matrices)
+  return RetainedGKSLData(SQA.simplify(coherent), matrices)
 end
 
 function physical_kossakowski_series(
@@ -119,7 +116,7 @@ function physical_kossakowski_series(
     end
     physical = coefficient_matrix(size(matrix, 1), size(matrix, 2))
     for entry in eachindex(matrix)
-      physical[entry] = simplify_coefficient((scale * matrix[entry])::SQA.CNum)
+      physical[entry] = simplify_coefficient(scale * matrix[entry])
     end
     push!(result, physical)
   end

@@ -230,7 +230,7 @@ function hermitian_congruence_eliminate_step!(
 
   for column in (k + 1):n, row in column:n
     correction = (reduced[row, k] * reduced[k, column] / pivot)::CompletionScalar
-    value = simplify_scalar((reduced[row, column] - correction)::CompletionScalar)
+    value = simplify_scalar(reduced[row, column] - correction)
     if row == column
       reduced[row, column] = hermitian_real(value)
     else

@@ -232,10 +232,10 @@ end
 function reattach(component::E, wd::Symbolics.Num, n::Int)::E where {E<:GeneratorComponent}
   iszero(n) && return component
   scale = inverse_drive_power(wd, n)
-  return (scale * component)::E
+  return scale * component
 end
 function reattach(generator::PeriodicGenerator{T}, n::Int) where {T<:GeneratorComponent}
-  return iszero(n) ? generator : generator.wd^(-n) * generator
+  return iszero(n) ? generator : inverse_drive_power(generator.wd, n) * generator
 end
 
 """
@@ -261,7 +261,7 @@ function effective_generator(
     result =
       result + reattach(expansion.effective_components[n + 1], expansion.generator.wd, n)
   end
-  return SQA.simplify(result)::E
+  return SQA.simplify(result)
 end
 
 """
@@ -279,8 +279,8 @@ function effective_component(
 ) where {G,P,E<:GeneratorComponent,C,R}
   0 <= n < expansion.order ||
     throw(ArgumentError("order $(n) is outside 0:$(expansion.order - 1)"))
-  component = reattach(expansion.effective_components[n + 1], expansion.generator.wd, n)::E
-  return SQA.simplify(component)::E
+  component = reattach(expansion.effective_components[n + 1], expansion.generator.wd, n)
+  return SQA.simplify(component)
 end
 
 """
@@ -299,11 +299,11 @@ See also [`effective_generator`](@ref), [`effective_component`](@ref), [`VanVlec
 function micromotion(
   expansion::FloquetExpansion{G,P,E,C,R}
 ) where {G,P<:PeriodicGenerator,E,C,R}
-  result = zero(expansion.generator)::P
+  result = zero(expansion.generator)
   for (order, component) in enumerate(expansion.micromotion_components)
-    result = (result + reattach(component, order))::P
+    result = result + reattach(component, order)
   end
-  return result::P
+  return result
 end
 
 function micromotion(
@@ -311,5 +311,5 @@ function micromotion(
 ) where {G,P<:PeriodicGenerator,E,C,R}
   1 <= n < expansion.order ||
     throw(ArgumentError("order $(n) is outside 1:$(expansion.order - 1)"))
-  return SQA.simplify(reattach(expansion.micromotion_components[n], n))::P
+  return SQA.simplify(reattach(expansion.micromotion_components[n], n))
 end

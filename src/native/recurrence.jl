@@ -188,24 +188,22 @@ function initial_native_channels(
   ]
 end
 
-function check_native_coefficient(representation, E, channels, order, dimension, tolerance)
+function check_native_coefficient(representation, E, channels, order, dimension)
   reconstructed = gram_coefficient(channels, order, dimension)
-  native_matches(
-    representation, native_kossakowski(representation, E), reconstructed, 20 * tolerance
-  ) || throw(ArgumentError("graded channel state failed coefficient reconstruction"))
+  native_matches(representation, native_kossakowski(representation, E), reconstructed) ||
+    throw(ArgumentError("graded channel state failed coefficient reconstruction"))
   return true
 end
 
-function check_gksl_form(representation, E, tolerance)
+function check_gksl_form(representation, E)
   H = native_hamiltonian(representation, E)
   C = native_kossakowski(representation, E)
-  native_matches(representation, E, native_gksl(representation, H, C), 20 * tolerance) ||
-    throw(
-      ArgumentError(
-        "the averaged generator is not of GKSL form; it is not trace preserving " *
-        "or its jump part is not a dissipator",
-      ),
-    )
+  native_matches(representation, E, native_gksl(representation, H, C)) || throw(
+    ArgumentError(
+      "the averaged generator is not of GKSL form; it is not trace preserving " *
+      "or its jump part is not a dissipator",
+    ),
+  )
   return true
 end
 
@@ -217,8 +215,8 @@ function accept_native_step!(channels, indices, step, order)
   return channels
 end
 
-function check_hd_slot(representation, average, step::NativeStaticStep, tolerance)
-  native_matches(representation, average, step.E, 20 * tolerance) || throw(
+function check_hd_slot(representation, average, step::NativeStaticStep)
+  native_matches(representation, average, step.E) || throw(
     ArgumentError("HD accepted static slot does not reproduce the retained coefficient")
   )
   return true
@@ -230,10 +228,9 @@ function native_recurrence(
   L::Harmonics,
   leading::AbstractMatrix{<:Number},
   N::Int,
-  tolerance::Float64,
 )
   weights = ones(eltype(leading), size(leading, 2))
-  return native_recurrence(algorithm, representation, L, leading, weights, N, tolerance)
+  return native_recurrence(algorithm, representation, L, leading, weights, N)
 end
 
 function native_recurrence(
@@ -243,7 +240,6 @@ function native_recurrence(
   leading::AbstractMatrix{T},
   weights::AbstractVector{<:Number},
   N::Int,
-  tolerance::Float64,
 ) where {X,T<:Number}
   N >= 0 || throw(ArgumentError("retained order must be nonnegative"))
   haskey(L, 0) || throw(ArgumentError("the averaged generator harmonic L_0 is required"))
@@ -252,8 +248,8 @@ function native_recurrence(
   zero_element = zero(L0)
   dimension = size(leading, 1)
   channels = initial_native_channels(leading, weights)
-  check_native_coefficient(representation, L0, channels, 0, dimension, tolerance)
-  check_gksl_form(representation, L0, tolerance)
+  check_native_coefficient(representation, L0, channels, 0, dimension)
+  check_gksl_form(representation, L0)
 
   E = X[L0]
   H = [native_hamiltonian(representation, L0)]
@@ -272,9 +268,7 @@ function native_recurrence(
     known = known_gram(channels, order, dimension)
     indices, active = active_channels(channels, order, dimension)
     rates = active_weights(channels, indices)
-    step = native_static_step(
-      representation, families, L0, Vhat, known, active, rates, tolerance
-    )
+    step = native_static_step(representation, families, L0, Vhat, known, active, rates)
 
     push!(S, step.S)
     push!(E, step.E)
@@ -282,7 +276,7 @@ function native_recurrence(
 
     Y[order + 1] = harmonic_with_static(Y[order + 1], base + step.S)
     accept_native_step!(channels, indices, step, order)
-    check_native_coefficient(representation, step.E, channels, order, dimension, tolerance)
+    check_native_coefficient(representation, step.E, channels, order, dimension)
 
     if order < N
       push!(Y, harmonic_integral(bf_static_residual(L, Y, E, order, Y[order + 1])))
@@ -298,7 +292,6 @@ function native_recurrence(
   leading::AbstractMatrix{T},
   weights::AbstractVector{<:Number},
   N::Int,
-  tolerance::Float64,
 ) where {X,T<:Number}
   N >= 0 || throw(ArgumentError("retained order must be nonnegative"))
   haskey(L, 0) || throw(ArgumentError("the averaged generator harmonic L_0 is required"))
@@ -307,8 +300,8 @@ function native_recurrence(
   zero_element = zero(L0)
   dimension = size(leading, 1)
   channels = initial_native_channels(leading, weights)
-  check_native_coefficient(representation, L0, channels, 0, dimension, tolerance)
-  check_gksl_form(representation, L0, tolerance)
+  check_native_coefficient(representation, L0, channels, 0, dimension)
+  check_gksl_form(representation, L0)
 
   E = X[L0]
   H = [native_hamiltonian(representation, L0)]
@@ -327,9 +320,7 @@ function native_recurrence(
     known = known_gram(channels, order, dimension)
     indices, active = active_channels(channels, order, dimension)
     rates = active_weights(channels, indices)
-    step = native_static_step(
-      representation, families, L0, Vhat, known, active, rates, tolerance
-    )
+    step = native_static_step(representation, families, L0, Vhat, known, active, rates)
 
     push!(S, step.S)
     push!(E, step.E)
@@ -337,10 +328,10 @@ function native_recurrence(
 
     G[order + 1] = harmonic_with_static(G[order + 1], base + step.S)
     accept_native_step!(channels, indices, step, order)
-    check_native_coefficient(representation, step.E, channels, order, dimension, tolerance)
+    check_native_coefficient(representation, step.E, channels, order, dimension)
 
     W = hd_generator_series(L, G, order)[order + 1]
-    check_hd_slot(representation, harmonic_average(W, zero_element), step, tolerance)
+    check_hd_slot(representation, harmonic_average(W, zero_element), step)
     order < N && push!(G, harmonic_integral(W))
   end
   return NativeRecurrence(E, S, H, G, channels)

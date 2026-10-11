@@ -266,10 +266,10 @@ function hcm_completed_rate(
   finite_root = completion_zero()
   for grade in 0:retained
     scale = completion_scalar(inverse_drive_power(wd, grade))
-    finite_root += (scale * root[grade + 1])::CompletionScalar
+    finite_root += scale * root[grade + 1]
   end
   onset_scale = completion_scalar(inverse_drive_power(wd, onset))
-  rate = (onset_scale * finite_root^2)::CompletionScalar
+  rate = onset_scale * finite_root^2
   return coefficient_from_completion(hermitian_real(simplify_scalar(rate))),
   onset,
   isodd(onset)
@@ -283,7 +283,7 @@ function finite_spectral_vector(
   for grade in 0:(length(vectors) - 1)
     scale = completion_scalar(inverse_drive_power(wd, grade))
     for index in 1:q
-      finite[index] += (scale * vectors[grade + 1][index])::CompletionScalar
+      finite[index] += scale * vectors[grade + 1][index]
     end
   end
   finite = [simplify_scalar(value) for value in finite]
@@ -313,9 +313,7 @@ function spectral_completed_matrix(
     norm = real(norms[branch])
     vector = vectors[branch]
     for row in 1:q, column in 1:q
-      numerator = expand_scalar(
-        (rate * vector[row] * conj(vector[column]))::CompletionScalar
-      )
+      numerator = expand_scalar(rate * vector[row] * conj(vector[column]))
       result[row, column] += complex(real(numerator) / norm, imag(numerator) / norm)
     end
   end

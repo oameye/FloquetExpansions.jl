@@ -89,14 +89,12 @@ function sandwich_pivot_matrix(L::Liouvillian, frame::DissipativeFrame)::Kossako
 end
 
 function cross_dissipator(left::SQA.QAdd, right::SQA.QAdd)::Liouvillian
-  identity = one(left)::SQA.QAdd
-  right_adjoint = adjoint(right)::SQA.QAdd
-  norm = (right_adjoint * left)::SQA.QAdd
-  return (
-    action(left, right_adjoint) +
-    action(norm, identity, -1 // 2) +
-    action(identity, norm, -1 // 2)
-  )::Liouvillian
+  identity = one(left)
+  right_adjoint = adjoint(right)
+  norm = right_adjoint * left
+  return action(left, right_adjoint) +
+         action(norm, identity, -1 // 2) +
+         action(identity, norm, -1 // 2)
 end
 
 function dissipative_liouvillian(
@@ -109,10 +107,9 @@ function dissipative_liouvillian(
   for row in 1:q, column in 1:q
     coefficient = simplify_coefficient(matrix[row, column])
     iszero(coefficient) && continue
-    dissipator_term = (
+    dissipator_term =
       coefficient * cross_dissipator(frame.operators[row], frame.operators[column])
-    )::Liouvillian
-    result = (result + dissipator_term)::Liouvillian
+    result = result + dissipator_term
   end
   return canonical_liouvillian(result)
 end
@@ -303,17 +300,17 @@ function residual_hamiltonian_canonical(canonical::Liouvillian)::SQA.QAdd
   H = zero(SQA.QAdd)
   for (left, right, coefficient) in terms(canonical)
     if !qadd_isone(left) && qadd_isone(right)
-      H = (H + (im * coefficient) * left)::SQA.QAdd
+      H = H + (im * coefficient) * left
     elseif qadd_isone(left) && !qadd_isone(right)
       continue
     else
       throw(GKSLCoordinateError("Liouvillian residual is not a Hamiltonian commutator"))
     end
   end
-  H = SQA.simplify(H)::SQA.QAdd
+  H = SQA.simplify(H)
   liouvillian_iszero(canonical_liouvillian(canonical - hamiltonian_action(H))) ||
     throw(GKSLCoordinateError("Liouvillian residual is not a Hamiltonian commutator"))
-  hermiticity_residual = SQA.simplify(canonical_qadd(H - adjoint(H)))::SQA.QAdd
+  hermiticity_residual = SQA.simplify(canonical_qadd(H - adjoint(H)))
   qadd_iszero(hermiticity_residual) ||
     throw(GKSLCoordinateError("extracted Hamiltonian is not Hermitian modulo the identity"))
   return H
@@ -338,7 +335,7 @@ function extract_gksl_canonical(
   )
 
   dissipative = dissipative_liouvillian(frame, matrix)
-  residual = canonical_liouvillian((canonical - dissipative)::Liouvillian)
+  residual = canonical_liouvillian(canonical - dissipative)
   residual = drop_floating_roundoff(residual, canonical, dissipative, matrix)
   canonical_has_two_sided_terms(residual) && throw(
     ArgumentError("Liouvillian contains dissipative directions outside the supplied frame"),

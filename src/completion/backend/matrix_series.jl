@@ -74,7 +74,7 @@ end
 structurally_zero(x::Real) = iszero(x)
 
 function completion_symbolic_zero(x::Symbolics.Num)::Bool
-  simplified = Symbolics.simplify(x)::Symbolics.Num
+  simplified = Symbolics.simplify(x)
   return isequal(simplified, completion_num(0))
 end
 
@@ -113,7 +113,7 @@ end
 symbolic_truth(value::Bool) = value
 
 function symbolic_truth(value::Symbolics.Num)::Bool
-  simplified = Symbolics.simplify(value)::Symbolics.Num
+  simplified = Symbolics.simplify(value)
   return Symbolics.value(simplified) === true
 end
 
@@ -160,10 +160,6 @@ function structurally_nonzero(x::CompletionScalar, conditions::CompletionConditi
   return condition_contains(conditions.regularity, simplified)
 end
 
-function is_exact_rational(node)::Bool
-  return Symbolics.unwrap_const(node) isa Union{Int,Rational{Int}}
-end
-
 function nonnegative_factor(factor, conditions::CompletionConditions)::Bool
   value = Symbolics.unwrap(factor)
   for p in conditions.positivity
@@ -194,13 +190,16 @@ function structurally_nonpositive_product(
   else
     [node]
   end
-  constants = [
-    Symbolics.unwrap_const(factor) for factor in factors if is_exact_rational(factor)
-  ]
-  length(constants) == 1 && only(constants) < 0 || return false
-  return all(
-    factor -> is_exact_rational(factor) || nonnegative_factor(factor, conditions), factors
-  )
+  constants = Rational{Int}[]
+  for factor in factors
+    value = Symbolics.unwrap_const(factor)
+    if value isa Union{Int,Rational{Int}}
+      push!(constants, value)
+    elseif !nonnegative_factor(factor, conditions)
+      return false
+    end
+  end
+  return length(constants) == 1 && only(constants) < 0
 end
 
 function condition_sign(

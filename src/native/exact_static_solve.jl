@@ -129,8 +129,8 @@ function exact_row_basis(A::AbstractMatrix{T}) where {T}
         v[c] -= factor * b[c]
       end
     end
-    all(iszero, v) && continue
-    p = findfirst(!iszero, v)::Int
+    p = exact_find_pivot(reshape(v, :, 1), 1, 1)
+    p == 0 && continue
     push!(basis, v)
     push!(pivots, p)
     push!(selected, r)
@@ -193,14 +193,6 @@ function exact_trace_product(entries, Y::AbstractMatrix{T}) where {T}
   return real(value)
 end
 
-function exact_psd_exhausted(diagonal::AbstractVector, work::AbstractMatrix)::Bool
-  positive = any(>(0), diagonal)
-  (any(<(0), diagonal) || (!positive && !iszero(work))) && throw(
-    NativePositivityError("the exact canonical dark residual is not positive semidefinite"),
-  )
-  return !positive
-end
-
 function exact_rank_one_downdate!(
   work::AbstractMatrix{T}, column::AbstractVector{T}, weight
 ) where {T}
@@ -214,24 +206,37 @@ function exact_rank_one_downdate!(
   return work
 end
 
-function exact_psd_factor(P::AbstractMatrix{T}, ::Type{R}) where {T,R}
-  P == exact_adjoint(P) ||
-    throw(NativePositivityError("the exact canonical dark residual is not Hermitian"))
-  work = Matrix{T}(P)
+function exact_ldl!(
+  columns::Vector{Vector{T}}, weights::Vector{R}, work::Matrix{T}
+)::Bool where {T,R}
+  work == exact_adjoint(work) || return false
   n = size(work, 1)
-  columns = Vector{T}[]
-  weights = R[]
   for _ in 1:n
-    diagonal = R[real(work[i, i]) for i in 1:n]
-    exact_psd_exhausted(diagonal, work) && break
-    pivot = findfirst(>(0), diagonal)::Int
-    weight = diagonal[pivot]
+    pivot = 0
+    for i in 1:n
+      d = real(work[i, i])
+      d < 0 && return false
+      pivot == 0 && d > 0 && (pivot = i)
+    end
+    pivot == 0 && return iszero(work)
+    weight = R(real(work[pivot, pivot]))
     column = T[work[i, pivot] / weight for i in 1:n]
     push!(columns, column)
     push!(weights, weight)
     exact_rank_one_downdate!(work, column, weight)
   end
-  return exact_columns(T, n, columns), weights
+  return true
+end
+
+function exact_psd_factor(P::AbstractMatrix{T}, ::Type{R}) where {T,R}
+  columns = Vector{T}[]
+  weights = R[]
+  exact_ldl!(columns, weights, Matrix{T}(P)) || throw(
+    NativePositivityError(
+      "the exact canonical dark residual is not Hermitian positive semidefinite"
+    ),
+  )
+  return exact_columns(T, size(P, 1), columns), weights
 end
 
 function exact_tangent_lift(
@@ -413,20 +418,14 @@ function exact_section(C, c, Z, normal_matrix, normal_rhs, gauge_metric)
   )
 end
 
-function exact_is_psd(P::AbstractMatrix, ::Type{R}) where {R}
-  try
-    exact_psd_factor(P, R)
-    return true
-  catch error
-    error isa NativePositivityError || rethrow()
-    return false
-  end
+function exact_is_psd(P::AbstractMatrix{T}, ::Type{R})::Bool where {T,R}
+  return exact_ldl!(Vector{T}[], R[], Matrix{T}(P))
 end
 
 function exact_normal_equations(
   P0::Matrix{T}, J::Vector{Matrix{T}}, metric::Matrix{T}, ::Type{R}
 ) where {T,R}
-  identity_metric = exact_isidentity(metric)::Bool
+  identity_metric = exact_isidentity(metric)
   GJ = identity_metric ? J : [exact_mul(metric, X) for X in J]
   GP = identity_metric ? P0 : exact_mul(metric, P0)
   entries = [exact_nonzeros(X) for X in GJ]

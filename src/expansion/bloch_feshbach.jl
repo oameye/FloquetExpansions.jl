@@ -84,7 +84,7 @@ function evaluate_lyndon_brackets(
     left = bracket_values[bracket.left]
     right = bracket_values[bracket.right]
     commutator = product(left, right) - product(right, left)
-    bracket_values[nletters + index] = SQA.simplify(commutator)::T
+    bracket_values[nletters + index] = SQA.simplify(commutator)
   end
   return bracket_values
 end
@@ -96,7 +96,7 @@ function lie_combination(
   for term in terms
     value += (scale * term.coefficient) * bracket_values[term.node]
   end
-  return SQA.simplify(value)::T
+  return SQA.simplify(value)
 end
 
 function lie_series_component(
@@ -144,7 +144,7 @@ function van_vleck_expansion(
     plan, components, zero_component, component_convention(generator)
   )
   micromotion_components = P[
-    periodic_generator(series, wd, zero_component)::P for series in micromotion_series
+    periodic_generator(series, wd, zero_component) for series in micromotion_series
   ]
 
   return FloquetExpansion(

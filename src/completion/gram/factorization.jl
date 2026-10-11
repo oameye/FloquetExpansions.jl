@@ -118,7 +118,7 @@ function physical_factor_amplitudes(
     scale = completion_scalar(inverse_drive_power(wd, grade))
     matrix = completion_matrix_zeros(rows, columns)
     for index in eachindex(matrix)
-      product = (scale * factor[grade + 1][index])::CompletionScalar
+      product = scale * factor[grade + 1][index]
       matrix[index] = simplify_scalar(product)
     end
     push!(amplitudes, coefficient_matrix_from_completion(matrix))
@@ -151,7 +151,7 @@ function finite_factor(amplitudes::Vector{KossakowskiMatrix})::KossakowskiMatrix
     size(amplitude) == (rows, columns) ||
       throw(DimensionMismatch("all Gram amplitudes must have the same dimensions"))
     for index in eachindex(result)
-      result[index] = simplify_coefficient((result[index] + amplitude[index])::SQA.CNum)
+      result[index] = simplify_coefficient(result[index] + amplitude[index])
     end
   end
   return result
@@ -168,9 +168,9 @@ function completed_collapse_channels(
     for row in axes(factor, 1)
       coefficient = factor[row, column]
       iszero(coefficient) && continue
-      operator = (operator + coefficient * frame.operators[row])::SQA.QAdd
+      operator = operator + coefficient * frame.operators[row]
     end
-    operator = SQA.simplify(operator)::SQA.QAdd
+    operator = SQA.simplify(operator)
     qadd_iszero(operator) || push!(result, collapse(operator))
   end
   return result

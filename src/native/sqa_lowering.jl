@@ -74,10 +74,10 @@ function SQALowering{T}(generator::PeriodicGenerator{Liouvillian}) where {T}
 end
 
 function site_position(lowering::SQALowering, op::SQA.Op)
-  acts_here(site) = site.space_index == op.space_index
-  any(acts_here, lowering.sites) ||
-    throw(ArgumentError("operator acts on an unknown subspace"))
-  return findfirst(acts_here, lowering.sites)::Int
+  for (position, site) in pairs(lowering.sites)
+    site.space_index == op.space_index && return position
+  end
+  return throw(ArgumentError("operator acts on an unknown subspace"))
 end
 
 function site_monomial(lowering::SQALowering, s::Int, exponents::Int...)
@@ -242,11 +242,11 @@ end
 
 sqa_scalar(x::Number) = x
 
-function lift_operator(lowering::SQALowering, X::AlgebraOperator)
+function lift_operator(lowering::SQALowering, X::AlgebraOperator)::SQA.QAdd
   return lift_operator(lowering, X, sqa_scalar)
 end
 
-function lift_operator(lowering::SQALowering, X::AlgebraOperator, coefficient)
+function lift_operator(lowering::SQALowering, X::AlgebraOperator, coefficient)::SQA.QAdd
   result = zero(SQA.QAdd)
   for (monomial, c) in X.terms
     product = one(SQA.QAdd)

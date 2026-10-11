@@ -30,10 +30,6 @@ function native_gauge_family(representation::NativeRepresentation, directions, L
   )
 end
 
-function native_matches(::NativeRepresentation, A, B, tol::Real)
-  return LinearAlgebra.norm(A - B) <= tol * max(1.0, LinearAlgebra.norm(B))
-end
-
 function native_static_step(
   representation::NativeRepresentation,
   family::NativeGaugeFamily,
@@ -42,7 +38,6 @@ function native_static_step(
   known::AbstractMatrix{<:Number},
   active::AbstractMatrix{<:Number},
   weights::AbstractVector{<:Number},
-  tol::Real,
 )
   directions = family.directions
   solution = native_slot_solve(
@@ -52,7 +47,6 @@ function native_static_step(
     active,
     weights,
     family,
-    tol,
   )
 
   S = zero(L0)
@@ -62,14 +56,12 @@ function native_static_step(
   E = residual + native_commutator(L0, S)
 
   coefficient = solution.coefficient
-  native_matches(representation, native_kossakowski(representation, E), coefficient, tol) ||
+  native_matches(representation, native_kossakowski(representation, E), coefficient) ||
     throw(
       ArgumentError("native static step failed to reconstruct its Kossakowski coefficient")
     )
   H = native_hamiltonian(representation, E)
-  native_matches(
-    representation, E, native_gksl(representation, H, coefficient), 20 * tol
-  ) || throw(
+  native_matches(representation, E, native_gksl(representation, H, coefficient)) || throw(
     ArgumentError("native static step failed its Hamiltonian/Kossakowski reconstruction")
   )
   return NativeStaticStep(E, S, H, solution)
@@ -83,18 +75,17 @@ function native_static_step(
   known::AbstractMatrix{<:Number},
   active::AbstractMatrix{<:Number},
   weights::AbstractVector{<:Number},
-  tol::Real,
 )
   for family in families[1:(end - 1)]
     try
       return native_static_step(
-        representation, family, L0, residual, known, active, weights, tol
+        representation, family, L0, residual, known, active, weights
       )
     catch error
       error isa NativePositivityError || rethrow()
     end
   end
   return native_static_step(
-    representation, families[end], L0, residual, known, active, weights, tol
+    representation, families[end], L0, residual, known, active, weights
   )
 end

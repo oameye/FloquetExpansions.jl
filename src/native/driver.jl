@@ -48,7 +48,7 @@ function native_expansion_data(
     )
     leading, weights = native_leading_channels(representation, L[0])
     try
-      recurrence = native_recurrence(algorithm, representation, L, leading, weights, N, 0.0)
+      recurrence = native_recurrence(algorithm, representation, L, leading, weights, N)
       return NativeExpansionData(lowering, representation, recurrence)
     catch error
       error isa NativeFrameError || rethrow()
@@ -103,7 +103,7 @@ function lift_monomial!(lift::CoefficientLift, X::Monomial)
 end
 
 function lift_operator(lift::CoefficientLift, X::AlgebraOperator)
-  return lift_operator(lift.lowering, X, lift.coefficient)::SQA.QAdd
+  return lift_operator(lift.lowering, X, lift.coefficient)
 end
 
 function lift_superoperator!(
