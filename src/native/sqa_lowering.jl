@@ -165,11 +165,7 @@ end
 function lower_qadd(lowering::SQALowering{T,R}, q::SQA.QAdd) where {T,R}
   result = AlgebraOperator{T,R}(lowering.algebra, Dict{Monomial,T}())
   for (term, c) in q.arguments
-    product = algebra_identity(lowering.algebra)
-    for op in term.ops
-      product = product * lower_operator(lowering, op)
-    end
-    result = result + lower_coefficient(lowering, c) * product
+    result = result + lower_coefficient(lowering, c) * lower_term(lowering, term)
   end
   return result
 end

@@ -30,9 +30,9 @@ The dark equation ``\Delta_n + \Phi_n(S_n) = P_n \succeq 0`` is solved in exact 
 2. Canonical cancellation: within the constrained affine family the least-squares point in the frame metric, with minimum gauge norm, is taken. If it is not PSD, rows of ``P_n`` are cancelled in frame order wherever the constraints stay consistent, and the least-squares point is recomputed.
 3. The result is certified by an exact rate-weighted LDL factor, which also returns the newborn channels ``P_n = \sum_j d_j l_j l_j^\dagger`` with rational rates, by Hermitian congruence and so without square roots.
 
-The static gauge is polynomial. The gauge directions are tried by increasing degree, and the first family that admits a certified lift is used, so the section is unique given the frame order. This convention changes only ``O(\varepsilon^{N+1})`` data and never the spectrum through the retained order. A slot that no family can lift raises `NativePositivityError`, which `floquet_expansion` reports as an order that needs a static gauge that is not polynomial.
+The static gauge is polynomial. The gauge directions are tried by increasing degree, and the first family that admits a certified lift is used, so the section is unique given the frame order. This convention changes only ``O(\varepsilon^{N+1})`` data and never the spectrum through the retained order. A slot that no family can lift raises `NativePositivityError`, which `floquet_expansion` reports as an order with no static gauge of polynomial degree at most three, the largest degree tried.
 
-For driven Kerr with static loss the native coefficients equal the van Vleck coefficients through order three, a single channel ``a^2 - 2a^\dagger a`` is born at order four, and order five adds none. Order six has no polynomial static gauge, so the expansion is available through retained order five and `floquet_expansion(..., 7)` throws.
+For driven Kerr with static loss the native coefficients equal the van Vleck coefficients through order three, a single channel ``a^2 - 2a^\dagger a`` is born at order four, and order five adds none. Order six has no static gauge of degree at most three, so the expansion is available through retained order five and `floquet_expansion(..., 7)` throws.
 
 ## Considered options
 
@@ -49,7 +49,7 @@ The public entry point is `GKSLNormalForm`. The independent order-2 BF oracle, t
 
 ## Deferred
 
-Symbolic parameters, and a terminal virtual gauge for an order whose static gauge is not polynomial, are left to follow-up work. The expansion refuses such input rather than approximating it.
+Symbolic parameters, and a terminal virtual gauge for an order with no polynomial static gauge, are left to follow-up work. The expansion refuses such input rather than approximating it.
 
 ## Gate
 

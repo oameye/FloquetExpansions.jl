@@ -3,11 +3,9 @@ const Harmonics{X} = Dict{Int,X}
 struct NativeRecurrence{X,O,T}
   E::Vector{X}
   S::Vector{X}
-  slots::Vector{X}
   H::Vector{O}
   kick::Vector{Harmonics{X}}
   channels::Vector{GradedChannel{T}}
-  known_gram::Vector{Matrix{T}}
 end
 
 function harmonic_combine(A::Harmonics{X}, B::Harmonics{X}, α::Number, β::Number) where {X}
@@ -212,8 +210,10 @@ function check_gksl_form(representation, E, tolerance)
 end
 
 function accept_native_step!(channels, indices, step, order)
-  store_corrections!(channels, indices, step.correction, order)
-  store_births!(channels, step.solution.newborn, step.births, order)
+  solution = step.solution
+  store_corrections!(channels, indices, solution.correction, order)
+  weights = eltype(solution.newborn).(solution.newborn_weights)
+  store_births!(channels, solution.newborn, weights, order)
   return channels
 end
 
@@ -258,10 +258,8 @@ function native_recurrence(
   E = X[L0]
   H = [native_hamiltonian(representation, L0)]
   S = X[]
-  slots = X[]
-  known_products = Matrix{T}[]
   Y = Harmonics{X}[Harmonics{X}(0 => identity)]
-  N == 0 && return NativeRecurrence(E, S, slots, H, Y, channels, known_products)
+  N == 0 && return NativeRecurrence(E, S, H, Y, channels)
   families = native_gauge_families(representation, L0)
   push!(Y, harmonic_integral(L))
 
@@ -279,12 +277,10 @@ function native_recurrence(
     )
 
     push!(S, step.S)
-    push!(slots, base + step.S)
     push!(E, step.E)
     push!(H, step.H)
-    push!(known_products, known)
 
-    Y[order + 1] = harmonic_with_static(Y[order + 1], slots[end])
+    Y[order + 1] = harmonic_with_static(Y[order + 1], base + step.S)
     accept_native_step!(channels, indices, step, order)
     check_native_coefficient(representation, step.E, channels, order, dimension, tolerance)
 
@@ -292,7 +288,7 @@ function native_recurrence(
       push!(Y, harmonic_integral(bf_static_residual(L, Y, E, order, Y[order + 1])))
     end
   end
-  return NativeRecurrence(E, S, slots, H, Y, channels, known_products)
+  return NativeRecurrence(E, S, H, Y, channels)
 end
 
 function native_recurrence(
@@ -317,10 +313,8 @@ function native_recurrence(
   E = X[L0]
   H = [native_hamiltonian(representation, L0)]
   S = X[]
-  slots = X[]
-  known_products = Matrix{T}[]
   G = Harmonics{X}[Harmonics{X}(), harmonic_integral(L)]
-  N == 0 && return NativeRecurrence(E, S, slots, H, G, channels, known_products)
+  N == 0 && return NativeRecurrence(E, S, H, G, channels)
   families = native_gauge_families(representation, L0)
 
   for order in 1:N
@@ -338,12 +332,10 @@ function native_recurrence(
     )
 
     push!(S, step.S)
-    push!(slots, base + step.S)
     push!(E, step.E)
     push!(H, step.H)
-    push!(known_products, known)
 
-    G[order + 1] = harmonic_with_static(G[order + 1], slots[end])
+    G[order + 1] = harmonic_with_static(G[order + 1], base + step.S)
     accept_native_step!(channels, indices, step, order)
     check_native_coefficient(representation, step.E, channels, order, dimension, tolerance)
 
@@ -351,5 +343,5 @@ function native_recurrence(
     check_hd_slot(representation, harmonic_average(W, zero_element), step, tolerance)
     order < N && push!(G, harmonic_integral(W))
   end
-  return NativeRecurrence(E, S, slots, H, G, channels, known_products)
+  return NativeRecurrence(E, S, H, G, channels)
 end

@@ -42,6 +42,7 @@ function add_outer!(
 ) where {T}
   for j in eachindex(v)
     conjugate = conj(v[j])
+    iszero(conjugate) && continue
     for i in eachindex(u)
       result[i, j] += (weight * u[i]) * conjugate
     end

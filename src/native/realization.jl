@@ -1,3 +1,5 @@
+const NATIVE_GAUGE_DEGREE = 3
+
 struct NativeRealization{F<:DissipativeFrame,J<:RateWeightedJump,X} <: Completion
   frame::F
   retained_kossakowski::Vector{KossakowskiMatrix}
@@ -79,14 +81,6 @@ function native_frame(data::NativeExpansionData, support::Vector{Int})
   return DissipativeFrame(operators)
 end
 
-function add_outer_product!(C::Matrix, weight, l::AbstractVector, r::AbstractVector)
-  for ν in eachindex(r), μ in eachindex(l)
-    (iszero(l[μ]) || iszero(r[ν])) && continue
-    C[μ, ν] += weight * l[μ] * conj(r[ν])
-  end
-  return C
-end
-
 function retained_amplitudes(channel::GradedChannel, N::Int)
   return [
     (k - 1, c) for (k, c) in pairs(channel.coefficients) if k - 1 + channel.onset <= N
@@ -101,7 +95,7 @@ function native_finite_kossakowski(data::NativeExpansionData{T}, N::Int) where {
     amplitudes = retained_amplitudes(channel, N)
     for (k, l) in amplitudes, (q, r) in amplitudes
       C = get!(() -> exact_zeros(T, n, n), graded, channel.onset + k + q)
-      add_outer_product!(C, channel.weight, l, r)
+      add_outer!(C, channel.weight, l, r)
     end
   end
   return graded
@@ -191,13 +185,13 @@ function floquet_expansion_impl(
 ) where {R<:FloquetProvenance}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
   data = try
-    native_expansion_data(gauge.algorithm, generator, order - 1, 3)
+    native_expansion_data(gauge.algorithm, generator, order - 1, NATIVE_GAUGE_DEGREE)
   catch error
     error isa NativePositivityError || rethrow()
     throw(
       ArgumentError(
-        "order $order of the GKSL normal form needs a static gauge that is not polynomial; " *
-        "lower the requested order",
+        "order $order of the GKSL normal form has no static gauge of polynomial degree " *
+        "at most $NATIVE_GAUGE_DEGREE; lower the requested order",
       ),
     )
   end

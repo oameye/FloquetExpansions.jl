@@ -149,8 +149,8 @@ compensating in the micromotion. For a driven Kerr oscillator with loss the norm
 the van Vleck coefficients through ``\epsilon^3``. At ``\epsilon^4`` a static gauge is needed and
 a channel ``a^2-2a^\dagger a`` is born.
 
-A static gauge of polynomial degree need not exist at every order. For the same Kerr oscillator
-the dark equation at ``\epsilon^6`` has no solution in any polynomial family, so the normal form is
-available through ``\epsilon^5`` only. Such an obstruction is reported rather than approximated.
+A static gauge of low polynomial degree need not exist at every order. For the same Kerr
+oscillator the dark equation at ``\epsilon^6`` has no solution in any family of degree at most
+three, so the normal form is available through ``\epsilon^5`` only. Such an obstruction is reported rather than approximated.
 
 See [Floquet expansion](@ref) for the user workflow.

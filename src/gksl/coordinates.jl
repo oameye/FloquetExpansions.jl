@@ -170,10 +170,23 @@ function monomial_constants(value::SQA.CNum)::Vector{Tuple{Float64,Bool}}
   return constants
 end
 
-function floating_roundoff(value::SQA.CNum, scale::Float64)::Bool
+function has_floating_constant(node)::Bool
+  Symbolics.unwrap_const(node) isa FloatConstant && return true
+  Symbolics.iscall(node) || return false
+  return any(has_floating_constant, Symbolics.arguments(node))
+end
+
+function has_floating_constant(value::SQA.CNum)::Bool
+  number = SQA.to_num(value)::Complex{Symbolics.Num}
+  return has_floating_constant(Symbolics.unwrap(real(number))) ||
+         has_floating_constant(Symbolics.unwrap(imag(number)))
+end
+
+function floating_roundoff(value::SQA.CNum, reference, floor::Float64)::Bool
+  has_floating_constant(value) || return false
   constants = monomial_constants(value)
   isempty(constants) && return false
-  threshold = FLOAT_ROUNDOFF_TOLERANCE * scale
+  threshold = FLOAT_ROUNDOFF_TOLERANCE * max(coefficient_scale(reference), floor)
   for (magnitude, inexact) in constants
     (inexact && magnitude <= threshold) || return false
   end
@@ -191,10 +204,10 @@ function coefficient_scale(values)::Float64
 end
 
 function hermitize_floating_roundoff!(matrix::KossakowskiMatrix)::KossakowskiMatrix
-  scale = coefficient_scale(matrix)
   for row in axes(matrix, 1), column in row:size(matrix, 2)
+    pair = (matrix[row, column], matrix[column, row])
     difference = simplify_coefficient(matrix[row, column] - conj(matrix[column, row]))
-    (iszero(difference) || !floating_roundoff(difference, scale)) && continue
+    (iszero(difference) || !floating_roundoff(difference, pair, 0.0)) && continue
     average = simplify_coefficient((matrix[row, column] + conj(matrix[column, row])) / 2)
     matrix[row, column] = average
     matrix[column, row] = simplify_coefficient(conj(average))
@@ -212,19 +225,32 @@ end
 
 function matrix_is_hermitian(matrix::KossakowskiMatrix)::Bool
   size(matrix, 1) == size(matrix, 2) || return false
-  scale = coefficient_scale(matrix)
   for row in axes(matrix, 1), column in row:size(matrix, 2)
     expanded_conjugate_pair(matrix[row, column], matrix[column, row]) && continue
+    pair = (matrix[row, column], matrix[column, row])
     difference = simplify_coefficient(matrix[row, column] - conj(matrix[column, row]))
-    iszero(difference) || floating_roundoff(difference, scale) || return false
+    iszero(difference) || floating_roundoff(difference, pair, 0.0) || return false
   end
   return true
 end
 
-function drop_floating_roundoff(residual::Liouvillian, scale::Float64)::Liouvillian
+function drop_floating_roundoff(
+  residual::Liouvillian,
+  canonical::Liouvillian,
+  dissipative::Liouvillian,
+  matrix::KossakowskiMatrix,
+)::Liouvillian
   result = zero(residual)
+  matrix_scale = any(has_floating_constant, matrix) ? coefficient_scale(matrix) : 0.0
   for (left, right, coefficient) in terms(residual)
-    floating_roundoff(coefficient, scale) && continue
+    action = (left, right)
+    reference = (
+      get(canonical.terms, action, zero(SQA.CNum)),
+      get(dissipative.terms, action, zero(SQA.CNum)),
+    )
+    two_sided = !qadd_isone(left) && !qadd_isone(right)
+    floor = two_sided ? matrix_scale : 0.0
+    floating_roundoff(coefficient, reference, floor) && continue
     add_term!(result, left, right, coefficient)
   end
   return result
@@ -313,8 +339,7 @@ function extract_gksl_canonical(
 
   dissipative = dissipative_liouvillian(frame, matrix)
   residual = canonical_liouvillian((canonical - dissipative)::Liouvillian)
-  scale = coefficient_scale(coefficient for (_, _, coefficient) in terms(canonical))
-  residual = drop_floating_roundoff(residual, scale)
+  residual = drop_floating_roundoff(residual, canonical, dissipative, matrix)
   canonical_has_two_sided_terms(residual) && throw(
     ArgumentError("Liouvillian contains dissipative directions outside the supplied frame"),
   )

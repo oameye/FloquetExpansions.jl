@@ -167,7 +167,7 @@ function native_slot_solve(
     representation.metric,
     family.metric,
   )
-  return solution, solution.correction, T.(solution.newborn_weights)
+  return solution
 end
 
 function native_gauge_metric(

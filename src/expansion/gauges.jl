@@ -110,8 +110,8 @@ Hamiltonian it holds the van Vleck coefficients and no completed model, so `chan
   coefficient or a symbolic parameter other than the drive frequency throws an `ArgumentError`,
   so write `4 // 5` rather than `0.8`.
 - `order` must be at least `1`.
-- An order whose static gauge is not polynomial throws an `ArgumentError`; lower the requested
-  order.
+- An order with no static gauge of polynomial degree at most three throws an `ArgumentError`;
+  lower the requested order.
 - [`positive_completion`](@ref) throws on the result, which is already of GKSL form.
 
 # References

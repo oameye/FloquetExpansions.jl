@@ -277,7 +277,7 @@ function collapse(operator::SQA.QField)
 end
 
 function known_negative_real(value)::Bool
-  return value isa Union{Int,Rational{Int},Float64,Bool} && value < 0
+  return value isa Real && value < 0
 end
 
 function known_negative_jump_rate(rate::LiouvillianScalar)::Bool

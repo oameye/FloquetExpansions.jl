@@ -8,6 +8,12 @@ function native_leading_channels(
   representation::AlgebraicLiouvilleRepresentation{T,R}, L0
 ) where {T,R}
   C0 = native_kossakowski(representation, L0)
+  exact_is_psd(C0, R) || throw(
+    ArgumentError(
+      "the averaged generator is not of GKSL form; its Kossakowski matrix is not " *
+      "positive semidefinite",
+    ),
+  )
   columns, weights = exact_psd_factor(C0, R)
   return Matrix{T}(columns), T.(weights)
 end
@@ -34,8 +40,9 @@ function native_expansion_data(
   lowering = SQALowering{T}(generator)
   L = lower_generator(lowering, generator)
   haskey(L, 0) || (L[0] = zero(first(values(L))))
-  degree = native_input_degree(lowering, L) + N
-  while true
+  input_degree = native_input_degree(lowering, L)
+  bound = (N + 1) * (input_degree + gauge_degree)
+  for degree in (input_degree + N):2:bound
     representation = AlgebraicLiouvilleRepresentation(
       lowering.algebra, degree, gauge_degree
     )
@@ -45,9 +52,9 @@ function native_expansion_data(
       return NativeExpansionData(lowering, representation, recurrence)
     catch error
       error isa NativeFrameError || rethrow()
-      degree += 2
     end
   end
+  return throw(ArgumentError("the native operator frame did not close below degree $bound"))
 end
 
 function native_expansion_data(

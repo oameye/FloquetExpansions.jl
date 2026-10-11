@@ -4,13 +4,11 @@ function native_kossakowski end
 function native_hamiltonian end
 function native_gksl end
 
-struct NativeStaticStep{X,O,S,C,B}
+struct NativeStaticStep{X,O,S}
   E::X
   S::X
   H::O
   solution::S
-  correction::C
-  births::B
 end
 
 native_commutator(A, B) = A * B - B * A
@@ -47,7 +45,7 @@ function native_static_step(
   tol::Real,
 )
   directions = family.directions
-  solution, correction, births = native_slot_solve(
+  solution = native_slot_solve(
     representation,
     native_kossakowski(representation, residual),
     known,
@@ -74,7 +72,7 @@ function native_static_step(
   ) || throw(
     ArgumentError("native static step failed its Hamiltonian/Kossakowski reconstruction")
   )
-  return NativeStaticStep(E, S, H, solution, correction, births)
+  return NativeStaticStep(E, S, H, solution)
 end
 
 function native_static_step(

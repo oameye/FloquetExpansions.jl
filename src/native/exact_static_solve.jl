@@ -138,13 +138,18 @@ function exact_row_basis(A::AbstractMatrix{T}) where {T}
   return selected
 end
 
-function exact_min_norm_solve(
-  A::AbstractMatrix{R}, b::AbstractVector{R}, metric::AbstractMatrix{R}
-) where {R}
+exact_weighted_transpose(::LinearAlgebra.UniformScaling, Ar) = Matrix(transpose(Ar))
+
+function exact_weighted_transpose(metric::AbstractMatrix, Ar)
+  exact_isidentity(metric) && return Matrix(transpose(Ar))
+  return exact_solve(metric, Matrix(transpose(Ar)))
+end
+
+function exact_min_norm_solve(A::AbstractMatrix{R}, b::AbstractVector{R}, metric) where {R}
   rows = exact_row_basis(A)
   isempty(rows) && return exact_zeros(R, size(A, 2))
   Ar = A[rows, :]
-  weighted = exact_solve(metric, Matrix(transpose(Ar)))
+  weighted = exact_weighted_transpose(metric, Ar)
   solution = exact_mul(weighted, exact_solve(exact_mul(Ar, weighted), b[rows]))
   exact_mul(A, solution) == b || throw(ArgumentError("exact linear system is inconsistent"))
   return solution
@@ -210,6 +215,8 @@ function exact_rank_one_downdate!(
 end
 
 function exact_psd_factor(P::AbstractMatrix{T}, ::Type{R}) where {T,R}
+  P == exact_adjoint(P) ||
+    throw(NativePositivityError("the exact canonical dark residual is not Hermitian"))
   work = Matrix{T}(P)
   n = size(work, 1)
   columns = Vector{T}[]
@@ -252,7 +259,7 @@ function exact_tangent_lift(
   end
   unknowns = 2 * k^2
   rhs = vcat(exact_complex_coordinates(M, R), exact_zeros(R, 2 * k^2))
-  x = exact_min_norm_solve(system, rhs, Matrix{R}(LinearAlgebra.I, unknowns, unknowns))
+  x = exact_min_norm_solve(system, rhs, LinearAlgebra.I)
   A = exact_zeros(T, k, k)
   for u in 1:unknowns
     A[(u + 1) ÷ 2] += isodd(u) ? x[u] : im * x[u]
@@ -364,8 +371,7 @@ function exact_facial_step(
   rhs = -exact_complex_coordinates(exact_mul(current[:, fixed], N), R)
   exact_is_consistent(rows, rhs) ||
     throw(NativePositivityError("no PSD lift exists in this static gauge family"))
-  unknowns = length(free)
-  y = exact_min_norm_solve(rows, rhs, Matrix{R}(LinearAlgebra.I, unknowns, unknowns))
+  y = exact_min_norm_solve(rows, rhs, LinearAlgebra.I)
   constraint = free === J ? rows : exact_coordinate_columns(J, fixed, N, R, height)
   constraint_rhs = -exact_complex_coordinates(exact_mul(P0[:, fixed], N), R)
   return constraint, constraint_rhs, y, exact_nullspace(rows)
