@@ -2,6 +2,8 @@ const LiouvillianAction = Tuple{SQA.QAdd,SQA.QAdd}
 const LiouvillianTerms = Dict{LiouvillianAction,SQA.CNum}
 const LiouvillianScalar = Union{Number,Symbolics.Num,SQA.CNum}
 
+coefficient_number(c::SQA.CNum) = SQA.to_num(c)::Complex{Symbolics.Num}
+
 """
     Liouvillian
 

@@ -69,7 +69,7 @@ end
 @inline function simplify_coefficient(value::SQA.CNum)
   return SQA.simplify(value)
 end
-@inline qadd_isone(value::SQA.QAdd) = isone(value)
+@inline qadd_isone(value::SQA.QAdd) = isone(value)::Bool
 @inline qadd_iszero(value::SQA.QAdd) = iszero(value)
 @inline liouvillian_iszero(value::Liouvillian) = iszero(value)
 @inline qadd_term_pairs(value::SQA.QAdd) = pairs(getfield(value, :arguments))
