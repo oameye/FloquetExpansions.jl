@@ -40,8 +40,11 @@ function native_channel_operator(
   for (k, coefficients) in pairs(channel.coefficients)
     order = k - 1
     order + channel.onset > N && break
-    lifted = lift_operator(lift, frame_operator(data.representation, coefficients))
-    operator = operator + reattach(lifted, wd, order)
+    scale = convert(SQA.CNum, inverse_drive_power(wd, order))
+    for (monomial, c) in frame_operator(data.representation, coefficients).terms
+      term = lift_coefficient(lift.coefficient, c) * scale
+      operator = operator + term * lift_monomial!(lift, monomial)
+    end
   end
   return SQA.simplify(operator)
 end
