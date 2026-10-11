@@ -15,7 +15,7 @@ The public `terms(L)` iterator exposes the semantic `(left, right, coefficient)`
 
 ## Amendment: exact coefficients
 
-Splitting factors into monomials moves every factor coefficient into the term coefficient, so the `-i` of a Hamiltonian action now multiplies raw trigonometric coefficients such as `(2//5) cos(ωt)` directly. SQA embeds a native factor of a raw expression as `ComplexF64`, which made such coefficients floats and the van Vleck recurrence of a numeric model inexact. Term insertion, scaling, and composition promote Gaussian-integer native factors to exact constants before they meet a raw coefficient, so exact amplitudes stay exact through `harmonics`.
+Splitting factors into monomials moves every factor coefficient into the term coefficient, so the `-i` of a Hamiltonian action multiplies raw trigonometric coefficients such as `(2//5) cos(ωt)` directly. Since SQA 0.13 exactness is a property of the coefficient type: a Gaussian rational stays a Gaussian rational when it meets a raw symbolic coefficient, so exact amplitudes stay exact through `harmonics` without any promotion step in `Liouvillian`.
 
 ## Gate
 

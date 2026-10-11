@@ -54,7 +54,7 @@ The reconstruction runs in three steps over ``\mathbb{Q}(i)``, with small-height
 
 The positivity conditions of the reconstructed result are the parameter signs of the sampled region and the channel rates. The result is certified on that region only; other sign regions may carry other rational functions. A single run over the field ``\mathbb{Q}(i)(p_1,\dots,p_m)`` would avoid interpolation and is faster at Kerr order five; issue #389 tracks that route through Nemo.
 
-Exact inputs must reach the expansion exactly. SQA stores a native factor of a raw symbolic coefficient as `ComplexF64`, so the `-i` of a Hamiltonian action would turn the `2//5` of `(2//5) cos(\omega t)` into a float before `harmonics` splits the phase. `Liouvillian` therefore promotes Gaussian-integer native factors to exact constants before they meet a raw coefficient. The native lowering still accepts floats through `rationalize`, but a float input is not an exact model.
+Exact inputs must reach the expansion exactly. SQA 0.13 keeps coefficients exact by type, so the `2//5` of `(2//5) cos(\omega t)` stays rational through the `-i` of a Hamiltonian action and `harmonics` splits the phase without a float intermediate. The native lowering still accepts floats through `rationalize`, but a float input is not an exact model.
 
 ## Considered options
 

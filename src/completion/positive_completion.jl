@@ -126,9 +126,9 @@ FloquetExpansion{VanVleck{HoriDeprit}} of order 3
 
 julia> kossakowski(cp)
 3×3 Matrix{SecondQuantizedAlgebra.Coeff}:
- (1//4)*γ                            …  0
- im*((0.25(E^2)*γ) / (ω^2) - 0.25γ)     0
- 0                                      ((1//2)*(E^2)*γ) / (ω^2)
+ (1//4)*γ                                  …  0
+ im*(((1//4)*(E^2)*γ) / (ω^2) - (1//4)*γ)     0
+ 0                                            ((1//2)*(E^2)*γ) / (ω^2)
 ```
 """
 function positive_completion(

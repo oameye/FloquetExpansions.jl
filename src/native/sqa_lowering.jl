@@ -130,6 +130,9 @@ exact_real(::Type{R}, x::Integer) where {R} = R(x)
 exact_real(::Type{R}, x::Rational) where {R} = R(x)
 exact_real(::Type{R}, x::AbstractFloat) where {R} = R(rationalize(BigInt, x))
 exact_scalar(::Type{T}, x::Real) where {T} = T(exact_real(real(T), x))
+function exact_scalar(::Type{T}, x::SQA.GaussianRational) where {T}
+  return T(exact_real(real(T), real(x)), exact_real(real(T), imag(x)))
+end
 function exact_scalar(::Type{T}, x::Complex) where {T}
   return T(exact_real(real(T), real(x)), exact_real(real(T), imag(x)))
 end
@@ -167,7 +170,7 @@ end
 
 function lower_coefficient(lowering::SQALowering{T}, c::SQA.CNum) where {T}
   tail = c.tail
-  tail isa SQA.Native && return exact_scalar(T, c.z)
+  tail isa SQA.Native && return exact_scalar(T, SQA.native_scalar(c))
   tail isa SQA.Poly || throw(
     ArgumentError("the native expansion supports polynomial coefficients only, got $c")
   )
