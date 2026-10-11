@@ -86,7 +86,7 @@ true
 
 See also [`compose`](@ref).
 """
-function terms(L::Liouvillian)
+function Symbolics.terms(L::Liouvillian)
   return ((left, right, coefficient) for ((left, right), coefficient) in term_pairs(L))
 end
 

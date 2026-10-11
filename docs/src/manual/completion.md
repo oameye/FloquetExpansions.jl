@@ -17,17 +17,8 @@ positive_completion
 
 ## Choosing a completion algorithm
 
-The package provides two CP completion algorithms: [`Gram`](@ref) and  [`Spectral`](@ref).
-
-
-
-Both methods preserve the retained Kossakowski coefficients, but their finite positive
+The package provides two CP completion algorithms: [`Gram`](@ref) and  [`Spectral`](@ref). Both methods preserve the retained Kossakowski coefficients, but their finite positive
 continuations need not agree beyond the retained order.
-
-The dissipative frame is part of this choice. [`Gram`](@ref) is a Cholesky gauge and depends on
-the ordering of the frame but not on the scaling of its vectors, while [`Spectral`](@ref) depends on the coordinate inner product and so
-on the scaling of each frame vector. Choose the frame deliberately and keep it fixed when comparing
-completions. Retained coefficients and positivity hold for any admissible frame.
 
 ```@docs
 Gram

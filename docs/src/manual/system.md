@@ -203,7 +203,7 @@ The [`terms`](@ref) iterator exposes each contribution as a semantic triple
 on its sparse storage.
 
 ```@docs
-terms
+terms(::Liouvillian)
 ```
 
 Liouvillian maps compose as ordinary linear maps: in `compose(A, B)`, `B` acts first and `A` acts
