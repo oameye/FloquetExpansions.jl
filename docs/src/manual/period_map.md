@@ -25,3 +25,23 @@ superoperator
 trace_defect
 order(::PeriodMap)
 ```
+
+## Kraus form
+
+The same map is a sum over jump records of squared amplitudes, integrated over the jump times.
+Each amplitude is an operator whose coefficients depend on the fractional jump times, so the map
+is in continuous Kraus form and complete positivity is manifest.
+
+```@docs
+jump_amplitudes
+JumpAmplitude
+weight
+amplitude
+jump_times
+```
+
+## Representation changes
+
+Mixing jump channels of equal rate by a unitary leaves the map unchanged. An affine shift
+``L \to L + c`` with the compensating Hamiltonian describes the same dynamics but changes which
+histories count as jumps, so the two period maps agree only through the retained order.

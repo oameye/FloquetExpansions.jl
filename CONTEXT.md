@@ -104,7 +104,7 @@ The evolution map of a periodically driven system over one drive period, from ``
 _Avoid_: calling it an effective generator, or assuming it has a GKSL logarithm.
 
 **Jump amplitude**:
-The operator-valued amplitude of one quantum-jump record of the period, ``U₀(T, t_q) L_{a_q}(t_q) ⋯ L_{a_1}(t_1) U₀(t_1, 0)``, with ``U₀`` the no-jump propagator. A record with ``q`` jumps enters the period map at order ``ω^{-q}`` or beyond.
+The operator-valued amplitude of one quantum-jump record of the period, ``U₀(T, t_q) L_{a_q}(t_q) ⋯ L_{a_1}(t_1) U₀(t_1, 0)``, with ``U₀`` the no-jump propagator. A record with ``q`` jumps enters the period map at order ``ω^{-q}`` or beyond. The retained amplitudes, as functions of the fractional jump times, are the continuous Kraus operators returned by `jump_amplitudes`.
 
 **No-jump generator**:
 The non-Hermitian generator ``Q = -iH - ½ Σ_a γ_a L_a† L_a`` of the evolution between jumps. Its van Vleck expansion is the Floquet frame of the period map.

@@ -1,5 +1,5 @@
 using Test
-using LinearAlgebra: Hermitian, I, diagm, eigvals, opnorm
+using LinearAlgebra: Hermitian, I, SymTridiagonal, diagm, eigen, eigvals, opnorm
 using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 using Symbolics: Symbolics, @variables
 using FloquetExpansions
@@ -183,6 +183,65 @@ end
   Φ = period_map(H, ω, t, N; channels=pairs_to_jumps(channels))
   error(value) = period_map_error(Φ, H, channels, value; d=14, block=3)
   @test convergence_mismatch(error, N) < 0.15
+end
+
+function gauss_legendre(n)
+  decomposition = eigen(SymTridiagonal(zeros(n), [k / sqrt(4k^2 - 1) for k in 1:(n - 1)]))
+  return (decomposition.values .+ 1) ./ 2, decomposition.vectors[1, :] .^ 2
+end
+
+function simplex_rule(q, n)
+  nodes, weights = gauss_legendre(n)
+  rule = [(Float64[], 1.0)]
+  for _ in 1:q
+    rule = [
+      begin
+        start = isempty(u) ? 0.0 : u[end]
+        ([u; start + (1 - start) * x], w * (1 - start) * v)
+      end for (u, w) in rule for (x, v) in zip(nodes, weights)
+    ]
+  end
+  return rule
+end
+
+function amplitude_action(Φ, ρ, value)
+  result = zero(ρ)
+  for K in jump_amplitudes(Φ)
+    w = numeric(weight(K), Dict(ω => value))
+    for (u, v) in simplex_rule(length(jump_times(K)), 24)
+      M = dense(amplitude(K), 2, Dict(ω => value, (jump_times(K) .=> u)...))
+      result += (w * v) * (M * ρ * M')
+    end
+  end
+  return result
+end
+
+@testset "jump amplitudes integrate to the period map" begin
+  Φ = period_map(drive, ω, t, 2; channels=pairs_to_jumps(rotating))
+  for ρ in units(2, 2)
+    @test amplitude_action(Φ, ρ, 3.0) ≈ map_action(Φ, ρ, 2, 3.0) atol = 1e-12
+  end
+end
+
+const mixing = ((3 // 5, 4 // 5), (-4 // 5, 3 // 5))
+
+@testset "period map is covariant under its representation freedoms" begin
+  J = (σ(1, 2), (1 // 2) * σz)
+  mixed = Tuple(jump(a * J[1] + b * J[2], 1 // 3) for (a, b) in mixing)
+  plain = Tuple(jump(L, 1 // 3) for L in J)
+  for value in (2.0, 9.0)
+    point = Dict(ω => value)
+    @test map_matrix(period_map(drive, ω, t, 2; channels=mixed), point) ≈
+      map_matrix(period_map(drive, ω, t, 2; channels=plain), point) atol = 1e-12
+  end
+  c = 1 // 2
+  shifted_H = drive + (im * c / 2) * (σ(2, 1) - σ(1, 2)) * (1 // 3)
+  N = 2
+  shifted = period_map(shifted_H, ω, t, N; channels=(jump(σ(1, 2) + c, 1 // 3),))
+  original = period_map(drive, ω, t, N; channels=(jump(σ(1, 2), 1 // 3),))
+  difference(value) =
+    opnorm(map_matrix(shifted, Dict(ω => value)) - map_matrix(original, Dict(ω => value)))
+  @test difference(20.0) / difference(40.0) > 0.9 * 2^(N + 1)
 end
 
 @testset "period map rejects what it cannot expand" begin

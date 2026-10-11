@@ -96,7 +96,8 @@ away, which is how the leading jump term reproduces ``\sum_mL_m\rho L_m^\dagger`
 The Choi matrix of each record is ``\int|K\rangle\langle K|\,du``, an integral of positive
 operators, and ``G`` is its Gram form in the monomial basis. The retained amplitudes are squared
 without truncation, so ``\Phi`` is completely positive for every drive frequency, not only
-asymptotically. Factoring ``G`` would give an explicit Kraus form, but the exact pivots are
+asymptotically. The amplitudes ``K(u)=\sum_\mu\mu(u)A_\mu`` are themselves a continuous Kraus
+family of the map. Factoring ``G`` would give a finite Kraus form, but the exact pivots are
 rational functions of ``\pi`` whose degree grows quickly with the order, so the package keeps the
 division-free Gram form. The trace defect
 

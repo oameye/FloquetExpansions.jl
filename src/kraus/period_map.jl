@@ -1,13 +1,53 @@
 """
+    JumpAmplitude
+
+One continuous Kraus operator of a [`PeriodMap`](@ref): the retained amplitude ``K(u)`` of the
+jump records with ``q`` jumps at the fractional times ``0 < u_1 < \\dots < u_q < 1`` of the period,
+with its positive weight ``w``. It contributes
+``w \\int_{0<u_1<\\dots<u_q<1} K(u) \\rho K(u)^\\dagger \\, du`` to the map. Read it with
+[`weight`](@ref), [`amplitude`](@ref) and [`jump_times`](@ref).
+"""
+struct JumpAmplitude
+  weight::SQA.CNum
+  amplitude::SQA.QAdd
+  jump_times::Vector{Symbolics.Num}
+end
+
+"""
+    weight(K::JumpAmplitude) -> CNum
+
+Return the weight ``T^q \\gamma_{a_1} \\cdots \\gamma_{a_q}`` of the jump records of `K`,
+with ``T = 2\\pi/\\omega``.
+"""
+weight(K::JumpAmplitude) = K.weight
+
+"""
+    amplitude(K::JumpAmplitude) -> QAdd
+
+Return the operator ``K(u)``, a polynomial in ``1/\\omega`` whose coefficients are polynomials in
+the [`jump_times`](@ref) ``u_j`` times ``e^{-2\\pi i k u_j}``.
+"""
+amplitude(K::JumpAmplitude) = K.amplitude
+
+"""
+    jump_times(K::JumpAmplitude) -> Vector{Num}
+
+Return the fractional jump times ``u_1, \\dots, u_q`` of `K`, ordered as the jumps occur. The
+vector is empty for the no-jump amplitude.
+"""
+jump_times(K::JumpAmplitude) = K.jump_times
+
+"""
     PeriodMap
 
 Result of [`period_map`](@ref): a completely positive map ``\\Phi`` that agrees with the exact
 evolution from ``t = 0`` to ``t = T = 2\\pi/\\omega`` through ``\\omega^{-N}``, where ``N`` is
-[`order`](@ref). Read it with [`superoperator`](@ref) and [`trace_defect`](@ref) rather than by
-field access.
+[`order`](@ref). Read it with [`superoperator`](@ref), [`jump_amplitudes`](@ref) and
+[`trace_defect`](@ref) rather than by field access.
 """
 struct PeriodMap
   superoperator::Liouvillian
+  amplitudes::Vector{JumpAmplitude}
   trace_defect::SQA.QAdd
   order::Int
 end
@@ -48,6 +88,17 @@ the trace defect, is exactly trace preserving and still agrees with the exact pe
 ``\\omega^{-N}``, wherever ``1 + D`` is positive definite.
 """
 trace_defect(Φ::PeriodMap) = Φ.trace_defect
+
+"""
+    jump_amplitudes(Φ::PeriodMap) -> Vector{JumpAmplitude}
+
+Return the period map in continuous Kraus form,
+``\\Phi(\\rho) = \\sum_K w_K \\int K(u) \\rho K(u)^\\dagger \\, du``, with one
+[`JumpAmplitude`](@ref) per sequence of jump channels. The integral over the jump times reproduces
+[`superoperator`](@ref) exactly. A finite Kraus form follows at substituted values from a
+factorization of the Gram matrix of the monomials in ``u``.
+"""
+jump_amplitudes(Φ::PeriodMap) = Φ.amplitudes
 
 struct LoweredChannel{X,F}
   operator::Harmonics{X}
@@ -147,16 +198,20 @@ function monomial_operators(
   return X[get(kernel.terms, (r, monomial), zero_element) for r in 0:R]
 end
 
+function record_rate(word, rates, twopi, q::Int)
+  return twopi^q * prod(rates[channel] for channel in word; init=one(twopi))
+end
+
 function sector_map!(
-  series::Vector{S}, q, words, kernels, rates, twopi::F, zero_element, R
-) where {S,F}
+  series::Vector{S}, q, words, kernels, rates, twopi, zero_element, R
+) where {S}
   monomials = sort!(
     unique([monomial for kernel in kernels for ((_, monomial), _) in kernel.terms])
   )
   isempty(monomials) && return series
   gram = kernel_gram(monomials, inv(twopi))
   for (word, kernel) in zip(words, kernels)
-    rate = twopi^q * prod(rates[channel] for channel in word; init=one(F))
+    rate = record_rate(word, rates, twopi, q)
     operators = [
       monomial_operators(kernel, monomial, R, zero_element) for monomial in monomials
     ]
@@ -191,17 +246,40 @@ function graded_trace_defect(series::Vector{<:AlgebraSuperoperator}, identity, N
   return defect
 end
 
+function lift_scaled(result::SQA.QAdd, lift::CoefficientLift, X, scale::SQA.CNum)
+  for (monomial, c) in X.terms
+    result =
+      result +
+      (lift_coefficient(lift.coefficient, c) * scale) * lift_monomial!(lift, monomial)
+  end
+  return result
+end
+
 function lift_graded(lift::CoefficientLift, series::Vector, wd::Symbolics.Num, lowest::Int)
   result = zero(SQA.QAdd)
   for (n, X) in pairs(series)
     n - 1 >= lowest || continue
-    scale = convert(SQA.CNum, inverse_drive_power(wd, n - 1))
-    for (monomial, c) in X.terms
-      term = lift_coefficient(lift.coefficient, c) * scale
-      result = result + term * lift_monomial!(lift, monomial)
-    end
+    result = lift_scaled(result, lift, X, convert(SQA.CNum, inverse_drive_power(wd, n - 1)))
   end
   return result
+end
+
+function time_monomial((phases, powers)::TimeMonomial, times::Vector{Symbolics.Num})
+  value = Complex{Symbolics.Num}(1)
+  for (u, k, p) in zip(times, phases, powers)
+    angle = 2 * Symbolics.Num(π) * k * u
+    value *= u^p * Complex(cos(angle), -sin(angle))
+  end
+  return convert(SQA.CNum, value)
+end
+
+function lift_amplitude(lift::CoefficientLift, kernel::TimeKernel, wd, times, weight)
+  result = zero(SQA.QAdd)
+  for ((r, monomial), X) in kernel.terms
+    scale = convert(SQA.CNum, inverse_drive_power(wd, r)) * time_monomial(monomial, times)
+    result = lift_scaled(result, lift, X, scale)
+  end
+  return JumpAmplitude(weight, result, times)
 end
 
 function lift_graded_superoperator(lift::CoefficientLift, series::Vector, wd::Symbolics.Num)
@@ -297,6 +375,9 @@ function period_map(
   right = graded_value(frame.inverse, zero_element)
   rates = [channel.rate for channel in lowered]
 
+  lift = CoefficientLift(lowering, coefficients)
+  times = [Symbolics.variable(:u, j; T=Real) for j in 1:order]
+  amplitudes = JumpAmplitude[]
   series = [zero(sandwich(identity, identity)) for _ in 0:(2 * order)]
   for q in 0:order
     q > 0 && isempty(lowered) && break
@@ -306,12 +387,19 @@ function period_map(
       word_kernel(word, jumps, powers, left, right, twopi, identity, R) for word in words
     ]
     sector_map!(series, q, words, kernels, rates, twopi, zero_element, R)
+    for (word, kernel) in zip(words, kernels)
+      isempty(kernel.terms) && continue
+      record_weight =
+        lift_coefficient(coefficients, record_rate(word, rates, twopi, q)) *
+        convert(SQA.CNum, inverse_drive_power(wd, q))
+      push!(amplitudes, lift_amplitude(lift, kernel, wd, times[1:q], record_weight))
+    end
   end
   defect = graded_trace_defect(series, identity, order)
 
-  lift = CoefficientLift(lowering, coefficients)
   return PeriodMap(
     lift_graded_superoperator(lift, series, wd),
+    amplitudes,
     lift_graded(lift, defect, wd, order + 1),
     order,
   )

@@ -17,7 +17,11 @@ The returned map is completely positive and trace preserving through the retaine
 
 ## Public API
 
-`period_map` takes the Hamiltonian-plus-channels form of `floquet_expansion`, since jump amplitudes need the jump operators and a Liouvillian does not fix them. `order` has the meaning it has for `floquet_expansion`: the logarithm of the map divided by ``T`` agrees with the stroboscopic effective generator through ``ω^{1-order}``. `algorithm` selects the expansion algorithm of the no-jump frame, and both algorithms give an identical map, because the van Vleck pair is unique. The result is read with `superoperator`, a `Liouvillian` in the left/right-multiplication form of the rest of the package, `trace_defect` and `order`.
+`period_map` takes the Hamiltonian-plus-channels form of `floquet_expansion`, since jump amplitudes need the jump operators and a Liouvillian does not fix them. `order` has the meaning it has for `floquet_expansion`: the logarithm of the map divided by ``T`` agrees with the stroboscopic effective generator through ``ω^{1-order}``. `algorithm` selects the expansion algorithm of the no-jump frame, and both algorithms give an identical map, because the van Vleck pair is unique. The result is read with `superoperator`, a `Liouvillian` in the left/right-multiplication form of the rest of the package, `trace_defect` and `order`. `jump_amplitudes` returns the same map in continuous Kraus form: one weighted amplitude ``K(u)`` per jump sequence, whose coefficients are polynomials in the fractional jump times ``u_j`` times ``e^{-2πiku_j}``. Integrating ``K ρ K^†`` over the simplex reproduces the superoperator exactly, so the Kraus structure is public without an exact factorization of the Gram matrix.
+
+## Covariance
+
+The map depends only on the dynamics, not on the Floquet gauge used for the no-jump frame: Hori–Deprit and Bloch/Feshbach give an identical map. A unitary mixing of jump channels of equal rate leaves every sector, and so the map, unchanged. An affine shift ``L → L + c`` with the compensating Hamiltonian describes the same dynamics but reassigns part of each jump to the no-jump evolution. The truncation counts jumps, so the two period maps agree through ``ω^{-order}`` and differ beyond it. The Kraus family is unique only up to the continuous Kraus gauge; the superoperator is the invariant output.
 
 ## Considered options
 
@@ -31,10 +35,10 @@ The returned map is completely positive and trace preserving through the retaine
 
 The cost grows with the number of jump records, which is exponential in `order` for several channels. Jump rates must be time independent, because ``\sqrt{γ(t)}`` is not polynomial; a periodic rate belongs in the operator. Output coefficients contain ``π`` as a Symbolics constant, and `SQA.simplify` would fold it into a float, so the lift does not simplify.
 
-The non-Markovian Reimer–Wegewijs hierarchy and the covariance policy under affine Lindblad shifts remain research items of #169.
+The construction covers Markovian Lindblad input. The time-nonlocal Reimer–Wegewijs hierarchy needs a microscopic system–bath input that the package does not model; it remains a research item of #169.
 
 ## Gate
 
 `make test` runs the testsets that hold this decision:
 
-- `test/kraus/period_map.jl`: "period map agrees with the exact one-period map through its order", "period map is completely positive and trace preserving through its order", "Hori–Deprit and Bloch/Feshbach give the same period map", "period map recovers the effective generator after the micromotion", "period map with symbolic parameters equals the numeric map at substituted points", "period map of driven Kerr with loss matches the truncated dynamics" and "period map rejects what it cannot expand"
+- `test/kraus/period_map.jl`: "period map agrees with the exact one-period map through its order", "period map is completely positive and trace preserving through its order", "Hori–Deprit and Bloch/Feshbach give the same period map", "period map recovers the effective generator after the micromotion", "period map with symbolic parameters equals the numeric map at substituted points", "period map of driven Kerr with loss matches the truncated dynamics", "jump amplitudes integrate to the period map", "period map is covariant under its representation freedoms" and "period map rejects what it cannot expand"

@@ -63,6 +63,7 @@ export antiderivative, derivative, harmonics, support, time_average
 export FloquetExpansion,
   effective_component, effective_generator, floquet_expansion, micromotion, order
 export PeriodMap, period_map, superoperator, trace_defect
+export JumpAmplitude, amplitude, jump_amplitudes, jump_times, weight
 export Gram, Spectral
 export channels,
   dissipative_frame,
