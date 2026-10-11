@@ -77,11 +77,12 @@ function native_support(data::NativeExpansionData)
   return sort!(support)
 end
 
-function native_frame(data::NativeExpansionData, support::Vector{Int})
+function native_frame(data::NativeExpansionData, support::Vector{Int}, coefficients)
   operators = [
     lift_operator(
       data.lowering,
       algebra_operator(data.lowering.algebra, [(data.representation.frame[k], 1)]),
+      coefficients,
     ) for k in support
   ]
   return assemble_dissipative_frame(Tuple(operators))
@@ -190,8 +191,11 @@ function floquet_expansion_impl(
   provenance::R,
 ) where {R<:FloquetProvenance}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
+  coefficients = native_coefficients(generator, gauge.negative)
   data = try
-    native_expansion_data(gauge.algorithm, generator, order - 1, NATIVE_GAUGE_DEGREE)
+    native_expansion_data(
+      coefficients, gauge.algorithm, generator, order - 1, NATIVE_GAUGE_DEGREE
+    )
   catch error
     error isa NativePositivityError || rethrow()
     throw(
@@ -201,12 +205,8 @@ function floquet_expansion_impl(
       ),
     )
   end
-  return native_floquet_expansion(data, generator, gauge, provenance)
+  return native_floquet_expansion(data, generator, gauge, provenance, coefficients)
 end
-
-native_positivity_conditions(::ExactCoefficients) = SQA.CNum[]
-
-native_factorization(data::NativeExpansionData, ::ExactCoefficients) = data
 
 function native_hamiltonian_series(
   data::NativeExpansionData, lift::CoefficientLift, wd::Symbolics.Num
@@ -216,15 +216,6 @@ function native_hamiltonian_series(
     H = H + reattach(lift_operator(lift, Hn), wd, n - 1)
   end
   return SQA.simplify(H)
-end
-
-function native_floquet_expansion(
-  data::NativeExpansionData,
-  generator::PeriodicGenerator{Liouvillian},
-  gauge::GKSLNormalForm,
-  provenance::R,
-) where {R<:FloquetProvenance}
-  return native_floquet_expansion(data, generator, gauge, provenance, ExactCoefficients())
 end
 
 function native_floquet_expansion(
@@ -243,7 +234,7 @@ function native_floquet_expansion(
   H = native_hamiltonian_series(data, lift, wd)
   jumps = native_channels(data, lift, wd, N)
   support = native_support(data)
-  frame = native_frame(data, support)
+  frame = native_frame(data, support, coefficients)
   graded = native_finite_kossakowski(data, N)
   finite = native_finite_generator(data, lift, graded, wd, N)
   retained = retained_native_kossakowski(data, support, wd, N, coefficients)
@@ -252,9 +243,9 @@ function native_floquet_expansion(
     retained,
     support_matrix(graded, support, wd, coefficients),
     jumps,
-    native_positivity_conditions(coefficients),
+    native_positivity_conditions(coefficients, jumps, wd),
     SQA.CNum[],
-    native_factorization(data, coefficients),
+    data,
     H,
     finite,
   )

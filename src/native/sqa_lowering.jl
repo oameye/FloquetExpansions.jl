@@ -10,6 +10,8 @@ end
 struct SQALowering{T,R}
   algebra::OperatorAlgebra{T,R}
   sites::Vector{LoweredSite}
+  parameters::Vector{Symbolics.Num}
+  parameter_values::Vector{T}
 end
 
 function lowered_site_kind(op::SQA.Op)
@@ -52,6 +54,14 @@ function collect_lowered_sites!(sites::Dict{Int32,LoweredSite}, q::SQA.QAdd)
 end
 
 function SQALowering{T}(generator::PeriodicGenerator{Liouvillian}) where {T}
+  return SQALowering{T}(generator, Symbolics.Num[], T[])
+end
+
+function SQALowering{T}(
+  generator::PeriodicGenerator{Liouvillian},
+  parameters::Vector{Symbolics.Num},
+  parameter_values::Vector{T},
+) where {T}
   R = real(T)
   found = Dict{Int32,LoweredSite}()
   for (_, L) in generator.components, (left, right, _) in terms(L)
@@ -70,7 +80,9 @@ function SQALowering{T}(generator::PeriodicGenerator{Liouvillian}) where {T}
       boson_site(R)
     end for site in sites
   ]
-  return SQALowering{T,R}(OperatorAlgebra{T}(algebra_sites), sites)
+  return SQALowering{T,R}(
+    OperatorAlgebra{T}(algebra_sites), sites, parameters, parameter_values
+  )
 end
 
 function site_position(lowering::SQALowering, op::SQA.Op)
@@ -151,15 +163,20 @@ function lower_coefficient(lowering::SQALowering{T}, c::SQA.CNum) where {T}
   )
   value = zero(T)
   for monomial in tail.terms
-    isempty(monomial.syms) || throw(
-      ArgumentError(
-        "the native expansion needs numeric coefficients; substitute a value for " *
-        "$(first(monomial.syms))",
-      ),
-    )
-    value += exact_scalar(T, monomial.scalar)
+    term = exact_scalar(T, monomial.scalar)
+    for (symbol, exponent) in zip(monomial.syms, monomial.exps)
+      term *= parameter_value(lowering, symbol)^Int(exponent)
+    end
+    value += term
   end
   return value
+end
+
+function parameter_value(lowering::SQALowering, symbol)
+  for (parameter, value) in zip(lowering.parameters, lowering.parameter_values)
+    isequal(Symbolics.unwrap(parameter), symbol) && return value
+  end
+  return throw(ArgumentError("$symbol is not a parameter of the native lowering"))
 end
 
 function lower_qadd(lowering::SQALowering{T,R}, q::SQA.QAdd) where {T,R}

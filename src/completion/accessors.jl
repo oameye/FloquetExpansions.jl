@@ -56,7 +56,9 @@ end
     positivity_conditions(expansion::FloquetExpansion)
 
 Return scalar conditions assumed nonnegative on the symbolic stratum used by positive
-completion. A [`GKSLNormalForm`](@ref) expansion has numeric coefficients and returns none.
+completion. A [`GKSLNormalForm`](@ref) expansion with symbolic parameters returns the signed
+parameters, the drive frequency, and every channel rate. With numeric coefficients it returns
+none.
 """
 function positivity_conditions(
   expansion::FloquetExpansion{G,P,E,C,R}
@@ -68,8 +70,8 @@ end
     regularity_conditions(expansion::FloquetExpansion)
 
 Return scalar conditions assumed nonzero to remain on the fixed-rank symbolic stratum used by
-positive completion. A [`GKSLNormalForm`](@ref) expansion has numeric coefficients and returns
-none.
+positive completion. A [`GKSLNormalForm`](@ref) expansion returns none. With symbolic
+parameters it holds for generic values, as described there.
 """
 function regularity_conditions(
   expansion::FloquetExpansion{G,P,E,C,R}

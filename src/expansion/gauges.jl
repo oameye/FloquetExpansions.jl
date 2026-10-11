@@ -83,7 +83,7 @@ end
 VanVleck(; algorithm::ExpansionAlgorithm=HoriDeprit()) = VanVleck(algorithm)
 
 """
-    GKSLNormalForm(; algorithm=HoriDeprit())
+    GKSLNormalForm(; algorithm=HoriDeprit(), negative=())
 
 Select the GKSL normal-form gauge for Liouvillian expansions. It adds a static similarity to the
 van Vleck micromotion, chosen order by order so that every truncation of the effective generator
@@ -100,15 +100,28 @@ Hamiltonian it holds the van Vleck coefficients and no completed model, so `chan
 `kossakowski` are not defined on it. The construction is described in
 [GKSL normal form](@ref gksl-normal-form-theory).
 
+# Symbolic parameters
+
+Coefficients may be polynomials in at most eight symbolic parameters with exact rational
+coefficients. The expansion is then computed exactly over the field of rational functions in
+those parameters, and the channel rates are rational functions. Every parameter and the drive
+frequency are taken positive, except those listed in `negative`, which are taken negative. The
+[`positivity_conditions`](@ref) of the result list these signs and the channel rates.
+
+Every sign the construction decides must follow from these signs alone, so the result holds
+throughout the sign region. A sign that does not, such as that of `κ - γ`, throws an
+`ArgumentError`. The result further assumes generic parameters: no expression the expansion
+divides by vanishes. At an exceptional point substitute the values before expanding.
+
 # Restrictions
 
 - Supported subsystems are bosonic modes, position and momentum, `NLevelSpace` and `PauliSpace`
   levels, and spins of any size. Bosonic modes are not truncated.
 - Operators on one Hilbert space must share one name; `Position(h, :x)` and `Momentum(h, :p)`
   together throw an `ArgumentError`.
-- Every coefficient must be an exact `Integer` or `Rational` and numeric. A floating-point
-  coefficient or a symbolic parameter other than the drive frequency throws an `ArgumentError`,
-  so write `4 // 5` rather than `0.8`.
+- Every coefficient must be exact: a floating-point coefficient throws an `ArgumentError`, so
+  write `4 // 5` rather than `0.8`. A symbolic coefficient must be a polynomial with integer
+  powers of its parameters.
 - `order` must be at least `1`.
 - An order with no static gauge of polynomial degree at most three throws an `ArgumentError`;
   lower the requested order.
@@ -138,12 +151,30 @@ julia> length(channels(x))
 julia> channels(x)[2]
 ((72//3125) / (ω^4))𝒟[a * a - 2 * a' * a]
 ```
+
+The same model with symbolic parameters gives the rate of that channel exactly:
+
+```jldoctest
+julia> h = FockSpace(:cavity); a = Destroy(h, :a);
+
+julia> @variables ω::Real t::Real Δ::Real χ::Real F::Real κ::Real;
+
+julia> H = Δ * a' * a + χ * a' * a * a' * a + F * (a + a') * cos(ω * t);
+
+julia> x = floquet_expansion(H, ω, t, GKSLNormalForm(), 5; channels=(jump(a, κ),));
+
+julia> channels(x)[2]
+((2(F^2)*κ*(χ^2)) / (ω^4))𝒟[a * a - 2 * a' * a]
+```
 """
 struct GKSLNormalForm{A<:ExpansionAlgorithm} <: Gauge
   algorithm::A
+  negative::Vector{Symbolics.Num}
 end
 
-GKSLNormalForm(; algorithm::ExpansionAlgorithm=HoriDeprit()) = GKSLNormalForm(algorithm)
+function GKSLNormalForm(; algorithm::ExpansionAlgorithm=HoriDeprit(), negative=())
+  return GKSLNormalForm(algorithm, Symbolics.Num[negative...])
+end
 
 """
     antiderivative(X::PeriodicGenerator, gauge::Gauge) -> PeriodicGenerator

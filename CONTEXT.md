@@ -50,6 +50,9 @@ The convention fixing the free integration constant of the micromotion generator
 The gauge whose micromotion is the van Vleck micromotion followed by a static similarity ``W = e^{S}``, with the order-``n`` static gauge ``S_n`` fixed by a normal-form condition on the dark Kossakowski quotient so that every truncation of the effective generator is of GKSL form. It has the van Vleck spectrum through the retained order and equals the van Vleck gauge wherever every ``S_n`` vanishes. Selected by `GKSLNormalForm`.
 _Avoid_: calling it a van Vleck expansion or a positive completion; it changes the retained coefficients, and completion never does.
 
+**Sign region**:
+The orthant of symbolic parameters in which a GKSL normal form with symbolic coefficients holds: the drive frequency and every parameter positive, except those declared negative. Every sign decision of the construction must be fixed throughout it.
+
 **Expansion algorithm**:
 The procedure that computes the coefficients a gauge fixes. Algorithms for the same gauge produce identical retained effective components and micromotion; they differ only in intermediate quantities and cost.
 _Avoid_: calling an algorithm a gauge, or confusing it with a positive-completion algorithm, which changes the finite effective generator.
