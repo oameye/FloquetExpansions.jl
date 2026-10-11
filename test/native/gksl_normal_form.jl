@@ -93,15 +93,11 @@ end
 @testset "GKSLNormalForm rejects what it cannot expand exactly" begin
   H, a = kerr_hamiltonian()
   jumps = (jump(a, 4 // 5),)
-  @variables κ::Real
   @test_throws "order must be >= 1" floquet_expansion(
     H, ω, t, GKSLNormalForm(), 0; channels=jumps
   )
   @test_throws "static gauge that is not polynomial" floquet_expansion(
     H, ω, t, GKSLNormalForm(), 7; channels=jumps
-  )
-  @test_throws "needs numeric coefficients" floquet_expansion(
-    H, ω, t, GKSLNormalForm(), 3; channels=(jump(a, κ),)
   )
   @test_throws "floating-point" floquet_expansion(
     H + 0.4 * (a + a') * cos(ω * t), ω, t, GKSLNormalForm(), 3; channels=jumps

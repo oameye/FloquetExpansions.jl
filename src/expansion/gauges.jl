@@ -83,7 +83,7 @@ end
 VanVleck(; algorithm::ExpansionAlgorithm=HoriDeprit()) = VanVleck(algorithm)
 
 """
-    GKSLNormalForm(; algorithm=HoriDeprit())
+    GKSLNormalForm(; algorithm=HoriDeprit(), negative=(), verification=8)
 
 Select the GKSL normal-form gauge for Liouvillian expansions. It adds a static similarity to the
 van Vleck micromotion, chosen order by order so that every truncation of the effective generator
@@ -100,15 +100,41 @@ Hamiltonian it holds the van Vleck coefficients and no completed model, so `chan
 `kossakowski` are not defined on it. The construction is described in
 [GKSL normal form](@ref gksl-normal-form-theory).
 
+# Symbolic parameters
+
+Every free symbol in the coefficients is a parameter, and the result is symbolic in them. It is
+reconstructed rather than derived: the exact numeric expansion is evaluated at rational points
+and every coefficient is rebuilt as an exact rational function of the parameters. The result is
+claimed on one declared region only, where every parameter is positive except those listed in
+`negative`, which are negative, and the drive frequency is positive.
+
+- **Checked.** After the fit, every coefficient is compared exactly with the numeric expansion at
+  `verification` fresh rational points of the region. Each point scales every parameter
+  independently by a factor between ``1/27`` and ``27`` of a value between ``1/9`` and
+  ``9/2``. At each point the frame, the channel onsets, and the orders carrying a static gauge
+  must equal those of the reference point, or an `ArgumentError` is thrown.
+  `factorization(expansion)` returns `(; parameters, signs, points)`, the verified points
+  in the order of `parameters`, so the claim can be re-checked by substituting a point
+  into the result and into the numeric expansion.
+- **Not guaranteed.** Agreement at any other point. A solver branch confined to a part of the
+  region that no point samples goes unseen. The sampled points therefore bound the claim.
+- **Reported.** [`positivity_conditions`](@ref) lists the signed parameters, the drive
+  frequency, and every channel rate including its power of the drive frequency. The rates
+  are nonnegative only under these conditions, which is why the drive frequency appears.
+
+Every coefficient must be a polynomial of moderate degree in the parameters, with integer
+powers; a coefficient that is rational in the parameters throws an `ArgumentError`. At most six
+parameters are supported and the cost grows quickly with their number, so substitute exact
+values for the parameters that need not stay free.
+
 # Restrictions
 
 - Supported subsystems are bosonic modes, position and momentum, `NLevelSpace` and `PauliSpace`
   levels, and spins of any size. Bosonic modes are not truncated.
 - Operators on one Hilbert space must share one name; `Position(h, :x)` and `Momentum(h, :p)`
   together throw an `ArgumentError`.
-- Every coefficient must be an exact `Integer` or `Rational` and numeric. A floating-point
-  coefficient or a symbolic parameter other than the drive frequency throws an `ArgumentError`,
-  so write `4 // 5` rather than `0.8`.
+- A numeric coefficient must be an exact `Integer` or `Rational`. A floating-point coefficient
+  throws an `ArgumentError`, so write `4 // 5` rather than `0.8`.
 - `order` must be at least `1`.
 - An order whose static gauge is not polynomial throws an `ArgumentError`; lower the requested
   order.
@@ -138,12 +164,38 @@ julia> length(channels(x))
 julia> channels(x)[2]
 ((72//3125) / (ω^4))𝒟[a * a - 2 * a' * a]
 ```
+
+A driven qubit with decay and free parameters. The drive induces a channel whose rate is
+reconstructed symbolically, and the verified points are returned by [`factorization`](@ref):
+
+```jldoctest
+julia> q = PauliSpace(:qubit); σx = Pauli(q, :σ, 1); σy = Pauli(q, :σ, 2); σz = Pauli(q, :σ, 3);
+
+julia> @variables ω::Real t::Real Δ::Real F::Real κ::Real;
+
+julia> H = Δ * σz / 2 + F * cos(ω * t) * σx;
+
+julia> x = floquet_expansion(H, ω, t, GKSLNormalForm(), 4; channels=(jump((σx - im * σy) / 2, κ),));
+
+julia> channels(x)[2]
+((2(F^2)*κ) / (ω^2))𝒟[1//2 + 1//2 * σz]
+
+julia> length(factorization(x).points)
+8
+```
 """
 struct GKSLNormalForm{A<:ExpansionAlgorithm} <: Gauge
   algorithm::A
+  negative::Vector{Symbolics.Num}
+  verification::Int
 end
 
-GKSLNormalForm(; algorithm::ExpansionAlgorithm=HoriDeprit()) = GKSLNormalForm(algorithm)
+function GKSLNormalForm(;
+  algorithm::ExpansionAlgorithm=HoriDeprit(), negative=Symbolics.Num[], verification::Int=8
+)
+  verification >= 1 || throw(ArgumentError("verification must be >= 1"))
+  return GKSLNormalForm(algorithm, Symbolics.Num[negative...], verification)
+end
 
 """
     antiderivative(X::PeriodicGenerator, gauge::Gauge) -> PeriodicGenerator

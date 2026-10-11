@@ -190,6 +190,10 @@ function floquet_expansion_impl(
   provenance::R,
 ) where {R<:FloquetProvenance}
   order >= 1 || throw(ArgumentError("order must be >= 1"))
+  parameters = native_parameters(generator)
+  if !isempty(parameters) || !isempty(gauge.negative)
+    return symbolic_gksl_normal_form(generator, gauge, order, provenance, parameters)
+  end
   data = try
     native_expansion_data(gauge.algorithm, generator, order - 1, 3)
   catch error

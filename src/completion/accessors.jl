@@ -56,7 +56,8 @@ end
     positivity_conditions(expansion::FloquetExpansion)
 
 Return scalar conditions assumed nonnegative on the symbolic stratum used by positive
-completion. A [`GKSLNormalForm`](@ref) expansion has numeric coefficients and returns none.
+completion. A [`GKSLNormalForm`](@ref) expansion with numeric coefficients returns none; with
+symbolic parameters it returns the sign conditions, the drive frequency, and the channel rates.
 """
 function positivity_conditions(
   expansion::FloquetExpansion{G,P,E,C,R}
@@ -68,7 +69,7 @@ end
     regularity_conditions(expansion::FloquetExpansion)
 
 Return scalar conditions assumed nonzero to remain on the fixed-rank symbolic stratum used by
-positive completion. A [`GKSLNormalForm`](@ref) expansion has numeric coefficients and returns
+positive completion. A [`GKSLNormalForm`](@ref) expansion has exact coefficients and returns
 none.
 """
 function regularity_conditions(
@@ -82,7 +83,9 @@ end
 
 Return the algorithm-specific factorization data stored by a positively completed expansion.
 For [`Gram`](@ref) completion this is a [`GramFactorization`](@ref). A [`GKSLNormalForm`](@ref)
-expansion returns internal expansion data, which is not part of the public interface.
+expansion with symbolic parameters returns `(; parameters, signs, points)`, the verified points
+of its sign region; with numeric coefficients it returns internal expansion data, which is not
+part of the public interface.
 """
 function factorization(
   expansion::FloquetExpansion{G,P,E,C,R}
@@ -93,8 +96,11 @@ end
 function factorization(
   expansion::FloquetExpansion{G,P,E,C,R}
 ) where {G,P,E,C<:NativeRealization,R}
-  return stored_completion(expansion).factorization
+  return defensive_copy(stored_completion(expansion).factorization)
 end
+
+defensive_copy(factorization::NamedTuple) = deepcopy(factorization)
+defensive_copy(factorization) = factorization
 
 """
     kossakowski(expansion::FloquetExpansion)

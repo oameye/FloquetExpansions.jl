@@ -16,7 +16,7 @@ The construction is exposed as its own gauge, `GKSLNormalForm(; algorithm)`, not
 
 ## Exact cutoff-free representation
 
-The operator algebra covers boson, phase-space, finite-level, and spin sites. A spin site is the size-independent universal enveloping algebra of su(2) in the PBW basis S₊^a S_z^b S₋^c, stored in three monomial slots where every other site uses two. `SQALowering` maps Fock, position and momentum, NLevel, Pauli, and Spin operators onto it. Bosonic modes are never truncated. The lowering accepts only exact `Integer` and `Rational` coefficients with no free symbol, and throws an `ArgumentError` for a floating-point value, for a symbolic parameter, and for two operators of different names on one Hilbert space. The driver runs in checked `Rational{Int128}` and repeats the expansion in `Rational{BigInt}` only on `OverflowError`. The frame of monomials grows on demand. An averaged generator that is not of GKSL form, that is not trace preserving, throws an `ArgumentError`.
+The operator algebra covers boson, phase-space, finite-level, and spin sites. A spin site is the size-independent universal enveloping algebra of su(2) in the PBW basis S₊^a S_z^b S₋^c, stored in three monomial slots where every other site uses two. `SQALowering` maps Fock, position and momentum, NLevel, Pauli, and Spin operators onto it. Bosonic modes are never truncated. The lowering accepts only exact `Integer` and `Rational` coefficients with no free symbol, and throws an `ArgumentError` for a floating-point value, for a symbolic parameter, and for two operators of different names on one Hilbert space. Symbolic parameters reach it only as exact values, through the reconstruction described below. The driver runs in checked `Rational{Int128}` and repeats the expansion in `Rational{BigInt}` only on `OverflowError`. The frame of monomials grows on demand. An averaged generator that is not of GKSL form, that is not trace preserving, throws an `ArgumentError`.
 
 Finite Fock truncations are not a substitute. In a truncated space ``[a, a^\dagger] = 1 - d\,|d-1\rangle\langle d-1|``, and for driven Kerr with loss the order-two dark target is then localized on the top Fock levels with a norm that grows with the cutoff.
 
@@ -47,9 +47,19 @@ The public entry point is `GKSLNormalForm`. The independent order-2 BF oracle, t
 
 `native_exact_static_solve` takes the operator and gauge metrics explicitly, because an exact frame is not orthonormal, and it rejects an indefinite canonical residual rather than projecting onto the PSD cone.
 
+## Symbolic parameters
+
+A generator with free symbols is expanded by reconstruction, not by symbolic arithmetic in the solver. The solver stays numeric and exact. `symbolic_parameters.jl` evaluates it at rational points of a declared sign region, records every exact output that the lift to SQA reads, and `polynomial_reconstruction.jl` rebuilds each output as a sparse polynomial in the parameters. Outputs that agree at the first sample points share one fit, and each class is fitted at its own support, found from degrees along coordinate lines and a ray. The linear algebra is exact over `Rational{BigInt}`, with real and imaginary parts as separate outputs. Only polynomials are reconstructed: an output that is rational in the parameters fails with an `ArgumentError`, because no model tried so far needed one and a rational fit would add an unexercised route.
+
+The region is part of the result. Every parameter is positive except those the gauge lists in `negative`, and the drive frequency is positive, because an odd onset carries a factor ``\omega^{-n}`` that changes the sign of a rate. The reference point is a fixed ratio of primes in the region, and the exact outputs there define the structure: the frame, the channel onsets, the orders carrying a static gauge, and the set of nonzero outputs.
+
+The reconstruction is certified by sampling, not by proof. After the fit, every output is compared exactly with the solver at `verification` fresh points, each parameter scaled independently over a factor of 729 around values between ``1/9`` and ``9/2``, and each point must reproduce the structure of the reference point. This covers exactly the claim in the docstring: the returned expression equals the exact numeric expansion at the listed points, which `factorization` returns. It does not cover other points of the region. A branch of the solver confined to an unsampled part of the region is invisible, and a reconstruction whose structure changes at a sampled point fails with an `ArgumentError` instead of returning a formula for one piece. Fractional powers of a parameter are rejected when the parameters are collected, since an irrational root has no exact value to sample, and at most six parameters are accepted because the sampling cost grows with their number.
+
+The positivity conditions are the signed parameters, the drive frequency, and every channel rate with its power of the drive frequency. The exact route over a fraction field, which would replace sampling by a proof, is tracked in issue 389.
+
 ## Deferred
 
-Symbolic parameters, and a terminal virtual gauge for an order whose static gauge is not polynomial, are left to follow-up work. The expansion refuses such input rather than approximating it.
+A terminal virtual gauge for an order whose static gauge is not polynomial is left to follow-up work. The expansion refuses such input rather than approximating it.
 
 ## Gate
 
@@ -62,6 +72,8 @@ Symbolic parameters, and a terminal virtual gauge for an order whose static gaug
 - `test/native/exact_static_solve.jl`: "exact static slot solves the orthonormal fixture", "exact static slot is covariant under a non-orthonormal frame", "exact static slot is covariant under a gauge reparameterization" and "exact static slot rejects an indefinite canonical residual"
 - `test/native/graded_channels.jl`: "graded channel Gram coefficients are exact Cauchy products" and "graded channels activate after birth and stay prefix complete"
 - `test/native/sqa_driver.jl`: "native expansion equals Van Vleck wherever no static gauge is needed", "cutoff-free driven Kerr births one exact channel at order four", "SQA lowering is exact across Fock, level and Pauli sites" and "the exact driver falls back to BigInt scalars when Int128 overflows"
+- `test/native/gksl_symbolic.jl`: the symbolic result equals the numeric expansion at its verification points, equals the Gram completion of the van Vleck expansion where no static gauge is needed, reproduces the order-four channel of driven Kerr, reports its region, and rejects what it cannot certify
+- `test/native/polynomial_reconstruction.jl`: the interpolation recovers sparse polynomials per sign region, is bound to the declared region, and rejects a branch beyond the fitted magnitudes and a coefficient that is not a polynomial
 - `test/native/spin_sites.jl`: "native expansion of a driven spin equals Van Vleck" and "GKSLNormalForm on a driven spin is completely positive"
 
 `make jet` holds optimizer stability of the graded channels in `test/quality/JET.jl`, "native graded channel optimizer stability". The exact static solve is not covered.
