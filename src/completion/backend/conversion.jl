@@ -11,56 +11,11 @@ function completion_matrix(matrix::KossakowskiMatrix)::CompletionMatrix
   return result
 end
 
-function exact_numeric_radical_replacement(node)::Union{Nothing,Symbolics.Num}
-  Symbolics.iscall(node) || return nothing
-  Symbolics.operation(node) === sqrt || return nothing
-  arguments = Symbolics.arguments(node)
-  length(arguments) == 1 || return nothing
-  argument = Symbolics.unwrap_const(only(arguments))
-  rational = if argument isa Int
-    Rational{Int}(argument, 1)
-  elseif argument isa Rational{Int}
-    argument
-  else
-    return nothing
-  end
-  rational > 1 || return nothing
-
-  reciprocal = inv(rational)
-  reciprocal_root = Symbolics.Num(
-    Symbolics.term(sqrt, Symbolics.unwrap(Symbolics.Num(reciprocal)); type=Real)
-  )
-  return Symbolics.Num(rational) * reciprocal_root
-end
-
-function collect_exact_numeric_radicals!(
-  replacements::Dict{Symbolics.Num,Symbolics.Num}, node
-)::Dict{Symbolics.Num,Symbolics.Num}
-  Symbolics.iscall(node) || return replacements
-  replacement = exact_numeric_radical_replacement(node)
-  if replacement !== nothing
-    replacements[Symbolics.Num(node)] = replacement
-    return replacements
-  end
-  for argument in Symbolics.arguments(node)
-    collect_exact_numeric_radicals!(replacements, argument)
-  end
-  return replacements
-end
-
-function preserve_exact_numeric_radicals(value::Symbolics.Num)::Symbolics.Num
-  simplified = Symbolics.simplify(value)::Symbolics.Num
-  replacements = Dict{Symbolics.Num,Symbolics.Num}()
-  collect_exact_numeric_radicals!(replacements, Symbolics.unwrap(simplified))
-  isempty(replacements) && return simplified
-  return Symbolics.substitute(simplified, replacements)::Symbolics.Num
-end
-
 function coefficient_from_completion(value::CompletionScalar)::SQA.CNum
   simplified = simplify_scalar(value)
   exact_value = complex(
-    preserve_exact_numeric_radicals(real(simplified)),
-    preserve_exact_numeric_radicals(imag(simplified)),
+    Symbolics.simplify(real(simplified))::Symbolics.Num,
+    Symbolics.simplify(imag(simplified))::Symbolics.Num,
   )
   return SQA.simplify(convert(SQA.CNum, exact_value))::SQA.CNum
 end
