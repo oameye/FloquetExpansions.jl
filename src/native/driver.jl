@@ -39,7 +39,7 @@ function native_expansion_data(
 ) where {T}
   lowering = SQALowering{T}(generator)
   L = lower_generator(lowering, generator)
-  haskey(L, 0) || (L[0] = zero(first(values(L))))
+  haskey(L, 0) || (L[0] = lower_liouvillian(lowering, zero(Liouvillian)))
   input_degree = native_input_degree(lowering, L)
   bound = (N + 1) * (input_degree + gauge_degree)
   for degree in (input_degree + N):2:bound
@@ -82,7 +82,7 @@ end
 
 struct ExactCoefficients end
 
-(::ExactCoefficients)(c) = sqa_scalar(c)
+lift_coefficient(::ExactCoefficients, c::Complex{<:Rational}) = convert(SQA.CNum, c)
 
 struct CoefficientLift{L<:SQALowering,F}
   lowering::L
@@ -93,8 +93,6 @@ end
 function CoefficientLift(lowering::SQALowering, coefficient)
   return CoefficientLift(lowering, coefficient, Dict{Monomial,SQA.QAdd}())
 end
-
-lifted_coefficient(lift::CoefficientLift, c) = convert(SQA.CNum, lift.coefficient(c))
 
 function lift_monomial!(lift::CoefficientLift, X::Monomial)
   return get!(lift.monomials, X) do
@@ -112,7 +110,7 @@ function lift_superoperator!(
   for ((X, Y), c) in S.terms
     left = lift_monomial!(lift, X)
     right = lift_monomial!(lift, Y)
-    add_term!(target, left, right, lifted_coefficient(lift, c) * scale)
+    add_term!(target, left, right, lift_coefficient(lift.coefficient, c) * scale)
   end
   return target
 end

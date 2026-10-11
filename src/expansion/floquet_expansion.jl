@@ -229,7 +229,7 @@ function floquet_expansion(
   return floquet_expansion_channels(H, wd, t, gauge, order, channels)
 end
 
-function reattach(component::E, wd::Symbolics.Num, n::Int)::E where {E<:GeneratorComponent}
+function reattach(component::E, wd::Symbolics.Num, n::Int) where {E<:GeneratorComponent}
   iszero(n) && return component
   scale = inverse_drive_power(wd, n)
   return scale * component

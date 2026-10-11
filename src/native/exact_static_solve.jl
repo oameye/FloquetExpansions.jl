@@ -208,7 +208,7 @@ end
 
 function exact_ldl!(
   columns::Vector{Vector{T}}, weights::Vector{R}, work::Matrix{T}
-)::Bool where {T,R}
+) where {T,R}
   work == exact_adjoint(work) || return false
   n = size(work, 1)
   for _ in 1:n
@@ -351,9 +351,7 @@ function exact_coordinate_columns(
   return result
 end
 
-function exact_facial_kernel(
-  current::Matrix{T}, fixed::Vector{Int}, ::Type{R}
-)::Matrix{T} where {T,R}
+function exact_facial_kernel(current::Matrix{T}, fixed::Vector{Int}, ::Type{R}) where {T,R}
   isempty(fixed) && return exact_zeros(T, 0, 0)
   block = current[fixed, fixed]
   exact_is_psd(block, R) ||
@@ -382,7 +380,7 @@ function exact_facial_step(
   return constraint, constraint_rhs, y, exact_nullspace(rows)
 end
 
-function exact_is_consistent(A::Matrix{R}, b::Vector{R})::Bool where {R}
+function exact_is_consistent(A::Matrix{R}, b::Vector{R}) where {R}
   return length(exact_row_basis(A)) == length(exact_row_basis(hcat(A, b)))
 end
 
@@ -418,7 +416,7 @@ function exact_section(C, c, Z, normal_matrix, normal_rhs, gauge_metric)
   )
 end
 
-function exact_is_psd(P::AbstractMatrix{T}, ::Type{R})::Bool where {T,R}
+function exact_is_psd(P::AbstractMatrix{T}, ::Type{R}) where {T,R}
   return exact_ldl!(Vector{T}[], R[], Matrix{T}(P))
 end
 

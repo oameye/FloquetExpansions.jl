@@ -276,13 +276,13 @@ function collapse(operator::SQA.QField)
   return CollapseChannel(operator)
 end
 
-function numeric_coefficient(coefficient::SQA.CNum)::Bool
+function numeric_coefficient(coefficient::SQA.CNum)
   SQA.is_native(coefficient) && return true
-  SQA.is_poly(coefficient) || return false
-  return all(SQA.is_constant_term, (coefficient.tail::SQA.Poly).terms)
+  tail = coefficient.tail
+  return tail isa SQA.Poly && all(SQA.is_constant_term, tail.terms)
 end
 
-function known_negative_jump_rate(coefficient::SQA.CNum)::Bool
+function known_negative_jump_rate(coefficient::SQA.CNum)
   return numeric_coefficient(coefficient) && SQA.is_real_negative(coefficient)
 end
 

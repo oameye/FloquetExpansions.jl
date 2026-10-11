@@ -16,7 +16,7 @@ struct Liouvillian
   terms::LiouvillianTerms
 end
 
-function monomial_operator(term::SQA.QTerm)::SQA.QAdd
+function monomial_operator(term::SQA.QTerm)
   arguments = SQA.QTermDict()
   arguments[term] = convert(SQA.CNum, 1)
   return SQA.QAdd(arguments, SQA.Index[])

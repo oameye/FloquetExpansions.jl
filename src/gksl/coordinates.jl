@@ -1,4 +1,4 @@
-function canonical_liouvillian(L::Liouvillian)::Liouvillian
+function canonical_liouvillian(L::Liouvillian)
   result = zero(L)
   for entry in term_pairs(L)
     action = first(entry)
@@ -23,9 +23,7 @@ function canonical_liouvillian(L::Liouvillian)::Liouvillian
   return result
 end
 
-function multiply_coefficients(
-  left::KossakowskiMatrix, right::KossakowskiMatrix
-)::KossakowskiMatrix
+function multiply_coefficients(left::KossakowskiMatrix, right::KossakowskiMatrix)
   size(left, 2) == size(right, 1) ||
     throw(DimensionMismatch("matrix dimensions do not match"))
   result = coefficient_matrix(size(left, 1), size(right, 2))
@@ -40,7 +38,7 @@ function multiply_coefficients(
   return result
 end
 
-function adjoint_coefficients(matrix::KossakowskiMatrix)::KossakowskiMatrix
+function adjoint_coefficients(matrix::KossakowskiMatrix)
   result = coefficient_matrix(size(matrix, 2), size(matrix, 1))
   for row in axes(matrix, 1), column in axes(matrix, 2)
     result[column, row] = conj(matrix[row, column])
@@ -48,9 +46,7 @@ function adjoint_coefficients(matrix::KossakowskiMatrix)::KossakowskiMatrix
   return result
 end
 
-function sandwich_pivot_matrix_canonical(
-  canonical::Liouvillian, frame::DissipativeFrame
-)::KossakowskiMatrix
+function sandwich_pivot_matrix_canonical(canonical::Liouvillian, frame::DissipativeFrame)
   q = length(frame.operators)
   result = coefficient_matrix(q, q)
   pivot_terms = frame.monomials[frame.pivot_rows]
@@ -84,11 +80,11 @@ function sandwich_pivot_matrix_canonical(
   return result
 end
 
-function sandwich_pivot_matrix(L::Liouvillian, frame::DissipativeFrame)::KossakowskiMatrix
+function sandwich_pivot_matrix(L::Liouvillian, frame::DissipativeFrame)
   return sandwich_pivot_matrix_canonical(canonical_liouvillian(L), frame)
 end
 
-function cross_dissipator(left::SQA.QAdd, right::SQA.QAdd)::Liouvillian
+function cross_dissipator(left::SQA.QAdd, right::SQA.QAdd)
   identity = one(left)
   right_adjoint = adjoint(right)
   norm = right_adjoint * left
@@ -97,9 +93,7 @@ function cross_dissipator(left::SQA.QAdd, right::SQA.QAdd)::Liouvillian
          action(identity, norm, -1 // 2)
 end
 
-function dissipative_liouvillian(
-  frame::DissipativeFrame, matrix::KossakowskiMatrix
-)::Liouvillian
+function dissipative_liouvillian(frame::DissipativeFrame, matrix::KossakowskiMatrix)
   q = length(frame.operators)
   size(matrix) == (q, q) ||
     throw(DimensionMismatch("Kossakowski matrix does not match frame"))
@@ -120,11 +114,10 @@ const ExactConstant = Union{Int,Rational{Int},Complex{Int},Complex{Rational{Int}
 const FloatConstant = Union{Float64,ComplexF64}
 const NumericConstant = Union{ExactConstant,FloatConstant}
 
-constant_magnitude(value::ExactConstant)::Tuple{Float64,Bool} =
-  abs(ComplexF64(value)), false
-constant_magnitude(value::FloatConstant)::Tuple{Float64,Bool} = abs(value), true
+constant_magnitude(value::ExactConstant) = abs(ComplexF64(value)), false
+constant_magnitude(value::FloatConstant) = abs(value), true
 
-function monomial_constant(term)::Tuple{Float64,Bool}
+function monomial_constant(term)
   value = Symbolics.unwrap_const(term)
   value isa NumericConstant && return constant_magnitude(value)
   Symbolics.iscall(term) || return 1.0, false
@@ -142,9 +135,7 @@ function monomial_constant(term)::Tuple{Float64,Bool}
   return magnitude, inexact
 end
 
-function monomial_constants!(
-  constants::Vector{Tuple{Float64,Bool}}, part::Symbolics.Num
-)::Vector{Tuple{Float64,Bool}}
+function monomial_constants!(constants::Vector{Tuple{Float64,Bool}}, part::Symbolics.Num)
   expanded = Symbolics.unwrap(Symbolics.expand(part))
   terms = if Symbolics.iscall(expanded) && Symbolics.operation(expanded) === (+)
     Symbolics.arguments(expanded)
@@ -159,27 +150,27 @@ function monomial_constants!(
   return constants
 end
 
-function monomial_constants(value::SQA.CNum)::Vector{Tuple{Float64,Bool}}
-  number = SQA.to_num(value)::Complex{Symbolics.Num}
+function monomial_constants(value::SQA.CNum)
+  number = SQA.to_num(value)
   constants = Tuple{Float64,Bool}[]
   monomial_constants!(constants, real(number))
   monomial_constants!(constants, imag(number))
   return constants
 end
 
-function has_floating_constant(node)::Bool
+function has_floating_constant(node)
   Symbolics.unwrap_const(node) isa FloatConstant && return true
   Symbolics.iscall(node) || return false
   return any(has_floating_constant, Symbolics.arguments(node))
 end
 
-function has_floating_constant(value::SQA.CNum)::Bool
-  number = SQA.to_num(value)::Complex{Symbolics.Num}
+function has_floating_constant(value::SQA.CNum)
+  number = SQA.to_num(value)
   return has_floating_constant(Symbolics.unwrap(real(number))) ||
          has_floating_constant(Symbolics.unwrap(imag(number)))
 end
 
-function floating_roundoff(value::SQA.CNum, reference, floor::Float64)::Bool
+function floating_roundoff(value::SQA.CNum, reference, floor::Float64)
   has_floating_constant(value) || return false
   constants = monomial_constants(value)
   isempty(constants) && return false
@@ -190,7 +181,7 @@ function floating_roundoff(value::SQA.CNum, reference, floor::Float64)::Bool
   return true
 end
 
-function coefficient_scale(values)::Float64
+function coefficient_scale(values)
   scale = 0.0
   for value in values
     for (magnitude, _) in monomial_constants(value)
@@ -200,7 +191,7 @@ function coefficient_scale(values)::Float64
   return iszero(scale) ? 1.0 : scale
 end
 
-function hermitize_floating_roundoff!(matrix::KossakowskiMatrix)::KossakowskiMatrix
+function hermitize_floating_roundoff!(matrix::KossakowskiMatrix)
   for row in axes(matrix, 1), column in row:size(matrix, 2)
     pair = (matrix[row, column], matrix[column, row])
     difference = simplify_coefficient(matrix[row, column] - conj(matrix[column, row]))
@@ -212,15 +203,13 @@ function hermitize_floating_roundoff!(matrix::KossakowskiMatrix)::KossakowskiMat
   return matrix
 end
 
-function expanded_conjugate_pair(left::SQA.CNum, right::SQA.CNum)::Bool
-  difference =
-    SQA.to_num(left)::Complex{Symbolics.Num} -
-    conj(SQA.to_num(right)::Complex{Symbolics.Num})
+function expanded_conjugate_pair(left::SQA.CNum, right::SQA.CNum)
+  difference = SQA.to_num(left) - conj(SQA.to_num(right))
   return iszero(Symbolics.expand(real(difference))) &&
          iszero(Symbolics.expand(imag(difference)))
 end
 
-function matrix_is_hermitian(matrix::KossakowskiMatrix)::Bool
+function matrix_is_hermitian(matrix::KossakowskiMatrix)
   size(matrix, 1) == size(matrix, 2) || return false
   for row in axes(matrix, 1), column in row:size(matrix, 2)
     expanded_conjugate_pair(matrix[row, column], matrix[column, row]) && continue
@@ -236,7 +225,7 @@ function drop_floating_roundoff(
   canonical::Liouvillian,
   dissipative::Liouvillian,
   matrix::KossakowskiMatrix,
-)::Liouvillian
+)
   result = zero(residual)
   matrix_scale = any(has_floating_constant, matrix) ? coefficient_scale(matrix) : 0.0
   for (left, right, coefficient) in terms(residual)
@@ -253,7 +242,7 @@ function drop_floating_roundoff(
   return result
 end
 
-function canonical_has_two_sided_terms(canonical::Liouvillian)::Bool
+function canonical_has_two_sided_terms(canonical::Liouvillian)
   for entry in term_pairs(canonical)
     action = first(entry)
     left = first(action)
@@ -263,11 +252,11 @@ function canonical_has_two_sided_terms(canonical::Liouvillian)::Bool
   return false
 end
 
-function has_two_sided_terms(L::Liouvillian)::Bool
+function has_two_sided_terms(L::Liouvillian)
   return canonical_has_two_sided_terms(canonical_liouvillian(L))
 end
 
-function canonical_dissipative_support_terms(canonical::Liouvillian)::Vector{SQA.QTerm}
+function canonical_dissipative_support_terms(canonical::Liouvillian)
   terms_found = SQA.QTerm[]
   for entry in term_pairs(canonical)
     action = first(entry)
@@ -287,16 +276,16 @@ function canonical_dissipative_support_terms(canonical::Liouvillian)::Vector{SQA
   return terms_found
 end
 
-function canonical_dissipative_support_directions(canonical::Liouvillian)::Vector{SQA.QAdd}
+function canonical_dissipative_support_directions(canonical::Liouvillian)
   terms_found = canonical_dissipative_support_terms(canonical)
   return [monomial_operator(term) for term in terms_found]
 end
 
-function dissipative_support_directions(L::Liouvillian)::Vector{SQA.QAdd}
+function dissipative_support_directions(L::Liouvillian)
   return canonical_dissipative_support_directions(canonical_liouvillian(L))
 end
 
-function residual_hamiltonian_canonical(canonical::Liouvillian)::SQA.QAdd
+function residual_hamiltonian_canonical(canonical::Liouvillian)
   H = zero(SQA.QAdd)
   for (left, right, coefficient) in terms(canonical)
     if !qadd_isone(left) && qadd_isone(right)
@@ -316,13 +305,11 @@ function residual_hamiltonian_canonical(canonical::Liouvillian)::SQA.QAdd
   return H
 end
 
-function residual_hamiltonian(residual::Liouvillian)::SQA.QAdd
+function residual_hamiltonian(residual::Liouvillian)
   return residual_hamiltonian_canonical(canonical_liouvillian(residual))
 end
 
-function extract_gksl_canonical(
-  canonical::Liouvillian, frame::DissipativeFrame
-)::Tuple{SQA.QAdd,KossakowskiMatrix}
+function extract_gksl_canonical(canonical::Liouvillian, frame::DissipativeFrame)
   sandwich = sandwich_pivot_matrix_canonical(canonical, frame)
   left = multiply_coefficients(frame.pivot_inverse, sandwich)
   matrix = multiply_coefficients(left, adjoint_coefficients(frame.pivot_inverse))
@@ -344,9 +331,7 @@ function extract_gksl_canonical(
   return H, matrix
 end
 
-function extract_gksl(
-  L::Liouvillian, frame::DissipativeFrame
-)::Tuple{SQA.QAdd,KossakowskiMatrix}
+function extract_gksl(L::Liouvillian, frame::DissipativeFrame)
   return extract_gksl_canonical(canonical_liouvillian(L), frame)
 end
 
@@ -369,7 +354,7 @@ algebra. The supplied frame must contain every dissipative direction of the Liou
 
 See also [`DissipativeFrame`](@ref), [`kossakowski_component`](@ref), [`hamiltonian`](@ref).
 """
-function kossakowski(L::Liouvillian, frame::DissipativeFrame)::KossakowskiMatrix
+function kossakowski(L::Liouvillian, frame::DissipativeFrame)
   _, matrix = extract_gksl(L, frame)
   return matrix
 end
@@ -383,12 +368,12 @@ simultaneously checked to admit exact GKSL coordinates in that frame.
 
 See also [`kossakowski`](@ref), [`hamiltonian_component`](@ref).
 """
-function hamiltonian(L::Liouvillian, frame::DissipativeFrame)::SQA.QAdd
+function hamiltonian(L::Liouvillian, frame::DissipativeFrame)
   H, _ = extract_gksl(L, frame)
   return H
 end
 
-function hamiltonian(L::Liouvillian)::SQA.QAdd
+function hamiltonian(L::Liouvillian)
   canonical = canonical_liouvillian(L)
   canonical_has_two_sided_terms(canonical) ||
     return residual_hamiltonian_canonical(canonical)

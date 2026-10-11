@@ -29,7 +29,7 @@ function eliminate_matrix_solve_column!(
   for row in (k + 1):n
     entry = simplify_scalar(upper[row, k])
     structurally_zero(entry) && continue
-    factor = simplify_scalar(entry / pivot)
+    factor = simplify_scalar(scalar_quotient(entry, pivot))
     lower[row, k] = factor
     upper[row, k] = completion_zero()
     for column in (k + 1):n
@@ -56,7 +56,7 @@ function matrix_solve_plan(A::CompletionMatrix, conditions::CompletionConditions
     pivot = simplify_scalar(upper[k, k])
     structurally_nonzero(pivot, conditions) || require_regularity!(conditions, pivot)
     upper[k, k] = pivot
-    inverse_diagonal[k] = simplify_scalar(completion_one() / pivot)
+    inverse_diagonal[k] = simplify_scalar(scalar_quotient(completion_one(), pivot))
     eliminate_matrix_solve_column!(lower, upper, k, pivot, n)
   end
 
@@ -124,7 +124,7 @@ function lower_triangular_solve_plan(L::CompletionMatrix, conditions::Completion
   for index in 1:n
     pivot = simplify_scalar(L[index, index])
     structurally_nonzero(pivot, conditions) || require_regularity!(conditions, pivot)
-    inverse_diagonal[index] = simplify_scalar(completion_one() / pivot)
+    inverse_diagonal[index] = simplify_scalar(scalar_quotient(completion_one(), pivot))
   end
   return LowerTriangularSolvePlan(copy(L), inverse_diagonal)
 end
@@ -225,11 +225,11 @@ function hermitian_congruence_eliminate_step!(
   n = size(reduced, 1)
   coefficients = Vector{CompletionScalar}(undef, n - k)
   for column in (k + 1):n
-    coefficients[column - k] = simplify_scalar(-reduced[k, column] / pivot)
+    coefficients[column - k] = simplify_scalar(scalar_quotient(-reduced[k, column], pivot))
   end
 
   for column in (k + 1):n, row in column:n
-    correction = (reduced[row, k] * reduced[k, column] / pivot)::CompletionScalar
+    correction = scalar_quotient(reduced[row, k] * reduced[k, column], pivot)
     value = simplify_scalar(reduced[row, column] - correction)
     if row == column
       reduced[row, column] = hermitian_real(value)

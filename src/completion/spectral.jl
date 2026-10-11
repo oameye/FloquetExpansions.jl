@@ -122,7 +122,7 @@ end
 
 function spectral_order_forcing(
   series::MatrixSeries, vectors::Vector{Vector{CompletionScalar}}, order::Int, q::Int
-)::Vector{CompletionScalar}
+)
   forcing = completion_vector_zeros(q)
   for k in 1:order
     k + 1 <= length(series) || continue
@@ -137,7 +137,7 @@ function spectral_rate_coefficient(
   vectors::Vector{Vector{CompletionScalar}},
   branch::Int,
   order::Int,
-)::CompletionScalar
+)
   rate = forcing[branch]
   for k in 1:(order - 1)
     rate -= rates[k + 1] * vectors[order - k + 1][branch]
@@ -150,7 +150,7 @@ function spectral_order_residual(
   rates::ScalarSeries,
   vectors::Vector{Vector{CompletionScalar}},
   order::Int,
-)::Vector{CompletionScalar}
+)
   residual = copy(forcing)
   for k in 1:order, index in eachindex(residual)
     residual[index] -= rates[k + 1] * vectors[order - k + 1][index]
@@ -164,7 +164,7 @@ function solve_spectral_branch_components!(
   gaps::Vector{CompletionScalar},
   branch::Int,
   conditions::CompletionConditions,
-)::Bool
+)
   for index in eachindex(vector)
     index == branch && continue
     value = simplify_scalar(residual[index])
@@ -179,9 +179,7 @@ function solve_spectral_branch_components!(
   return true
 end
 
-function spectral_normalization(
-  vectors::Vector{Vector{CompletionScalar}}, order::Int
-)::CompletionScalar
+function spectral_normalization(vectors::Vector{Vector{CompletionScalar}}, order::Int)
   normalization = completion_zero()
   for k in 1:(order - 1)
     normalization += completion_dot(vectors[k + 1], vectors[order - k + 1])
@@ -320,10 +318,10 @@ function spectral_completed_matrix(
   return coefficient_matrix_from_expanded(result)
 end
 
-function coefficient_matrix_from_expanded(matrix::CompletionMatrix)::KossakowskiMatrix
+function coefficient_matrix_from_expanded(matrix::CompletionMatrix)
   result = coefficient_matrix(size(matrix, 1), size(matrix, 2))
   for index in eachindex(matrix)
-    result[index] = convert(SQA.CNum, matrix[index])::SQA.CNum
+    result[index] = convert(SQA.CNum, matrix[index])
   end
   return result
 end

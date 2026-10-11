@@ -240,13 +240,11 @@ function site_operator(lowering::SQALowering, s::Int, p::Int, q::Int, r::Int...)
   return qadd(SQA.Transition(name, p, q, index, SQA.NO_INDEX, site.ground, site.levels))
 end
 
-sqa_scalar(x::Number) = x
-
-function lift_operator(lowering::SQALowering, X::AlgebraOperator)::SQA.QAdd
-  return lift_operator(lowering, X, sqa_scalar)
+function lift_operator(lowering::SQALowering, X::AlgebraOperator)
+  return lift_operator(lowering, X, ExactCoefficients())
 end
 
-function lift_operator(lowering::SQALowering, X::AlgebraOperator, coefficient)::SQA.QAdd
+function lift_operator(lowering::SQALowering, X::AlgebraOperator, coefficients)
   result = zero(SQA.QAdd)
   for (monomial, c) in X.terms
     product = one(SQA.QAdd)
@@ -254,7 +252,7 @@ function lift_operator(lowering::SQALowering, X::AlgebraOperator, coefficient)::
       slots = monomial[site_slots(lowering.algebra, s)]
       product = product * site_operator(lowering, s, slots...)
     end
-    result = result + coefficient(c) * product
+    result = result + lift_coefficient(coefficients, c) * product
   end
   return SQA.simplify(result)
 end

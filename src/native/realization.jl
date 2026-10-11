@@ -61,7 +61,7 @@ function native_channels(
   return RateWeightedJump{SQA.QAdd}[
     jump(
       native_channel_operator(data, lift, channel, wd, N),
-      lifted_coefficient(lift, channel.weight) *
+      lift_coefficient(lift.coefficient, channel.weight) *
       convert(SQA.CNum, inverse_drive_power(wd, channel.onset)),
     ) for channel in data.recurrence.channels if channel.onset <= N
   ]
@@ -84,7 +84,7 @@ function native_frame(data::NativeExpansionData, support::Vector{Int})
       algebra_operator(data.lowering.algebra, [(data.representation.frame[k], 1)]),
     ) for k in support
   ]
-  return DissipativeFrame(operators)
+  return assemble_dissipative_frame(Tuple(operators))
 end
 
 function retained_amplitudes(channel::GradedChannel, N::Int)
@@ -112,7 +112,7 @@ function graded_coefficient(entries, wd::Symbolics.Num, coefficient)
   for (order, c) in entries
     iszero(c) && continue
     scale = convert(SQA.CNum, inverse_drive_power(wd, order))
-    result = result + convert(SQA.CNum, coefficient(c)) * scale
+    result = result + lift_coefficient(coefficient, c) * scale
   end
   return result
 end

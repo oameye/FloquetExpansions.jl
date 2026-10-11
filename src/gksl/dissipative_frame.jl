@@ -64,17 +64,17 @@ function Base.show(io::IO, ::MIME"text/plain", frame::DissipativeFrame)
   return nothing
 end
 
-@inline coefficient_zero()::SQA.CNum = convert(SQA.CNum, 0)
-@inline coefficient_one()::SQA.CNum = convert(SQA.CNum, 1)
-@inline function simplify_coefficient(value::SQA.CNum)::SQA.CNum
+@inline coefficient_zero() = convert(SQA.CNum, 0)
+@inline coefficient_one() = convert(SQA.CNum, 1)
+@inline function simplify_coefficient(value::SQA.CNum)
   return SQA.simplify(value)
 end
-@inline qadd_isone(value::SQA.QAdd)::Bool = isone(value)::Bool
-@inline qadd_iszero(value::SQA.QAdd)::Bool = iszero(value)
-@inline liouvillian_iszero(value::Liouvillian)::Bool = iszero(value)
+@inline qadd_isone(value::SQA.QAdd) = isone(value)
+@inline qadd_iszero(value::SQA.QAdd) = iszero(value)
+@inline liouvillian_iszero(value::Liouvillian) = iszero(value)
 @inline qadd_term_pairs(value::SQA.QAdd) = pairs(getfield(value, :arguments))
 
-function canonical_qadd(operator::SQA.QField)::SQA.QAdd
+function canonical_qadd(operator::SQA.QField)
   result = SQA.simplify(SQA.expand_completeness(qadd(operator)))
   isempty(result.indices) || throw(
     ArgumentError("GKSL coordinates do not support operators with bound symbolic sums")
@@ -82,7 +82,7 @@ function canonical_qadd(operator::SQA.QField)::SQA.QAdd
   return result
 end
 
-function scalar_part(operator::SQA.QAdd)::SQA.CNum
+function scalar_part(operator::SQA.QAdd)
   scalar = coefficient_zero()
   for (term, coefficient) in operator
     isempty(term.ops) || continue
@@ -91,7 +91,7 @@ function scalar_part(operator::SQA.QAdd)::SQA.CNum
   return scalar
 end
 
-function projected_operator(operator::SQA.QField)::SQA.QAdd
+function projected_operator(operator::SQA.QField)
   canonical = canonical_qadd(operator)
   scalar = scalar_part(canonical)
   projected = if iszero(scalar)
@@ -105,7 +105,7 @@ function projected_operator(operator::SQA.QField)::SQA.QAdd
   return projected
 end
 
-project_frame_operator(operator::SQA.QField)::SQA.QAdd = projected_operator(operator)
+project_frame_operator(operator::SQA.QField) = projected_operator(operator)
 function project_frame_operator(::Any)
   return throw(
     ArgumentError("every dissipative-frame direction must be an SQA operator expression")
@@ -126,11 +126,11 @@ function sorted_term_pairs(operator::SQA.QAdd)
   return pairs
 end
 
-function coefficient_matrix(rows::Int, columns::Int)::KossakowskiMatrix
+function coefficient_matrix(rows::Int, columns::Int)
   return fill(coefficient_zero(), rows, columns)
 end
 
-function simplify_matrix!(matrix::KossakowskiMatrix)::KossakowskiMatrix
+function simplify_matrix!(matrix::KossakowskiMatrix)
   for index in eachindex(matrix)
     matrix[index] = simplify_coefficient(matrix[index])
   end
@@ -146,7 +146,7 @@ function transposed_coordinate_matrix(coordinates::KossakowskiMatrix)
   return work
 end
 
-function coefficient_pivot_row!(work::KossakowskiMatrix, pivot::CartesianIndex{2})::Int
+function coefficient_pivot_row!(work::KossakowskiMatrix, pivot::CartesianIndex{2})
   first_row, column = Tuple(pivot)
   for row in first_row:size(work, 1)
     value = simplify_coefficient(work[row, column])
@@ -185,7 +185,7 @@ function eliminate_coordinate_column!(
   return work
 end
 
-function coordinate_pivot_rows(coordinates::KossakowskiMatrix)::Vector{Int}
+function coordinate_pivot_rows(coordinates::KossakowskiMatrix)
   monomial_count, direction_count = size(coordinates)
   direction_count == 0 && return Int[]
   monomial_count < direction_count && return Int[]
@@ -217,7 +217,7 @@ function independent_pivot_rows(coordinates::KossakowskiMatrix)
   return pivots
 end
 
-function coefficient_identity(n::Int)::KossakowskiMatrix
+function coefficient_identity(n::Int)
   result = coefficient_matrix(n, n)
   for index in 1:n
     result[index, index] = coefficient_one()
@@ -260,7 +260,7 @@ function eliminate_inverse_column!(workspace::CoefficientInverseWorkspace, colum
   return nothing
 end
 
-function inverse_coefficients(matrix::KossakowskiMatrix)::KossakowskiMatrix
+function inverse_coefficients(matrix::KossakowskiMatrix)
   rows, columns = size(matrix)
   rows == columns || throw(DimensionMismatch("coefficient matrix must be square"))
   n = rows

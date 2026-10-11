@@ -71,9 +71,15 @@ function simplify_scalar(z::CompletionScalar)
   )
 end
 
+function scalar_quotient(numerator::CompletionScalar, denominator::CompletionScalar)
+  product = numerator * conj(denominator)
+  norm = abs2(denominator)
+  return complex(real(product) / norm, imag(product) / norm)
+end
+
 structurally_zero(x::Real) = iszero(x)
 
-function completion_symbolic_zero(x::Symbolics.Num)::Bool
+function completion_symbolic_zero(x::Symbolics.Num)
   simplified = Symbolics.simplify(x)
   return isequal(simplified, completion_num(0))
 end
@@ -112,16 +118,16 @@ end
 
 symbolic_truth(value::Bool) = value
 
-function symbolic_truth(value::Symbolics.Num)::Bool
+function symbolic_truth(value::Symbolics.Num)
   simplified = Symbolics.simplify(value)
   return Symbolics.value(simplified) === true
 end
 
-function symbolically_positive(value::Symbolics.Num)::Bool
+function symbolically_positive(value::Symbolics.Num)
   return symbolic_truth(value > 0)
 end
 
-function symbolically_negative(value::Symbolics.Num)::Bool
+function symbolically_negative(value::Symbolics.Num)
   return symbolic_truth(value < 0)
 end
 
@@ -160,7 +166,7 @@ function structurally_nonzero(x::CompletionScalar, conditions::CompletionConditi
   return condition_contains(conditions.regularity, simplified)
 end
 
-function nonnegative_factor(factor, conditions::CompletionConditions)::Bool
+function nonnegative_factor(factor, conditions::CompletionConditions)
   value = Symbolics.unwrap(factor)
   for p in conditions.positivity
     structurally_equal(completion_scalar(Symbolics.Num(value)), p) && return true
@@ -183,7 +189,7 @@ any other form returns `false`.
 """
 function structurally_nonpositive_product(
   x::Symbolics.Num, conditions::CompletionConditions
-)::Bool
+)
   node = Symbolics.unwrap(Symbolics.simplify(x))
   factors = if Symbolics.iscall(node) && Symbolics.operation(node) === (*)
     Symbolics.arguments(node)
@@ -204,7 +210,7 @@ end
 
 function condition_sign(
   p::CompletionScalar, conditions::CompletionConditions, positive::Bool
-)::StructuralSign
+)
   strict = condition_contains(conditions.regularity, p)
   positive && return strict ? SIGN_POSITIVE : SIGN_NONNEGATIVE
   return strict ? SIGN_NEGATIVE : SIGN_NONPOSITIVE
@@ -559,7 +565,7 @@ end
 
 function graded_ldl_diagonal(
   A::MatrixSeries, lower::MatrixSeries, diagonal::Vector{ScalarSeries}, j::Int, N::Int
-)::ScalarSeries
+)
   delta = scalar_series_entry(A, j, j, N)
   for k in 1:(j - 1)
     lower_jk = scalar_series_entry(lower, j, k, N)
@@ -594,7 +600,7 @@ function graded_ldl_numerator(
   diagonal::Vector{ScalarSeries},
   position::CartesianIndex{2},
   N::Int,
-)::ScalarSeries
+)
   i, j = Tuple(position)
   numerator = scalar_series_entry(A, i, j, N)
   for k in 1:(j - 1)
