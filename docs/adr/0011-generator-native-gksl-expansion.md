@@ -57,7 +57,7 @@ Symbolic parameters, and a terminal virtual gauge for an order with no polynomia
 
 - `test/native/gksl_normal_form.jl`: "GKSLNormalForm coincides with VanVleck wherever no static gauge is needed", "GKSLNormalForm driven Kerr is GKSL with a drive-induced channel" (which also compares BF with HD), "GKSLNormalForm on a driven oscillator in position and momentum" and "GKSLNormalForm rejects what it cannot expand exactly"
 - `test/native/gksl_gram_regression.jl`: "driven Kerr with loss: GKSLNormalForm equals Gram completion of Van Vleck" and "driven qubit with decay: GKSLNormalForm equals Gram completion of Van Vleck"
-- `test/native/gksl_finite_oracle.jl`: "GKSLNormalForm spectrum matches the exact Floquet exponents" and "GKSLNormalForm Kossakowski matrix is positive semidefinite at finite frequency"
+- `test/native/gksl_finite_oracle.jl`: "GKSLNormalForm spectrum matches the exact Floquet exponents", "GKSLNormalForm driven Kerr matches the truncated Floquet exponents" and "GKSLNormalForm Kossakowski matrix is positive semidefinite at finite frequency"
 - `test/native/gksl_phase_independence.jl`: "GKSLNormalForm is independent of the drive phase"
 - `test/native/exact_static_solve.jl`: "exact static slot solves the orthonormal fixture", "exact static slot is covariant under a non-orthonormal frame", "exact static slot is covariant under a gauge reparameterization" and "exact static slot rejects an indefinite canonical residual"
 - `test/native/graded_channels.jl`: "graded channel Gram coefficients are exact Cauchy products" and "graded channels activate after birth and stay prefix complete"

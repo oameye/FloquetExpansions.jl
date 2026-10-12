@@ -111,6 +111,37 @@ const FREQUENCIES = [20.0, 40.0, 80.0]
   end
 end
 
+@testset "GKSLNormalForm driven Kerr matches the truncated Floquet exponents" begin
+  mode = FockSpace(:gksl_oracle_kerr)
+  a = Destroy(mode, :a)
+  K0 = (1 // 2) * a' * a + (3 // 10) * a' * a * a' * a
+  V = (2 // 5) * (a + a')
+  loss = (jump(a, 4 // 5),)
+  expansions = [
+    floquet_expansion(K0 + V * cos(ω * t), ω, t, GKSLNormalForm(), order; channels=loss) for
+    order in (4, 5)
+  ]
+  for d in (6, 8)
+    static =
+      hamiltonian_superoperator(tomatrix(K0, d)) +
+      (4 / 5) * dissipator_superoperator(tomatrix(a, d))
+    drive = hamiltonian_superoperator(tomatrix(V, d))
+    slowest = [
+      sort(floquet_exponents(static, drive, value); by=λ -> -real(λ))[1:6] for
+      value in FREQUENCIES
+    ]
+    for (order, expansion) in zip((4, 5), expansions)
+      errors = [
+        spectral_distance(
+          slowest[k], eigvals(effective_superoperator(expansion, d, value))
+        ) for (k, value) in enumerate(FREQUENCIES)
+      ]
+      @test issorted(errors; rev=true)
+      @test loglog_slope(FREQUENCIES, errors) >= order - 0.1
+    end
+  end
+end
+
 @testset "GKSLNormalForm Kossakowski matrix is positive semidefinite at finite frequency" begin
   qubit = NLevelSpace(:gksl_oracle_qubit, 2)
   τ(i, j) = Transition(qubit, :τ, i, j)
