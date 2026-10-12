@@ -16,7 +16,7 @@ function lift_harmonics(lift::CoefficientLift, harmonics::Dict, wd::Symbolics.Nu
   components = Dict{Int,Liouvillian}(
     k => lift_superoperator(lift, X) for (k, X) in harmonics if !iszero(X)
   )
-  return PeriodicGenerator(components, wd, zero(Liouvillian))
+  return PeriodicGenerator(components, wd)
 end
 
 function native_micromotion_harmonics(data::NativeExpansionData, ::HoriDeprit, N::Int)

@@ -89,10 +89,7 @@ end
     for n in 1:3
       m, r = micromotion(native, n), micromotion(reference, n)
       for k in union(keys(m.components), keys(r.components))
-        @test same(
-          get(m.components, k, zero(m.zero_component)),
-          get(r.components, k, zero(r.zero_component)),
-        )
+        @test same(m[k], r[k])
       end
     end
   end
