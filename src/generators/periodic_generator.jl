@@ -1,3 +1,5 @@
+const OperatorExpression = Union{SQA.QSym,SQA.QAdd}
+
 issymzero(x) = isequal(Symbolics.value(x), 0)
 
 function harmonic_index(arg, w, t)
@@ -46,11 +48,7 @@ function validate_component_type(::Type{T}) where {T}
 end
 
 qadd(x::SQA.QAdd) = x
-function qadd(x::SQA.QField)
-  sum = 1 * x
-  sum isa SQA.QAdd || throw(ArgumentError("the operator expression $x is not supported"))
-  return sum
-end
+qadd(x::SQA.QSym) = 1 * x
 
 """
     PeriodicGenerator(components::AbstractDict{Int,T}, ωd)

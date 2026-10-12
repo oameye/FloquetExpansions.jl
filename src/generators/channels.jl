@@ -17,11 +17,11 @@ end
 
 abstract type LiouvillianChannel end
 
-struct CollapseChannel{O<:SQA.QField} <: LiouvillianChannel
+struct CollapseChannel{O<:OperatorExpression} <: LiouvillianChannel
   operator::O
 end
 
-struct RateWeightedJump{O<:SQA.QField} <: LiouvillianChannel
+struct RateWeightedJump{O<:OperatorExpression} <: LiouvillianChannel
   operator::O
   rate::SQA.CNum
   assumption::NonnegativeRateAssumption
@@ -208,7 +208,9 @@ function microscopic_provenance(
   )
 end
 
-function liouvillian_from_provenance(H::SQA.QField, provenance::MicroscopicProvenance)
+function liouvillian_from_provenance(
+  H::OperatorExpression, provenance::MicroscopicProvenance
+)
   generator = hamiltonian_action(H)
   for operator in provenance.collapse_operators
     generator = generator + dissipator(operator)
@@ -224,7 +226,7 @@ end
 @inline channel_liouvillian(channel::RateWeightedJump) =
   channel.rate * dissipator(channel.operator)
 """
-    liouvillian(H::QField; channels=()) -> Liouvillian
+    liouvillian(H::Union{QSym,QAdd}; channels=()) -> Liouvillian
 
 Construct
 ``ρ ↦ -i[H, ρ] + Σₐ D[Cₐ](ρ) + Σᵦ γᵦD[Jᵦ](ρ)``.
@@ -250,7 +252,7 @@ julia> L == hamiltonian_action(a' * a) + γ * dissipator(a)
 true
 ```
 """
-function liouvillian(H::SQA.QField; channels::LiouvillianChannelCollection=())
+function liouvillian(H::OperatorExpression; channels::LiouvillianChannelCollection=())
   generator = hamiltonian_action(H)
   for channel in channels
     channel isa LiouvillianChannel || throw(
@@ -262,7 +264,7 @@ function liouvillian(H::SQA.QField; channels::LiouvillianChannelCollection=())
 end
 
 """
-    collapse(operator::QField) -> CollapseChannel
+    collapse(operator::Union{QSym,QAdd}) -> CollapseChannel
 
 Create a channel from a complete collapse operator `L`. When passed to a
 [`liouvillian`](@ref), it contributes the [`dissipator`](@ref) of `operator` with unit weight:
@@ -272,7 +274,7 @@ in it.
 
 See also [`jump`](@ref), [`liouvillian`](@ref).
 """
-function collapse(operator::SQA.QField)
+function collapse(operator::OperatorExpression)
   return CollapseChannel(operator)
 end
 
@@ -301,7 +303,7 @@ function validated_jump_rate(rate::LiouvillianScalar)
 end
 
 """
-    jump(operator::QField, rate) -> RateWeightedJump
+    jump(operator::Union{QSym,QAdd}, rate) -> RateWeightedJump
 
 Create a physical rate-weighted channel ``γ D[J]`` from a bare jump operator `J` and rate `γ`.
 The rate may be time dependent and periodic, but it must be provably real. Negative numeric rates
@@ -316,7 +318,7 @@ Use [`collapse`](@ref) when the complete channel amplitude is already folded int
 
 See also [`collapse`](@ref), [`dissipator`](@ref), [`liouvillian`](@ref).
 """
-function jump(operator::SQA.QField, rate::LiouvillianScalar)
+function jump(operator::OperatorExpression, rate::LiouvillianScalar)
   coefficient = validated_jump_rate(rate)
   return RateWeightedJump(operator, coefficient, NonnegativeRateAssumption(coefficient))
 end

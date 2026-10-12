@@ -1,5 +1,5 @@
 function completion_scalar(x::SQA.CNum)
-  value = coefficient_number(SQA.trigonometric_form(x))
+  value = SQA.to_num(SQA.trigonometric_form(x))
   return completion_scalar(value)
 end
 

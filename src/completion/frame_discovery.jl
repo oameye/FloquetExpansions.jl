@@ -5,7 +5,7 @@ function coordinate_columns_independent(coordinates::KossakowskiMatrix)
   return length(coordinate_pivot_rows(coordinates)) == direction_count
 end
 
-function append_frame_candidate!(operators::Vector{SQA.QAdd}, operator::SQA.QField)
+function append_frame_candidate!(operators::Vector{SQA.QAdd}, operator::OperatorExpression)
   iszero(dissipator(operator)) && return operators
   projected = projected_operator(operator)
   push!(operators, projected)

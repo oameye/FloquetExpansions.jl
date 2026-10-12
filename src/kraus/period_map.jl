@@ -132,7 +132,7 @@ function lower_harmonics(lowering::SQALowering, P::PeriodicGenerator{SQA.QAdd})
 end
 
 function check_time_independent_rate(rate::SQA.CNum, wd::Symbolics.Num, t::Symbolics.Num)
-  found = Symbolics.get_variables(coefficient_number(rate))
+  found = Symbolics.get_variables(SQA.to_num(rate))
   any(v -> isequal(v, Symbolics.unwrap(t)) || isequal(v, Symbolics.unwrap(wd)), found) &&
     throw(
       ArgumentError(
@@ -331,7 +331,7 @@ function lift_graded_superoperator(lift::CoefficientLift, series::Vector, scales
 end
 
 """
-    period_map(H::QField, ωd, t; channels=()) -> PeriodMap
+    period_map(H::Union{QSym,QAdd}, ωd, t; channels=()) -> PeriodMap
 
 Return the one-period map of the periodically driven Lindblad system
 
@@ -366,7 +366,7 @@ PeriodMap with 1 channel
 ```
 """
 function period_map(
-  H::SQA.QField,
+  H::OperatorExpression,
   wd::Symbolics.Num,
   t::Symbolics.Num;
   channels::LiouvillianChannelCollection=(),
