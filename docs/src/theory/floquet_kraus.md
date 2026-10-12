@@ -10,9 +10,11 @@ trace-preserving (CPTP) map ``\Phi_T``. An effective generator describes it only
 ``\Phi_T`` has a time-independent GKSL logarithm, and a truncated effective generator need not be
 of GKSL form [Schnell2021, Ikeda2021](@cite). The period map itself has no such restriction. The
 package therefore also expands ``\Phi_T`` directly and keeps it completely positive at every drive
-frequency. The construction perturbs the Kraus amplitudes first and forms the positive quadratic
-map only at the end, the principle behind the amplitude-space projection of
-[Chruscinski2013](@cite) and the Kraus organization of [Reimer2019](@cite).
+frequency. As in the amplitude-space projection of [Chruscinski2013](@cite) and the jump-resolved
+operator sum of [Reimer2019](@cite), complete positivity follows from truncating the amplitudes
+before they are squared, and the exact map below is the Markovian limit of that operator sum. The
+truncation is new: a joint expansion in the jump number and ``1/\omega_d`` in the van Vleck frame
+of the no-jump evolution.
 
 Throughout, ``T=2\pi/\omega_d``, the Fourier convention is ``A(t)=\sum_m A_m e^{-im\omega_d t}``,
 and the order indexing is that of [High-frequency expansion](@ref high-frequency-expansion-theory).
@@ -65,9 +67,12 @@ harmonics.
 
 ## Truncation and jump-time integrals
 
-With ``t_j=Tu_j``, a record with ``q`` jumps contributes ``T^{q/2}`` to each amplitude, and every
-further power of ``1/\omega_d`` in ``Q_{\rm eff}``, ``\mathcal P`` or ``\tilde L_a`` adds one
-order. An amplitude of order ``q/2+n`` paired with one of order ``q/2+n'`` enters the map at
+With ``t_j=Tu_j``, a record with ``q`` jumps contributes ``T^{q/2}`` to each amplitude. The static
+exponentials are expanded too, since ``e^{T(u_{j+1}-u_j)Q_{\rm eff}}`` is a series in ``T``, so
+every power of ``TQ_{\rm eff}`` and every further power of ``1/\omega_d`` in ``Q_{\rm eff}``,
+``\mathcal P`` or ``\tilde L_a`` adds one order. Keeping the exponentials would resum all orders
+and leave operator-valued jump-time integrals; expanding them makes every retained amplitude a
+polynomial in ``1/\omega_d``. An amplitude of order ``q/2+n`` paired with one of order ``q/2+n'`` enters the map at
 ``\omega_d^{-(q+n+n')}``. Retaining every amplitude with ``q+n\le N`` therefore reproduces
 ``\Phi_T`` through ``\omega_d^{-N}``. The jump count is bounded only within one period; long-time
 evolution still resums arbitrarily many jumps.
@@ -106,7 +111,10 @@ D=\Phi^\dagger(1)-1=\mathcal O(\omega_d^{-N-1})
 ```
 
 vanishes through the retained order because the exact amplitudes form an isometry and every
-omitted amplitude first enters at ``\omega_d^{-N-1}``. The map ``\rho\mapsto\Phi(S\rho S)`` with
+omitted amplitude first enters at ``\omega_d^{-N-1}``. Beyond that order its sign is not fixed.
+Every retained amplitude is itself truncated, so the map can increase the trace there, unlike the
+truncation of [Reimer2019](@cite) in the jump number alone with exact no-jump propagators, which
+is trace nonincreasing. The map ``\rho\mapsto\Phi(S\rho S)`` with
 ``S=(1+D)^{-1/2}`` is exactly trace preserving and still agrees with ``\Phi_T`` through
 ``\omega_d^{-N}``, wherever ``1+D`` is positive definite. This normalizes the amplitudes; it is
 not a completion of a generator.
