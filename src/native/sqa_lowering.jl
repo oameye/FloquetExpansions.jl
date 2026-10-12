@@ -167,7 +167,7 @@ function lower_coefficient(lowering::SQALowering{T}, c::SQA.CNum) where {T}
   c.tail isa SQA.Native && return exact_scalar(T, SQA.native_scalar(c))
   value = zero(T)
   for monomial in polynomial_tail(c).terms
-    term = exact_scalar(T, monomial.scalar)
+    term = exact_scalar(T, SQA.monomial_scalar(monomial))
     for (symbol, exponent) in zip(monomial.syms, monomial.exps)
       term *= parameter_value(lowering, symbol)^Int(exponent)
     end
