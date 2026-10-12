@@ -21,6 +21,17 @@ function harmonic_matrices(op, d::Int, substitutions)
   return [(m, tomatrix(P[m], d, substitutions)) for m in keys(P)]
 end
 
+function no_jump_frame(Φ, algorithm, N)
+  lowering = first(FloquetExpansions.period_map_lowering(Φ.generator, N))
+  zero_element = zero(FloquetExpansions.algebra_identity(lowering.algebra))
+  Q = FloquetExpansions.no_jump_generator(
+    FloquetExpansions.lower_harmonics(lowering, Φ.hamiltonian),
+    FloquetExpansions.lowered_channels(lowering, Φ),
+    zero_element,
+  )
+  return FloquetExpansions.no_jump_frame(algorithm, Q, N)
+end
+
 evaluate(harmonics, phase) = sum(M .* cis(-m * phase) for (m, M) in harmonics)
 
 function lindblad_rate(ρ, Hh, jumps, phase)
@@ -127,6 +138,14 @@ end
   bf = floquet_expansion(Φ, VanVleck(; algorithm=BlochFeshbach()), 3)
   term_table(Φ) = Dict((left, right) => c for (left, right, c) in terms(superoperator(Φ)))
   @test isequal(term_table(hd), term_table(bf))
+
+  H = drive + (1 // 3) * cos(2 * ω * t) * σy
+  Φ = period_map(H, ω, t; channels=pairs_to_jumps(rotating))
+  hd, bf = (no_jump_frame(Φ, algorithm, 6) for algorithm in (HoriDeprit(), BlochFeshbach()))
+  @test all(iszero(a - b) for (a, b) in zip(hd.effective, bf.effective))
+  for field in (:kick, :inverse), (a, b) in zip(getfield(hd, field), getfield(bf, field))
+    @test all(iszero, values(FloquetExpansions.harmonic_combine(a, b, 1, -1)))
+  end
 end
 
 @testset "period map recovers the effective generator after the micromotion" begin
