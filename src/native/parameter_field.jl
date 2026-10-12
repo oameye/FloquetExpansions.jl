@@ -118,7 +118,7 @@ function collect_parameters!(found::Vector{Symbolics.Num}, c::SQA.CNum)
 end
 
 function collect_parameters!(found::Vector{Symbolics.Num}, q::SQA.QAdd)
-  for (_, c) in q.arguments
+  for (_, c) in q
     collect_parameters!(found, c)
   end
   return found

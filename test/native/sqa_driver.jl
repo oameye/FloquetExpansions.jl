@@ -78,3 +78,11 @@ end
   @test data isa FE.NativeExpansionData{Complex{Rational{BigInt}},Rational{BigInt}}
   @test data.recurrence.E == exact.recurrence.E
 end
+
+@testset "native expansion rejects symbolically indexed operators" begin
+  h = FockSpace(:indexed)
+  i = Index(h, :i, 3, h)
+  ai = IndexedOperator(Destroy(h, :a), i)
+  L = hamiltonian_action(ai' * ai + cos(ω * t) * (ai + ai')) + dissipator(ai)
+  @test_throws ArgumentError floquet_expansion(L, ω, t, GKSLNormalForm(), 2)
+end
