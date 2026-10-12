@@ -20,6 +20,64 @@ function kerr_hamiltonian()
   return H, a
 end
 
+function graded_product(A, B)
+  C = [Dict{Int,Liouvillian}() for _ in A]
+  for i in eachindex(A), j in 1:(length(A) - i), (k, a) in A[i], (l, b) in B[j]
+    C[i + j][k + l] = get(C[i + j], k + l, zero(a)) + compose(a, b)
+  end
+  return C
+end
+
+graded_sum(A, B) = [mergewith(+, a, b) for (a, b) in zip(A, B)]
+
+function graded_exp_minus_one(K)
+  result = K
+  power = K
+  for p in 2:length(K)
+    power = graded_product(power, K)
+    scaled = [Dict(k => (1 // factorial(p)) * v for (k, v) in d) for d in power]
+    result = graded_sum(result, scaled)
+  end
+  return result
+end
+
+function micromotion_series(expansion, sign)
+  return [
+    Dict(k => sign * v for (k, v) in micromotion(expansion, n).components) for
+    n in 1:(expansion.order - 1)
+  ]
+end
+
+@testset "GKSLNormalForm is a static similarity of VanVleck where the static gauge is nonzero" begin
+  qubit = NLevelSpace(:static_gauge_qubit, 2)
+  σ(i, j) = Transition(qubit, :σ, i, j)
+  σz = σ(1, 1) - σ(2, 2)
+  σx = σ(1, 2) + σ(2, 1)
+  σy = -im * σ(1, 2) + im * σ(2, 1)
+  H = (1 // 2) * σz + cos(ω * t) * σx + (1 // 3) * cos(2 * ω * t) * σy
+  jumps = (jump(σ(1, 2), 1 // 5), jump(σz, 1 // 7))
+  N = 4
+  for algorithm in (HoriDeprit(), BlochFeshbach())
+    native = floquet_expansion(H, ω, t, GKSLNormalForm(; algorithm), N; channels=jumps)
+    reference = floquet_expansion(H, ω, t, VanVleck(; algorithm), N; channels=jumps)
+    A = graded_exp_minus_one(micromotion_series(reference, -1))
+    B = graded_exp_minus_one(micromotion_series(native, 1))
+    W = graded_sum(graded_sum(A, B), graded_product(A, B))
+    for n in 1:(N - 1), (k, value) in W[n]
+      k == 0 || @test same(value, zero(value))
+    end
+    S = [get(W[n], 0, zero(Liouvillian)) for n in 1:(N - 1)]
+    @test !same(S[2], zero(Liouvillian))
+    E(x, n) = effective_component(x, n)
+    for n in 1:(N - 1)
+      @test same(
+        E(native, n) + sum(compose(S[j], E(native, n - j)) for j in 1:n),
+        E(reference, n) + sum(compose(E(reference, n - j), S[j]) for j in 1:n),
+      )
+    end
+  end
+end
+
 @testset "GKSLNormalForm coincides with VanVleck wherever no static gauge is needed" begin
   H, a = kerr_hamiltonian()
   for algorithm in (HoriDeprit(), BlochFeshbach()), channels in ((), (jump(a, 4 // 5),))
