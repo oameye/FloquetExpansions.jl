@@ -43,7 +43,7 @@ For driven Kerr with static loss the native coefficients equal the van Vleck coe
 
 ## Consequences
 
-The public entry point is `GKSLNormalForm`. The finite-dimensional Floquet-exponent check and the Gram-completion comparison stay in the tests as separate implementations. The Floquet-exponent check is blind to the static gauge, which is a similarity, so a check of the static gauge where it is nonzero is tracked in #352.
+The public entry point is `GKSLNormalForm`. The finite-dimensional Floquet-exponent check and the Gram-completion comparison stay in the tests as separate implementations. The Floquet-exponent check is blind to the static gauge, which is a similarity. A separate check therefore extracts the static gauge from the micromotion where it is nonzero and requires the effective generator to be the corresponding similarity of the Van Vleck one.
 
 `native_exact_static_solve` takes the operator and gauge metrics explicitly, because an exact frame is not orthonormal, and it rejects an indefinite canonical residual rather than projecting onto the PSD cone.
 
@@ -55,7 +55,7 @@ Symbolic parameters, and a terminal virtual gauge for an order with no polynomia
 
 `make test` runs the testsets that hold this decision:
 
-- `test/native/gksl_normal_form.jl`: "GKSLNormalForm coincides with VanVleck wherever no static gauge is needed", "GKSLNormalForm driven Kerr is GKSL with a drive-induced channel" (which also compares BF with HD), "GKSLNormalForm on a driven oscillator in position and momentum" and "GKSLNormalForm rejects what it cannot expand exactly"
+- `test/native/gksl_normal_form.jl`: "GKSLNormalForm is a static similarity of VanVleck where the static gauge is nonzero", "GKSLNormalForm coincides with VanVleck wherever no static gauge is needed", "GKSLNormalForm driven Kerr is GKSL with a drive-induced channel" (which also compares BF with HD), "GKSLNormalForm on a driven oscillator in position and momentum" and "GKSLNormalForm rejects what it cannot expand exactly"
 - `test/native/gksl_gram_regression.jl`: "driven Kerr with loss: GKSLNormalForm equals Gram completion of Van Vleck" and "driven qubit with decay: GKSLNormalForm equals Gram completion of Van Vleck"
 - `test/native/gksl_finite_oracle.jl`: "GKSLNormalForm spectrum matches the exact Floquet exponents" and "GKSLNormalForm Kossakowski matrix is positive semidefinite at finite frequency"
 - `test/native/gksl_phase_independence.jl`: "GKSLNormalForm is independent of the drive phase"
