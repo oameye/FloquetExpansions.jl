@@ -85,7 +85,7 @@ monomials ``\mu(u)=\prod_ju_j^{\alpha_j}e^{-2\pi ik_ju_j}`` on the simplex
 G_{\mu\nu}=\int_{0<u_1<\dots<u_q<1}\mu(u)\overline{\nu(u)}\,du,
 ```
 
-whose entries are exact rational functions of ``\pi``. Summing over jump records gives the
+whose entries are polynomials in ``1/\pi`` with rational coefficients. Summing over jump records gives the
 superoperator
 
 ```math
