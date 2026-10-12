@@ -43,7 +43,7 @@ For driven Kerr with static loss the native coefficients equal the van Vleck coe
 
 ## Consequences
 
-The public entry point is `GKSLNormalForm`. The independent order-2 BF oracle, the finite-dimensional Floquet-exponent check, and the Gram-completion comparison stay in the tests as separate implementations.
+The public entry point is `GKSLNormalForm`. The finite-dimensional Floquet-exponent check and the Gram-completion comparison stay in the tests as separate implementations. The Floquet-exponent check is blind to the static gauge, which is a similarity, so a check of the static gauge where it is nonzero is tracked in #352.
 
 `native_exact_static_solve` takes the operator and gauge metrics explicitly, because an exact frame is not orthonormal, and it rejects an indefinite canonical residual rather than projecting onto the PSD cone.
 
