@@ -97,6 +97,25 @@ _Avoid_: calling dissipative micromotion a unitary kick operator.
 A generally complex eigenvalue of the energy-like Floquet-Liouville operator for a periodically driven open system; its real part describes oscillation while its imaginary part describes decay or growth, and it is defined modulo the drive frequency.
 _Avoid_: assuming dissipative quasienergies are real or that every Liouvillian is completely positive.
 
+## Period map
+
+**Period map**:
+The evolution map of a periodically driven system over one drive period, from ``t = 0`` to ``t = T = 2π/ω``. For a Lindblad system it is completely positive and trace preserving whether or not it has a time-independent GKSL logarithm. Built by `period_map` as a `PeriodMap`, which holds the Hamiltonian and jump channels and is not expanded.
+_Avoid_: calling it an effective generator, or assuming it has a GKSL logarithm.
+
+**Period-map expansion**:
+The Floquet expansion of a period map in powers of ``1/ω``, returned by `floquet_expansion` on a `PeriodMap` as a `PeriodMapExpansion`. It is a superoperator built from squared jump amplitudes, completely positive at every drive frequency and trace preserving through the retained order. Its gauge fixes the Floquet frame of the no-jump evolution; only the van Vleck gauge is accepted.
+_Avoid_: calling the expansion the exact period map, or assuming it is exactly trace preserving.
+
+**Jump amplitude**:
+The operator-valued amplitude of one quantum-jump record of the period, ``U₀(T, t_q) L_{a_q}(t_q) ⋯ L_{a_1}(t_1) U₀(t_1, 0)``, with ``U₀`` the no-jump propagator. A record with ``q`` jumps enters the period map at order ``ω^{-q}`` or beyond. The retained amplitudes, as functions of the fractional jump times, are the continuous Kraus operators returned by `jump_amplitudes`.
+
+**No-jump generator**:
+The non-Hermitian generator ``Q = -iH - ½ Σ_a γ_a L_a† L_a`` of the evolution between jumps. Its van Vleck expansion is the Floquet frame of the period-map expansion.
+
+**Trace defect**:
+``Φ†(1) - 1`` of a period-map expansion ``Φ``. It vanishes through the retained order, and ``ρ ↦ Φ(SρS)`` with ``S = (1 + D)^{-1/2}`` is exactly trace preserving.
+
 ## GKSL coordinates and positive completion
 
 **Dissipative frame**:

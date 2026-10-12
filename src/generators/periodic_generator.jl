@@ -1,3 +1,5 @@
+const OperatorExpression = Union{SQA.QSym,SQA.QAdd}
+
 issymzero(x) = isequal(Symbolics.value(x), 0)
 
 function harmonic_index(arg, w, t)
@@ -46,7 +48,7 @@ function validate_component_type(::Type{T}) where {T}
 end
 
 qadd(x::SQA.QAdd) = x
-qadd(x::SQA.QField) = 1 * x
+qadd(x::SQA.QSym) = 1 * x
 
 """
     PeriodicGenerator(components::AbstractDict{Int,T}, ωd)
@@ -425,4 +427,12 @@ function (G::PeriodicGenerator)(t::Symbolics.Num)
     SQA.expim(-harmonic * G.wd * t) * component for (harmonic, component) in G.components;
     init=zero(G.zero_component),
   )
+end
+
+@inline function inverse_drive_power(wd::Symbolics.Num, grade::Int)
+  power = Symbolics.Num(1)
+  for _ in 1:grade
+    power *= wd
+  end
+  return iszero(grade) ? power : inv(power)
 end

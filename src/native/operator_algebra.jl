@@ -248,12 +248,15 @@ end
 
 Base.:*(c::Number, A::AlgebraOperator{T}) where {T} = scale_operator(T(c), A)
 
-function scale_operator(c::T, A::AlgebraOperator{T,R}) where {T,R}
-  terms = Dict{Monomial,T}()
+function add_scaled!(terms::Dict{Monomial,T}, c::T, A::AlgebraOperator{T}) where {T}
   for (k, v) in A.terms
     accumulate!(terms, k, c * v)
   end
-  return AlgebraOperator{T,R}(A.algebra, terms)
+  return terms
+end
+
+function scale_operator(c::T, A::AlgebraOperator{T,R}) where {T,R}
+  return AlgebraOperator{T,R}(A.algebra, add_scaled!(Dict{Monomial,T}(), c, A))
 end
 
 Base.:-(A::AlgebraOperator) = -1 * A
@@ -288,12 +291,44 @@ function algebra_identity(algebra::OperatorAlgebra{T,R}) where {T,R}
   return AlgebraOperator{T,R}(algebra, Dict(identity_monomial(algebra) => one(T)))
 end
 
-function sandwich(A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}) where {T,R}
-  terms = Dict{Tuple{Monomial,Monomial},T}()
+Base.one(A::AlgebraOperator) = algebra_identity(A.algebra)
+
+function add_sandwich!(
+  S::AlgebraSuperoperator{T,R}, A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}
+) where {T,R}
   for (a, ca) in A.terms, (b, cb) in B.terms
-    accumulate!(terms, (a, b), ca * cb)
+    accumulate!(S.terms, (a, b), ca * cb)
   end
-  return AlgebraSuperoperator{T,R}(A.algebra, terms)
+  return S
+end
+
+function add_sandwich!(
+  S::AlgebraSuperoperator{T,R}, A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}, c::T
+) where {T,R}
+  for (a, ca) in A.terms
+    scaled = c * ca
+    for (b, cb) in B.terms
+      accumulate!(S.terms, (a, b), scaled * cb)
+    end
+  end
+  return S
+end
+
+function sandwich(A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}) where {T,R}
+  S = AlgebraSuperoperator{T,R}(A.algebra, Dict{Tuple{Monomial,Monomial},T}())
+  return add_sandwich!(S, A, B)
+end
+
+function add_adjoint_mirror!(
+  target::AlgebraSuperoperator{T,R}, S::AlgebraSuperoperator{T,R}
+) where {T,R}
+  for ((a, b), c) in S.terms,
+    (ma, ca) in monomial_adjoint(S.algebra, a),
+    (mb, cb) in monomial_adjoint(S.algebra, b)
+
+    accumulate!(target.terms, (mb, ma), conj(c) * cb * ca)
+  end
+  return target
 end
 
 left_action(A::AlgebraOperator) = sandwich(A, algebra_identity(A.algebra))

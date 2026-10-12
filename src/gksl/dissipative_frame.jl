@@ -74,7 +74,7 @@ end
 @inline liouvillian_iszero(value::Liouvillian) = iszero(value)
 @inline qadd_term_pairs(value::SQA.QAdd) = pairs(getfield(value, :arguments))
 
-function canonical_qadd(operator::SQA.QField)
+function canonical_qadd(operator::OperatorExpression)
   result = SQA.simplify(SQA.expand_completeness(qadd(operator)))
   isempty(result.indices) || throw(
     ArgumentError("GKSL coordinates do not support operators with bound symbolic sums")
@@ -91,7 +91,7 @@ function scalar_part(operator::SQA.QAdd)
   return scalar
 end
 
-function projected_operator(operator::SQA.QField)
+function projected_operator(operator::OperatorExpression)
   canonical = canonical_qadd(operator)
   scalar = scalar_part(canonical)
   projected = if iszero(scalar)
@@ -105,14 +105,14 @@ function projected_operator(operator::SQA.QField)
   return projected
 end
 
-project_frame_operator(operator::SQA.QField) = projected_operator(operator)
+project_frame_operator(operator::OperatorExpression) = projected_operator(operator)
 function project_frame_operator(::Any)
   return throw(
     ArgumentError("every dissipative-frame direction must be an SQA operator expression")
   )
 end
 
-function frame_operator_tuple(operators::Tuple{Vararg{SQA.QField,N}}) where {N}
+function frame_operator_tuple(operators::Tuple{Vararg{OperatorExpression,N}}) where {N}
   return ntuple(index -> project_frame_operator(operators[index]), Val(N))
 end
 frame_operator_tuple(operators::Tuple) = map(project_frame_operator, operators)
@@ -326,4 +326,4 @@ end
 
 DissipativeFrame(operators::Tuple) = build_dissipative_frame(operators)
 DissipativeFrame(operators::AbstractVector) = build_dissipative_frame(operators)
-DissipativeFrame(operators::SQA.QField...) = build_dissipative_frame(operators)
+DissipativeFrame(operators::OperatorExpression...) = build_dissipative_frame(operators)

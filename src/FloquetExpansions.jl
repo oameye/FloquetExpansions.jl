@@ -41,6 +41,10 @@ include("native/driver.jl")
 include("native/parameter_field.jl")
 include("native/realization.jl")
 
+include("kraus/time_kernel.jl")
+include("kraus/no_jump_frame.jl")
+include("kraus/period_map.jl")
+
 include("completion/types.jl")
 include("completion/backend/matrix_series.jl")
 include("completion/backend/linear_algebra.jl")
@@ -58,6 +62,8 @@ export GKSLNormalForm,
 export antiderivative, derivative, harmonics, support, time_average
 export FloquetExpansion,
   effective_component, effective_generator, floquet_expansion, micromotion, order
+export PeriodMap, PeriodMapExpansion, period_map, superoperator, trace_defect
+export JumpAmplitude, amplitude, jump_amplitudes, jump_times, weight
 export Gram, Spectral
 export channels,
   dissipative_frame,

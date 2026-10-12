@@ -126,6 +126,15 @@ function lift_superoperator!(
   return target
 end
 
+function lift_scaled_sum(lift::CoefficientLift, pieces)
+  return sum(
+    SQA.QAdd[
+      (lift_coefficient(lift.coefficient, c) * scale) * lift_monomial!(lift, monomial) for
+      (X, scale) in pieces for (monomial, c) in X.terms
+    ],
+  )
+end
+
 function lift_superoperator(lift::CoefficientLift, S::AlgebraSuperoperator)
   return lift_superoperator!(Liouvillian(LiouvillianTerms()), lift, S, convert(SQA.CNum, 1))
 end

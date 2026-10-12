@@ -123,7 +123,7 @@ end
 """
     floquet_expansion(generator::PeriodicGenerator, gauge, order)
     floquet_expansion(L::Liouvillian, ωd, t, gauge, order)
-    floquet_expansion(H::QField, ωd, t, gauge, order; channels=())
+    floquet_expansion(H::Union{QSym,QAdd}, ωd, t, gauge, order; channels=())
 
 Expand a periodically driven generator into a time-independent effective generator and periodic
 micromotion, returning a [`FloquetExpansion`](@ref) with `order` retained inverse-frequency
@@ -175,6 +175,8 @@ julia> iszero(micromotion(vv))
 true
 ```
 
+To expand the one-period map instead of the generator, build it with [`period_map`](@ref).
+
 See also [`effective_generator`](@ref), [`effective_component`](@ref), [`micromotion`](@ref),
 [`positive_completion`](@ref), and [`harmonics`](@ref).
 """
@@ -191,13 +193,18 @@ function floquet_expansion(
 end
 
 function floquet_expansion_channels(
-  H::SQA.QField, wd::Symbolics.Num, t::Symbolics.Num, gauge::Gauge, order::Int, ::Tuple{}
+  H::OperatorExpression,
+  wd::Symbolics.Num,
+  t::Symbolics.Num,
+  gauge::Gauge,
+  order::Int,
+  ::Tuple{},
 )
   return floquet_expansion_impl(harmonics(qadd(H), wd, t), gauge, order, NoProvenance())
 end
 
 function floquet_expansion_channels(
-  H::SQA.QField,
+  H::OperatorExpression,
   wd::Symbolics.Num,
   t::Symbolics.Num,
   gauge::Gauge,
@@ -219,7 +226,7 @@ function floquet_expansion_channels(
 end
 
 function floquet_expansion(
-  H::SQA.QField,
+  H::OperatorExpression,
   wd::Symbolics.Num,
   t::Symbolics.Num,
   gauge::Gauge,

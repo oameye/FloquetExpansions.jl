@@ -182,7 +182,7 @@ Feshbach's energy-dependent term is the Laplace transform of their memory kernel
 of its dissipator into jump amplitudes, so a truncated effective Liouvillian obtained this way need
 not be in GKSL form, exactly as for the Lie transform [Ikeda2021, Schnell2021](@cite). Chruściński
 and Kossakowski showed that a Feshbach projection of the amplitudes, rather than of the map, yields
-completely positive dynamics by construction [Chruscinski2013](@cite). See also
+completely positive dynamics by construction [Chruscinski2013](@cite). Their projector acts on an environment reference state, not on Floquet harmonics as here. See also
 [CP-preserving completion](@ref cp-preserving-completion-theory).
 
 ## Comparison with the Lie transform

@@ -36,7 +36,7 @@ Positive completion is an explicit post-processing stage for Liouvillian expansi
 
 ## Module ownership
 
-`src/` is one module split into six layer folders. `src/FloquetExpansions.jl` includes them in the order below, which is the source dependency order.
+`src/` is one module split into seven layer folders. `src/FloquetExpansions.jl` includes them in the order below, which is the source dependency order.
 
 | Folder | Layer |
 | --- | --- |
@@ -45,6 +45,7 @@ Positive completion is an explicit post-processing stage for Liouvillian expansi
 | `expansion/` | Gauges, the `FloquetExpansion` result, and the expansion algorithms that fill it. |
 | `gksl/` | Ordered dissipative frames and exact GKSL/Kossakowski coordinates, on a `Liouvillian` and on any `FloquetExpansion`. |
 | `native/` | The GKSL normal form: state solved inside the BF/HD recurrence rather than by completion, its exact cutoff-free algebra, and the `GKSLNormalForm` entry point. Does not depend on `completion/`. |
+| `kraus/` | The Floquet–Kraus period map: the no-jump Floquet frame, exact jump-time kernels on the simplex and their Gram matrix, the period-map superoperator, the `period_map` constructor and its `floquet_expansion` method. Reuses the `native/` algebra and recurrence; does not depend on `completion/`. |
 | `completion/` | Positive completion: algorithm selectors, the completed state, its accessors, and the Gram and Spectral realizations. `completion/backend/` holds the dedicated completion scalar backend. |
 
 **Layering rule.** A file names a type from its own folder or an earlier one only. A call into a later folder resolves at run time and is allowed, but a signature, a field type, or a type parameter never refers forward. A change that needs a forward type reference moves the type to the earliest folder that uses it, as `Completion` sits in `expansion/` and the provenance types in `generators/`.
@@ -73,10 +74,13 @@ Every file currently under `src/` has a row. The public-seam column lists names 
 | `native/operator_algebra.jl` | The exact cutoff-free operator algebra: boson, phase-space, and finite-level sites, normal-ordered monomials, operators, and left/right superoperators | internal only |
 | `native/algebraic_representation.jl` | The native representation over that algebra: a finite monomial frame, exact Kossakowski and Hamiltonian read-off, and polynomial static gauge families by degree. `NativeFrameError` reports a frame that is too small | internal only |
 | `native/sqa_lowering.jl` | Lowering of SQA operators and periodic Liouvillians into the exact algebra with exact coefficients, and lifting of results back to SQA expressions | internal only |
-| `native/recurrence.jl` | The arbitrary-order native recurrences: Bloch–Feshbach and Hori–Deprit over harmonic series of representation elements, with the intrinsic total-kick offset, one native static step per order, and graded-channel bookkeeping. Selected by the existing `BlochFeshbach` and `HoriDeprit` expansion algorithms | internal only |
+| `native/recurrence.jl` | The arbitrary-order Bloch–Feshbach and Hori–Deprit recurrences over harmonic series of any associative algebra element, with the intrinsic total-kick offset and a pluggable static slot: the GKSL slot runs one native static step per order with graded-channel bookkeeping, the van Vleck slot sets the static gauge to zero. Selected by the existing `BlochFeshbach` and `HoriDeprit` expansion algorithms | internal only |
 | `native/driver.jl` | The exact native driver: leading channels from the averaged Kossakowski factor, frame growth, Int128-to-BigInt promotion, and the coefficient lift that maps exact scalars to SQA coefficients | internal only |
 | `native/parameter_field.jl` | Exact symbolic parameters: `ParameterScalar` over Nemo's rational-function field, sign decisions fixed by the declared sign region, the parameter scan and the lift of rational functions back to SQA coefficients | `negative` of `GKSLNormalForm` via `floquet_expansion` |
 | `native/realization.jl` | `floquet_expansion` for `GKSLNormalForm`: lifts effective components, micromotion, Hamiltonian, and channels into a `FloquetExpansion` carrying a `NativeRealization` | `GKSLNormalForm` via `floquet_expansion` |
+| `kraus/time_kernel.jl` | Operator-valued kernels on the jump-time simplex, graded by inverse-frequency order: static drift between jumps, transported jump insertion, and endpoint conjugation. Exact simplex integrals of the kernel monomials and their Gram matrix | internal only |
+| `kraus/no_jump_frame.jl` | The van Vleck frame of the no-jump generator through the shared native recurrence with a zero static slot: effective generator, kick and inverse kick, transported jump operators, and powers of the effective generator | internal only |
+| `kraus/period_map.jl` | `PeriodMap` and `PeriodMapExpansion`, the lowering of a Hamiltonian with channels into the exact algebra over the rational functions of ``\pi`` and the parameters, the Gram-weighted superoperator sectors and the continuous Kraus amplitudes by jump number, the exact trace-preservation certificate, and the lift back to SQA expressions | `PeriodMap`, `PeriodMapExpansion`, `period_map`, the `floquet_expansion` method on a `PeriodMap`, `superoperator`, `trace_defect`, `JumpAmplitude`, `jump_amplitudes`, `weight`, `amplitude`, `jump_times`, the `order` method on a `PeriodMapExpansion` |
 | `completion/types.jl` | Completion algorithm selectors, factorization supertype, completion exceptions, retained GKSL data, completed-state storage | `CompletionAlgorithm`, `Gram`, `Spectral`, `CompletionFactorization`, `CompletionObstruction`, `FractionalJumpOnset` |
 | `completion/backend/matrix_series.jl` | Truncated completion scalar/matrix-series algebra, conditions, and graded factor recurrences | internal only |
 | `completion/backend/linear_algebra.jl` | Reusable symbolic solve plans, triangular series solves, structured Hermitian congruence elimination, Gram/Feshbach dressing | internal only |
@@ -93,6 +97,7 @@ Every file currently under `src/` has a row. The public-seam column lists names 
 - A new expansion algorithm for an existing gauge is one file in `expansion/` plus its selector in `expansion/gauges.jl`. A new gauge adds its type and its `antiderivative` method to `expansion/gauges.jl`.
 - Algebra over harmonic words that another algorithm could reuse belongs in `words/`, not in the algorithm file that first needs it.
 - An open-system construction that produces a GKSL generator directly, without passing through `positive_completion`, belongs in `native/` and does not depend on `completion/`.
+- A map-level construction that returns a completely positive map rather than a generator belongs in `kraus/`.
 - Replacing the completion scalar backend replaces `completion/backend/` and nothing outside it.
 - Multi-frequency harmonics change `generators/periodic_generator.jl` and the harmonic letters in `words/`; the layers above see harmonics only through `PeriodicGenerator`.
 
@@ -113,6 +118,7 @@ The package delegates operator multiplication, adjoints, normal ordering, and co
 - Bloch/Feshbach computes the van Vleck pair from the harmonic support and order alone, rebuilt on every call, in the free associative algebra over harmonic letters, with exact `Rational{Int}` coefficients, and evaluates only Lyndon commutators of the generator components. This relies on the connected logarithm and the van Vleck effective generator both being Lie series in the harmonics; the Lyndon decomposition throws when a word series is not one.
 - A `ComponentConvention` fixes, per component type, the component product and the unit phase ``c`` with ``\mathcal{G} = cX``: ``c = -i`` for a Hamiltonian, ``c = 1`` for a Liouvillian. Hori–Deprit dresses with the phase ``-c``. Bloch/Feshbach evaluates words with ``1/m`` in place of ``i/m``, so it restores the phase ``(ic)^n`` on order-``n`` coefficients and a further ``\bar c = c^{-1}`` on the micromotion.
 - The native layer accepts exact `Integer` and `Rational` coefficients and polynomials in at most eight symbolic parameters, which it expands over the rational-function field (ADR 0012). An order with no static gauge of polynomial degree at most three raises an `ArgumentError`. A `GKSLNormalForm` expansion is already of GKSL form, so `positive_completion` refuses it.
+- A period map is exact over the rational functions of ``\pi`` and at most seven parameters; ``\pi`` occupies one variable of the parameter field and lifts to the Symbolics constant. Its lifted output is not passed through `SQA.simplify`, which folds ``\pi`` into a float.
 - Positive completion is explicit, never implicit in `floquet_expansion`, is defined only for Liouvillian expansions, and does not rewrite retained Floquet coefficients or micromotion.
 - Kossakowski coordinates are relative to an ordered `DissipativeFrame`. Ordering is representation-significant even when two frames span the same subspace.
 - Raw expansions require an explicit `DissipativeFrame` for GKSL/Kossakowski coordinate extraction. Completed expansions store the finalized frame, so no-frame completed accessors are unambiguous.

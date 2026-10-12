@@ -1,0 +1,45 @@
+# The period map is expanded from exact jump amplitudes as a Gram superoperator
+
+Phase II of the open-system programme (#168, #169) needs the one-period map of a periodically driven Lindblad system as a completely positive object, without assuming that it has a time-independent GKSL logarithm. `period_map(H, ω, t; channels)` builds the exact one-period map as a `PeriodMap`, and `floquet_expansion(Φ, VanVleck(; algorithm), order)` expands it into a `PeriodMapExpansion`, a superoperator that agrees with the exact map from ``t = 0`` to ``t = T`` through ``ω^{-order}``.
+
+As in the amplitude-space projection of Chruściński–Kossakowski and the jump-resolved operator sum of Reimer–Wegewijs, complete positivity follows from truncating amplitudes before squaring them, and the exact map is the Markovian limit of that operator sum. The truncation is new: a joint expansion in jump number and ``1/ω`` in the van Vleck frame of the no-jump evolution. Unlike the jump-number truncation of Reimer–Wegewijs with exact no-jump propagators, which is trace nonincreasing, it is trace preserving only through the retained order. The map is the sum over jump records of squared jump amplitudes. Every amplitude with ``q`` jumps and ``n`` further inverse-frequency orders is retained when ``q + n ≤ order``, and the retained amplitudes are squared without truncation. The map is therefore completely positive for every drive frequency, and its trace defect starts at ``ω^{-order-1}``.
+
+The implementation lives in a new layer `src/kraus/`, after `native/` and independent of `completion/`:
+
+- The no-jump generator ``Q = -iH - ½ Σ γ_a L_a^† L_a`` is expanded in the van Vleck gauge by the native Bloch–Feshbach or Hori–Deprit recurrence. That recurrence now takes a static-slot policy: the GKSL slot of ADR 0011 or a zero van Vleck slot. The jump amplitudes are written in this frame, so between jumps the evolution is the static ``e^{tQ_{\rm eff}}``, expanded in ``T`` within the retained order, and only the transported jumps ``\tilde L_a = \mathcal P^{-1} L_a \mathcal P`` carry harmonics.
+- An amplitude is a finite sum of operators times monomials ``∏_j u_j^{α_j} e^{-2πik_ju_j}`` on the jump-time simplex. The integral over jump times pairs them through the Gram matrix ``G_{μν} = ∫ μ \bar ν`` of these monomials, computed exactly, and the map is ``Σ T^q Πγ Σ_{μν} G_{μν} A_μ ρ A_ν^†``. Each record contributes the integral of a positive Choi operator, so complete positivity needs no factorization and no sign decision.
+- Scalars live in the rational functions of ``π`` and the model parameters, as `ParameterScalar` with ``π`` as one more field variable. ``π`` enters through ``T = 2π/ω`` and through the simplex integrals ``∫ u^p e^{-2πimu}``.
+- Construction checks exactly that the trace defect ``Φ^†(1) - 1`` vanishes through the retained order. This is the isometry of the exact amplitudes and fails for any error in the frame, the kernels or the Gram matrix.
+
+## Trace preservation
+
+The expanded map is completely positive and trace preserving through the retained order. The exactly trace-preserving representative ``ρ ↦ Φ(SρS)`` with ``S = (1 + D)^{-1/2}`` and ``D`` the trace defect is documented rather than returned, because the inverse square root of a symbolic operator has no closed form in the operator algebra. It changes the map only beyond the retained order.
+
+## Public API
+
+Building the map and expanding it are separate steps, as for a generator, where `harmonics` builds the `PeriodicGenerator` that `floquet_expansion` expands. The period map is the object, and the expansion is a Floquet expansion of it with the same arguments as for a generator: a gauge, its algorithm and `order`. `period_map` takes the Hamiltonian-plus-channels form of `floquet_expansion`, since jump amplitudes need the jump operators and a Liouvillian does not fix them; the `PeriodMap` keeps them. `order` has the meaning it has for a generator: the logarithm of the expanded map divided by ``T`` agrees with the stroboscopic effective generator through ``ω^{1-order}``. The gauge fixes the Floquet frame of the no-jump evolution. Only `VanVleck` is accepted, and any other gauge is an `ArgumentError`; the algorithm of the gauge computes the frame, and both algorithms give an identical map, because the van Vleck pair is unique. The expansion is a `PeriodMapExpansion`, read with `superoperator`, a `Liouvillian` in the left/right-multiplication form of the rest of the package, `trace_defect` and `order`. `jump_amplitudes` returns the same map in continuous Kraus form: one weighted amplitude ``K(u)`` per jump sequence, whose coefficients are polynomials in the fractional jump times ``u_j`` times ``e^{-2πiku_j}``. Integrating ``K ρ K^†`` over the simplex reproduces the superoperator exactly, so the Kraus structure is public without an exact factorization of the Gram matrix.
+
+## Covariance
+
+The map does not depend on the algorithm that computes the no-jump frame: Hori–Deprit and Bloch/Feshbach give an identical map. A different gauge of the frame would change the expanded map only beyond the retained order, which is why only the van Vleck gauge is accepted. A unitary mixing of jump channels of equal rate leaves every sector, and so the map, unchanged. An affine shift ``L → L + c`` with the compensating Hamiltonian describes the same dynamics but reassigns part of each jump to the no-jump evolution. The truncation counts jumps, so the two period maps agree through ``ω^{-order}`` and differ beyond it. The Kraus family is unique only up to the continuous Kraus gauge; the superoperator is the invariant output.
+
+## Considered options
+
+- **Exponentiate a GKSL effective generator.** Rejected: ``\mathcal M(0) e^{T\mathcal L_{\rm eff}} \mathcal M(0)^{-1}`` is not manifestly completely positive, because the micromotion is a similarity, and it exists only on GKSL-embeddable branches.
+- **Port the research CK stack of draft PR #324.** Rejected: about ten thousand lines of order-specific and representation-specific research machinery (output-sideband tables, Bernoulli kernels, endpoint keys) built on a superseded source layout. The present construction reuses the shared recurrence and exact algebra, and the time-domain monomials avoid the unbounded output-sideband table that #211 identified.
+- **A separate `period_map(H, ω, t, order; algorithm)` entry point that expands at once.** Rejected: it hides that the construction is a Floquet expansion of the period map, takes the algorithm as a keyword where a generator takes it in the gauge, and has no place for the gauge of the no-jump frame.
+- **Direct Dyson series in ``Q`` without a Floquet frame.** Correct, but every drift insertion carries harmonics, so the kernels contain many more monomials and the Gram matrices grow. The Floquet frame also makes `algorithm` meaningful.
+- **Return Kraus operators from an exact ``LDL^†`` factor of the Gram matrix.** Implemented first and rejected. The pivots are rational functions of ``π`` whose degree grows quickly with the sector size: on a driven qubit with decay and dephasing at order 4 the one-jump sector has 12 monomials with pivots of ``π``-degree 16, and the two-jump sector with 17 monomials exhausted 17 GB before finishing. The Gram form is division free and builds the same order in under a second. A Kraus form can still be computed numerically from the returned superoperator at substituted values.
+- **Truncate ``(1 + D)^{-1/2}`` as a series.** Rejected: the result would again be trace preserving only through a finite order.
+
+## Consequences
+
+The cost grows with the number of jump records, which is exponential in `order` for several channels. Jump rates must be time independent, because ``\sqrt{γ(t)}`` is not polynomial; a periodic rate belongs in the operator. Output coefficients contain ``π`` as a Symbolics constant, and `SQA.simplify` would fold it into a float, so the lift does not simplify.
+
+The construction covers Markovian Lindblad input. The time-nonlocal Reimer–Wegewijs hierarchy needs a microscopic system–bath input that the package does not model; it remains a research item of #169.
+
+## Gate
+
+`make test` runs the testsets that hold this decision:
+
+- `test/kraus/period_map.jl`: "period map agrees with the exact one-period map through its order", "period map is completely positive and trace preserving through its order", "Hori–Deprit and Bloch/Feshbach give the same period map", "period map recovers the effective generator after the micromotion", "period map with symbolic parameters equals the numeric map at substituted points", "period map of driven Kerr with loss matches the truncated dynamics", "jump amplitudes integrate to the period map", "period map is covariant under its representation freedoms" and "period map rejects what it cannot expand"

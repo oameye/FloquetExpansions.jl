@@ -90,28 +90,30 @@ function Symbolics.terms(L::Liouvillian)
   return ((left, right, coefficient) for ((left, right), coefficient) in term_pairs(L))
 end
 
-function action(left::SQA.QField, right::SQA.QField, coefficient::LiouvillianScalar=1)
+function action(
+  left::OperatorExpression, right::OperatorExpression, coefficient::LiouvillianScalar=1
+)
   return raw_liouvillian(
     LiouvillianTerms((qadd(left), qadd(right)) => convert(SQA.CNum, coefficient))
   )
 end
 
 """
-    hamiltonian_action(H::QField) -> Liouvillian
+    hamiltonian_action(H::Union{QSym,QAdd}) -> Liouvillian
 
 Construct the coherent density-operator action
 ``ρ ↦ -i[H, ρ]`` for the Hamiltonian `H`.
 
 See also [`dissipator`](@ref), [`Liouvillian`](@ref).
 """
-function hamiltonian_action(H::SQA.QField)
+function hamiltonian_action(H::OperatorExpression)
   Hq = qadd(H)
   identity = one(Hq)
   return action(Hq, identity, -im) + action(identity, Hq, im)
 end
 
 """
-    dissipator(L::QField) -> Liouvillian
+    dissipator(L::Union{QSym,QAdd}) -> Liouvillian
 
 Construct the symbolic dissipator
 ``D[L](ρ) = LρL† - (L†Lρ + ρL†L)/2``.
@@ -121,7 +123,7 @@ is part of the channel.
 
 See also [`collapse`](@ref), [`jump`](@ref).
 """
-function dissipator(L::SQA.QField)
+function dissipator(L::OperatorExpression)
   Lq = qadd(L)
   identity = one(Lq)
   norm = adjoint(Lq) * Lq

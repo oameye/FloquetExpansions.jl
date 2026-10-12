@@ -1,28 +1,38 @@
 using FloquetExpansions
-using LinearAlgebra: I
+using LinearAlgebra: I, diagm
 using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 const SQA = SecondQuantizedAlgebra
 using Symbolics: Symbolics
 
-function tomatrix(q::SQA.QAdd, d::Int)
+function numeric(c::SQA.CNum, substitutions)
+  value(x) =
+    ComplexF64(Symbolics.value(Symbolics.substitute(x, substitutions; fold=Val(true))))
+  z = SQA.to_num(c)
+  return value(real(z)) + im * value(imag(z))
+end
+
+function operator_matrix(op::SQA.Op, d::Int)
+  lowering = diagm(1 => sqrt.(1.0:(d - 1)))
+  SQA.is_destroy(op) && return complex(lowering)
+  SQA.is_create(op) && return complex(lowering')
+  E = zeros(ComplexF64, d, d)
+  E[op.l1, op.l2] = 1
+  return E
+end
+
+function tomatrix(q, d::Int, substitutions::AbstractDict)
   M = zeros(ComplexF64, d, d)
-  for (term, coeff) in q
-    z = SQA.to_num(coeff)
-    c = complex(Float64(Symbolics.value(real(z))), Float64(Symbolics.value(imag(z))))
-    T = Matrix{ComplexF64}(I, d, d)
-    for o in term.ops
-      E = zeros(ComplexF64, d, d)
-      E[o.l1, o.l2] = 1
-      T = T * E
+  for (term, c) in FloquetExpansions.qadd(q)
+    product = Matrix{ComplexF64}(I, d, d)
+    for op in term.ops
+      product = product * operator_matrix(op, d)
     end
-    M .+= c .* T
+    M .+= numeric(c, substitutions) .* product
   end
   return M
 end
 
-function tomatrix(q::SQA.QAdd, d::Int, substitutions::AbstractDict)
-  return tomatrix(SQA.substitute(q, substitutions), d)
-end
+tomatrix(q, d::Int) = tomatrix(q, d, Dict())
 
 function maxcoeff(q::SQA.QAdd, subs)
   m = 0.0
