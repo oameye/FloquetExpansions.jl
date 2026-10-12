@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791799204860,
+  "lastUpdate": 1791810831643,
   "repoUrl": "https://github.com/oameye/FloquetExpansions.jl",
   "entries": {
     "Benchmark Results": [
@@ -2580,6 +2580,180 @@ window.BENCHMARK_DATA = {
             "value": 8015500,
             "unit": "ns",
             "extra": "gctime=0\nmemory=4779912\nallocs=119770\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "orjan.ameye@hotmail.com",
+            "name": "Orjan Ameye",
+            "username": "oameye"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "313a45cfb650d55c1d3cabdb61456e6792e2534e",
+          "message": "build: drop the numeric-radical workaround now that SQA keeps radicals exact (#407)",
+          "timestamp": "2026-10-12T15:07:17+02:00",
+          "tree_id": "fde8cd93c8ff516c16227f47d1ade2c3c1116deb",
+          "url": "https://github.com/oameye/FloquetExpansions.jl/commit/313a45cfb650d55c1d3cabdb61456e6792e2534e"
+        },
+        "date": 1791810829909,
+        "tool": "julia",
+        "benches": [
+          {
+            "name": "Expansion Algorithm/Driven dissipative qubit/Bloch-Feshbach order 3",
+            "value": 1430679,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2540080\nallocs=21327\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Expansion Algorithm/Driven dissipative qubit/Bloch-Feshbach order 5",
+            "value": 5416755.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=13573432\nallocs=95686\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Expansion Algorithm/Driven dissipative qubit/Hori-Deprit order 3",
+            "value": 3676115.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=9946272\nallocs=70033\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Expansion Algorithm/Driven dissipative qubit/Hori-Deprit order 5",
+            "value": 58413902.5,
+            "unit": "ns",
+            "extra": "gctime=13068224\nmemory=94566752\nallocs=635307\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Expansion Algorithm/Driven qubit/Bloch-Feshbach order 3",
+            "value": 455247,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=327448\nallocs=5369\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Expansion Algorithm/Driven qubit/Bloch-Feshbach order 5",
+            "value": 919878,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1030144\nallocs=13164\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Expansion Algorithm/Driven qubit/Hori-Deprit order 3",
+            "value": 690661,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=579752\nallocs=9084\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Expansion Algorithm/Driven qubit/Hori-Deprit order 5",
+            "value": 1638046,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2476048\nallocs=36152\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Expansion Algorithm/Kerr parametric oscillator/Bloch-Feshbach order 3",
+            "value": 1027279,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=809744\nallocs=13040\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Expansion Algorithm/Kerr parametric oscillator/Bloch-Feshbach order 5",
+            "value": 6759001,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=8243056\nallocs=95189\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Expansion Algorithm/Kerr parametric oscillator/Hori-Deprit order 3",
+            "value": 2107224,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2410552\nallocs=37340\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Expansion Algorithm/Kerr parametric oscillator/Hori-Deprit order 5",
+            "value": 35522722.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=42719016\nallocs=553411\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Driven qubit/order 1",
+            "value": 392331.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=198000\nallocs=3942\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Driven qubit/order 2",
+            "value": 475418,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=341824\nallocs=5907\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Driven qubit/order 3",
+            "value": 649886,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=623576\nallocs=9750\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 1",
+            "value": 782981,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=388480\nallocs=8172\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 2",
+            "value": 1042573,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=803472\nallocs=14003\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Floquet Expansion/Kerr parametric oscillator/order 3",
+            "value": 2228792,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2479240\nallocs=38357\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Fourier Expansion/Driven qubit/symbolic input",
+            "value": 380909.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=157376\nallocs=3610\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Fourier Expansion/Kerr parametric oscillator/symbolic input",
+            "value": 760943,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=329200\nallocs=7692\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Driven qubit/Gram fixed frame",
+            "value": 6795241,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2920984\nallocs=68045\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Driven qubit/Spectral fixed frame",
+            "value": 5348688,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=2533096\nallocs=54562\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Full-rank bosonic/Gram automatic frame",
+            "value": 1465385.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1750360\nallocs=17439\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Full-rank bosonic/Gram fixed frame",
+            "value": 1395219.5,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=1443960\nallocs=15882\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
+          },
+          {
+            "name": "Positive Completion/Recursive dark onset/Gram fixed frame",
+            "value": 10924871,
+            "unit": "ns",
+            "extra": "gctime=0\nmemory=4615544\nallocs=115404\nparams={\"evals\":1,\"evals_set\":false,\"gcsample\":false,\"gctrial\":true,\"memory_tolerance\":0.01,\"overhead\":0,\"samples\":10000,\"seconds\":5,\"time_tolerance\":0.05}"
           }
         ]
       }
