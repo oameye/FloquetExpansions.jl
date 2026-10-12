@@ -8,24 +8,22 @@ Shared vocabulary for symbolic high-frequency expansions of periodically driven 
 An open quantum system whose Lindblad generator varies periodically with time.
 
 **Lindblad generator**:
-A density-operator generator written as a Hamiltonian action plus dissipative channels with physically valid rates.
+A density-operator generator written as a Hamiltonian action plus dissipative channels with physically valid rates. Represented by SecondQuantizedAlgebra's `Lindbladian`, which is a form and does not itself check the rates.
 _Avoid_: using this term for a finite-order effective result unless its Lindblad form is known.
 
 **Liouvillian**:
-A linear map that generates or approximates density-operator evolution; it need not have Lindblad form.
+A linear map that generates or approximates density-operator evolution; it need not have Lindblad form. Represented by SecondQuantizedAlgebra's `SuperOperator`, a collected sum of sandwiches ``ρ ↦ cAρB``.
 _Avoid_: treating every Liouvillian as completely positive.
 
 **Hamiltonian action**:
 The coherent contribution ``-i[H, ρ]`` to a density-operator generator.
 
 **Dissipator**:
-The map ``D[L](ρ) = LρL† - (L†Lρ + ρL†L)/2`` associated with a collapse operator.
+The map ``D[J](ρ) = JρJ† - (J†Jρ + ρJ†J)/2`` associated with a jump operator.
 
-**Collapse operator**:
-An operator used directly in ``D[L]``; any amplitude or phase belonging to that channel is included in ``L``.
-
-**Rate-weighted jump channel**:
-A bare jump operator and a separate real, nonnegative scalar rate contributing ``γD[J]``; the rate is not part of ``J``. A symbolic rate expression is asserted nonnegative as a whole.
+**Dissipative channel**:
+A jump operator ``J`` and a real, nonnegative scalar rate contributing ``γD[J]``. SecondQuantizedAlgebra normalizes a channel by moving the numeric content of ``J`` into ``γ``, so a complete collapse amplitude and a bare jump with a rate are one channel. A symbolic rate expression is asserted nonnegative as a whole.
+_Avoid_: distinguishing collapse operators from rate-weighted jumps.
 
 **Time-dependent dissipative channel**:
 A dissipative channel whose operator or scalar rate varies periodically with the drive.
@@ -123,7 +121,7 @@ The non-Hermitian generator ``Q = -iH - ½ Σ_a γ_a L_a† L_a`` of the evoluti
 ## GKSL coordinates and positive completion
 
 **Dissipative frame**:
-An ordered finite set of operator directions ``(F₁, …, F_q)`` used to represent the dissipative Hermitian form. The frame need not be complete, traceless, or Hilbert-Schmidt orthonormal. Ordering and scaling are part of the representation and affect coordinate matrices, deterministic pivot choices, and channel gauge. The frame also selects the positive continuation beyond the retained order. `Gram()` is the perturbative Cholesky gauge (graded LDL†, lower triangular factor coefficients in the active block). Its completion is invariant under lower-triangular frame changes, rescaling included, but depends on frame ordering whenever the active block has rank at least two with off-diagonal data. `Spectral()` depends on the coordinate inner product of the frame, so rescaling one frame vector changes it. Retained coefficients and positivity do not depend on the frame.
+An ordered finite set of operator directions ``(F₁, …, F_q)`` used to represent the dissipative Hermitian form. The frame need not be complete, traceless, or Hilbert-Schmidt orthonormal. Ordering and scaling are part of the representation and affect coordinate matrices, deterministic pivot choices, and channel gauge. The frame also selects the positive continuation beyond the retained order. `Gram()` is the perturbative Cholesky gauge (graded LDL†, lower triangular factor coefficients in the active block). Its completion is invariant under lower-triangular frame changes, rescaling included, but depends on frame ordering whenever the active block has rank at least two with off-diagonal data. `Spectral()` depends on the coordinate inner product of the frame, so rescaling one frame vector changes it. Retained coefficients and positivity do not depend on the frame. The type is SecondQuantizedAlgebra's `DissipativeFrame`, which takes directions modulo the identity and with finite-level completeness applied.
 _Avoid_: treating two differently ordered frames as identical merely because they span the same subspace.
 
 **Kossakowski matrix**:
@@ -166,7 +164,7 @@ A symbolic inequality required for a completion to be nonnegative when it cannot
 A nonzero condition defining the fixed-rank parameter stratum on which a symbolic factorization is valid, for example an active pivot used in division or a scalar series square root.
 
 **Microscopic dissipative provenance**:
-Internal information retained only by the high-level physical `floquet_expansion(...; channels=...)` construction, used to seed automatic dissipative-frame discovery and physical rate assumptions. Generic `Liouvillian` and `PeriodicGenerator` algebra remains provenance-free.
+Internal information retained only when `floquet_expansion` receives a `Lindbladian`, read from its diagonal channels and used to seed automatic dissipative-frame discovery and physical rate assumptions. A `SuperOperator` input and `PeriodicGenerator` algebra remain provenance-free.
 
 **Completion factorization**:
 Algorithm-specific diagnostic data retained by a completed Floquet expansion and exposed through `factorization`. Gram data include the graded factor, onset information, and compact active/dark history; spectral data include completed branch rates, perturbative vectors/amplitudes, and onset information.

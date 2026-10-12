@@ -1,22 +1,22 @@
 const NATIVE_GAUGE_DEGREE = 3
 
-struct NativeRealization{F<:DissipativeFrame,J<:RateWeightedJump,X} <: Completion
+struct NativeRealization{F<:DissipativeFrame,X} <: Completion
   frame::F
   retained_kossakowski::Vector{KossakowskiMatrix}
   kossakowski::KossakowskiMatrix
-  channels::Vector{J}
+  lindbladian::SQA.Lindbladian{SQA.QAdd}
   positivity_conditions::Vector{SQA.CNum}
   regularity_conditions::Vector{SQA.CNum}
   factorization::X
   hamiltonian::SQA.QAdd
-  generator::Liouvillian
+  generator::SQA.SuperOperator
 end
 
 function lift_harmonics(lift::CoefficientLift, harmonics::Dict, wd::Symbolics.Num)
-  components = Dict{Int,Liouvillian}(
+  components = Dict{Int,SQA.SuperOperator}(
     k => lift_superoperator(lift, X) for (k, X) in harmonics if !iszero(X)
   )
-  return PeriodicGenerator(components, wd, zero(Liouvillian))
+  return PeriodicGenerator(components, wd, zero(SQA.SuperOperator))
 end
 
 function native_micromotion_harmonics(data::NativeExpansionData, ::HoriDeprit, N::Int)
@@ -52,12 +52,11 @@ end
 function native_channels(
   data::NativeExpansionData, lift::CoefficientLift, wd::Symbolics.Num, N::Int
 )
-  return RateWeightedJump{SQA.QAdd}[
-    jump(
-      native_channel_operator(data, lift, channel, wd, N),
+  return Pair{SQA.QAdd,SQA.CNum}[
+    native_channel_operator(data, lift, channel, wd, N) =>
       lift_coefficient(lift.coefficient, channel.weight) *
-      convert(SQA.CNum, inverse_drive_power(wd, channel.onset)),
-    ) for channel in data.recurrence.channels if channel.onset <= N
+      convert(SQA.CNum, inverse_drive_power(wd, channel.onset)) for
+    channel in data.recurrence.channels if channel.onset <= N
   ]
 end
 
@@ -79,7 +78,7 @@ function native_frame(
       lift, algebra_operator(data.lowering.algebra, [(data.representation.frame[k], 1)])
     ) for k in support
   ]
-  return assemble_dissipative_frame(Tuple(operators))
+  return SQA.DissipativeFrame(operators)
 end
 
 function retained_amplitudes(channel::GradedChannel, N::Int)
@@ -170,16 +169,16 @@ end
 function native_finite_generator(
   data::NativeExpansionData, lift::CoefficientLift, graded, wd::Symbolics.Num, N::Int
 )
-  generator = Liouvillian(LiouvillianTerms())
+  builder = SQA.SuperBuilder()
   for (order, G) in native_finite_superoperators(data, graded, N)
     scale = convert(SQA.CNum, inverse_drive_power(wd, order))
-    lift_superoperator!(generator, lift, G, scale)
+    lift_superoperator!(builder, lift, G, scale)
   end
-  return generator
+  return canonical_superoperator(SQA.build(builder))
 end
 
 function floquet_expansion_impl(
-  generator::PeriodicGenerator{Liouvillian},
+  generator::PeriodicGenerator{SQA.SuperOperator},
   gauge::GKSLNormalForm,
   order::Int,
   provenance::R,
@@ -214,7 +213,7 @@ end
 
 function native_floquet_expansion(
   data::NativeExpansionData,
-  generator::PeriodicGenerator{Liouvillian},
+  generator::PeriodicGenerator{SQA.SuperOperator},
   gauge::GKSLNormalForm,
   provenance::R,
   coefficients,
@@ -223,7 +222,7 @@ function native_floquet_expansion(
   N = order - 1
   wd = generator.wd
   lift = CoefficientLift(data.lowering, coefficients)
-  effective = Liouvillian[lift_superoperator(lift, E) for E in data.recurrence.E]
+  effective = SQA.SuperOperator[lift_superoperator(lift, E) for E in data.recurrence.E]
   harmonics = native_micromotion_harmonics(data, gauge.algorithm, N)
   micromotion = [lift_harmonics(lift, X, wd) for X in harmonics]
   H = native_hamiltonian_series(data, lift, wd)
@@ -237,7 +236,7 @@ function native_floquet_expansion(
     frame,
     retained,
     support_matrix(graded, support, wd, coefficients),
-    jumps,
+    gksl_lindbladian(H, jumps),
     native_positivity_conditions(coefficients, wd),
     native_regularity_conditions(coefficients, data, harmonics),
     data,

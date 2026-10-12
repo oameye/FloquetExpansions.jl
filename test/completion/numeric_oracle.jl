@@ -36,9 +36,9 @@ end
   quadrature = im * (1 // 2) * diagonal_difference
   generator = PeriodicGenerator(
     Dict(
-      0 => dissipator(σz),
-      1 => coherent_rotation + quadrature,
-      -1 => coherent_rotation - quadrature,
+      0 => SQA.SuperOperator(dissipator(σz)),
+      1 => SQA.SuperOperator(coherent_rotation + quadrature),
+      -1 => SQA.SuperOperator(coherent_rotation - quadrature),
     ),
     ω,
   )
@@ -66,7 +66,12 @@ end
   D2 = dissipator(a^2)
   quadrature = im * (1 // 2) * D2
   generator = PeriodicGenerator(
-    Dict(0 => D1 + D2, 1 => (1 // 2) * D1 + quadrature, -1 => (1 // 2) * D1 - quadrature), ω
+    Dict(
+      0 => SQA.SuperOperator(D1 + D2),
+      1 => SQA.SuperOperator((1 // 2) * D1 + quadrature),
+      -1 => SQA.SuperOperator((1 // 2) * D1 - quadrature),
+    ),
+    ω,
   )
   expansion = floquet_expansion(generator, VanVleck(), 2)
   completion = positive_completion(expansion, Gram(), frame)

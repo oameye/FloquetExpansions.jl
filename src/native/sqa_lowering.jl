@@ -1,7 +1,7 @@
 struct LoweredSite
   kind::Int
-  space_index::Int32
-  name_id::Int32
+  space_index::Int
+  name::Symbol
   levels::Int
   ground::Int
   pauli::Bool
@@ -26,45 +26,47 @@ function lowered_site_kind(op::SQA.Op)
   )
 end
 
-function collect_lowered_sites!(sites::Dict{Int32,LoweredSite}, q::SQA.QAdd)
+function collect_lowered_sites!(sites::Dict{Int,LoweredSite}, q::SQA.QAdd)
   isempty(q.indices) ||
     throw(ArgumentError("the native expansion does not support symbolic index sums"))
   for (term, _) in q.arguments, op in term.ops
     kind = lowered_site_kind(op)
     levels = if SQA.is_transition(op)
-      Int(op.nlev)
+      SQA.n_levels(op)
     elseif SQA.is_pauli(op)
       2
     else
       0
     end
-    ground = SQA.is_transition(op) ? Int(op.g) : 0
-    site = LoweredSite(kind, op.space_index, op.name_id, levels, ground, SQA.is_pauli(op))
-    previous = get(sites, op.space_index, site)
-    (previous.kind, previous.levels, previous.pauli, previous.ground, previous.name_id) ==
-    (kind, levels, site.pauli, ground, site.name_id) || throw(
+    ground = SQA.is_transition(op) ? SQA.ground_state(op) : 0
+    space_index = only(SQA.acts_on(op))
+    name = SQA.operator_name(op)
+    site = LoweredSite(kind, space_index, name, levels, ground, SQA.is_pauli(op))
+    previous = get(sites, space_index, site)
+    (previous.kind, previous.levels, previous.pauli, previous.ground, previous.name) ==
+    (kind, levels, site.pauli, ground, site.name) || throw(
       ArgumentError(
         "one Hilbert subspace carries operators of different kinds or names; " *
         "the native expansion needs a single operator name per subspace",
       ),
     )
-    sites[op.space_index] = previous
+    sites[space_index] = previous
   end
   return sites
 end
 
-function SQALowering{T}(generator::PeriodicGenerator{Liouvillian}) where {T}
+function SQALowering{T}(generator::PeriodicGenerator{SQA.SuperOperator}) where {T}
   return SQALowering{T}(generator, Symbolics.Num[], T[])
 end
 
 function SQALowering{T}(
-  generator::PeriodicGenerator{Liouvillian},
+  generator::PeriodicGenerator{SQA.SuperOperator},
   parameters::Vector{Symbolics.Num},
   parameter_values::Vector{T},
 ) where {T}
   R = real(T)
-  found = Dict{Int32,LoweredSite}()
-  for (_, L) in generator.components, (left, right, _) in terms(L)
+  found = Dict{Int,LoweredSite}()
+  for (_, L) in generator.components, (left, right, _) in sandwiches(L)
     collect_lowered_sites!(found, qadd(left))
     collect_lowered_sites!(found, qadd(right))
   end
@@ -87,7 +89,7 @@ end
 
 function site_position(lowering::SQALowering, op::SQA.Op)
   for (position, site) in pairs(lowering.sites)
-    site.space_index == op.space_index && return position
+    site.space_index == only(SQA.acts_on(op)) && return position
   end
   return throw(ArgumentError("operator acts on an unknown subspace"))
 end
@@ -128,11 +130,11 @@ function lower_operator(lowering::SQALowering{T}, op::SQA.Op) where {T}
     return algebra_operator(algebra, [(site_monomial(lowering, s, 1, 0), 1)])
   SQA.is_momentum(op) &&
     return algebra_operator(algebra, [(site_monomial(lowering, s, 0, 1), 1)])
-  SQA.is_transition(op) && return level_unit(lowering, s, Int(op.l1), Int(op.l2))
-  SQA.is_spin(op) && return lower_spin(lowering, s, Int(op.l1))
+  SQA.is_transition(op) && return level_unit(lowering, s, SQA.transition_levels(op)...)
+  SQA.is_spin(op) && return lower_spin(lowering, s, SQA.operator_axis(op))
   up = level_unit(lowering, s, 1, 2)
   down = level_unit(lowering, s, 2, 1)
-  axis = Int(op.l1)
+  axis = SQA.operator_axis(op)
   axis == 1 && return up + down
   axis == 2 && return -im * up + im * down
   return level_unit(lowering, s, 1, 1) - level_unit(lowering, s, 2, 2)
@@ -147,38 +149,32 @@ function exact_real(::Type{R}, x::AbstractFloat) where {R}
     ),
   )
 end
-exact_scalar(::Type{T}, x::Real) where {T} = T(exact_real(real(T), x))
-function exact_scalar(::Type{T}, x::SQA.GaussianRational) where {T}
-  return T(exact_real(real(T), real(x)), exact_real(real(T), imag(x)))
-end
 function exact_scalar(::Type{T}, x::Complex) where {T}
   return T(exact_real(real(T), real(x)), exact_real(real(T), imag(x)))
 end
 
-function polynomial_tail(c::SQA.CNum)
-  tail = c.tail
-  tail isa SQA.Poly || throw(
+function native_coefficient_terms(c::SQA.CNum)
+  SQA.has_coefficient_terms(c) || throw(
     ArgumentError("the native expansion supports polynomial coefficients only, got $c")
   )
-  return tail
+  return SQA.coefficient_terms(c)
 end
 
 function lower_coefficient(lowering::SQALowering{T}, c::SQA.CNum) where {T}
-  c.tail isa SQA.Native && return exact_scalar(T, SQA.native_scalar(c))
   value = zero(T)
-  for monomial in polynomial_tail(c).terms
-    term = exact_scalar(T, SQA.monomial_scalar(monomial))
-    for (symbol, exponent) in zip(monomial.syms, monomial.exps)
-      term *= parameter_value(lowering, symbol)^Int(exponent)
+  for term in native_coefficient_terms(c)
+    contribution = exact_scalar(T, term.scalar)
+    for (symbol, exponent) in term.powers
+      contribution *= parameter_value(lowering, symbol)^Int(exponent)
     end
-    value += term
+    value += contribution
   end
   return value
 end
 
-function parameter_value(lowering::SQALowering, symbol)
+function parameter_value(lowering::SQALowering, symbol::Symbolics.Num)
   for (parameter, value) in zip(lowering.parameters, lowering.parameter_values)
-    isequal(Symbolics.unwrap(parameter), symbol) && return value
+    isequal(parameter, symbol) && return value
   end
   return throw(ArgumentError("$symbol is not a parameter of the native lowering"))
 end
@@ -207,9 +203,9 @@ function lowered_monomials(lowering::SQALowering{T,R}, q::SQA.QAdd) where {T,R}
   return result
 end
 
-function lower_liouvillian(lowering::SQALowering{T,R}, L::Liouvillian) where {T,R}
+function lower_liouvillian(lowering::SQALowering{T,R}, L::SQA.SuperOperator) where {T,R}
   result = AlgebraSuperoperator{T,R}(lowering.algebra, Dict{Tuple{Monomial,Monomial},T}())
-  for (left, right, c) in terms(L)
+  for (left, right, c) in sandwiches(L)
     for (X, cl) in lowered_monomials(lowering, qadd(left)),
       (Y, cr) in lowered_monomials(lowering, qadd(right))
 
@@ -220,7 +216,7 @@ function lower_liouvillian(lowering::SQALowering{T,R}, L::Liouvillian) where {T,
 end
 
 function lower_generator(
-  lowering::SQALowering{T,R}, generator::PeriodicGenerator{Liouvillian}
+  lowering::SQALowering{T,R}, generator::PeriodicGenerator{SQA.SuperOperator}
 ) where {T,R}
   return Dict{Int,AlgebraSuperoperator{T,R}}(
     k => lower_liouvillian(lowering, L) for (k, L) in generator.components
@@ -228,37 +224,40 @@ function lower_generator(
 end
 
 function spin_site_operator(site::LoweredSite, a::Int, b::Int, c::Int)
-  name = SQA.name_from_id(site.name_id)
-  index = Int(site.space_index)
-  x = qadd(SQA.Spin(name, 1, index))
-  y = qadd(SQA.Spin(name, 2, index))
-  z = qadd(SQA.Spin(name, 3, index))
+  space = SQA.SpinSpace(site.name)
+  x, y, z = (
+    qadd(SQA.set_acts_on(SQA.Spin(space, site.name, axis), site.space_index)) for
+    axis in 1:3
+  )
   return (x + im * y)^a * z^b * (x - im * y)^c
 end
 
 function site_operator(lowering::SQALowering, s::Int, p::Int, q::Int, r::Int...)
   site = lowering.sites[s]
-  name = SQA.name_from_id(site.name_id)
-  index = Int(site.space_index)
+  name = site.name
+  index = site.space_index
   if site.kind == BOSON_SITE
-    a = SQA.Destroy(name, index)
+    a = SQA.set_acts_on(SQA.Destroy(SQA.FockSpace(name), name), index)
     return qadd(adjoint(a))^p * qadd(a)^q
   elseif site.kind == PHASE_SITE
-    return qadd(SQA.Position(name, index))^p * qadd(SQA.Momentum(name, index))^q
+    phase = SQA.PhaseSpace(name)
+    x = SQA.set_acts_on(SQA.Position(phase, name), index)
+    k = SQA.set_acts_on(SQA.Momentum(phase, name), index)
+    return qadd(x)^p * qadd(k)^q
   elseif site.kind == SPIN_SITE
     return spin_site_operator(site, p, q, r[1])
   end
   (p, q) == (0, 0) && return one(SQA.QAdd)
   if site.pauli
-    x = qadd(SQA.Pauli(name, 1, index))
-    y = qadd(SQA.Pauli(name, 2, index))
-    z = qadd(SQA.Pauli(name, 3, index))
+    space = SQA.PauliSpace(name)
+    x, y, z = (qadd(SQA.set_acts_on(SQA.Pauli(space, name, axis), index)) for axis in 1:3)
     (p, q) == (1, 1) && return (1 + z) / 2
     (p, q) == (1, 2) && return (x + im * y) / 2
     (p, q) == (2, 1) && return (x - im * y) / 2
     return (1 - z) / 2
   end
-  return qadd(SQA.Transition(name, p, q, index, SQA.NO_INDEX, site.ground, site.levels))
+  levels = SQA.NLevelSpace(name, site.levels, site.ground)
+  return qadd(SQA.set_acts_on(SQA.Transition(levels, name, p, q), index))
 end
 
 function lift_operator(lowering::SQALowering, X::AlgebraOperator)

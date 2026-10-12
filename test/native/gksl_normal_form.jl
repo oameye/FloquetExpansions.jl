@@ -3,15 +3,23 @@ using LinearAlgebra: Hermitian, eigmin
 using Symbolics: @variables, substitute
 using FloquetExpansions
 using FloquetExpansions: FloquetExpansions
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 
 const FE = FloquetExpansions
+const SQA = SecondQuantizedAlgebra
 
 @variables ω::Real t::Real
 
-function same(A::Liouvillian, B::Liouvillian)
-  return FE.liouvillian_iszero(FE.canonical_liouvillian(FE.SQA.simplify(A - B)))
+function same(A::SQA.SuperOperator, B::SQA.SuperOperator)
+  return iszero(SQA.simplify(FE.canonical_superoperator(A - B)))
 end
-same(A, B) = iszero(FE.SQA.simplify(FE.qadd(A) - FE.qadd(B)))
+same(A, B) = iszero(SQA.simplify(FE.qadd(A) - FE.qadd(B)))
+
+channel_map(entry) = SQA.SuperOperator(last(entry) * dissipator(SQA.jump(first(entry))))
+
+function has_channel(jumps, expected::Lindbladian)
+  return count(entry -> same(channel_map(entry), SQA.SuperOperator(expected)), jumps) == 1
+end
 
 function kerr_hamiltonian()
   h = FockSpace(:c)
@@ -21,9 +29,9 @@ function kerr_hamiltonian()
 end
 
 function graded_product(A, B)
-  C = [Dict{Int,Liouvillian}() for _ in A]
+  C = [Dict{Int,SQA.SuperOperator}() for _ in A]
   for i in eachindex(A), j in 1:(length(A) - i), (k, a) in A[i], (l, b) in B[j]
-    C[i + j][k + l] = get(C[i + j], k + l, zero(a)) + compose(a, b)
+    C[i + j][k + l] = get(C[i + j], k + l, zero(a)) + SQA.compose(a, b)
   end
   return C
 end
@@ -55,24 +63,24 @@ end
   σx = σ(1, 2) + σ(2, 1)
   σy = -im * σ(1, 2) + im * σ(2, 1)
   H = (1 // 2) * σz + cos(ω * t) * σx + (1 // 3) * cos(2 * ω * t) * σy
-  jumps = (jump(σ(1, 2), 1 // 5), jump(σz, 1 // 7))
+  L = hamiltonian_action(H) + (1 // 5) * dissipator(σ(1, 2)) + (1 // 7) * dissipator(σz)
   N = 4
   for algorithm in (HoriDeprit(), BlochFeshbach())
-    native = floquet_expansion(H, ω, t, GKSLNormalForm(; algorithm), N; channels=jumps)
-    reference = floquet_expansion(H, ω, t, VanVleck(; algorithm), N; channels=jumps)
+    native = floquet_expansion(L, ω, t, GKSLNormalForm(; algorithm), N)
+    reference = floquet_expansion(L, ω, t, VanVleck(; algorithm), N)
     A = graded_exp_minus_one(micromotion_series(reference, -1))
     B = graded_exp_minus_one(micromotion_series(native, 1))
     W = graded_sum(graded_sum(A, B), graded_product(A, B))
     for n in 1:(N - 1), (k, value) in W[n]
       k == 0 || @test same(value, zero(value))
     end
-    S = [get(W[n], 0, zero(Liouvillian)) for n in 1:(N - 1)]
-    @test !same(S[2], zero(Liouvillian))
+    S = [get(W[n], 0, zero(SQA.SuperOperator)) for n in 1:(N - 1)]
+    @test !same(S[2], zero(SQA.SuperOperator))
     E(x, n) = effective_component(x, n)
     for n in 1:(N - 1)
       @test same(
-        E(native, n) + sum(compose(S[j], E(native, n - j)) for j in 1:n),
-        E(reference, n) + sum(compose(E(reference, n - j), S[j]) for j in 1:n),
+        E(native, n) + sum(SQA.compose(S[j], E(native, n - j)) for j in 1:n),
+        E(reference, n) + sum(SQA.compose(E(reference, n - j), S[j]) for j in 1:n),
       )
     end
   end
@@ -80,9 +88,11 @@ end
 
 @testset "GKSLNormalForm coincides with VanVleck wherever no static gauge is needed" begin
   H, a = kerr_hamiltonian()
-  for algorithm in (HoriDeprit(), BlochFeshbach()), channels in ((), (jump(a, 4 // 5),))
-    native = floquet_expansion(H, ω, t, GKSLNormalForm(; algorithm), 4; channels)
-    reference = floquet_expansion(H, ω, t, VanVleck(; algorithm), 4; channels)
+  for algorithm in (HoriDeprit(), BlochFeshbach()),
+    generator in (H, hamiltonian_action(H) + (4 // 5) * dissipator(a))
+
+    native = floquet_expansion(generator, ω, t, GKSLNormalForm(; algorithm), 4)
+    reference = floquet_expansion(generator, ω, t, VanVleck(; algorithm), 4)
     for n in 0:3
       @test same(effective_component(native, n), effective_component(reference, n))
     end
@@ -100,25 +110,19 @@ end
 
 @testset "GKSLNormalForm driven Kerr is GKSL with a drive-induced channel" begin
   H, a = kerr_hamiltonian()
-  native = floquet_expansion(H, ω, t, GKSLNormalForm(), 5; channels=(jump(a, 4 // 5),))
+  L = hamiltonian_action(H) + (4 // 5) * dissipator(a)
+  native = floquet_expansion(L, ω, t, GKSLNormalForm(), 5)
   jumps = channels(native)
   @test length(jumps) == 2
-  @test same(jumps[2].operator, a * a - 2 * a' * a)
-  @test isequal(FE.SQA.simplify(jumps[2].rate * ω^4), 72 // 3125)
-  @test same(
-    effective_generator(native), liouvillian(hamiltonian(native); channels=Tuple(jumps))
-  )
+  @test has_channel(jumps, (72 // 3125) / ω^4 * dissipator(a * a - 2 * a' * a))
+  @test same(effective_generator(native), SQA.SuperOperator(Lindbladian(native)))
   C = kossakowski(native)
   for value in (3.0, 10.0, 100.0)
-    numeric = [
-      ComplexF64(FE.SQA.to_complex(FE.SQA.substitute(c, Dict(ω => value)))) for c in C
-    ]
+    numeric = [ComplexF64(SQA.to_complex(SQA.substitute(c, Dict(ω => value)))) for c in C]
     @test eigmin(Hermitian(numeric)) >= -1e-12
   end
   @test_throws ArgumentError positive_completion(native, Gram())
-  bf = floquet_expansion(
-    H, ω, t, GKSLNormalForm(; algorithm=BlochFeshbach()), 5; channels=(jump(a, 4 // 5),)
-  )
+  bf = floquet_expansion(L, ω, t, GKSLNormalForm(; algorithm=BlochFeshbach()), 5)
   @test all(same(effective_component(bf, n), effective_component(native, n)) for n in 0:4)
 end
 
@@ -127,13 +131,12 @@ end
   h = FockSpace(:two_photon)
   a = Destroy(h, :a)
   H = Δ * a' * a + K * a' * a' * a * a + ε * cos(ω * t) * (a + a')
-  native = floquet_expansion(H, ω, t, GKSLNormalForm(), 3; channels=(jump(a * a, κ),))
+  L = hamiltonian_action(H) + κ * dissipator(a * a)
+  native = floquet_expansion(L, ω, t, GKSLNormalForm(), 3)
   jumps = channels(native)
   @test length(jumps) == 2
-  @test same(jumps[1].operator, a * a)
-  @test iszero(FE.SQA.simplify(jumps[1].rate - κ))
-  @test same(jumps[2].operator, a)
-  @test iszero(FE.SQA.simplify(jumps[2].rate - 2 * ε^2 * κ / ω^2))
+  @test has_channel(jumps, κ * dissipator(a * a))
+  @test has_channel(jumps, (2 * ε^2 * κ / ω^2) * dissipator(a))
 end
 
 @testset "GKSLNormalForm on a driven oscillator in position and momentum" begin
@@ -142,40 +145,37 @@ end
   p = Momentum(phase, :q)
   H0 = (1 // 2) * p * p + (1 // 2) * x * x
   H = H0 + (1 // 5) * x * cos(ω * t)
-  jumps = (jump(x + im * p, 1 // 5),)
-  native = floquet_expansion(H, ω, t, GKSLNormalForm(), 3; channels=jumps)
-  reference = floquet_expansion(H, ω, t, VanVleck(), 3; channels=jumps)
-  @test same(effective_component(native, 0), liouvillian(H0; channels=jumps))
+  loss = (1 // 5) * dissipator(x + im * p)
+  native = floquet_expansion(hamiltonian_action(H) + loss, ω, t, GKSLNormalForm(), 3)
+  reference = floquet_expansion(hamiltonian_action(H) + loss, ω, t, VanVleck(), 3)
+  @test same(
+    effective_component(native, 0), SQA.SuperOperator(hamiltonian_action(H0) + loss)
+  )
   @test all(
     same(effective_component(native, n), effective_component(reference, n)) for n in 0:2
   )
-  @test same(
-    effective_generator(native),
-    liouvillian(hamiltonian(native); channels=Tuple(channels(native))),
-  )
+  @test same(effective_generator(native), SQA.SuperOperator(Lindbladian(native)))
   C = kossakowski(native)
   for value in (3.0, 10.0)
-    numeric = [
-      ComplexF64(FE.SQA.to_complex(FE.SQA.substitute(c, Dict(ω => value)))) for c in C
-    ]
+    numeric = [ComplexF64(SQA.to_complex(SQA.substitute(c, Dict(ω => value)))) for c in C]
     @test eigmin(Hermitian(numeric)) >= -1e-12
   end
 end
 
 @testset "GKSLNormalForm rejects what it cannot expand exactly" begin
   H, a = kerr_hamiltonian()
-  jumps = (jump(a, 4 // 5),)
+  loss = (4 // 5) * dissipator(a)
   @test_throws "order must be >= 1" floquet_expansion(
-    H, ω, t, GKSLNormalForm(), 0; channels=jumps
+    hamiltonian_action(H) + loss, ω, t, GKSLNormalForm(), 0
   )
   @test_throws "no static gauge of polynomial degree" floquet_expansion(
-    H, ω, t, GKSLNormalForm(), 7; channels=jumps
+    hamiltonian_action(H) + loss, ω, t, GKSLNormalForm(), 7
   )
   @test_throws "floating-point" floquet_expansion(
-    H + 0.4 * (a + a') * cos(ω * t), ω, t, GKSLNormalForm(), 3; channels=jumps
+    hamiltonian_action(H + 0.4 * (a + a') * cos(ω * t)) + loss, ω, t, GKSLNormalForm(), 3
   )
   @test_throws "floating-point" floquet_expansion(
-    H, ω, t, GKSLNormalForm(), 3; channels=(jump(a, 0.8),)
+    hamiltonian_action(H) + 0.8 * dissipator(a), ω, t, GKSLNormalForm(), 3
   )
   shared = FockSpace(:shared)
   a = Destroy(shared, :a)
@@ -183,13 +183,13 @@ end
   two_names =
     (1 // 2) * a' * a + (3 // 10) * b' * b * b' * b + (2 // 5) * (a + a') * cos(ω * t)
   @test_throws "single operator name" floquet_expansion(
-    two_names, ω, t, GKSLNormalForm(), 3; channels=jumps
+    hamiltonian_action(two_names) + loss, ω, t, GKSLNormalForm(), 3
   )
   not_hermitian = PeriodicGenerator(
     Dict(
-      0 => hamiltonian_action(a),
-      1 => hamiltonian_action(a + a'),
-      -1 => hamiltonian_action(a + a'),
+      0 => SQA.SuperOperator(hamiltonian_action(a)),
+      1 => SQA.SuperOperator(hamiltonian_action(a + a')),
+      -1 => SQA.SuperOperator(hamiltonian_action(a + a')),
     ),
     ω,
   )

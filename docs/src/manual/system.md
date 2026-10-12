@@ -6,7 +6,7 @@ CurrentModule = FloquetExpansions
 
 `FloquetExpansions.jl` describes a driven quantum system through its generator. A closed system is
 specified by a Hamiltonian whose commutator gives the generator, while an open system is described
-directly by a Liouvillian. The first step for either case is to express the time dependence in a
+directly by a Liouvillian, an SQA `Lindbladian` or `SuperOperator`. The first step for either case is to express the time dependence in a
 common Fourier representation.
 
 ## Symbolic substrate
@@ -101,14 +101,12 @@ For a closed system, a Hamiltonian ``H(t)`` induces the commutator action
 \mathcal{G}_H(t)[\rho] = -i[H(t),\rho].
 ```
 
-Use [`hamiltonian_action`](@ref) to turn the Hamiltonian expression into the corresponding
-Liouvillian map.
+[`floquet_expansion`](@ref) takes the Hamiltonian expression directly. The same action as a map on
+density operators is SQA's
+`hamiltonian_action`, which returns a
+`Lindbladian` without channels.
 
-```@docs
-hamiltonian_action
-```
-
-### Open systems: Liouvillian generators
+### Open systems: Lindbladians and superoperators
 
 For an open system, the generator acts directly on density operators:
 
@@ -116,55 +114,51 @@ For an open system, the generator acts directly on density operators:
 \frac{d\rho}{dt} = \mathcal{L}(t)[\rho].
 ```
 
-The [`Liouvillian`](@ref) type is a symbolic linear map represented as a sum of left/right
-operator actions. This is an algebraic representation: a general Liouvillian need not be in
-Lindblad form and does not, by itself, certify positivity or complete positivity.
-
-```@docs
-Liouvillian
-liouvillian
-```
-
-### GKSL (Lindblad) form
-
-A [Lindblad generator](https://en.wikipedia.org/wiki/Lindbladian), also called a
-Gorini–Kossakowski–Sudarshan–Lindblad generator (GKSL or GKLS), is the physically constrained
-subclass with the form
+FloquetExpansions uses the open-system types of SQA rather than a map type of its own. A
+`Lindbladian` keeps the structure
 
 ```math
 \mathcal{L}[\rho]
 = -i[H,\rho] + \sum_a \gamma_a\,\mathcal{D}[J_a](\rho),
-\qquad \gamma_a \ge 0.
-```
-
-The elementary dissipator is
-
-```math
+\qquad
 \mathcal{D}[J](\rho)
 = J\rho J^\dagger
-- \frac{1}{2}\left(J^\dagger J\rho + \rho J^\dagger J\right).
+- \frac{1}{2}\left(J^\dagger J\rho + \rho J^\dagger J\right),
 ```
 
-The channel constructors distinguish two physical representations: [`collapse`](@ref) takes the
-complete collapse amplitude, while [`jump`](@ref) takes a bare jump operator and a separate physical
-rate.
+and is built from `hamiltonian_action` and
+`dissipator` with ordinary arithmetic. A
+`SuperOperator` is any polynomial map ``\rho \mapsto \sum_j c_j A_j \rho B_j``; the
+`SuperOperator(L)` lowering of a Lindbladian gives its sandwiches. Neither type certifies
+positivity: a Lindbladian is a form whose rates may be symbolic or negative, and a general
+superoperator need not be of GKSL form. See the
+[SQA open-systems manual](https://qojulia.github.io/SecondQuantizedAlgebra.jl/dev/open_systems/) for construction,
+composition, and channel normalization.
 
-```@docs
-dissipator
+The two input types differ in what [`floquet_expansion`](@ref) retains. The channels of a
+`Lindbladian` are the microscopic input of [`positive_completion`](@ref): they seed the dissipative
+frame, and each rate is assumed nonnegative as a whole. Every channel must therefore be diagonal
+and unsummed, with a provably real rate, and its Hamiltonian must be Hermitian. A `SuperOperator`
+enters the expansion as a bare map, without channels or physical checks.
+
+```julia
+using FloquetExpansions
+using Symbolics: @variables
+
+h = FockSpace(:cavity); a = Destroy(h, :a)
+@variables ω::Real t::Real Δ::Real F::Real κ::Real
+
+L = hamiltonian_action(Δ * a' * a + F * cos(ω * t) * (a + a')) + κ * dissipator(a)
+expansion = floquet_expansion(L, ω, t, VanVleck(), 3)
 ```
 
-```@docs
-collapse
-```
-
-```@docs
-jump
-```
+The effective components of a Liouvillian expansion are `SuperOperator`s with every finite-level
+completeness relation applied, so a component is zero exactly when it is the zero map.
 
 ### Dissipative frames and Kossakowski coordinates
 
-A [`Liouvillian`](@ref) does not carry a preferred Lindblad representation. When a dissipative
-operator frame ``\{F_\mu\}`` is known, FloquetExpansions can extract the coherent Hamiltonian and
+A `SuperOperator` does not carry a preferred Lindblad representation. When a dissipative operator
+frame ``\{F_\mu\}`` is known, SecondQuantizedAlgebra extracts the coherent Hamiltonian and
 Kossakowski matrix exactly in the symbolic operator algebra:
 
 ```math
@@ -174,44 +168,18 @@ Kossakowski matrix exactly in the symbolic operator algebra:
 - \frac12\{F_\nu^\dagger F_\mu,\rho\}\right).
 ```
 
-A [`DissipativeFrame`](@ref) is an ordered set of linearly independent operator directions modulo
-the identity. Its ordering fixes the coordinates of the Kossakowski matrix; the frame need not be
-orthogonal or normalized. Extraction uses the two-sided sandwich terms directly and verifies the
-remaining one-sided action as a Hamiltonian commutator. No Hilbert-space matrix representation or
-finite-dimensional cutoff is introduced.
+A `DissipativeFrame` is an ordered set of linearly independent operator directions modulo the
+identity. Its ordering fixes the coordinates of the Kossakowski matrix; the frame need not be
+orthogonal or normalized. `kossakowski(S, frame)` reads the matrix from the two-sided sandwich
+terms and verifies the remaining one-sided action as a Hamiltonian commutator, and
+`Lindbladian(S, frame)` returns the map as a `Lindbladian` with one channel per nonzero matrix
+entry. No Hilbert-space matrix representation or finite-dimensional cutoff is introduced. These
+are SecondQuantizedAlgebra functions, documented in its
+[open-systems manual](https://qojulia.github.io/SecondQuantizedAlgebra.jl/dev/open_systems/).
 
-```@docs
-DissipativeFrame
-kossakowski
-hamiltonian
-```
-
-The coherent Hamiltonian is defined modulo an additive multiple of the identity, which does not
-change its commutator action. Kossakowski coordinates of a raw Floquet expansion use the same frame
-and are described in [Floquet expansion](@ref).
-
-### Terms and composition
-
-The left/right representation writes a map as
-
-```math
-\mathcal{L}[\rho] = \sum_j c_j A_{j,\mathrm{L}}\rho A_{j,\mathrm{R}}.
-```
-
-The [`terms`](@ref) iterator exposes each contribution as a semantic triple
-`(left, right, coefficient)`. This gives callers a stable way to inspect a map without depending
-on its sparse storage.
-
-```@docs
-terms(::Liouvillian)
-```
-
-Liouvillian maps compose as ordinary linear maps: in `compose(A, B)`, `B` acts first and `A` acts
-second. Composition and commutators therefore remain in the same symbolic map algebra.
-
-```@docs
-compose
-```
+The coherent Hamiltonian `hamiltonian(Lindbladian(S))` is defined modulo an additive multiple of
+the identity, which does not change its commutator action. Kossakowski coordinates of a Floquet
+expansion use the same frame and are described in [Floquet expansion](@ref).
 
 ## Periodic generators
 
@@ -222,7 +190,7 @@ When the generator is periodic with angular frequency ``\omega_d`` and period
 G(t) = \sum_l G_l\,e^{-i l \omega_d t}.
 ```
 
-Here `l` is an integer harmonic label and ``G_l`` is an operator or Liouvillian component. A
+Here `l` is an integer harmonic label and ``G_l`` is an operator or `SuperOperator` component. A
 [`PeriodicGenerator`](@ref) stores these components together with the drive frequency, and its
 component type determines the algebra used by the Floquet expansion. Missing harmonics are zero;
 the full time-dependent expression is recovered by evaluating the generator at a symbolic time.
@@ -234,8 +202,8 @@ PeriodicGenerator
 ### Fourier decomposition
 
 Use [`harmonics`](@ref) to decompose a symbolic Hamiltonian into the convention above. The API
-also decomposes a [`Liouvillian`](@ref) by applying Fourier decomposition to its operator factors
-and scalar coefficients, so time dependence may occur in the Hamiltonian, channels, rates, or any
+also decomposes a `Lindbladian` or `SuperOperator` by applying Fourier decomposition to the
+operators and scalar coefficient of every sandwich, so time dependence may occur in the Hamiltonian, channels, rates, or any
 combination.
 
 ```@docs

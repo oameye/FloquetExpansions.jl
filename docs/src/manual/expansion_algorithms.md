@@ -32,7 +32,7 @@ space = PauliSpace(:algorithm_cost)
 @variables ω::Real t::Real Δ::Real A::Real γ::Real
 H = (Δ / 2) * σz + A * cos(ω * t) * σx
 periodic_hamiltonian = harmonics(H, ω, t)
-periodic_liouvillian = harmonics(liouvillian(H; channels=(jump(σx, γ),)), ω, t)
+periodic_liouvillian = harmonics(hamiltonian_action(H) + γ * dissipator(σx), ω, t)
 
 function median_runtime_ms(generator, algorithm, order)
   gauge = VanVleck(; algorithm)

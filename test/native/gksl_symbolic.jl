@@ -13,40 +13,45 @@ const A = Destroy(CAVITY, :a)
 
 kerr(Δ, χ, F) = Δ * A' * A + χ * A' * A * A' * A + F * (A + A') * cos(ω * t)
 
-function evaluated(L::Liouvillian, rules)
-  return Dict((string(l), string(r)) => SQA.substitute(c, rules) for (l, r, c) in terms(L))
+lindbladian(H, rate) = hamiltonian_action(H) + rate * dissipator(A)
+
+channel_map(entry) = SQA.SuperOperator(last(entry) * dissipator(SQA.jump(first(entry))))
+
+function evaluated(L::SQA.SuperOperator, rules)
+  return Dict(
+    (string(SQA.left_operator(term)), string(SQA.right_operator(term))) =>
+      SQA.substitute(c, rules) for (term, c) in L
+  )
 end
 
-function agree(symbolic::Liouvillian, numeric::Liouvillian, rules)
+function agree(symbolic::SQA.SuperOperator, numeric::SQA.SuperOperator, rules)
   x = evaluated(symbolic, rules)
   y = evaluated(numeric, Dict(ω => rules[ω]))
-  return keys(x) == keys(y) && all(iszero(SQA.simplify(x[k] - y[k])) for k in keys(x))
+  vanishing = convert(SQA.CNum, 0)
+  return all(
+    iszero(SQA.simplify(get(x, k, vanishing) - get(y, k, vanishing))) for
+    k in union(keys(x), keys(y))
+  )
 end
 
 function agree(symbolic::FloquetExpansion, numeric::FloquetExpansion, rules)
   N = order(symbolic)
-  frequency = Dict(ω => rules[ω])
   effective = all(
     agree(effective_component(symbolic, n), effective_component(numeric, n), rules) for
     n in 0:(N - 1)
   )
   micro = all(1:(N - 1)) do n
     x, y = micromotion(symbolic, n).components, micromotion(numeric, n).components
+    zero_map = zero(SQA.SuperOperator)
     return all(
-      agree(get(x, k, zero(Liouvillian)), get(y, k, zero(Liouvillian)), rules) for
+      agree(get(x, k, zero_map), get(y, k, zero_map), rules) for
       k in union(keys(x), keys(y))
     )
   end
   jumps =
-    length(channels(symbolic)) == length(channels(numeric)) &&
-    all(zip(channels(symbolic), channels(numeric))) do (c, d)
-      return iszero(
-        SQA.simplify(SQA.substitute(c.rate, rules) - SQA.substitute(d.rate, frequency))
-      ) && iszero(
-        SQA.simplify(
-          SQA.substitute(c.operator, rules) - SQA.substitute(d.operator, frequency)
-        ),
-      )
+    length(channels(symbolic)) == length(channels(numeric)) && all(channels(symbolic)) do c
+      matches = d -> agree(channel_map(c), channel_map(d), rules)
+      return count(matches, channels(numeric)) == 1
     end
   return effective && micro && jumps
 end
@@ -57,15 +62,10 @@ end
     ((Δ,), Dict(Δ => -5 // 7, χ => 3 // 10, F => 2 // 5, κ => 4 // 5, ω => 13)),
   )
     symbolic = floquet_expansion(
-      kerr(Δ, χ, F), ω, t, GKSLNormalForm(; negative), 5; channels=(jump(A, κ),)
+      lindbladian(kerr(Δ, χ, F), κ), ω, t, GKSLNormalForm(; negative), 5
     )
     numeric = floquet_expansion(
-      kerr(point[Δ], point[χ], point[F]),
-      ω,
-      t,
-      GKSLNormalForm(),
-      5;
-      channels=(jump(A, point[κ]),),
+      lindbladian(kerr(point[Δ], point[χ], point[F]), point[κ]), ω, t, GKSLNormalForm(), 5
     )
     @test agree(symbolic, numeric, point)
   end
@@ -76,15 +76,14 @@ end
     re => 1 // 3, ie => 2 // 7, Δ => 3 // 7, χ => 2 // 9, F => 5 // 11, κ => 7 // 5, ω => 13
   )
   symbolic = floquet_expansion(
-    displaced(α, Δ, χ, F), ω, t, GKSLNormalForm(), 4; channels=(jump(A, κ),)
+    lindbladian(displaced(α, Δ, χ, F), κ), ω, t, GKSLNormalForm(), 4
   )
   numeric = floquet_expansion(
-    displaced(value, 3 // 7, 2 // 9, 5 // 11),
+    lindbladian(displaced(value, 3 // 7, 2 // 9, 5 // 11), 7 // 5),
     ω,
     t,
     GKSLNormalForm(),
-    4;
-    channels=(jump(A, 7 // 5),),
+    4,
   )
   @test agree(symbolic, numeric, point)
   qubit = PauliSpace(:gksl_symbolic_qubit)
@@ -95,15 +94,19 @@ end
   qubit_model(Δ, F, Ω) = Δ * σz + F * σx + Ω * cos(ω * t) * σz
   point = Dict(Δ => 1 // 2, F => 1 // 5, Ω => 2 // 5, γ => 3 // 10, ω => 13)
   symbolic = floquet_expansion(
-    qubit_model(Δ, F, Ω), ω, t, GKSLNormalForm(), 4; channels=(jump(σminus, γ),)
-  )
-  numeric = floquet_expansion(
-    qubit_model(point[Δ], point[F], point[Ω]),
+    hamiltonian_action(qubit_model(Δ, F, Ω)) + γ * dissipator(σminus),
     ω,
     t,
     GKSLNormalForm(),
-    4;
-    channels=(jump(σminus, point[γ]),),
+    4,
+  )
+  numeric = floquet_expansion(
+    hamiltonian_action(qubit_model(point[Δ], point[F], point[Ω])) +
+    point[γ] * dissipator(σminus),
+    ω,
+    t,
+    GKSLNormalForm(),
+    4,
   )
   @test agree(symbolic, numeric, point)
 end
@@ -118,11 +121,11 @@ end
   gauge = GKSLNormalForm(; negative=(Δ,))
   @test gauge == GKSLNormalForm(; negative=(Δ,))
   @test hash(FE.ParameterScalar(3 // 7)) == hash(3 // 7)
-  loss = floquet_expansion(kerr(Δ, χ, F), ω, t, gauge, 5; channels=(jump(A, κ),))
+  loss = floquet_expansion(lindbladian(kerr(Δ, χ, F), κ), ω, t, gauge, 5)
   @test same(positivity_conditions(loss), (F, -Δ, κ, χ, ω))
   @test isempty(regularity_conditions(loss))
   dephased = floquet_expansion(
-    kerr(Δ, χ, F), ω, t, GKSLNormalForm(), 4; channels=(jump(A, κ), jump(A' * A, γ))
+    lindbladian(kerr(Δ, χ, F), κ) + γ * dissipator(A' * A), ω, t, GKSLNormalForm(), 4
   )
   @test same(regularity_conditions(dephased), (κ,))
 end
@@ -130,28 +133,27 @@ end
 @testset "symbolic GKSLNormalForm rejects what it cannot decide" begin
   H = kerr(Δ, χ, F)
   @test_throws "the sign of γ - κ is not fixed" floquet_expansion(
-    H, ω, t, GKSLNormalForm(), 5; channels=(jump(A, κ - γ),)
+    lindbladian(H, κ - γ), ω, t, GKSLNormalForm(), 5
   )
   @test_throws "does not occur in the generator" floquet_expansion(
-    H, ω, t, GKSLNormalForm(; negative=(γ,)), 3; channels=(jump(A, κ),)
+    lindbladian(H, κ), ω, t, GKSLNormalForm(; negative=(γ,)), 3
   )
   @test_throws "drive frequency is positive" floquet_expansion(
-    H, ω, t, GKSLNormalForm(; negative=(ω,)), 3; channels=(jump(A, κ),)
+    lindbladian(H, κ), ω, t, GKSLNormalForm(; negative=(ω,)), 3
   )
   @test_throws "drive frequency ω appears in a coefficient" floquet_expansion(
-    (1 // 2) * ω * A' * A + F * (A + A') * cos(ω * t),
+    lindbladian((1 // 2) * ω * A' * A + F * (A + A') * cos(ω * t), κ),
     ω,
     t,
     GKSLNormalForm(),
-    3;
-    channels=(jump(A, κ),),
+    3,
   )
   @test_throws "integer powers of a parameter" floquet_expansion(
-    H, ω, t, GKSLNormalForm(), 3; channels=(jump(A, sqrt(κ)),)
+    lindbladian(H, sqrt(κ)), ω, t, GKSLNormalForm(), 3
   )
   @variables p[1:9]::Real
   crowded = sum(p[i] * (A' * A)^i for i in 1:9) + F * (A + A') * cos(ω * t)
   @test_throws "at most 8 symbolic parameters" floquet_expansion(
-    crowded, ω, t, GKSLNormalForm(), 3; channels=(jump(A, κ),)
+    lindbladian(crowded, κ), ω, t, GKSLNormalForm(), 3
   )
 end

@@ -15,12 +15,12 @@ function effective_generator(
   return getfield(expansion, :completion).generator
 end
 
-function hamiltonian(
+function SQA.hamiltonian(
   expansion::FloquetExpansion{G,P,E,C,R}
 ) where {
   G,
-  P<:PeriodicGenerator{Liouvillian},
-  E<:Liouvillian,
+  P<:PeriodicGenerator{SQA.SuperOperator},
+  E<:SQA.SuperOperator,
   C<:Union{PositiveCompletion,NativeRealization},
   R<:FloquetProvenance,
 }
@@ -30,26 +30,43 @@ end
 """
     dissipative_frame(expansion::FloquetExpansion)
 
-Return an independent copy of the ordered dissipative frame owned by a positively completed or
-[`GKSLNormalForm`](@ref) Floquet expansion.
+Return the ordered dissipative frame of a positively completed or [`GKSLNormalForm`](@ref)
+Floquet expansion.
 """
 function dissipative_frame(
   expansion::FloquetExpansion{G,P,E,C,R}
 ) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
-  return copy(stored_dissipative_frame(expansion))
+  return stored_dissipative_frame(expansion)
+end
+
+"""
+    Lindbladian(expansion::FloquetExpansion)
+
+Return the effective generator of a positively completed or [`GKSLNormalForm`](@ref) Floquet
+expansion as a SecondQuantizedAlgebra `Lindbladian`. Its rates are nonnegative on the stratum
+of [`positivity_conditions`](@ref), and its `SuperOperator` lowering is
+[`effective_generator`](@ref).
+
+See also [`channels`](@ref), [`hamiltonian`](@ref).
+"""
+function SQA.Lindbladian(
+  expansion::FloquetExpansion{G,P,E,C,R}
+) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
+  return stored_completion(expansion).lindbladian
 end
 
 """
     channels(expansion::FloquetExpansion)
 
-Return the physical channels of a positively completed or [`GKSLNormalForm`](@ref) Floquet
-expansion. Together with [`hamiltonian`](@ref), these channels reconstruct
-[`effective_generator`](@ref) exactly.
+Return the channels of [`Lindbladian`](@ref)`(expansion)` for a positively completed or
+[`GKSLNormalForm`](@ref) Floquet expansion, as a vector of `channel => rate` pairs in the
+deterministic order of `SecondQuantizedAlgebra.channel_order_key`. Read the jump operator of a
+channel with `SecondQuantizedAlgebra.jump`.
 """
-function channels(
+function SQA.channels(
   expansion::FloquetExpansion{G,P,E,C,R}
 ) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
-  return copy(stored_completion(expansion).channels)
+  return SQA.channels(stored_completion(expansion).lindbladian)
 end
 
 """
@@ -103,12 +120,12 @@ end
 Return the finite completed Kossakowski matrix in [`dissipative_frame`](@ref). This no-frame
 form is defined for positively completed and [`GKSLNormalForm`](@ref) Liouvillian expansions.
 """
-function kossakowski(
+function SQA.kossakowski(
   expansion::FloquetExpansion{G,P,E,C,R}
 ) where {
   G,
-  P<:PeriodicGenerator{Liouvillian},
-  E<:Liouvillian,
+  P<:PeriodicGenerator{SQA.SuperOperator},
+  E<:SQA.SuperOperator,
   C<:Union{PositiveCompletion,NativeRealization},
   R,
 }
@@ -126,8 +143,8 @@ function kossakowski_component(
   expansion::FloquetExpansion{G,P,E,C,R}, n::Int
 ) where {
   G,
-  P<:PeriodicGenerator{Liouvillian},
-  E<:Liouvillian,
+  P<:PeriodicGenerator{SQA.SuperOperator},
+  E<:SQA.SuperOperator,
   C<:Union{PositiveCompletion,NativeRealization},
   R,
 }

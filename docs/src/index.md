@@ -72,7 +72,8 @@ space = PauliSpace(:qubit)
 @variables ω::Real t::Real Δ::Real A::Real γ::Real
 H = (Δ / 2) * σz + A * cos(ω * t) * σx
 
-expansion = floquet_expansion(H, ω, t, VanVleck(), 2; channels=(jump(σx, γ),))
+L = hamiltonian_action(H) + γ * dissipator(σx)
+expansion = floquet_expansion(L, ω, t, VanVleck(), 2)
 L_eff = effective_generator(expansion)
 K = micromotion(expansion)(t)
 ```
@@ -83,8 +84,8 @@ See the [Manual](manual/system.md) for the conceptual interface and API document
 
 ### High-frequency expansion
 
-[`floquet_expansion`](@ref) accepts a periodic generator or a symbolic time-dependent Hamiltonian
-or Liouvillian. Its result exposes [`effective_generator`](@ref) and [`micromotion`](@ref) without
+[`floquet_expansion`](@ref) accepts a periodic generator, a symbolic time-dependent Hamiltonian,
+or a SecondQuantizedAlgebra `Lindbladian` or `SuperOperator`. Its result exposes [`effective_generator`](@ref) and [`micromotion`](@ref) without
 materializing a Floquet-Sambe matrix.
 
 ### CP-preserving open-system completion

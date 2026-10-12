@@ -101,6 +101,10 @@ Positive completion is nonunique beyond the retained order. Different frame orde
 
 This construction does not imply convergence of the high-frequency expansion, uniqueness of the completion, or existence of an exact Floquet GKSL logarithm.
 
+## Amendment: Lindbladian input
+
+ADR 0014 moves microscopic provenance to the channels of an SQA `Lindbladian` passed to `floquet_expansion`, and orders the frame seeds by SQA's `channel_order_key` instead of user order. A completed expansion returns its model as `Lindbladian(cp)`, and `channels(cp)` lists its `channel => rate` pairs.
+
 ## Gate
 
 `make test` runs the testsets that hold this decision:
@@ -108,7 +112,8 @@ This construction does not imply convergence of the high-frequency expansion, un
 - `test/completion/state.jl`: "raw Floquet expansions carry uncompleted state"
 - `test/completion/state.jl`: "positive-completion algorithms establish the public dispatch boundary"
 - `test/completion/storage.jl`: "completed representation owns frame and cached retained data"
-- `test/gksl/coordinates.jl`: "DissipativeFrame is ordered and independent modulo identity"
-- `test/completion/gram.jl`: "automatic frame preserves microscopic channel order"
+- `test/completion/gram.jl`: "automatic frame follows the canonical channel order"
 - `test/completion/validation.jl`: "public completion API is inferred for fixed frames"
 - `test/completion/validation.jl`: "driven qubit validates Cartesian Gram and adapted spectral frames"
+
+Frame ordering and independence modulo the identity are held in SecondQuantizedAlgebra by `test/algebra/gksl_coordinates_test.jl`: "frames are canonical modulo the identity" (ADR 0014).

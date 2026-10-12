@@ -1,44 +1,10 @@
-Base.copy(frame::DissipativeFrame) = deepcopy(frame)
-
-function coordinate_columns_independent(coordinates::KossakowskiMatrix)
-  _, direction_count = size(coordinates)
-  return length(coordinate_pivot_rows(coordinates)) == direction_count
-end
-
-function append_frame_candidate!(operators::Vector{SQA.QAdd}, operator::OperatorExpression)
-  iszero(dissipator(operator)) && return operators
-  projected = projected_operator(operator)
-  push!(operators, projected)
-  coordinate_columns_independent(frame_direction_coordinates(operators)) || pop!(operators)
-  return operators
-end
-
-function append_provenance_directions!(operators::Vector{SQA.QAdd}, ::NoProvenance)
-  return operators
-end
-
-function append_provenance_directions!(
-  operators::Vector{SQA.QAdd}, provenance::MicroscopicProvenance
-)
-  for operator in provenance.frame_seeds
-    append_frame_candidate!(operators, operator)
-  end
-  return operators
-end
-
-function append_generated_directions!(operators::Vector{SQA.QAdd}, L::Liouvillian)
-  for operator in dissipative_support_directions(L)
-    append_frame_candidate!(operators, operator)
-  end
-  return operators
-end
+frame_seeds(::NoProvenance) = SQA.QAdd[]
+frame_seeds(provenance::MicroscopicProvenance) = provenance.frame_seeds
 
 function automatic_dissipative_frame(expansion::FloquetExpansion)
-  operators = SQA.QAdd[]
-  provenance = getfield(expansion, :provenance)
-  append_provenance_directions!(operators, provenance)
+  candidates = copy(frame_seeds(getfield(expansion, :provenance)))
   for component in getfield(expansion, :effective_components)
-    append_generated_directions!(operators, component)
+    append!(candidates, SQA.directions(SQA.support_frame(component)))
   end
-  return assemble_dissipative_frame(Tuple(operators))
+  return SQA.independent_frame(candidates)
 end

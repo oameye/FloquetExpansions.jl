@@ -24,7 +24,7 @@ H = (1 // 2) * σz + E * cos(ω * t) * σx
 # The Lindblad generator combines the coherent action of ``H`` with the dissipator of
 # ``\sigma_-`` at rate ``\gamma``.
 
-L = liouvillian(H; channels=(jump(σminus, γ),))
+L = hamiltonian_action(H) + γ * dissipator(σminus)
 
 # We will apply a the floquet expansion to the Lindblad generator using the Van Vleck gauge up to third order:
 
@@ -72,7 +72,7 @@ d_sprectral = kossakowski(spectral)
 # Note that the correction are all of higher order than the retained Floquet expansion. Hence the completed generator is a valid finite-order Floquet expansion of the original Lindblad generator.
 
 # The completed channels make the continuation into a finite GKSL generator. Spectral completion
-# naturally presents them as rate-weighted jump channels.
+# naturally presents them as rate-weighted jump channels, each listed as `channel => rate`.
 
 channels(spectral)
 

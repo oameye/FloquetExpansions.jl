@@ -94,8 +94,9 @@ spectrum through the retained order, but its retained coefficients differ from t
 `algorithm` selects the [`ExpansionAlgorithm`](@ref) that computes these coefficients without
 changing them: [`HoriDeprit`](@ref), the default, or [`BlochFeshbach`](@ref).
 
-For a Liouvillian the result is read with [`effective_generator`](@ref), [`hamiltonian`](@ref),
-[`channels`](@ref) and [`kossakowski`](@ref), as after [`positive_completion`](@ref). For a
+For a Liouvillian the result is read with [`effective_generator`](@ref), [`Lindbladian`](@ref),
+[`hamiltonian`](@ref), [`channels`](@ref) and [`kossakowski`](@ref), as after
+[`positive_completion`](@ref). For a
 Hamiltonian it holds the van Vleck coefficients and no completed model, so `channels` and
 `kossakowski` are not defined on it. The construction is described in
 [GKSL normal form](@ref gksl-normal-form-theory).
@@ -146,13 +147,15 @@ julia> @variables ω::Real t::Real;
 
 julia> H = (1 // 2) * a' * a + (3 // 10) * a' * a * a' * a + (2 // 5) * (a + a') * cos(ω * t);
 
-julia> x = floquet_expansion(H, ω, t, GKSLNormalForm(), 5; channels=(jump(a, 4 // 5),));
+julia> L = hamiltonian_action(H) + (4 // 5) * dissipator(a);
+
+julia> x = floquet_expansion(L, ω, t, GKSLNormalForm(), 5);
 
 julia> length(channels(x))
 2
 
 julia> channels(x)[2]
-((72//3125) / (ω^4))𝒟[a * a - 2 * a' * a]
+𝒟[a * a - 2 * a' * a] => (72//3125) / (ω^4)
 ```
 
 The same model with symbolic parameters gives the rate of that channel exactly:
@@ -164,10 +167,10 @@ julia> @variables ω::Real t::Real Δ::Real χ::Real F::Real κ::Real;
 
 julia> H = Δ * a' * a + χ * a' * a * a' * a + F * (a + a') * cos(ω * t);
 
-julia> x = floquet_expansion(H, ω, t, GKSLNormalForm(), 5; channels=(jump(a, κ),));
+julia> x = floquet_expansion(hamiltonian_action(H) + κ * dissipator(a), ω, t, GKSLNormalForm(), 5);
 
 julia> channels(x)[2]
-((2(F^2)*κ*(χ^2)) / (ω^4))𝒟[a * a - 2 * a' * a]
+𝒟[a * a - 2 * a' * a] => (2(F^2)*κ*(χ^2)) / (ω^4)
 ```
 """
 struct GKSLNormalForm{A<:ExpansionAlgorithm,N<:Tuple{Vararg{Symbolics.Num}}} <: Gauge

@@ -29,13 +29,17 @@ Spectral
 
 A completed result remains a [`FloquetExpansion`](@ref) struct. The [`effective_component`](@ref),
 [`hamiltonian_component`](@ref), and [`micromotion`](@ref) expose retained Floquet data. Whereas, [`effective_generator`](@ref),
-[`hamiltonian`](@ref), [`kossakowski`](@ref), and [`channels`](@ref) expose the finite completed model. 
+[`hamiltonian`](@ref), [`kossakowski`](@ref), [`channels`](@ref), and
+`Lindbladian(expansion)` expose the finite completed model. The latter is a SecondQuantizedAlgebra
+`Lindbladian` whose `SuperOperator` lowering is [`effective_generator`](@ref).
+
 ```@docs
+SecondQuantizedAlgebra.Lindbladian(::FloquetExpansion)
 channels
 dissipative_frame
 ```
 
-For a raw expansion, Kossakowski coordinates require an explicit [`DissipativeFrame`](@ref). A
+For a raw expansion, Kossakowski coordinates require an explicit `DissipativeFrame`. A
 completed expansion stores the finalized frame, so the no-frame forms of [`kossakowski`](@ref) and
 [`kossakowski_component`](@ref) are available directly.
 

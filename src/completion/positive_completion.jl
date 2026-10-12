@@ -29,15 +29,15 @@ function finalize_positive_completion(
   drive_frequency = getfield(expansion, :generator).wd
   retained_kossakowski = physical_kossakowski_series(retained.kossakowski, drive_frequency)
   coherent = retained.coherent
-  generator = liouvillian(coherent; channels=completed_channels)
+  lindbladian = gksl_lindbladian(coherent, completed_channels)
+  generator = canonical_superoperator(SQA.SuperOperator(lindbladian))
 
-  owned_frame = copy(frame)
   completion = PositiveCompletion(
     algorithm,
-    owned_frame,
+    frame,
     retained_kossakowski,
     completed_matrix,
-    completed_channels,
+    lindbladian,
     condition_coefficients(conditions.positivity),
     condition_coefficients(conditions.regularity),
     factorization,
@@ -92,7 +92,7 @@ micromotion. [`effective_generator`](@ref) returns the completed finite generato
 high-frequency data.
 
 The two-argument form derives a dissipative frame from the available Floquet data and, when
-present, microscopic channel information. Pass a [`DissipativeFrame`](@ref) explicitly to fix the
+present, microscopic channel information. Pass a `DissipativeFrame` explicitly to fix the
 operator representation, for example when comparing completion methods in the same physical basis.
 Algorithm-specific frame requirements still apply; see [`Gram`](@ref) and [`Spectral`](@ref).
 An expansion without dissipative terms completes in an empty derived frame with no channels; the
@@ -117,7 +117,7 @@ julia> @variables ω::Real t::Real E::Real γ::Real;
 
 julia> H = (1 // 2) * σz + E * cos(ω * t) * σx;
 
-julia> raw = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(jump(σminus, γ),));
+julia> raw = floquet_expansion(hamiltonian_action(H) + γ * dissipator(σminus), ω, t, VanVleck(), 3);
 
 julia> cartesian = DissipativeFrame(σx, σy, σz);
 
@@ -133,7 +133,7 @@ julia> kossakowski(cp)
 """
 function positive_completion(
   expansion::FloquetExpansion{G,P,E,Uncompleted,R}, algorithm::CompletionAlgorithm
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian,R}
+) where {G,P<:PeriodicGenerator{SQA.SuperOperator},E<:SQA.SuperOperator,R}
   return positive_completion_impl(expansion, algorithm)
 end
 
@@ -141,7 +141,7 @@ function positive_completion(
   expansion::FloquetExpansion{G,P,E,Uncompleted,R},
   algorithm::CompletionAlgorithm,
   frame::DissipativeFrame,
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian,R}
+) where {G,P<:PeriodicGenerator{SQA.SuperOperator},E<:SQA.SuperOperator,R}
   return positive_completion_impl(expansion, algorithm, frame)
 end
 

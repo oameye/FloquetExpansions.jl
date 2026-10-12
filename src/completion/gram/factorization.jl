@@ -154,18 +154,19 @@ function finite_factor(amplitudes::Vector{KossakowskiMatrix})
 end
 
 function completed_collapse_channels(frame::DissipativeFrame, factor::KossakowskiMatrix)
-  size(factor, 1) == length(frame.operators) ||
+  size(factor, 1) == length(frame) ||
     throw(DimensionMismatch("Gram factor does not match the dissipative frame"))
-  result = CollapseChannel{SQA.QAdd}[]
+  result = Pair{SQA.QAdd,SQA.CNum}[]
+  directions = SQA.directions(frame)
   for column in axes(factor, 2)
     operator = zero(SQA.QAdd)
     for row in axes(factor, 1)
       coefficient = factor[row, column]
       iszero(coefficient) && continue
-      operator = operator + coefficient * frame.operators[row]
+      operator = operator + coefficient * directions[row]
     end
     operator = SQA.simplify(operator)
-    qadd_iszero(operator) || push!(result, collapse(operator))
+    iszero(operator) || push!(result, operator => coefficient_one())
   end
   return result
 end

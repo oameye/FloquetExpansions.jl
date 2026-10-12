@@ -15,7 +15,7 @@ const SQA = SecondQuantizedAlgebra
   frame = DissipativeFrame(σx, σy, σz)
 
   H = Ω * cos(ω * t) * σx
-  expansion = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(collapse(σz),))
+  expansion = floquet_expansion(hamiltonian_action(H) + dissipator(σz), ω, t, VanVleck(), 3)
   completion = positive_completion(expansion, Gram(), frame)
   gram = factorization(completion)
 
@@ -26,7 +26,7 @@ const SQA = SecondQuantizedAlgebra
   @test size(gram.amplitudes[1], 2) == 2
   @test all(iszero, gram.amplitudes[1][:, 2])
   @test any(!iszero(value) for value in gram.amplitudes[2][:, 2])
-  @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
 end
 

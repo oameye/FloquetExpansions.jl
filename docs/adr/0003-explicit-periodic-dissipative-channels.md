@@ -1,5 +1,7 @@
 # Explicit dissipative channel forms
 
+Superseded by ADR 0014: the channels of an SQA `Lindbladian` replace `collapse` and `jump`, and its rates are validated as described here.
+
 `liouvillian(H; channels=())` accepts `collapse(L)` for a complete collapse operator and `jump(J, γ)` for a separate scalar rate, contributing `D[L]` and `γD[J]`. These forms are additive and are not inferred to represent the same channel.
 
 `jump(J, γ)` is a physical rate-weighted channel: `γ` must be real and is asserted nonnegative. Provably negative numeric rates and non-real rates are rejected. A symbolic rate expression is asserted nonnegative as a whole; the package does not infer separate sign assumptions for its constituent symbols. `collapse(L)` remains the representation for a complete collapse operator with amplitudes and phases already folded into `L`.
@@ -10,10 +12,4 @@ The high-level `floquet_expansion(H, ωd, t, gauge, order; channels=...)` path m
 
 ## Gate
 
-`make test` runs the testsets that hold this decision:
-
-- `test/generators/liouvillian.jl`: "Liouvillian channel constructors"
-- `test/generators/liouvillian.jl`: "jump rates are real and nonnegative by physical assumption"
-- `test/generators/liouvillian.jl`: "collapse amplitudes and jump rates remain distinct representations"
-- `test/generators/liouvillian.jl`: "periodic channel forms lower through the public Liouvillian seam"
-- `test/generators/liouvillian.jl`: "operator and rate harmonics convolve in periodic channels"
+The gate moved to ADR 0014.

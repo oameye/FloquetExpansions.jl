@@ -27,10 +27,10 @@ end
 
 function effective_superoperator(expansion, d::Int, value::Real)
   S = hamiltonian_superoperator(tomatrix(hamiltonian(expansion), d, Dict(ω => value)))
-  for c in channels(expansion)
+  for (channel, rate) in channels(expansion)
     S +=
-      dense_rate(c.rate, value) *
-      dissipator_superoperator(tomatrix(c.operator, d, Dict(ω => value)))
+      dense_rate(rate, value) *
+      dissipator_superoperator(tomatrix(SQA.jump(channel), d, Dict(ω => value)))
   end
   return S
 end
@@ -82,14 +82,18 @@ h = NLevelSpace(:gksl_oracle, 3)
 H0 = (1 // 2) * σ(2, 2) + (6 // 5) * σ(3, 3)
 X = σ(1, 2) + σ(2, 1) + (3 // 4) * (σ(2, 3) + σ(3, 2))
 H = H0 + (2 // 5) * X * cos(ω * t)
-decay = (jump(σ(1, 2), 3 // 10), jump(σ(2, 3), 1 // 5), jump(σ(2, 2), 1 // 10))
+decay = ((σ(1, 2), 3 // 10), (σ(2, 3), 1 // 5), (σ(2, 2), 1 // 10))
+
+function lindbladian(H, channels)
+  return foldl(channels; init=hamiltonian_action(H)) do L, (J, rate)
+    return L + rate * dissipator(J)
+  end
+end
 
 function lab_static(d)
   S = hamiltonian_superoperator(tomatrix(H0, d, Dict(ω => 1.0)))
-  for c in decay
-    S +=
-      dense_rate(c.rate, 1.0) *
-      dissipator_superoperator(tomatrix(c.operator, d, Dict(ω => 1.0)))
+  for (J, rate) in decay
+    S += Float64(rate) * dissipator_superoperator(tomatrix(J, d, Dict(ω => 1.0)))
   end
   return S
 end
@@ -101,7 +105,7 @@ const FREQUENCIES = [20.0, 40.0, 80.0]
   static, drive = lab_static(3), lab_drive(3)
   exact = [floquet_exponents(static, drive, value) for value in FREQUENCIES]
   for order in (2, 3, 4)
-    expansion = floquet_expansion(H, ω, t, GKSLNormalForm(), order; channels=decay)
+    expansion = floquet_expansion(lindbladian(H, decay), ω, t, GKSLNormalForm(), order)
     errors = [
       spectral_distance(exact[k], eigvals(effective_superoperator(expansion, 3, value))) for
       (k, value) in enumerate(FREQUENCIES)
@@ -116,11 +120,8 @@ end
   a = Destroy(mode, :a)
   K0 = (1 // 2) * a' * a + (3 // 10) * a' * a * a' * a
   V = (2 // 5) * (a + a')
-  loss = (jump(a, 4 // 5),)
-  expansions = [
-    floquet_expansion(K0 + V * cos(ω * t), ω, t, GKSLNormalForm(), order; channels=loss) for
-    order in (4, 5)
-  ]
+  L = hamiltonian_action(K0 + V * cos(ω * t)) + (4 // 5) * dissipator(a)
+  expansions = [floquet_expansion(L, ω, t, GKSLNormalForm(), order) for order in (4, 5)]
   for d in (6, 8)
     static =
       hamiltonian_superoperator(tomatrix(K0, d)) +
@@ -147,12 +148,11 @@ end
   τ(i, j) = Transition(qubit, :τ, i, j)
   Hq = (1 // 2) * τ(2, 2) + (2 // 5) * (τ(1, 2) + τ(2, 1)) * cos(ω * t)
   models = (
-    (H, decay, (3, 4)), (Hq, (jump(τ(1, 2), 3 // 10), jump(τ(2, 2), 1 // 10)), (3, 4, 5, 6))
+    (lindbladian(H, decay), (3, 4)),
+    (lindbladian(Hq, ((τ(1, 2), 3 // 10), (τ(2, 2), 1 // 10))), (3, 4, 5, 6)),
   )
-  for (generator, model_channels, orders) in models, order in orders
-    expansion = floquet_expansion(
-      generator, ω, t, GKSLNormalForm(), order; channels=model_channels
-    )
+  for (generator, orders) in models, order in orders
+    expansion = floquet_expansion(generator, ω, t, GKSLNormalForm(), order)
     for value in (10.0, 20.0, 40.0, 80.0)
       C = numeric_kossakowski(expansion, value)
       @test norm(C - C') <= 1.0e-12 * max(1, norm(C))

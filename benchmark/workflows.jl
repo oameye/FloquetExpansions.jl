@@ -2,6 +2,8 @@ using BenchmarkTools: @benchmarkable
 using FloquetExpansions
 using Symbolics: @variables
 
+const SQA = SecondQuantizedAlgebra
+
 function kerr_parametric_oscillator()
   space = FockSpace(:cavity)
   a = Destroy(space, :a)
@@ -37,8 +39,8 @@ function driven_dissipative_qubit()
   @variables ω::Real t::Real Δ::Real A::Real γ::Real
 
   H = (Δ / 2) * σz + A * cos(ω * t) * σx
-  channels = (jump((σx - im * σy) / 2, γ),)
-  return H, channels, ω, t
+  L = hamiltonian_action(H) + γ * dissipator((σx - im * σy) / 2)
+  return L, ω, t
 end
 
 function gram_completion_workload()
@@ -46,7 +48,7 @@ function gram_completion_workload()
   a = Destroy(space, :a)
   @variables ω::Real t::Real
   frame = DissipativeFrame(a, a^2)
-  generator = liouvillian(0 * a; channels=(collapse(a + a^2), collapse(a + im * a^2)))
+  generator = SQA.SuperOperator(dissipator(a + a^2) + dissipator(a + im * a^2))
   expansion = floquet_expansion(generator, ω, t, VanVleck(), 1)
   return expansion, frame
 end
@@ -59,7 +61,7 @@ function recursive_gram_workload()
   @variables ω::Real t::Real Ω::Real
   frame = DissipativeFrame(σx, σy, σz)
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    hamiltonian_action(Ω * cos(ω * t) * σx) + dissipator(σz), ω, t, VanVleck(), 3
   )
   return expansion, frame
 end
@@ -72,7 +74,7 @@ function spectral_completion_workload()
   @variables ω::Real t::Real Ω::Real
   frame = DissipativeFrame(σz, σy)
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    hamiltonian_action(Ω * cos(ω * t) * σx) + dissipator(σz), ω, t, VanVleck(), 3
   )
   return expansion, frame
 end
@@ -110,7 +112,7 @@ end
 function benchmark_expansion_algorithms!(suite)
   kpo, kpo_ω, kpo_t = kerr_parametric_oscillator()
   qubit, qubit_ω, qubit_t = driven_qubit()
-  open_qubit, channels, open_ω, open_t = driven_dissipative_qubit()
+  open_qubit, open_ω, open_t = driven_dissipative_qubit()
   algorithms = (("Hori-Deprit", HoriDeprit()), ("Bloch-Feshbach", BlochFeshbach()))
 
   for (name, algorithm) in algorithms, order in (3, 5)
@@ -122,7 +124,7 @@ function benchmark_expansion_algorithms!(suite)
       $qubit, $qubit_ω, $qubit_t, $gauge, $order
     )
     suite["Expansion Algorithm"]["Driven dissipative qubit"]["$name order $order"] = @benchmarkable floquet_expansion(
-      $open_qubit, $open_ω, $open_t, $gauge, $order; channels=($channels)
+      $open_qubit, $open_ω, $open_t, $gauge, $order
     )
   end
   return nothing

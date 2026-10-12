@@ -22,7 +22,7 @@ a = Destroy(fock, :a)
 
 @testset "spectral completion preserves a diagonal rate branch" begin
   frame = DissipativeFrame(a)
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(jump(a, γ),))
+  expansion = floquet_expansion(γ * dissipator(a), ω, t, VanVleck(), 1)
   completion = @inferred positive_completion(expansion, Spectral(), frame)
   spectral = factorization(completion)
 
@@ -33,13 +33,13 @@ a = Destroy(fock, :a)
   @test spectral_matrix_equal(kossakowski(completion), kossakowski(expansion, frame))
   @test effective_component(completion, 0) == effective_component(expansion, 0)
   @test micromotion(completion) == micromotion(expansion)
-  @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
 end
 
 @testset "spectral factorization accessor returns independent containers" begin
   frame = DissipativeFrame(a)
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(collapse(a),))
+  expansion = floquet_expansion(dissipator(a), ω, t, VanVleck(), 1)
   completion = positive_completion(expansion, Spectral(), frame)
 
   spectral = factorization(completion)
@@ -58,7 +58,7 @@ end
   σz = Pauli(pauli, :sigma, 3)
   frame = DissipativeFrame(σz, σy)
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    hamiltonian_action(Ω * cos(ω * t) * σx) + dissipator(σz), ω, t, VanVleck(), 3
   )
   completion = @inferred positive_completion(expansion, Spectral(), frame)
   spectral = factorization(completion)
@@ -74,7 +74,7 @@ end
     )
   end
   @test micromotion(completion) == micromotion(expansion)
-  @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
 end
 
@@ -90,9 +90,9 @@ end
   quadrature = im * (1 // 2) * diagonal_difference
   generator = PeriodicGenerator(
     Dict(
-      0 => leading,
-      1 => coherent_rotation + quadrature,
-      -1 => coherent_rotation - quadrature,
+      0 => SQA.SuperOperator(leading),
+      1 => SQA.SuperOperator(coherent_rotation + quadrature),
+      -1 => SQA.SuperOperator(coherent_rotation - quadrature),
     ),
     ω,
   )
@@ -128,9 +128,9 @@ end
   quadrature = im * (1 // 2) * diagonal_difference
   generator = PeriodicGenerator(
     Dict(
-      0 => leading,
-      1 => coherent_rotation + quadrature,
-      -1 => coherent_rotation - quadrature,
+      0 => SQA.SuperOperator(leading),
+      1 => SQA.SuperOperator(coherent_rotation + quadrature),
+      -1 => SQA.SuperOperator(coherent_rotation - quadrature),
     ),
     ω,
   )
@@ -154,9 +154,9 @@ end
   quadrature = im * (1 // 2) * cross_dissipator
   generator = PeriodicGenerator(
     Dict(
-      0 => dissipator(σz),
-      1 => coherent_rotation + quadrature,
-      -1 => coherent_rotation - quadrature,
+      0 => SQA.SuperOperator(dissipator(σz)),
+      1 => SQA.SuperOperator(coherent_rotation + quadrature),
+      -1 => SQA.SuperOperator(coherent_rotation - quadrature),
     ),
     ω,
   )
@@ -170,7 +170,7 @@ end
   @test spectral.puiseux[odd_branch]
   @test spectral_has_condition(positivity_conditions(completion), ω)
   @test spectral_has_condition(regularity_conditions(completion), ω)
-  @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
   for n in 0:1
     @test spectral_matrix_equal(
@@ -186,7 +186,7 @@ end
   σz = Pauli(pauli, :sigma, 3)
   frame = DissipativeFrame(σz, σy)
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    hamiltonian_action(Ω * cos(ω * t) * σx) + dissipator(σz), ω, t, VanVleck(), 3
   )
   gram = positive_completion(expansion, Gram(), frame)
   spectral = positive_completion(expansion, Spectral(), frame)
@@ -198,15 +198,16 @@ end
   end
   @test effective_component(gram, 2) == effective_component(spectral, 2)
   @test micromotion(gram) == micromotion(spectral)
-  @test liouvillian(hamiltonian(gram); channels=channels(gram)) == effective_generator(gram)
-  @test liouvillian(hamiltonian(spectral); channels=channels(spectral)) ==
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(gram))) ==
+    effective_generator(gram)
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(spectral))) ==
     effective_generator(spectral)
 end
 
 @testset "non-diagonal leading spectral frame is rejected" begin
   frame = DissipativeFrame(a, a^2)
   expansion = floquet_expansion(
-    0 * a, ω, t, VanVleck(), 1; channels=(collapse(a + a^2), collapse(a + im * a^2))
+    dissipator(a + a^2) + dissipator(a + im * a^2), ω, t, VanVleck(), 1
   )
   @test_throws ArgumentError positive_completion(expansion, Spectral(), frame)
 end
@@ -243,29 +244,39 @@ end
   @variables E::Real
 
   symbolic = floquet_expansion(
-    (1 // 2) * σz + E * cos(ω * t) * σx, ω, t, VanVleck(), 5; channels=(jump(σm, γ),)
+    hamiltonian_action((1 // 2) * σz + E * cos(ω * t) * σx) + γ * dissipator(σm),
+    ω,
+    t,
+    VanVleck(),
+    5,
   )
   completion = positive_completion(symbolic, Spectral(), frame)
   @test factorization(completion).onsets == [0, 4, 2]
   spectral_numeric_checks(completion, symbolic, frame, 4, Dict(E => 0.6, γ => 0.3))
 
   full_rank = floquet_expansion(
-    (1 // 2) * σz + (1 // 2) * cos(ω * t) * σx,
+    hamiltonian_action((1 // 2) * σz + (1 // 2) * cos(ω * t) * σx) +
+    (1 // 5) * dissipator(σm) +
+    (1 // 10) * dissipator(σp) +
+    (1 // 20) * dissipator(σz),
     ω,
     t,
     VanVleck(),
-    3;
-    channels=(jump(σm, 1 // 5), jump(σp, 1 // 10), jump(σz, 1 // 20)),
+    3,
   )
   completion = positive_completion(full_rank, Spectral(), frame)
   @test factorization(completion).onsets == [0, 0, 0]
   spectral_numeric_checks(completion, full_rank, frame, 2, Dict{Symbolics.Num,Float64}())
 
   floating = floquet_expansion(
-    (1 // 2) * σz + 0.5 * cos(ω * t) * σx, ω, t, VanVleck(), 5; channels=(jump(σm, 0.2),)
+    hamiltonian_action((1 // 2) * σz + 0.5 * cos(ω * t) * σx) + 0.2 * dissipator(σm),
+    ω,
+    t,
+    VanVleck(),
+    5,
   )
   completion = positive_completion(floating, Spectral(), frame)
   spectral_numeric_checks(completion, floating, frame, 4, Dict{Symbolics.Num,Float64}())
-  @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
 end

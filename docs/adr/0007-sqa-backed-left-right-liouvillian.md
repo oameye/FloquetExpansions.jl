@@ -1,5 +1,7 @@
 # SQA-backed left/right Liouvillian representation
 
+Superseded by ADR 0014: SQA's `SuperOperator` now holds this representation, and FloquetExpansions keeps map equality by expanding completeness on every map it produces.
+
 Liouvillians use a sparse collected sum of elementary maps `ρ ↦ AρB`, with SQA owning operator multiplication, adjoints, normal ordering, and coefficient algebra. This uniform representation keeps composition and commutators closed even when terms no longer have a Hamiltonian-plus-dissipator presentation; equal actions are collected eagerly, while whole-expression simplification remains explicit.
 
 Term insertion is owned by the Liouvillian module, and Fourier lowering for Liouvillians (`harmonics(::Liouvillian)`) is owned there as well: it consumes module-owned term and harmonic iterators and the `PeriodicGenerator` Fourier seam. The periodic-generator module owns the shared phase → harmonic normalization (`harmonic_index` and its internal phase visitor), while Liouvillian lowering retains its local left/right convolution and sparse term insertion. This keeps sparse storage out of the shared Fourier seam while preserving the eager `Dict` implementation and its measured allocation profile.
@@ -21,9 +23,5 @@ Splitting factors into monomials moves every factor coefficient into the term co
 
 `make test` runs the testsets that hold this decision:
 
-- `test/generators/liouvillian.jl`: "Liouvillian terms expose semantic triples"
-- `test/generators/liouvillian.jl`: "Liouvillian arithmetic collects equal terms"
-- `test/generators/liouvillian.jl`: "Liouvillian composition is map composition"
-- `test/generators/liouvillian.jl`: "zero operator factors produce zero maps"
-- `test/generators/liouvillian.jl`: "Liouvillian equality is map equality"
-- `test/generators/liouvillian.jl`: "exact drive amplitudes stay exact through harmonics"
+- `test/generators/superoperator.jl`: "superoperator harmonics apply finite-level completeness"
+- `test/generators/superoperator.jl`: "exact drive amplitudes stay exact through harmonics"

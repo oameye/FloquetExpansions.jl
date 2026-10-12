@@ -330,7 +330,7 @@ function SQA.commutator(L::PeriodicGenerator{T}, R::PeriodicGenerator{T}) where 
   out = Dict{Int,T}()
   for (left_harmonic, left) in L.components, (right_harmonic, right) in R.components
     harmonic = left_harmonic + right_harmonic
-    term = SQA.commutator(left, right)
+    term = component_commutator(left, right)
     out[harmonic] = haskey(out, harmonic) ? out[harmonic] + term : term
   end
   return periodic_generator(out, L.wd, L.zero_component)

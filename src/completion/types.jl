@@ -16,7 +16,7 @@ the positive continuation. Active dissipative directions are eliminated algebrai
 construction recurses on the residual dark sector, so no Kossakowski eigendecomposition is
 required.
 
-`Gram()` can be used with any independent [`DissipativeFrame`](@ref). Supplying the frame
+`Gram()` can be used with any independent `DissipativeFrame`. Supplying the frame
 explicitly fixes the dissipative coordinates; otherwise [`positive_completion`](@ref) derives a
 frame from the available Floquet data.
 
@@ -124,7 +124,7 @@ struct PositiveCompletion{
   frame::F
   retained_kossakowski::RK
   kossakowski::K
-  channels::C
+  lindbladian::C
   positivity_conditions::P
   regularity_conditions::R
   factorization::X

@@ -332,20 +332,21 @@ function spectral_completed_channels(
   vectors::Vector{Vector{SQA.CNum}},
   norms::Vector{CompletionScalar},
 )
-  result = RateWeightedJump{SQA.QAdd}[]
+  result = Pair{SQA.QAdd,SQA.CNum}[]
+  directions = SQA.directions(frame)
   for branch in eachindex(rates)
     rate = rates[branch]
     iszero(rate) && continue
     operator = zero(SQA.QAdd)
-    for index in eachindex(frame.operators)
+    for (index, direction) in enumerate(directions)
       coefficient = vectors[branch][index]
       iszero(coefficient) && continue
-      operator = operator + coefficient * frame.operators[index]
+      operator = operator + coefficient * direction
     end
     operator = SQA.simplify(operator)
     iszero(operator) && continue
     channel_rate = real(simplify_scalar(completion_scalar(rate) / norms[branch]))
-    push!(result, jump(operator, channel_rate))
+    push!(result, operator => convert(SQA.CNum, channel_rate))
   end
   return result
 end
@@ -378,7 +379,7 @@ function spectral_positive_completion(
   end
 
   completed_matrix = spectral_completed_matrix(
-    completed_rates, completed_vectors, completed_norms, length(frame.operators)
+    completed_rates, completed_vectors, completed_norms, length(frame)
   )
   stored_vectors = [
     [coefficient_from_completion(value) for value in vector] for vector in completed_vectors
