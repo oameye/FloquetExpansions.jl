@@ -103,6 +103,10 @@ _Avoid_: assuming dissipative quasienergies are real or that every Liouvillian i
 The evolution map of a periodically driven system over one drive period, from ``t = 0`` to ``t = T = 2π/ω``. For a Lindblad system it is completely positive and trace preserving whether or not it has a time-independent GKSL logarithm. Built by `period_map` as a `PeriodMap`, which holds the Hamiltonian and jump channels and is not expanded.
 _Avoid_: calling it an effective generator, or assuming it has a GKSL logarithm.
 
+**GKSL logarithm**:
+A time-independent GKSL generator ``\mathcal L`` with ``Φ_T = e^{T\mathcal L}``. A period map that has one is GKSL embeddable, and only on such a branch does an effective generator describe the stroboscopic dynamics. It is the stroboscopic generator at ``t = 0`` and equals the effective generator of a gauge only after that gauge's micromotion at ``t = 0`` is undone.
+_Avoid_: assuming every period map has one, or identifying it with a van Vleck or GKSL normal-form effective generator.
+
 **Period-map expansion**:
 The Floquet expansion of a period map in powers of ``1/ω``, returned by `floquet_expansion` on a `PeriodMap` as a `PeriodMapExpansion`. It is a superoperator built from squared jump amplitudes, completely positive at every drive frequency and trace preserving through the retained order. Its gauge fixes the Floquet frame of the no-jump evolution; only the van Vleck gauge is accepted.
 _Avoid_: calling the expansion the exact period map, or assuming it is exactly trace preserving.
@@ -114,7 +118,7 @@ The operator-valued amplitude of one quantum-jump record of the period, ``U₀(T
 The non-Hermitian generator ``Q = -iH - ½ Σ_a γ_a L_a† L_a`` of the evolution between jumps. Its van Vleck expansion is the Floquet frame of the period-map expansion.
 
 **Trace defect**:
-``Φ†(1) - 1`` of a period-map expansion ``Φ``. It vanishes through the retained order, and ``ρ ↦ Φ(SρS)`` with ``S = (1 + D)^{-1/2}`` is exactly trace preserving.
+``Φ†(1) - 1`` of a period-map expansion ``Φ``. It vanishes through the retained order, and ``ρ ↦ Φ(SρS)`` with ``S = (1 + D)^{-1/2}`` is exactly trace preserving wherever ``1 + D`` is positive definite.
 
 ## GKSL coordinates and positive completion
 
