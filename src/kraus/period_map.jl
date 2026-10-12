@@ -164,24 +164,35 @@ function no_jump_generator(
   return Q
 end
 
-function period_map_lowering(generator::PeriodicGenerator{Liouvillian}, order::Int)
-  parameters = checked_native_parameters(
-    generator, MAXIMUM_PARAMETERS - 1, "the period map"
-  )
+function period_map_scalars(
+  generator::PeriodicGenerator{Liouvillian}, ::Tuple{}, ::Type{T}
+) where {T}
+  return SQALowering{T}(generator), ExactCoefficients()
+end
+
+function period_map_scalars(
+  generator::PeriodicGenerator{Liouvillian},
+  parameters::Tuple{Symbolics.Num,Vararg{Symbolics.Num}},
+  ::Type,
+)
+  T = Complex{ParameterScalar}
+  symbols = Symbolics.Num[p for p in parameters]
+  values = T[parameter_variable(i) for i in eachindex(symbols)]
+  lowering = SQALowering{T}(generator, symbols, values)
+  return lowering, ParameterCoefficients(symbols, ones(Int, length(symbols)))
+end
+
+function period_map_lowering(
+  generator::PeriodicGenerator{Liouvillian}, order::Int, ::Type{T}=Complex{Rational{BigInt}}
+) where {T}
+  parameters = checked_native_parameters(generator, MAXIMUM_PARAMETERS, "the period map")
   times = [Symbolics.variable(:u, j; T=Real) for j in 1:order]
   any(u -> any(p -> isequal(p, u), parameters), times) && throw(
     ArgumentError(
       "the jump times are named u₁, …, u_$order; rename the parameters that use these names",
     ),
   )
-  T = Complex{ParameterScalar}
-  values = T[parameter_variable(i) for i in eachindex(parameters)]
-  lowering = SQALowering{T}(generator, parameters, values)
-  coefficients = ParameterCoefficients(
-    [parameters; Symbolics.Num(π)], ones(Int, length(parameters) + 1)
-  )
-  twopi = T(2 * parameter_variable(length(parameters) + 1))
-  return lowering, coefficients, twopi, times
+  return period_map_scalars(generator, Tuple(parameters), T)..., times
 end
 
 struct JumpRecords{X,F,L<:CoefficientLift}
@@ -190,43 +201,64 @@ struct JumpRecords{X,F,L<:CoefficientLift}
   left::Vector{X}
   right::Vector{X}
   rates::Vector{F}
-  twopi::F
   integrals::SimplexIntegrals{F}
   lift::L
   drive_scales::Vector{SQA.CNum}
+  period_scales::Vector{SQA.CNum}
   times::Vector{Symbolics.Num}
   time_values::Dict{TimeMonomial,SQA.CNum}
 end
 
-function record_rate(word::Vector{Int}, records::JumpRecords)
-  rate = records.twopi^length(word)
+function record_rate(word::Vector{Int}, records::JumpRecords{X,F}) where {X,F}
+  rate = one(F)
   for channel in word
     rate *= records.rates[channel]
   end
   return rate
 end
 
+function period_scale(records::JumpRecords, k::Int)
+  scales = records.period_scales
+  while length(scales) <= k
+    push!(scales, last(scales) * convert(SQA.CNum, 2 * Symbolics.Num(π)))
+  end
+  return scales[k + 1]
+end
+
+const GradedSuperoperators{S} = Dict{Tuple{Int,Int},S}
+
 struct RecordTargets{S}
-  diagonal::Vector{S}
-  upper::Vector{S}
+  zero::S
+  diagonal::GradedSuperoperators{S}
+  upper::GradedSuperoperators{S}
   amplitudes::Vector{JumpAmplitude}
 end
 
-function RecordTargets(identity::AlgebraOperator, order::Int)
-  diagonal = [zero(sandwich(identity, identity)) for _ in 0:(2 * order)]
-  return RecordTargets(diagonal, copy.(diagonal), JumpAmplitude[])
+function RecordTargets(identity::AlgebraOperator)
+  zero_superoperator = zero(sandwich(identity, identity))
+  return RecordTargets(
+    zero_superoperator,
+    GradedSuperoperators{typeof(zero_superoperator)}(),
+    GradedSuperoperators{typeof(zero_superoperator)}(),
+    JumpAmplitude[],
+  )
+end
+
+function graded_target!(targets::RecordTargets, graded, key)
+  return get!(() -> zero(targets.zero), graded, key)
 end
 
 function upper_gram_row(
   entries::Vector, adjoints::Vector{X}, i::Int, rate::T, integrals
 ) where {T,X}
-  μ = last(first(entries[i]))
-  weighted = Dict{Int,Dict{Monomial,T}}()
+  (_, ℓ, μ) = first(entries[i])
+  weighted = Dict{Tuple{Int,Int},Dict{Monomial,T}}()
   for j in (i + 1):length(entries)
-    s, ν = first(entries[j])
-    weight = gram_entry(integrals, μ, ν)
-    iszero(weight) ||
-      add_scaled!(get!(Dict{Monomial,T}, weighted, s), rate * weight, adjoints[j])
+    s, m, ν = first(entries[j])
+    for (k, g) in gram_entry(integrals, μ, ν)
+      terms = get!(Dict{Monomial,T}, weighted, (s, ℓ + m + k))
+      add_scaled!(terms, rate * g, adjoints[j])
+    end
   end
   return weighted
 end
@@ -240,12 +272,14 @@ function record_map!(
 ) where {T,R}
   entries = collect(kernel.terms)
   adjoints = [adjoint(B) for (_, B) in entries]
-  for (i, ((r, μ), A)) in pairs(entries)
-    weight = gram_entry(integrals, μ, μ)
-    iszero(weight) ||
-      add_sandwich!(targets.diagonal[q + 2r + 1], A, adjoints[i], rate * weight)
-    for (s, terms) in upper_gram_row(entries, adjoints, i, rate, integrals)
-      add_sandwich!(targets.upper[q + r + s + 1], A, AlgebraOperator{T,R}(A.algebra, terms))
+  for (i, ((r, ℓ, μ), A)) in pairs(entries)
+    for (k, g) in gram_entry(integrals, μ, μ)
+      target = graded_target!(targets, targets.diagonal, (q + 2r, 2ℓ + k))
+      add_sandwich!(target, A, adjoints[i], rate * g)
+    end
+    for ((s, k), terms) in upper_gram_row(entries, adjoints, i, rate, integrals)
+      target = graded_target!(targets, targets.upper, (q + r + s, k))
+      add_sandwich!(target, A, AlgebraOperator{T,R}(A.algebra, terms))
     end
   end
   return targets
@@ -265,10 +299,17 @@ function time_value(records::JumpRecords, monomial::TimeMonomial)
 end
 
 function lift_amplitude(records::JumpRecords, kernel::TimeKernel, rate, q::Int)
-  weight = lift_coefficient(records.lift.coefficient, rate) * records.drive_scales[q + 1]
+  weight =
+    lift_coefficient(records.lift.coefficient, rate) *
+    records.drive_scales[q + 1] *
+    period_scale(records, q)
   pieces = (
-    (X, records.drive_scales[r + 1] * time_value(records, monomial)) for
-    ((r, monomial), X) in kernel.terms
+    (
+      X,
+      records.drive_scales[r + 1] *
+      period_scale(records, ℓ + sum(last(monomial); init=0)) *
+      time_value(records, monomial),
+    ) for ((r, ℓ, monomial), X) in kernel.terms
   )
   return JumpAmplitude(weight, lift_scaled_sum(records.lift, pieces), records.times[1:q])
 end
@@ -292,12 +333,7 @@ function jump_records!(
     next = insert_jump(kernel, jump, j + 1, R)
     push!(word, channel)
     jump_records!(
-      targets,
-      records,
-      drift(next, records.powers, records.twopi, j + 2, j + 1, R),
-      word,
-      q,
-      R,
+      targets, records, drift(next, records.powers, j + 2, j + 1, R), word, q, R
     )
     pop!(word)
   end
@@ -314,18 +350,27 @@ function dual_identity(S::AlgebraSuperoperator{T,R}) where {T,R}
   return AlgebraOperator{T,R}(S.algebra, terms)
 end
 
-function graded_trace_defect(series::Vector{<:AlgebraSuperoperator}, identity, N::Int)
-  defect = [dual_identity(S) for S in series]
-  defect[1] -= identity
-  all(iszero, defect[1:(N + 1)]) ||
+function graded_trace_defect(series::GradedSuperoperators, identity, N::Int)
+  defect = Dict(key => dual_identity(S) for (key, S) in series)
+  defect[(0, 0)] -= identity
+  all(iszero(D) for ((n, _), D) in defect if n <= N) ||
     error("the period map failed its trace-preservation certificate")
   return defect
 end
 
-function lift_graded_superoperator(lift::CoefficientLift, series::Vector, scales)
+function lift_graded(records::JumpRecords, graded::Dict)
+  return (
+    (X, records.drive_scales[n + 1] * period_scale(records, k)) for
+    ((n, k), X) in graded if !iszero(X)
+  )
+end
+
+function lift_graded_superoperator(
+  lift::CoefficientLift, records::JumpRecords, series::GradedSuperoperators
+)
   result = Liouvillian(LiouvillianTerms())
-  for (S, scale) in zip(series, scales)
-    iszero(S) || lift_superoperator!(result, lift, S, scale)
+  for (S, scale) in lift_graded(records, series)
+    lift_superoperator!(result, lift, S, scale)
   end
   return result
 end
@@ -409,9 +454,8 @@ map. Only [`VanVleck`](@ref) is supported. The construction is described in
 
 # Restrictions
 
-- Coefficients must be exact and polynomial in at most seven symbolic parameters, one fewer than
-  [`GKSLNormalForm`](@ref) because ``\\pi`` takes a parameter slot, and the drive frequency may
-  not appear in a coefficient.
+- Coefficients must be exact and polynomial in at most eight symbolic parameters, as for
+  [`GKSLNormalForm`](@ref), and the drive frequency may not appear in a coefficient.
 - The jump times are named ``u_1, \\dots, u_N``, so no parameter may carry these names.
 - The cost grows with the number of jump sequences, which is exponential in `order` for several
   channels.
@@ -436,8 +480,25 @@ false
 """
 function floquet_expansion(Φ::PeriodMap, gauge::VanVleck, order::Int)
   order >= 1 || throw(ArgumentError("order must be >= 1"))
+  try
+    return expand_period_map(
+      Φ, gauge, order, period_map_lowering(Φ.generator, order, Complex{Rational{Int128}})...
+    )
+  catch error
+    error isa Union{OverflowError,InexactError} || rethrow()
+    return expand_period_map(Φ, gauge, order, period_map_lowering(Φ.generator, order)...)
+  end
+end
+
+function expand_period_map(
+  Φ::PeriodMap,
+  gauge::VanVleck,
+  order::Int,
+  lowering::SQALowering{T},
+  coefficients,
+  times::Vector{Symbolics.Num},
+) where {T}
   wd = Φ.generator.wd
-  lowering, coefficients, twopi, times = period_map_lowering(Φ.generator, order)
   identity = algebra_identity(lowering.algebra)
   zero_element = zero(identity)
 
@@ -451,31 +512,34 @@ function floquet_expansion(Φ::PeriodMap, gauge::VanVleck, order::Int)
     effective_powers(frame, order),
     endpoint_value(frame.kick, zero_element),
     endpoint_value(frame.inverse, zero_element),
-    [channel.rate for channel in lowered],
-    twopi,
-    SimplexIntegrals(inv(twopi)),
+    T[channel.rate for channel in lowered],
+    SimplexIntegrals{T}(),
     lift,
     drive_scales,
+    [convert(SQA.CNum, 1)],
     times,
     Dict{TimeMonomial,SQA.CNum}(),
   )
 
-  targets = RecordTargets(identity, order)
+  targets = RecordTargets(identity)
   for q in 0:order
     q > 0 && isempty(lowered) && break
     R = order - q
-    kernel = drift(kernel_identity(identity, q), records.powers, twopi, 1, 0, R)
+    kernel = drift(kernel_identity(identity, q), records.powers, 1, 0, R)
     jump_records!(targets, records, kernel, Int[], q, R)
   end
-  series = [
-    add_adjoint_mirror!(D + U, U) for (D, U) in zip(targets.diagonal, targets.upper)
-  ]
+  series = GradedSuperoperators{typeof(targets.zero)}()
+  for key in union(keys(targets.diagonal), keys(targets.upper))
+    D = get(targets.diagonal, key, targets.zero)
+    U = get(targets.upper, key, targets.zero)
+    series[key] = add_adjoint_mirror!(D + U, U)
+  end
   defect = graded_trace_defect(series, identity, order)
 
   return PeriodMapExpansion(
-    lift_graded_superoperator(lift, series, drive_scales),
+    lift_graded_superoperator(lift, records, series),
     targets.amplitudes,
-    lift_scaled_sum(lift, zip(defect, drive_scales)),
+    lift_scaled_sum(lift, lift_graded(records, defect)),
     gauge,
     order,
   )
