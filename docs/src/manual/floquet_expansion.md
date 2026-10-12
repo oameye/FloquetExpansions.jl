@@ -65,11 +65,11 @@ Liouvillian together with its drive frequency and time variable. The expansion r
 
 ```@docs
 FloquetExpansion
-order
+order(::FloquetExpansion)
 ```
 
 ```@docs
-floquet_expansion
+floquet_expansion(::PeriodicGenerator, ::Gauge, ::Int)
 ```
 
 ## Reading the result

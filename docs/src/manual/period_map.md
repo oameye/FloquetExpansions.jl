@@ -4,15 +4,19 @@ CurrentModule = FloquetExpansions
 
 # Period map
 
-[`floquet_expansion`](@ref) describes the driven dynamics by an effective generator, which
-exists only where the one-period map has a time-independent logarithm. [`period_map`](@ref)
-expands the one-period map itself and returns it as a superoperator that is completely positive at
-every drive frequency. Use it when complete positivity of the stroboscopic evolution matters more than a
-generator, or when no GKSL effective generator exists.
+A generator expansion describes the driven dynamics by an effective generator, which exists only
+where the one-period map has a time-independent logarithm. The one-period map can instead be
+expanded directly: [`period_map`](@ref) builds the exact map of one period, and
+[`floquet_expansion`](@ref) expands it in powers of ``1/\omega_d``, in the same gauge and with the
+same algorithms and `order` as a generator, into a superoperator that is completely positive at
+every drive frequency. Use it when complete positivity of the stroboscopic evolution matters more
+than a generator, or when no GKSL effective generator exists.
 
 ```@docs
 period_map
 PeriodMap
+floquet_expansion(::PeriodMap, ::VanVleck, ::Int)
+PeriodMapExpansion
 ```
 
 ## Reading the result
@@ -23,7 +27,7 @@ preserving; it starts beyond the retained order.
 ```@docs
 superoperator
 trace_defect
-order(::PeriodMap)
+order(::PeriodMapExpansion)
 ```
 
 ## Kraus form

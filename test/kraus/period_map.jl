@@ -102,13 +102,17 @@ const rotating = ((σz + cos(ω * t) * σy + sin(ω * t) * σx, 1 // 4),)
 
 @testset "period map agrees with the exact one-period map through its order" begin
   for (H, channels) in ((drive, ()), (drive, decay), ((1 // 3) * σz, rotating)), N in 1:3
-    Φ = period_map(H, ω, t, N; channels=pairs_to_jumps(channels))
+    Φ = floquet_expansion(
+      period_map(H, ω, t; channels=pairs_to_jumps(channels)), VanVleck(), N
+    )
     @test convergence_mismatch(value -> period_map_error(Φ, H, channels, value), N) < 0.1
   end
 end
 
 @testset "period map is completely positive and trace preserving through its order" begin
-  Φ = period_map(drive, ω, t, 3; channels=pairs_to_jumps(decay))
+  Φ = floquet_expansion(
+    period_map(drive, ω, t; channels=pairs_to_jumps(decay)), VanVleck(), 3
+  )
   for value in (1.0, 2.0, 20.0)
     @test minimum(choi_eigenvalues(Φ, 2, value)) > -1e-10
   end
@@ -118,8 +122,9 @@ end
 
 @testset "Hori–Deprit and Bloch/Feshbach give the same period map" begin
   channels = pairs_to_jumps(decay)
-  hd = period_map(drive, ω, t, 3; channels)
-  bf = period_map(drive, ω, t, 3; channels, algorithm=BlochFeshbach())
+  Φ = period_map(drive, ω, t; channels)
+  hd = floquet_expansion(Φ, VanVleck(), 3)
+  bf = floquet_expansion(Φ, VanVleck(; algorithm=BlochFeshbach()), 3)
   term_table(Φ) = Dict((left, right) => c for (left, right, c) in terms(superoperator(Φ)))
   @test isequal(term_table(hd), term_table(bf))
 end
@@ -128,7 +133,9 @@ end
   for (gauge, H, channels) in
       ((VanVleck(), (1 // 3) * σz, rotating), (GKSLNormalForm(), drive, decay[1:1]))
     N = 3
-    Φ = period_map(H, ω, t, N; channels=pairs_to_jumps(channels))
+    Φ = floquet_expansion(
+      period_map(H, ω, t; channels=pairs_to_jumps(channels)), VanVleck(), N
+    )
     x = floquet_expansion(H, ω, t, gauge, N; channels=pairs_to_jumps(channels))
     function error(value)
       substitutions = Dict(ω => value, t => 0)
@@ -142,8 +149,12 @@ end
 end
 
 @testset "period map with symbolic parameters equals the numeric map at substituted points" begin
-  symbolic = period_map(Δ * σz + cos(ω * t) * σx, ω, t, 2; channels=(jump(σ(1, 2), γ),))
-  exact = period_map(drive, ω, t, 2; channels=(jump(σ(1, 2), 1 // 5),))
+  symbolic = floquet_expansion(
+    period_map(Δ * σz + cos(ω * t) * σx, ω, t; channels=(jump(σ(1, 2), γ),)), VanVleck(), 2
+  )
+  exact = floquet_expansion(
+    period_map(drive, ω, t; channels=(jump(σ(1, 2), 1 // 5),)), VanVleck(), 2
+  )
   point = Dict(ω => 9.0, Δ => 1 / 2, γ => 1 / 5)
   @test map_matrix(symbolic, point) ≈ map_matrix(exact, point) atol = 1e-12
 end
@@ -154,7 +165,9 @@ end
   H = (1 // 2) * a' * a + (3 // 10) * a' * a * a' * a + (2 // 5) * (a + a') * cos(ω * t)
   channels = ((a, 4 // 5),)
   N = 2
-  Φ = period_map(H, ω, t, N; channels=pairs_to_jumps(channels))
+  Φ = floquet_expansion(
+    period_map(H, ω, t; channels=pairs_to_jumps(channels)), VanVleck(), N
+  )
   error(value) = period_map_error(Φ, H, channels, value; d=14, block=3)
   @test convergence_mismatch(error, N) < 0.15
 end
@@ -191,7 +204,9 @@ function amplitude_action(Φ, ρ, value)
 end
 
 @testset "jump amplitudes integrate to the period map" begin
-  Φ = period_map(drive, ω, t, 2; channels=pairs_to_jumps(rotating))
+  Φ = floquet_expansion(
+    period_map(drive, ω, t; channels=pairs_to_jumps(rotating)), VanVleck(), 2
+  )
   for ρ in units(2, 2)
     @test amplitude_action(Φ, ρ, 3.0) ≈ map_action(Φ, ρ, 2, 3.0) atol = 1e-12
   end
@@ -205,24 +220,34 @@ const mixing = ((3 // 5, 4 // 5), (-4 // 5, 3 // 5))
   plain = Tuple(jump(L, 1 // 3) for L in J)
   for value in (2.0, 9.0)
     point = Dict(ω => value)
-    @test map_matrix(period_map(drive, ω, t, 2; channels=mixed), point) ≈
-      map_matrix(period_map(drive, ω, t, 2; channels=plain), point) atol = 1e-12
+    @test map_matrix(
+      floquet_expansion(period_map(drive, ω, t; channels=mixed), VanVleck(), 2), point
+    ) ≈ map_matrix(
+      floquet_expansion(period_map(drive, ω, t; channels=plain), VanVleck(), 2), point
+    ) atol = 1e-12
   end
   c = 1 // 2
   shifted_H = drive + (im * c / 2) * (σ(2, 1) - σ(1, 2)) * (1 // 3)
   N = 2
-  shifted = period_map(shifted_H, ω, t, N; channels=(jump(σ(1, 2) + c, 1 // 3),))
-  original = period_map(drive, ω, t, N; channels=(jump(σ(1, 2), 1 // 3),))
+  shifted = floquet_expansion(
+    period_map(shifted_H, ω, t; channels=(jump(σ(1, 2) + c, 1 // 3),)), VanVleck(), N
+  )
+  original = floquet_expansion(
+    period_map(drive, ω, t; channels=(jump(σ(1, 2), 1 // 3),)), VanVleck(), N
+  )
   difference(value) =
     opnorm(map_matrix(shifted, Dict(ω => value)) - map_matrix(original, Dict(ω => value)))
   @test difference(20.0) / difference(40.0) > 0.9 * 2^(N + 1)
 end
 
 @testset "period map rejects what it cannot expand" begin
-  @test_throws ArgumentError period_map(drive, ω, t, 0)
+  @test_throws ArgumentError floquet_expansion(period_map(drive, ω, t), VanVleck(), 0)
+  @test_throws ArgumentError floquet_expansion(period_map(drive, ω, t), GKSLNormalForm(), 1)
   @test_throws ArgumentError period_map(
-    drive, ω, t, 1; channels=(jump(σ(1, 2), (1 // 5) * (1 + cos(ω * t))),)
+    drive, ω, t; channels=(jump(σ(1, 2), (1 // 5) * (1 + cos(ω * t))),)
   )
-  @test_throws ArgumentError period_map(ω * σz, ω, t, 1)
-  @test_throws ArgumentError period_map(drive, ω, t, 1; channels=(jump(σ(1, 2), 0.2),))
+  @test_throws ArgumentError floquet_expansion(period_map(ω * σz, ω, t), VanVleck(), 1)
+  @test_throws ArgumentError floquet_expansion(
+    period_map(drive, ω, t; channels=(jump(σ(1, 2), 0.2),)), VanVleck(), 1
+  )
 end

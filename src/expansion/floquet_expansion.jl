@@ -175,6 +175,8 @@ julia> iszero(micromotion(vv))
 true
 ```
 
+To expand the one-period map instead of the generator, build it with [`period_map`](@ref).
+
 See also [`effective_generator`](@ref), [`effective_component`](@ref), [`micromotion`](@ref),
 [`positive_completion`](@ref), and [`harmonics`](@ref).
 """
