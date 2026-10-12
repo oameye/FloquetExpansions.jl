@@ -46,7 +46,11 @@ function validate_component_type(::Type{T}) where {T}
 end
 
 qadd(x::SQA.QAdd) = x
-qadd(x::SQA.QField) = 1 * x
+function qadd(x::SQA.QField)
+  sum = 1 * x
+  sum isa SQA.QAdd || throw(ArgumentError("the operator expression $x is not supported"))
+  return sum
+end
 
 """
     PeriodicGenerator(components::AbstractDict{Int,T}, ωd)
