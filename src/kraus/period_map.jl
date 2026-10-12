@@ -147,9 +147,7 @@ function no_jump_generator(
     decay = harmonic_product(adjoint_operator, channel.operator)
     Q = harmonic_combine(Q, decay, 1, -channel.rate / 2)
   end
-  for (k, value) in collect(Q)
-    iszero(value) && delete!(Q, k)
-  end
+  filter!(entry -> !iszero(last(entry)), Q)
   haskey(Q, 0) || (Q[0] = zero_element)
   return Q
 end
@@ -196,9 +194,33 @@ function record_rate(word::Vector{Int}, records::JumpRecords)
   return rate
 end
 
+struct RecordTargets{S}
+  diagonal::Vector{S}
+  upper::Vector{S}
+  amplitudes::Vector{JumpAmplitude}
+end
+
+function RecordTargets(identity::AlgebraOperator, order::Int)
+  diagonal = [zero(sandwich(identity, identity)) for _ in 0:(2 * order)]
+  return RecordTargets(diagonal, copy.(diagonal), JumpAmplitude[])
+end
+
+function upper_gram_row(
+  entries::Vector, adjoints::Vector{X}, i::Int, rate::T, integrals
+) where {T,X}
+  μ = last(first(entries[i]))
+  weighted = Dict{Int,Dict{Monomial,T}}()
+  for j in (i + 1):length(entries)
+    s, ν = first(entries[j])
+    weight = gram_entry(integrals, μ, ν)
+    iszero(weight) ||
+      add_scaled!(get!(Dict{Monomial,T}, weighted, s), rate * weight, adjoints[j])
+  end
+  return weighted
+end
+
 function record_map!(
-  diagonal::Vector,
-  upper::Vector,
+  targets::RecordTargets,
   q::Int,
   kernel::TimeKernel{AlgebraOperator{T,R}},
   rate::T,
@@ -207,22 +229,23 @@ function record_map!(
   entries = collect(kernel.terms)
   adjoints = [adjoint(B) for (_, B) in entries]
   for (i, ((r, μ), A)) in pairs(entries)
-    weighted = Dict{Int,Dict{Monomial,T}}()
-    for j in i:length(entries)
-      s, ν = first(entries[j])
-      weight = gram_entry(integrals, μ, ν)
-      iszero(weight) && continue
-      if j == i
-        add_sandwich!(diagonal[q + r + s + 1], A, (rate * weight) * adjoints[j])
-      else
-        add_scaled!(get!(Dict{Monomial,T}, weighted, s), rate * weight, adjoints[j])
-      end
-    end
-    for (s, terms) in weighted
-      add_sandwich!(upper[q + r + s + 1], A, AlgebraOperator{T,R}(A.algebra, terms))
+    weight = gram_entry(integrals, μ, μ)
+    iszero(weight) ||
+      add_sandwich!(targets.diagonal[q + 2r + 1], A, adjoints[i], rate * weight)
+    for (s, terms) in upper_gram_row(entries, adjoints, i, rate, integrals)
+      add_sandwich!(targets.upper[q + r + s + 1], A, AlgebraOperator{T,R}(A.algebra, terms))
     end
   end
-  return diagonal
+  return targets
+end
+
+function time_monomial((phases, powers)::TimeMonomial, times::Vector{Symbolics.Num})
+  value = Complex{Symbolics.Num}(1)
+  for (u, k, p) in zip(times, phases, powers)
+    angle = 2 * Symbolics.Num(π) * k * u
+    value *= u^p * Complex(cos(angle), -sin(angle))
+  end
+  return convert(SQA.CNum, value)
 end
 
 function time_value(records::JumpRecords, monomial::TimeMonomial)
@@ -238,28 +261,26 @@ function lift_amplitude(records::JumpRecords, kernel::TimeKernel, rate, q::Int)
   return JumpAmplitude(weight, lift_scaled_sum(records.lift, pieces), records.times[1:q])
 end
 
-function record!(targets, amplitudes, records::JumpRecords, kernel, word, R::Int)
+function record!(targets::RecordTargets, records::JumpRecords, kernel, word, R::Int)
   amplitude = conjugate_kernel(kernel, records.left, records.right, R)
   isempty(amplitude.terms) && return targets
   rate = record_rate(word, records)
-  diagonal, upper = targets
-  record_map!(diagonal, upper, length(word), amplitude, rate, records.integrals)
-  push!(amplitudes, lift_amplitude(records, amplitude, rate, length(word)))
+  record_map!(targets, length(word), amplitude, rate, records.integrals)
+  push!(targets.amplitudes, lift_amplitude(records, amplitude, rate, length(word)))
   return targets
 end
 
 function jump_records!(
-  targets, amplitudes, records::JumpRecords, kernel, word::Vector{Int}, q::Int, R::Int
+  targets::RecordTargets, records::JumpRecords, kernel, word::Vector{Int}, q::Int, R::Int
 )
   isempty(kernel.terms) && return targets
   j = length(word)
-  j == q && return record!(targets, amplitudes, records, kernel, word, R)
+  j == q && return record!(targets, records, kernel, word, R)
   for (channel, jump) in pairs(records.jumps)
     next = insert_jump(kernel, jump, j + 1, R)
     push!(word, channel)
     jump_records!(
       targets,
-      amplitudes,
       records,
       drift(next, records.powers, records.twopi, j + 2, j + 1, R),
       word,
@@ -287,15 +308,6 @@ function graded_trace_defect(series::Vector{<:AlgebraSuperoperator}, identity, N
   all(iszero, defect[1:(N + 1)]) ||
     error("the period map failed its trace-preservation certificate")
   return defect
-end
-
-function time_monomial((phases, powers)::TimeMonomial, times::Vector{Symbolics.Num})
-  value = Complex{Symbolics.Num}(1)
-  for (u, k, p) in zip(times, phases, powers)
-    angle = 2 * Symbolics.Num(π) * k * u
-    value *= u^p * Complex(cos(angle), -sin(angle))
-  end
-  return convert(SQA.CNum, value)
 end
 
 function lift_graded_superoperator(lift::CoefficientLift, series::Vector, scales)
@@ -393,8 +405,8 @@ function period_map(
   records = JumpRecords(
     [transported_jump(frame, channel.operator, order) for channel in lowered],
     effective_powers(frame, order),
-    graded_value(frame.kick, zero_element),
-    graded_value(frame.inverse, zero_element),
+    endpoint_value(frame.kick, zero_element),
+    endpoint_value(frame.inverse, zero_element),
     [channel.rate for channel in lowered],
     twopi,
     SimplexIntegrals(inv(twopi)),
@@ -404,21 +416,21 @@ function period_map(
     Dict{TimeMonomial,SQA.CNum}(),
   )
 
-  amplitudes = JumpAmplitude[]
-  diagonal = [zero(sandwich(identity, identity)) for _ in 0:(2 * order)]
-  upper = [zero(sandwich(identity, identity)) for _ in 0:(2 * order)]
+  targets = RecordTargets(identity, order)
   for q in 0:order
     q > 0 && isempty(lowered) && break
     R = order - q
     kernel = drift(kernel_identity(identity, q), records.powers, twopi, 1, 0, R)
-    jump_records!((diagonal, upper), amplitudes, records, kernel, Int[], q, R)
+    jump_records!(targets, records, kernel, Int[], q, R)
   end
-  series = [add_adjoint_mirror!(D + U, U) for (D, U) in zip(diagonal, upper)]
+  series = [
+    add_adjoint_mirror!(D + U, U) for (D, U) in zip(targets.diagonal, targets.upper)
+  ]
   defect = graded_trace_defect(series, identity, order)
 
   return PeriodMap(
     lift_graded_superoperator(lift, series, drive_scales),
-    amplitudes,
+    targets.amplitudes,
     lift_scaled_sum(lift, zip(defect, drive_scales)),
     order,
   )

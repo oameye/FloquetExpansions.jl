@@ -23,13 +23,13 @@ function shifted_powers((phases, powers)::TimeMonomial, variable::Int, power::In
 end
 
 function segment_expansion(monomial::TimeMonomial, p::Int, upper::Int, lower::Int)
-  open_upper = upper <= length(first(monomial))
-  lower == 0 && return [(1, open_upper ? shifted_powers(monomial, upper, p) : monomial)]
+  upper_is_jump = upper <= length(first(monomial))
+  lower == 0 && return [(1, upper_is_jump ? shifted_powers(monomial, upper, p) : monomial)]
   return [
     (
       (-1)^s * binomial(p, s),
       shifted_powers(
-        open_upper ? shifted_powers(monomial, upper, p - s) : monomial, lower, s
+        upper_is_jump ? shifted_powers(monomial, upper, p - s) : monomial, lower, s
       ),
     ) for s in 0:p
   ]
@@ -103,9 +103,7 @@ function simplex_primitive!(
   return target
 end
 
-function simplex_integral(
-  phases::Vector{Int}, powers::Vector{Int}, inverse_twopi::F
-) where {F}
+function simplex_integral((phases, powers)::TimeMonomial, inverse_twopi::F) where {F}
   current = Dict{Tuple{Int,Int},F}((0, 0) => one(F))
   for j in eachindex(phases)
     next = Dict{Tuple{Int,Int},F}()
@@ -126,11 +124,13 @@ function SimplexIntegrals(inverse_twopi::F) where {F}
   return SimplexIntegrals(inverse_twopi, Dict{TimeMonomial,F}())
 end
 
-function gram_entry(integrals::SimplexIntegrals, μ::TimeMonomial, ν::TimeMonomial)
-  (phases_μ, powers_μ), (phases_ν, powers_ν) = μ, ν
-  return get!(integrals.values, (phases_μ - phases_ν, powers_μ + powers_ν)) do
-    return simplex_integral(
-      phases_μ - phases_ν, powers_μ + powers_ν, integrals.inverse_twopi
-    )
-  end
+function gram_entry(
+  integrals::SimplexIntegrals,
+  (phases_μ, powers_μ)::TimeMonomial,
+  (phases_ν, powers_ν)::TimeMonomial,
+)
+  product = (phases_μ - phases_ν, powers_μ + powers_ν)
+  return get!(
+    () -> simplex_integral(product, integrals.inverse_twopi), integrals.values, product
+  )
 end

@@ -30,7 +30,7 @@ function no_jump_frame(
   return NoJumpFrame{X}(effective, frame_kicks(algorithm, kick, one(Q[0]), N)...)
 end
 
-function graded_value(series::Vector{Harmonics{X}}, zero_element::X) where {X}
+function endpoint_value(series::Vector{Harmonics{X}}, zero_element::X) where {X}
   return X[sum(values(harmonics); init=zero_element) for harmonics in series]
 end
 

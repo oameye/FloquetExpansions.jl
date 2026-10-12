@@ -248,19 +248,15 @@ end
 
 Base.:*(c::Number, A::AlgebraOperator{T}) where {T} = scale_operator(T(c), A)
 
-function scale_operator(c::T, A::AlgebraOperator{T,R}) where {T,R}
-  terms = Dict{Monomial,T}()
-  for (k, v) in A.terms
-    accumulate!(terms, k, c * v)
-  end
-  return AlgebraOperator{T,R}(A.algebra, terms)
-end
-
 function add_scaled!(terms::Dict{Monomial,T}, c::T, A::AlgebraOperator{T}) where {T}
   for (k, v) in A.terms
     accumulate!(terms, k, c * v)
   end
   return terms
+end
+
+function scale_operator(c::T, A::AlgebraOperator{T,R}) where {T,R}
+  return AlgebraOperator{T,R}(A.algebra, add_scaled!(Dict{Monomial,T}(), c, A))
 end
 
 Base.:-(A::AlgebraOperator) = -1 * A
@@ -297,14 +293,6 @@ end
 
 Base.one(A::AlgebraOperator) = algebra_identity(A.algebra)
 
-function sandwich(A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}) where {T,R}
-  terms = Dict{Tuple{Monomial,Monomial},T}()
-  for (a, ca) in A.terms, (b, cb) in B.terms
-    accumulate!(terms, (a, b), ca * cb)
-  end
-  return AlgebraSuperoperator{T,R}(A.algebra, terms)
-end
-
 function add_sandwich!(
   S::AlgebraSuperoperator{T,R}, A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}
 ) where {T,R}
@@ -312,6 +300,23 @@ function add_sandwich!(
     accumulate!(S.terms, (a, b), ca * cb)
   end
   return S
+end
+
+function add_sandwich!(
+  S::AlgebraSuperoperator{T,R}, A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}, c::T
+) where {T,R}
+  for (a, ca) in A.terms
+    scaled = c * ca
+    for (b, cb) in B.terms
+      accumulate!(S.terms, (a, b), scaled * cb)
+    end
+  end
+  return S
+end
+
+function sandwich(A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}) where {T,R}
+  S = AlgebraSuperoperator{T,R}(A.algebra, Dict{Tuple{Monomial,Monomial},T}())
+  return add_sandwich!(S, A, B)
 end
 
 function add_adjoint_mirror!(
