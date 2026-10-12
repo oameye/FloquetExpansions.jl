@@ -266,13 +266,15 @@ function initial_kick(::HoriDeprit, L::Harmonics{X}) where {X}
   return [Harmonics{X}(), harmonic_integral(L)]
 end
 
-function floquet_recurrence(::BlochFeshbach, L::Harmonics{X}, N::Int, slot) where {X}
+function floquet_recurrence(
+  algorithm::BlochFeshbach, L::Harmonics{X}, N::Int, slot
+) where {X}
   L0 = L[0]
   identity = one(L0)
   zero_element = zero(L0)
   E = X[L0]
   S = X[]
-  Y = initial_kick(BlochFeshbach(), L)
+  Y = initial_kick(algorithm, L)
   N == 0 && return E, S, Y
   push!(Y, harmonic_integral(L))
 
@@ -292,13 +294,13 @@ function floquet_recurrence(::BlochFeshbach, L::Harmonics{X}, N::Int, slot) wher
   return E, S, Y
 end
 
-function floquet_recurrence(::HoriDeprit, L::Harmonics{X}, N::Int, slot) where {X}
+function floquet_recurrence(algorithm::HoriDeprit, L::Harmonics{X}, N::Int, slot) where {X}
   L0 = L[0]
   identity = one(L0)
   zero_element = zero(L0)
   E = X[L0]
   S = X[]
-  G = initial_kick(HoriDeprit(), L)
+  G = initial_kick(algorithm, L)
   N == 0 && return E, S, G
 
   for order in 1:N
@@ -306,12 +308,14 @@ function floquet_recurrence(::HoriDeprit, L::Harmonics{X}, N::Int, slot) where {
     kick = kick_exp(truncated, identity, order)
     base = -intrinsic_offset(kick, S, order, identity, zero_element)
     G[order + 1] = harmonic_with_static(G[order + 1], base)
-    Vhat = harmonic_average(hd_generator_series(L, G, order)[order + 1], zero_element)
-    En, Sn = static_slot!(slot, order, Vhat)
+    W = hd_generator_series(L, G, order)[order + 1]
+    En, Sn = static_slot!(slot, order, harmonic_average(W, zero_element))
     push!(S, Sn)
     push!(E, En)
-    G[order + 1] = harmonic_with_static(G[order + 1], base + Sn)
-    W = hd_generator_series(L, G, order)[order + 1]
+    if !iszero(Sn)
+      G[order + 1] = harmonic_with_static(G[order + 1], base + Sn)
+      W = hd_generator_series(L, G, order)[order + 1]
+    end
     check_slot(slot, harmonic_average(W, zero_element), En)
     order < N && push!(G, harmonic_integral(W))
   end

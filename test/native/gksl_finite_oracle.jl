@@ -8,27 +8,7 @@ const SQA = SecondQuantizedAlgebra
 
 @variables ω::Real t::Real
 
-function dense_operator(q::SQA.QAdd, d::Int, value::Real)
-  M = zeros(ComplexF64, d, d)
-  for (term, coeff) in SQA.substitute(q, Dict(ω => value))
-    z = SQA.to_num(coeff)
-    c = complex(Float64(Symbolics.value(real(z))), Float64(Symbolics.value(imag(z))))
-    T = Matrix{ComplexF64}(I, d, d)
-    for o in term.ops
-      E = zeros(ComplexF64, d, d)
-      E[o.l1, o.l2] = 1
-      T = T * E
-    end
-    M .+= c .* T
-  end
-  return M
-end
-
-function dense_operator(op::SQA.Op, d::Int, ::Real)
-  E = zeros(ComplexF64, d, d)
-  E[op.l1, op.l2] = 1
-  return E
-end
+include(joinpath(@__DIR__, "..", "helpers", "shared.jl"))
 
 function dense_rate(rate, value::Real)
   return real(ComplexF64(SQA.to_complex(SQA.substitute(rate, Dict(ω => value)))))
@@ -46,11 +26,11 @@ function dissipator_superoperator(L::AbstractMatrix)
 end
 
 function effective_superoperator(expansion, d::Int, value::Real)
-  S = hamiltonian_superoperator(dense_operator(hamiltonian(expansion), d, value))
+  S = hamiltonian_superoperator(tomatrix(hamiltonian(expansion), d, Dict(ω => value)))
   for c in channels(expansion)
     S +=
       dense_rate(c.rate, value) *
-      dissipator_superoperator(dense_operator(c.operator, d, value))
+      dissipator_superoperator(tomatrix(c.operator, d, Dict(ω => value)))
   end
   return S
 end
@@ -105,14 +85,15 @@ H = H0 + (2 // 5) * X * cos(ω * t)
 decay = (jump(σ(1, 2), 3 // 10), jump(σ(2, 3), 1 // 5), jump(σ(2, 2), 1 // 10))
 
 function lab_static(d)
-  S = hamiltonian_superoperator(dense_operator(H0, d, 1.0))
+  S = hamiltonian_superoperator(tomatrix(H0, d, Dict(ω => 1.0)))
   for c in decay
     S +=
-      dense_rate(c.rate, 1.0) * dissipator_superoperator(dense_operator(c.operator, d, 1.0))
+      dense_rate(c.rate, 1.0) *
+      dissipator_superoperator(tomatrix(c.operator, d, Dict(ω => 1.0)))
   end
   return S
 end
-lab_drive(d) = hamiltonian_superoperator(dense_operator((2 // 5) * X, d, 1.0))
+lab_drive(d) = hamiltonian_superoperator(tomatrix((2 // 5) * X, d, Dict(ω => 1.0)))
 
 const FREQUENCIES = [20.0, 40.0, 80.0]
 

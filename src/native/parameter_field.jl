@@ -141,8 +141,8 @@ function native_parameters(generator::PeriodicGenerator{Liouvillian})
   return sort!(found; by=string)
 end
 
-function native_coefficients(
-  generator::PeriodicGenerator{Liouvillian}, negative::Tuple{Vararg{Symbolics.Num}}
+function checked_native_parameters(
+  generator::PeriodicGenerator{Liouvillian}, limit::Int, method::String
 )
   parameters = native_parameters(generator)
   any(p -> isequal(p, generator.wd), parameters) && throw(
@@ -150,6 +150,21 @@ function native_coefficients(
       "the drive frequency $(generator.wd) appears in a coefficient; the expansion is in " *
       "powers of 1/$(generator.wd), so write every coefficient without it",
     ),
+  )
+  length(parameters) <= limit || throw(
+    ArgumentError(
+      "$method supports at most $limit symbolic parameters, found " *
+      "$(length(parameters)); substitute exact values for some of them",
+    ),
+  )
+  return parameters
+end
+
+function native_coefficients(
+  generator::PeriodicGenerator{Liouvillian}, negative::Tuple{Vararg{Symbolics.Num}}
+)
+  parameters = checked_native_parameters(
+    generator, MAXIMUM_PARAMETERS, "the GKSL normal form"
   )
   for p in negative
     isequal(p, generator.wd) && throw(
@@ -160,12 +175,6 @@ function native_coefficients(
     )
   end
   isempty(parameters) && return ExactCoefficients()
-  length(parameters) <= MAXIMUM_PARAMETERS || throw(
-    ArgumentError(
-      "the GKSL normal form supports at most $MAXIMUM_PARAMETERS symbolic parameters, " *
-      "found $(length(parameters)); substitute exact values for some of them",
-    ),
-  )
   signs = [any(q -> isequal(q, p), negative) ? -1 : 1 for p in parameters]
   return ParameterCoefficients(parameters, signs)
 end

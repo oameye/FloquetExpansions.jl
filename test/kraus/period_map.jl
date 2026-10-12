@@ -14,37 +14,11 @@ const σz = σ(1, 1) - σ(2, 2)
 const σx = σ(1, 2) + σ(2, 1)
 const σy = -im * σ(1, 2) + im * σ(2, 1)
 
-function numeric(c::SQA.CNum, substitutions)
-  value(x) =
-    ComplexF64(Symbolics.value(Symbolics.substitute(x, substitutions; fold=Val(true))))
-  z = SQA.to_num(c)
-  return value(real(z)) + im * value(imag(z))
-end
-
-function operator_matrix(op::SQA.Op, d::Int)
-  lowering = diagm(1 => sqrt.(1.0:(d - 1)))
-  SQA.is_destroy(op) && return complex(lowering)
-  SQA.is_create(op) && return complex(lowering')
-  E = zeros(ComplexF64, d, d)
-  E[op.l1, op.l2] = 1
-  return E
-end
-
-function dense(q, d::Int, substitutions)
-  M = zeros(ComplexF64, d, d)
-  for (term, c) in FloquetExpansions.qadd(q)
-    product = Matrix{ComplexF64}(I, d, d)
-    for op in term.ops
-      product = product * operator_matrix(op, d)
-    end
-    M .+= numeric(c, substitutions) .* product
-  end
-  return M
-end
+include(joinpath(@__DIR__, "..", "helpers", "shared.jl"))
 
 function harmonic_matrices(op, d::Int, substitutions)
   P = harmonics(FloquetExpansions.qadd(op), ω, t)
-  return [(m, dense(P[m], d, substitutions)) for m in keys(P)]
+  return [(m, tomatrix(P[m], d, substitutions)) for m in keys(P)]
 end
 
 evaluate(harmonics, phase) = sum(M .* cis(-m * phase) for (m, M) in harmonics)
@@ -80,7 +54,7 @@ function map_action(Φ, ρ, d, value)
   for (left, right, c) in terms(superoperator(Φ))
     result +=
       numeric(c, substitutions) *
-      (dense(left, d, substitutions) * ρ * dense(right, d, substitutions))
+      (tomatrix(left, d, substitutions) * ρ * tomatrix(right, d, substitutions))
   end
   return result
 end
@@ -105,7 +79,7 @@ function liouvillian_matrix(L::Liouvillian, substitutions)
   for (left, right, c) in terms(L)
     S .+=
       numeric(c, substitutions) .*
-      sandwich(dense(left, 2, substitutions), dense(right, 2, substitutions))
+      sandwich(tomatrix(left, 2, substitutions), tomatrix(right, 2, substitutions))
   end
   return S
 end
@@ -138,7 +112,7 @@ end
   for value in (1.0, 2.0, 20.0)
     @test minimum(choi_eigenvalues(Φ, 2, value)) > -1e-10
   end
-  defect(value) = opnorm(dense(trace_defect(Φ), 2, Dict(ω => value)))
+  defect(value) = opnorm(tomatrix(trace_defect(Φ), 2, Dict(ω => value)))
   @test convergence_mismatch(defect, 3) < 0.1
 end
 
@@ -209,7 +183,7 @@ function amplitude_action(Φ, ρ, value)
   for K in jump_amplitudes(Φ)
     w = numeric(weight(K), Dict(ω => value))
     for (u, v) in simplex_rule(length(jump_times(K)), 24)
-      M = dense(amplitude(K), 2, Dict(ω => value, (jump_times(K) .=> u)...))
+      M = tomatrix(amplitude(K), 2, Dict(ω => value, (jump_times(K) .=> u)...))
       result += (w * v) * (M * ρ * M')
     end
   end

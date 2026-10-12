@@ -3,7 +3,7 @@
 
 One continuous Kraus operator of a [`PeriodMap`](@ref): the retained amplitude ``K(u)`` of the
 jump records with ``q`` jumps at the fractional times ``0 < u_1 < \\dots < u_q < 1`` of the period,
-with its positive weight ``w``. It contributes
+with its weight ``w``, nonnegative when the jump rates are. It contributes
 ``w \\int_{0<u_1<\\dots<u_q<1} K(u) \\rho K(u)^\\dagger \\, du`` to the map. Read it with
 [`weight`](@ref), [`amplitude`](@ref) and [`jump_times`](@ref).
 """
@@ -69,8 +69,8 @@ order(Φ::PeriodMap) = Φ.order
 
 Return the period map as the linear map ``\\rho \\mapsto \\sum_j c_j A_j \\rho B_j``. Its
 coefficients are exact polynomials in ``\\pi``, the parameters, and ``1/\\omega``. The map is
-completely positive for every drive frequency, not only through the retained order, because it is
-a sum over jump records of squared jump amplitudes; see
+completely positive for every drive frequency and nonnegative jump rates, not only through the
+retained order, because it is a sum over jump records of squared jump amplitudes; see
 [Floquet–Kraus period map](@ref floquet-kraus-theory).
 
 `SQA.simplify` evaluates ``\\pi`` in floating point, so simplify a coefficient only after
@@ -109,8 +109,8 @@ function lower_harmonics(lowering::SQALowering, P::PeriodicGenerator{SQA.QAdd})
   return Dict(k => lower_qadd(lowering, P[k]) for k in keys(P))
 end
 
-function time_independent_rate(rate::SQA.CNum, wd::Symbolics.Num, t::Symbolics.Num)
-  found = Symbolics.get_variables(SQA.to_num(rate))
+function check_time_independent_rate(rate::SQA.CNum, wd::Symbolics.Num, t::Symbolics.Num)
+  found = Symbolics.get_variables(coefficient_number(rate))
   any(v -> isequal(v, Symbolics.unwrap(t)) || isequal(v, Symbolics.unwrap(wd)), found) &&
     throw(
       ArgumentError(
@@ -124,27 +124,23 @@ end
 function lowered_channels(
   lowering::SQALowering{T}, provenance::MicroscopicProvenance, wd, t
 ) where {T}
-  channels = LoweredChannel{AlgebraOperator{T,real(T)},T}[]
-  for operator in provenance.collapse_operators
-    push!(
-      channels,
-      LoweredChannel(lower_harmonics(lowering, harmonics(operator, wd, t)), one(T)),
-    )
-  end
-  for (operator, rate) in zip(provenance.jump_operators, provenance.jump_rates)
-    time_independent_rate(rate, wd, t)
-    push!(
-      channels,
-      LoweredChannel(
-        lower_harmonics(lowering, harmonics(operator, wd, t)),
-        lower_coefficient(lowering, rate),
-      ),
-    )
-  end
-  return channels
+  operators = [provenance.collapse_operators; provenance.jump_operators]
+  rates = [
+    fill(one(T), length(provenance.collapse_operators))
+    [
+      lower_coefficient(lowering, check_time_independent_rate(rate, wd, t)) for
+      rate in provenance.jump_rates
+    ]
+  ]
+  return LoweredChannel{AlgebraOperator{T,real(T)},T}[
+    LoweredChannel(lower_harmonics(lowering, harmonics(operator, wd, t)), rate) for
+    (operator, rate) in zip(operators, rates)
+  ]
 end
 
-function no_jump_generator(H::Harmonics{X}, channels::Vector{<:LoweredChannel{X}}) where {X}
+function no_jump_generator(
+  H::Harmonics{X}, channels::Vector{<:LoweredChannel{X}}, zero_element::X
+) where {X}
   Q = Harmonics{X}(k => -im * value for (k, value) in H)
   for channel in channels
     adjoint_operator = Harmonics{X}(-k => adjoint(value) for (k, value) in channel.operator)
@@ -154,22 +150,18 @@ function no_jump_generator(H::Harmonics{X}, channels::Vector{<:LoweredChannel{X}
   for (k, value) in collect(Q)
     iszero(value) && delete!(Q, k)
   end
-  haskey(Q, 0) || (Q[0] = zero(first(values(H))))
+  haskey(Q, 0) || (Q[0] = zero_element)
   return Q
 end
 
-function period_map_lowering(generator::PeriodicGenerator{Liouvillian})
-  parameters = native_parameters(generator)
-  any(p -> isequal(p, generator.wd), parameters) && throw(
-    ArgumentError(
-      "the drive frequency $(generator.wd) appears in a coefficient; the period map is in " *
-      "powers of 1/$(generator.wd), so write every coefficient without it",
-    ),
+function period_map_lowering(generator::PeriodicGenerator{Liouvillian}, order::Int)
+  parameters = checked_native_parameters(
+    generator, MAXIMUM_PARAMETERS - 1, "the period map"
   )
-  length(parameters) < MAXIMUM_PARAMETERS || throw(
+  times = [Symbolics.variable(:u, j; T=Real) for j in 1:order]
+  any(u -> any(p -> isequal(p, u), parameters), times) && throw(
     ArgumentError(
-      "the period map supports at most $(MAXIMUM_PARAMETERS - 1) symbolic parameters, " *
-      "found $(length(parameters)); substitute exact values for some of them",
+      "the jump times are named u₁, …, u_$order; rename the parameters that use these names",
     ),
   )
   T = Complex{ParameterScalar}
@@ -179,51 +171,89 @@ function period_map_lowering(generator::PeriodicGenerator{Liouvillian})
     [parameters; Symbolics.Num(π)], ones(Int, length(parameters) + 1)
   )
   twopi = T(2 * parameter_variable(length(parameters) + 1))
-  return lowering, coefficients, twopi
+  return lowering, coefficients, twopi, times
 end
 
-function word_kernel(word, jumps, powers, left, right, twopi, identity, R::Int)
-  q = length(word)
-  kernel = drift(kernel_identity(identity, q), powers, twopi, 1, 0, q, R)
-  for (j, channel) in pairs(word)
-    kernel = insert_jump(kernel, jumps[channel], j, R)
-    kernel = drift(kernel, powers, twopi, j + 1, j, q, R)
+struct JumpRecords{X,F,L<:CoefficientLift}
+  jumps::Vector{Vector{Harmonics{X}}}
+  powers::Vector{Vector{X}}
+  left::Vector{X}
+  right::Vector{X}
+  rates::Vector{F}
+  twopi::F
+  integrals::SimplexIntegrals{F}
+  lift::L
+  drive_scales::Vector{SQA.CNum}
+  times::Vector{Symbolics.Num}
+  time_values::Dict{TimeMonomial,SQA.CNum}
+end
+
+function record_rate(word::Vector{Int}, records::JumpRecords)
+  rate = records.twopi^length(word)
+  for channel in word
+    rate *= records.rates[channel]
   end
-  return conjugate_kernel(kernel, left, right, R)
+  return rate
 end
 
-function monomial_operators(
-  kernel::TimeKernel{X}, monomial, R::Int, zero_element::X
+function record_map!(
+  series::Vector, q::Int, kernel::TimeKernel{X}, rate, integrals::SimplexIntegrals
 ) where {X}
-  return X[get(kernel.terms, (r, monomial), zero_element) for r in 0:R]
-end
-
-function record_rate(word, rates, twopi, q::Int)
-  return twopi^q * prod(rates[channel] for channel in word; init=one(twopi))
-end
-
-function sector_map!(
-  series::Vector{S}, q, words, kernels, rates, twopi, zero_element, R
-) where {S}
-  monomials = sort!(
-    unique([monomial for kernel in kernels for ((_, monomial), _) in kernel.terms])
-  )
-  isempty(monomials) && return series
-  gram = kernel_gram(monomials, inv(twopi))
-  for (word, kernel) in zip(words, kernels)
-    rate = record_rate(word, rates, twopi, q)
-    operators = [
-      monomial_operators(kernel, monomial, R, zero_element) for monomial in monomials
-    ]
-    adjoints = [adjoint.(A) for A in operators]
-    for i in eachindex(monomials), j in eachindex(monomials)
-      iszero(gram[i, j]) && continue
-      weight = rate * gram[i, j]
-      for (r, A) in pairs(operators[i]), (s, B) in pairs(adjoints[j])
-        (iszero(A) || iszero(B)) && continue
-        series[q + r + s - 1] += weight * sandwich(A, B)
-      end
+  adjoints = Dict(key => adjoint(B) for (key, B) in kernel.terms)
+  for ((r, μ), A) in kernel.terms
+    weighted = Dict{Int,X}()
+    for ((s, ν), B) in adjoints
+      weight = gram_entry(integrals, μ, ν)
+      iszero(weight) || accumulate!(weighted, s, (rate * weight) * B)
     end
+    for (s, B) in weighted
+      series[q + r + s + 1] += sandwich(A, B)
+    end
+  end
+  return series
+end
+
+function time_value(records::JumpRecords, monomial::TimeMonomial)
+  return get!(() -> time_monomial(monomial, records.times), records.time_values, monomial)
+end
+
+function lift_amplitude(records::JumpRecords, kernel::TimeKernel, rate, q::Int)
+  weight = lift_coefficient(records.lift.coefficient, rate) * records.drive_scales[q + 1]
+  pieces = (
+    (X, records.drive_scales[r + 1] * time_value(records, monomial)) for
+    ((r, monomial), X) in kernel.terms
+  )
+  return JumpAmplitude(weight, lift_scaled_sum(records.lift, pieces), records.times[1:q])
+end
+
+function record!(series, amplitudes, records::JumpRecords, kernel, word, R::Int)
+  amplitude = conjugate_kernel(kernel, records.left, records.right, R)
+  isempty(amplitude.terms) && return series
+  rate = record_rate(word, records)
+  record_map!(series, length(word), amplitude, rate, records.integrals)
+  push!(amplitudes, lift_amplitude(records, amplitude, rate, length(word)))
+  return series
+end
+
+function jump_records!(
+  series, amplitudes, records::JumpRecords, kernel, word::Vector{Int}, q::Int, R::Int
+)
+  isempty(kernel.terms) && return series
+  j = length(word)
+  j == q && return record!(series, amplitudes, records, kernel, word, R)
+  for (channel, jump) in pairs(records.jumps)
+    next = insert_jump(kernel, jump, j + 1, R)
+    push!(word, channel)
+    jump_records!(
+      series,
+      amplitudes,
+      records,
+      drift(next, records.powers, records.twopi, j + 2, j + 1, R),
+      word,
+      q,
+      R,
+    )
+    pop!(word)
   end
   return series
 end
@@ -242,26 +272,8 @@ function graded_trace_defect(series::Vector{<:AlgebraSuperoperator}, identity, N
   defect = [dual_identity(S) for S in series]
   defect[1] -= identity
   all(iszero, defect[1:(N + 1)]) ||
-    throw(ArgumentError("the period map failed its trace-preservation certificate"))
+    error("the period map failed its trace-preservation certificate")
   return defect
-end
-
-function lift_scaled(result::SQA.QAdd, lift::CoefficientLift, X, scale::SQA.CNum)
-  for (monomial, c) in X.terms
-    result =
-      result +
-      (lift_coefficient(lift.coefficient, c) * scale) * lift_monomial!(lift, monomial)
-  end
-  return result
-end
-
-function lift_graded(lift::CoefficientLift, series::Vector, wd::Symbolics.Num, lowest::Int)
-  result = zero(SQA.QAdd)
-  for (n, X) in pairs(series)
-    n - 1 >= lowest || continue
-    result = lift_scaled(result, lift, X, convert(SQA.CNum, inverse_drive_power(wd, n - 1)))
-  end
-  return result
 end
 
 function time_monomial((phases, powers)::TimeMonomial, times::Vector{Symbolics.Num})
@@ -273,20 +285,10 @@ function time_monomial((phases, powers)::TimeMonomial, times::Vector{Symbolics.N
   return convert(SQA.CNum, value)
 end
 
-function lift_amplitude(lift::CoefficientLift, kernel::TimeKernel, wd, times, weight)
-  result = zero(SQA.QAdd)
-  for ((r, monomial), X) in kernel.terms
-    scale = convert(SQA.CNum, inverse_drive_power(wd, r)) * time_monomial(monomial, times)
-    result = lift_scaled(result, lift, X, scale)
-  end
-  return JumpAmplitude(weight, result, times)
-end
-
-function lift_graded_superoperator(lift::CoefficientLift, series::Vector, wd::Symbolics.Num)
+function lift_graded_superoperator(lift::CoefficientLift, series::Vector, scales)
   result = Liouvillian(LiouvillianTerms())
-  for (n, S) in pairs(series)
-    iszero(S) && continue
-    lift_superoperator!(result, lift, S, convert(SQA.CNum, inverse_drive_power(wd, n - 1)))
+  for (S, scale) in zip(series, scales)
+    iszero(S) || lift_superoperator!(result, lift, S, scale)
   end
   return result
 end
@@ -310,7 +312,8 @@ The map is never assumed to have a time-independent GKSL logarithm. It is the su
 quantum-jump records of the period of squared jump amplitudes, integrated exactly over the jump
 times. Every amplitude is retained through the requested order and squared without truncation, so
 the map is completely positive for every drive frequency, and its [`trace_defect`](@ref) starts
-beyond the retained order.
+beyond the retained order. A symbolic rate enters as the nonnegative quantity that [`jump`](@ref)
+assumes it to be, and complete positivity holds only where that assumption does.
 
 `algorithm` selects the [`ExpansionAlgorithm`](@ref) for the Floquet frame of the no-jump
 evolution: [`HoriDeprit`](@ref), the default, or [`BlochFeshbach`](@ref). Both give the same map.
@@ -327,8 +330,10 @@ The construction is described in [Floquet–Kraus period map](@ref floquet-kraus
 # Restrictions
 
 - Jump rates must be time independent; a periodic rate belongs in the operator.
-- Coefficients must be exact and polynomial in at most seven symbolic parameters, as for
-  [`GKSLNormalForm`](@ref), and the drive frequency may not appear in a coefficient.
+- Coefficients must be exact and polynomial in at most seven symbolic parameters, one fewer than
+  [`GKSLNormalForm`](@ref) because ``\\pi`` takes a parameter slot, and the drive frequency may
+  not appear in a coefficient.
+- The jump times are named ``u_1, \\dots, u_N``, so no parameter may carry these names.
 - The cost grows with the number of jump sequences, which is exponential in `order` for several
   channels.
 
@@ -361,46 +366,45 @@ function period_map(
   require_hermitian_drive(hamiltonian_harmonics)
   provenance = microscopic_provenance(channels, wd, t)
   generator = harmonics(liouvillian_from_provenance(H, provenance), wd, t)
-  lowering, coefficients, twopi = period_map_lowering(generator)
+  lowering, coefficients, twopi, times = period_map_lowering(generator, order)
   identity = algebra_identity(lowering.algebra)
   zero_element = zero(identity)
 
   lowered = lowered_channels(lowering, provenance, wd, t)
-  Hh = lower_harmonics(lowering, hamiltonian_harmonics)
-  haskey(Hh, 0) || (Hh[0] = zero_element)
-  frame = no_jump_frame(algorithm, no_jump_generator(Hh, lowered), order)
-  powers = effective_powers(frame, order)
-  jumps = [transported_jump(frame, channel.operator, order) for channel in lowered]
-  left = graded_value(frame.kick, zero_element)
-  right = graded_value(frame.inverse, zero_element)
-  rates = [channel.rate for channel in lowered]
-
+  Q = no_jump_generator(
+    lower_harmonics(lowering, hamiltonian_harmonics), lowered, zero_element
+  )
+  frame = no_jump_frame(algorithm, Q, order)
+  drive_scales = [convert(SQA.CNum, inverse_drive_power(wd, n)) for n in 0:(2 * order)]
   lift = CoefficientLift(lowering, coefficients)
-  times = [Symbolics.variable(:u, j; T=Real) for j in 1:order]
+  records = JumpRecords(
+    [transported_jump(frame, channel.operator, order) for channel in lowered],
+    effective_powers(frame, order),
+    graded_value(frame.kick, zero_element),
+    graded_value(frame.inverse, zero_element),
+    [channel.rate for channel in lowered],
+    twopi,
+    SimplexIntegrals(inv(twopi)),
+    lift,
+    drive_scales,
+    times,
+    Dict{TimeMonomial,SQA.CNum}(),
+  )
+
   amplitudes = JumpAmplitude[]
   series = [zero(sandwich(identity, identity)) for _ in 0:(2 * order)]
   for q in 0:order
     q > 0 && isempty(lowered) && break
     R = order - q
-    words = vec(collect(Iterators.product(ntuple(_ -> eachindex(lowered), q)...)))
-    kernels = [
-      word_kernel(word, jumps, powers, left, right, twopi, identity, R) for word in words
-    ]
-    sector_map!(series, q, words, kernels, rates, twopi, zero_element, R)
-    for (word, kernel) in zip(words, kernels)
-      isempty(kernel.terms) && continue
-      record_weight =
-        lift_coefficient(coefficients, record_rate(word, rates, twopi, q)) *
-        convert(SQA.CNum, inverse_drive_power(wd, q))
-      push!(amplitudes, lift_amplitude(lift, kernel, wd, times[1:q], record_weight))
-    end
+    kernel = drift(kernel_identity(identity, q), records.powers, twopi, 1, 0, R)
+    jump_records!(series, amplitudes, records, kernel, Int[], q, R)
   end
   defect = graded_trace_defect(series, identity, order)
 
   return PeriodMap(
-    lift_graded_superoperator(lift, series, wd),
+    lift_graded_superoperator(lift, series, drive_scales),
     amplitudes,
-    lift_graded(lift, defect, wd, order + 1),
+    lift_scaled_sum(lift, zip(defect, drive_scales)),
     order,
   )
 end

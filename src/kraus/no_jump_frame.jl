@@ -4,21 +4,30 @@ struct NoJumpFrame{X}
   inverse::Vector{Harmonics{X}}
 end
 
-micromotion_generator(::HoriDeprit, G::Vector{<:Harmonics}, identity, N::Int) = G
+function kick_inverse(K::Vector{Harmonics{X}}, identity::X, N::Int) where {X}
+  A = kick_add(kick_identity(identity, N), K, N, 1, -1)
+  result = kick_identity(identity, N)
+  power = kick_identity(identity, N)
+  for _ in 1:N
+    power = kick_mul(power, A, N)
+    result = kick_add(result, power, N, 1, 1)
+  end
+  return result
+end
 
-function micromotion_generator(::BlochFeshbach, Y::Vector{<:Harmonics}, identity, N::Int)
-  return kick_log(Y, identity, N)
+function frame_kicks(::HoriDeprit, G::Vector{<:Harmonics}, identity, N::Int)
+  return kick_exp(G, identity, N), kick_exp(kick_scale(G, N, -1), identity, N)
+end
+
+function frame_kicks(::BlochFeshbach, Y::Vector{<:Harmonics}, identity, N::Int)
+  return Y, kick_inverse(Y, identity, N)
 end
 
 function no_jump_frame(
   algorithm::Union{BlochFeshbach,HoriDeprit}, Q::Harmonics{X}, N::Int
 ) where {X}
   effective, _, kick = floquet_recurrence(algorithm, Q, N, VanVleckSlot())
-  identity = one(Q[0])
-  G = micromotion_generator(algorithm, kick, identity, N)
-  return NoJumpFrame{X}(
-    effective, kick_exp(G, identity, N), kick_exp(kick_scale(G, N, -1), identity, N)
-  )
+  return NoJumpFrame{X}(effective, frame_kicks(algorithm, kick, one(Q[0]), N)...)
 end
 
 function graded_value(series::Vector{Harmonics{X}}, zero_element::X) where {X}
@@ -45,8 +54,8 @@ function effective_powers(frame::NoJumpFrame{X}, N::Int) where {X}
   zero_element = zero(identity)
   power = X[n == 0 ? identity : zero_element for n in 0:N]
   powers = [power]
-  for _ in 1:N
-    power = series_product(power, frame.effective, N, zero_element)
+  for p in 1:N
+    power = series_product(power, frame.effective, N - p, zero_element)
     push!(powers, power)
   end
   return powers

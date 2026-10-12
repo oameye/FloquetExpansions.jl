@@ -426,3 +426,11 @@ function (G::PeriodicGenerator)(t::Symbolics.Num)
     init=zero(G.zero_component),
   )
 end
+
+@inline function inverse_drive_power(wd::Symbolics.Num, grade::Int)
+  power = Symbolics.Num(1)
+  for _ in 1:grade
+    power *= wd
+  end
+  return iszero(grade) ? power : inv(power)
+end

@@ -81,14 +81,6 @@ function completion_series(matrices::Vector{KossakowskiMatrix})
   return result
 end
 
-@inline function inverse_drive_power(wd::Symbolics.Num, grade::Int)
-  power = Symbolics.Num(1)
-  for _ in 1:grade
-    power *= wd
-  end
-  return iszero(grade) ? power : inv(power)
-end
-
 function retained_gksl_data(expansion::FloquetExpansion, frame::DissipativeFrame)
   components = getfield(expansion, :effective_components)
   drive_frequency = getfield(expansion, :generator).wd
