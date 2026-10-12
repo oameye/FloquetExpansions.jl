@@ -64,6 +64,20 @@ end
   @test all(same(effective_component(bf, n), effective_component(native, n)) for n in 0:4)
 end
 
+@testset "GKSLNormalForm generates one-photon loss from driven two-photon loss" begin
+  @variables Δ::Real K::Real ε::Real κ::Real
+  h = FockSpace(:two_photon)
+  a = Destroy(h, :a)
+  H = Δ * a' * a + K * a' * a' * a * a + ε * cos(ω * t) * (a + a')
+  native = floquet_expansion(H, ω, t, GKSLNormalForm(), 3; channels=(jump(a * a, κ),))
+  jumps = channels(native)
+  @test length(jumps) == 2
+  @test same(jumps[1].operator, a * a)
+  @test iszero(FE.SQA.simplify(jumps[1].rate - κ))
+  @test same(jumps[2].operator, a)
+  @test iszero(FE.SQA.simplify(jumps[2].rate - 2 * ε^2 * κ / ω^2))
+end
+
 @testset "GKSLNormalForm on a driven oscillator in position and momentum" begin
   phase = PhaseSpace(:q)
   x = Position(phase, :q)

@@ -55,7 +55,7 @@ Symbolic parameters, and a terminal virtual gauge for an order with no polynomia
 
 `make test` runs the testsets that hold this decision:
 
-- `test/native/gksl_normal_form.jl`: "GKSLNormalForm coincides with VanVleck wherever no static gauge is needed", "GKSLNormalForm driven Kerr is GKSL with a drive-induced channel" (which also compares BF with HD), "GKSLNormalForm on a driven oscillator in position and momentum" and "GKSLNormalForm rejects what it cannot expand exactly"
+- `test/native/gksl_normal_form.jl`: "GKSLNormalForm coincides with VanVleck wherever no static gauge is needed", "GKSLNormalForm driven Kerr is GKSL with a drive-induced channel" (which also compares BF with HD), "GKSLNormalForm generates one-photon loss from driven two-photon loss", "GKSLNormalForm on a driven oscillator in position and momentum" and "GKSLNormalForm rejects what it cannot expand exactly"
 - `test/native/gksl_gram_regression.jl`: "driven Kerr with loss: GKSLNormalForm equals Gram completion of Van Vleck" and "driven qubit with decay: GKSLNormalForm equals Gram completion of Van Vleck"
 - `test/native/gksl_finite_oracle.jl`: "GKSLNormalForm spectrum matches the exact Floquet exponents" and "GKSLNormalForm Kossakowski matrix is positive semidefinite at finite frequency"
 - `test/native/gksl_phase_independence.jl`: "GKSLNormalForm is independent of the drive phase"
