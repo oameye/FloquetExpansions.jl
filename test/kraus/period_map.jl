@@ -148,6 +148,25 @@ end
   end
 end
 
+function grade_coefficients(f, degree)
+  nodes = [cospi((2j + 1) / (2degree + 2)) / 2 for j in 0:degree]
+  W = inv([ε^k for ε in nodes, k in 0:degree])
+  samples = [f(ε) for ε in nodes]
+  return [sum(W[k + 1, j] * samples[j] for j in eachindex(nodes)) for k in 0:degree]
+end
+
+truncated_product(A, B, N) = [sum(A[i + 1] * B[k - i + 1] for i in 0:k) for k in 0:N]
+
+function truncated_exp(A, N)
+  result = [k == 0 ? Matrix{ComplexF64}(I, size(A[1])) : zero(A[1]) for k in 0:N]
+  power = result
+  for p in 1:N
+    power = truncated_product(power, A, N) ./ p
+    result = result .+ power
+  end
+  return result
+end
+
 @testset "period map recovers the effective generator after the micromotion" begin
   for (gauge, H, channels) in
       ((VanVleck(), (1 // 3) * σz, rotating), (GKSLNormalForm(), drive, decay[1:1]))
@@ -156,14 +175,21 @@ end
       period_map(H, ω, t; channels=pairs_to_jumps(channels)), VanVleck(), N
     )
     x = floquet_expansion(H, ω, t, gauge, N; channels=pairs_to_jumps(channels))
-    function error(value)
-      substitutions = Dict(ω => value, t => 0)
-      K = liouvillian_matrix(micromotion(x)(t), substitutions)
-      L = liouvillian_matrix(effective_generator(x), substitutions)
-      reference = exp(K) * exp(2π / value * L) * exp(-K)
-      return opnorm(map_matrix(Φ, substitutions) - reference)
+    at(ε) = Dict(ω => 1 / ε, t => 0)
+    degree = 2N + 3
+    K = grade_coefficients(ε -> liouvillian_matrix(micromotion(x)(t), at(ε)), degree)
+    TL = grade_coefficients(
+      ε -> 2π * ε * liouvillian_matrix(effective_generator(x), at(ε)), degree
+    )
+    S = grade_coefficients(ε -> map_matrix(Φ, at(ε)), degree)
+    conjugate = truncated_exp(K[1:(N + 1)], N)
+    inverse = truncated_exp(-K[1:(N + 1)], N)
+    reference = truncated_product(
+      truncated_product(conjugate, truncated_exp(TL[1:(N + 1)], N), N), inverse, N
+    )
+    for k in 0:N
+      @test S[k + 1] ≈ reference[k + 1] atol = 1e-9
     end
-    @test convergence_mismatch(error, N) < 0.1
   end
 end
 
