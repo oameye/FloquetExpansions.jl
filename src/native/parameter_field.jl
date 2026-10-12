@@ -7,7 +7,7 @@ struct ParameterScalar <: Real
   ParameterScalar(value::ParameterFraction) = new(value)
 end
 
-parameter_ring() = Nemo.polynomial_ring_only(Nemo.QQ, PARAMETER_NAMES; cached=true)
+parameter_ring() = Nemo.AbstractAlgebra.poly_ring(Nemo.QQ, PARAMETER_NAMES; cached=true)
 
 parameter_field() = Nemo.fraction_field(parameter_ring(); cached=true)
 
