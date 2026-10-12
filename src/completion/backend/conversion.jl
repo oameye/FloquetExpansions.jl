@@ -11,48 +11,8 @@ function completion_matrix(matrix::KossakowskiMatrix)
   return result
 end
 
-function exact_numeric_radical_replacement(rational::Rational{Int})
-  reciprocal_root = Symbolics.Num(
-    Symbolics.term(sqrt, Symbolics.unwrap(Symbolics.Num(inv(rational))); type=Real)
-  )
-  return Symbolics.Num(rational) * reciprocal_root
-end
-
-function collect_exact_numeric_radicals!(
-  replacements::Dict{Symbolics.Num,Symbolics.Num}, node
-)
-  Symbolics.iscall(node) || return replacements
-  arguments = Symbolics.arguments(node)
-  if Symbolics.operation(node) === sqrt && length(arguments) == 1
-    radicand = Symbolics.unwrap_const(only(arguments))
-    if radicand isa Union{Int,Rational{Int}} && radicand > 1
-      replacements[Symbolics.Num(node)] = exact_numeric_radical_replacement(
-        Rational{Int}(radicand)
-      )
-      return replacements
-    end
-  end
-  for argument in arguments
-    collect_exact_numeric_radicals!(replacements, argument)
-  end
-  return replacements
-end
-
-function preserve_exact_numeric_radicals(value::Symbolics.Num)
-  simplified = Symbolics.simplify(value)
-  replacements = Dict{Symbolics.Num,Symbolics.Num}()
-  collect_exact_numeric_radicals!(replacements, Symbolics.unwrap(simplified))
-  isempty(replacements) && return simplified
-  return Symbolics.substitute(simplified, replacements)
-end
-
 function coefficient_from_completion(value::CompletionScalar)
-  simplified = simplify_scalar(value)
-  exact_value = complex(
-    preserve_exact_numeric_radicals(real(simplified)),
-    preserve_exact_numeric_radicals(imag(simplified)),
-  )
-  return SQA.simplify(convert(SQA.CNum, exact_value))
+  return SQA.simplify(convert(SQA.CNum, simplify_scalar(value)))
 end
 
 function coefficient_matrix_from_completion(matrix::CompletionMatrix)
