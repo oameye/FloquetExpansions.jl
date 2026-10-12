@@ -197,20 +197,32 @@ function record_rate(word::Vector{Int}, records::JumpRecords)
 end
 
 function record_map!(
-  series::Vector, q::Int, kernel::TimeKernel{X}, rate, integrals::SimplexIntegrals
-) where {X}
-  adjoints = Dict(key => adjoint(B) for (key, B) in kernel.terms)
-  for ((r, μ), A) in kernel.terms
-    weighted = Dict{Int,X}()
-    for ((s, ν), B) in adjoints
+  diagonal::Vector,
+  upper::Vector,
+  q::Int,
+  kernel::TimeKernel{AlgebraOperator{T,R}},
+  rate::T,
+  integrals,
+) where {T,R}
+  entries = collect(kernel.terms)
+  adjoints = [adjoint(B) for (_, B) in entries]
+  for (i, ((r, μ), A)) in pairs(entries)
+    weighted = Dict{Int,Dict{Monomial,T}}()
+    for j in i:length(entries)
+      s, ν = first(entries[j])
       weight = gram_entry(integrals, μ, ν)
-      iszero(weight) || accumulate!(weighted, s, (rate * weight) * B)
+      iszero(weight) && continue
+      if j == i
+        add_sandwich!(diagonal[q + r + s + 1], A, (rate * weight) * adjoints[j])
+      else
+        add_scaled!(get!(Dict{Monomial,T}, weighted, s), rate * weight, adjoints[j])
+      end
     end
-    for (s, B) in weighted
-      series[q + r + s + 1] += sandwich(A, B)
+    for (s, terms) in weighted
+      add_sandwich!(upper[q + r + s + 1], A, AlgebraOperator{T,R}(A.algebra, terms))
     end
   end
-  return series
+  return diagonal
 end
 
 function time_value(records::JumpRecords, monomial::TimeMonomial)
@@ -226,26 +238,27 @@ function lift_amplitude(records::JumpRecords, kernel::TimeKernel, rate, q::Int)
   return JumpAmplitude(weight, lift_scaled_sum(records.lift, pieces), records.times[1:q])
 end
 
-function record!(series, amplitudes, records::JumpRecords, kernel, word, R::Int)
+function record!(targets, amplitudes, records::JumpRecords, kernel, word, R::Int)
   amplitude = conjugate_kernel(kernel, records.left, records.right, R)
-  isempty(amplitude.terms) && return series
+  isempty(amplitude.terms) && return targets
   rate = record_rate(word, records)
-  record_map!(series, length(word), amplitude, rate, records.integrals)
+  diagonal, upper = targets
+  record_map!(diagonal, upper, length(word), amplitude, rate, records.integrals)
   push!(amplitudes, lift_amplitude(records, amplitude, rate, length(word)))
-  return series
+  return targets
 end
 
 function jump_records!(
-  series, amplitudes, records::JumpRecords, kernel, word::Vector{Int}, q::Int, R::Int
+  targets, amplitudes, records::JumpRecords, kernel, word::Vector{Int}, q::Int, R::Int
 )
-  isempty(kernel.terms) && return series
+  isempty(kernel.terms) && return targets
   j = length(word)
-  j == q && return record!(series, amplitudes, records, kernel, word, R)
+  j == q && return record!(targets, amplitudes, records, kernel, word, R)
   for (channel, jump) in pairs(records.jumps)
     next = insert_jump(kernel, jump, j + 1, R)
     push!(word, channel)
     jump_records!(
-      series,
+      targets,
       amplitudes,
       records,
       drift(next, records.powers, records.twopi, j + 2, j + 1, R),
@@ -255,7 +268,7 @@ function jump_records!(
     )
     pop!(word)
   end
-  return series
+  return targets
 end
 
 function dual_identity(S::AlgebraSuperoperator{T,R}) where {T,R}
@@ -392,13 +405,15 @@ function period_map(
   )
 
   amplitudes = JumpAmplitude[]
-  series = [zero(sandwich(identity, identity)) for _ in 0:(2 * order)]
+  diagonal = [zero(sandwich(identity, identity)) for _ in 0:(2 * order)]
+  upper = [zero(sandwich(identity, identity)) for _ in 0:(2 * order)]
   for q in 0:order
     q > 0 && isempty(lowered) && break
     R = order - q
     kernel = drift(kernel_identity(identity, q), records.powers, twopi, 1, 0, R)
-    jump_records!(series, amplitudes, records, kernel, Int[], q, R)
+    jump_records!((diagonal, upper), amplitudes, records, kernel, Int[], q, R)
   end
+  series = [add_adjoint_mirror!(D + U, U) for (D, U) in zip(diagonal, upper)]
   defect = graded_trace_defect(series, identity, order)
 
   return PeriodMap(

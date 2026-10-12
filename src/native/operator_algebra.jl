@@ -256,6 +256,13 @@ function scale_operator(c::T, A::AlgebraOperator{T,R}) where {T,R}
   return AlgebraOperator{T,R}(A.algebra, terms)
 end
 
+function add_scaled!(terms::Dict{Monomial,T}, c::T, A::AlgebraOperator{T}) where {T}
+  for (k, v) in A.terms
+    accumulate!(terms, k, c * v)
+  end
+  return terms
+end
+
 Base.:-(A::AlgebraOperator) = -1 * A
 Base.:-(A::AlgebraOperator, B::AlgebraOperator) = A + (-B)
 function Base.zero(A::AlgebraOperator{T,R}) where {T,R}
@@ -296,6 +303,27 @@ function sandwich(A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}) where {T,R}
     accumulate!(terms, (a, b), ca * cb)
   end
   return AlgebraSuperoperator{T,R}(A.algebra, terms)
+end
+
+function add_sandwich!(
+  S::AlgebraSuperoperator{T,R}, A::AlgebraOperator{T,R}, B::AlgebraOperator{T,R}
+) where {T,R}
+  for (a, ca) in A.terms, (b, cb) in B.terms
+    accumulate!(S.terms, (a, b), ca * cb)
+  end
+  return S
+end
+
+function add_adjoint_mirror!(
+  target::AlgebraSuperoperator{T,R}, S::AlgebraSuperoperator{T,R}
+) where {T,R}
+  for ((a, b), c) in S.terms,
+    (ma, ca) in monomial_adjoint(S.algebra, a),
+    (mb, cb) in monomial_adjoint(S.algebra, b)
+
+    accumulate!(target.terms, (mb, ma), conj(c) * cb * ca)
+  end
+  return target
 end
 
 left_action(A::AlgebraOperator) = sandwich(A, algebra_identity(A.algebra))
