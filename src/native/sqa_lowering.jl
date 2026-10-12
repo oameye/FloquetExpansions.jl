@@ -163,18 +163,11 @@ function polynomial_tail(c::SQA.CNum)
   return tail
 end
 
-# SQA packs the monomial scalar into a concrete slot from qojulia/SecondQuantizedAlgebra.jl#297 on.
-@static if isdefined(SQA, :monomial_scalar)
-  monomial_scalar(monomial::SQA.Monomial) = SQA.monomial_scalar(monomial)
-else
-  monomial_scalar(monomial::SQA.Monomial) = monomial.scalar
-end
-
 function lower_coefficient(lowering::SQALowering{T}, c::SQA.CNum) where {T}
   c.tail isa SQA.Native && return exact_scalar(T, SQA.native_scalar(c))
   value = zero(T)
   for monomial in polynomial_tail(c).terms
-    term = exact_scalar(T, monomial_scalar(monomial))
+    term = exact_scalar(T, SQA.monomial_scalar(monomial))
     for (symbol, exponent) in zip(monomial.syms, monomial.exps)
       term *= parameter_value(lowering, symbol)^Int(exponent)
     end
