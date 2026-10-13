@@ -164,16 +164,13 @@ function no_jump_generator(
   return Q
 end
 
-function period_map_scalars(
-  generator::PeriodicGenerator{Liouvillian}, ::Tuple{}, ::Type{T}
-) where {T}
+function period_map_scalars(generator::PeriodicGenerator{Liouvillian}, ::Type{T}) where {T}
   return SQALowering{T}(generator), ExactCoefficients()
 end
 
 function period_map_scalars(
   generator::PeriodicGenerator{Liouvillian},
   parameters::Tuple{Symbolics.Num,Vararg{Symbolics.Num}},
-  ::Type,
 )
   T = Complex{ParameterScalar}
   symbols = Symbolics.Num[p for p in parameters]
@@ -182,9 +179,7 @@ function period_map_scalars(
   return lowering, ParameterCoefficients(symbols, ones(Int, length(symbols)))
 end
 
-function period_map_lowering(
-  generator::PeriodicGenerator{Liouvillian}, order::Int, ::Type{T}=Complex{Rational{BigInt}}
-) where {T}
+function period_map_lowering(generator::PeriodicGenerator{Liouvillian}, order::Int)
   parameters = checked_native_parameters(generator, MAXIMUM_PARAMETERS, "the period map")
   times = [Symbolics.variable(:u, j; T=Real) for j in 1:order]
   any(u -> any(p -> isequal(p, u), parameters), times) && throw(
@@ -192,7 +187,7 @@ function period_map_lowering(
       "the jump times are named u₁, …, u_$order; rename the parameters that use these names",
     ),
   )
-  return period_map_scalars(generator, Tuple(parameters), T)..., times
+  return Tuple(parameters), times
 end
 
 struct JumpRecords{X,F,L<:CoefficientLift}
@@ -480,14 +475,34 @@ false
 """
 function floquet_expansion(Φ::PeriodMap, gauge::VanVleck, order::Int)
   order >= 1 || throw(ArgumentError("order must be >= 1"))
+  return expand_period_map(Φ, gauge, order, period_map_lowering(Φ.generator, order)...)
+end
+
+function expand_period_map(
+  Φ::PeriodMap, gauge::VanVleck, order::Int, ::Tuple{}, times::Vector{Symbolics.Num}
+)
   try
     return expand_period_map(
-      Φ, gauge, order, period_map_lowering(Φ.generator, order, Complex{Rational{Int128}})...
+      Φ, gauge, order, period_map_scalars(Φ.generator, Complex{Rational{Int128}})..., times
     )
   catch error
     error isa Union{OverflowError,InexactError} || rethrow()
-    return expand_period_map(Φ, gauge, order, period_map_lowering(Φ.generator, order)...)
+    return expand_period_map(
+      Φ, gauge, order, period_map_scalars(Φ.generator, Complex{Rational{BigInt}})..., times
+    )
   end
+end
+
+function expand_period_map(
+  Φ::PeriodMap,
+  gauge::VanVleck,
+  order::Int,
+  parameters::Tuple{Symbolics.Num,Vararg{Symbolics.Num}},
+  times::Vector{Symbolics.Num},
+)
+  return expand_period_map(
+    Φ, gauge, order, period_map_scalars(Φ.generator, parameters)..., times
+  )
 end
 
 function expand_period_map(
