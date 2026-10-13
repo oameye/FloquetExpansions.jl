@@ -22,7 +22,9 @@ function harmonic_matrices(op, d::Int, substitutions)
 end
 
 function no_jump_frame(Φ, algorithm, N)
-  lowering = first(FloquetExpansions.period_map_lowering(Φ.generator, N))
+  lowering = first(
+    FloquetExpansions.period_map_scalars(Φ.generator, Complex{Rational{BigInt}})
+  )
   zero_element = zero(FloquetExpansions.algebra_identity(lowering.algebra))
   Q = FloquetExpansions.no_jump_generator(
     FloquetExpansions.lower_harmonics(lowering, Φ.hamiltonian),
@@ -202,6 +204,36 @@ end
   )
   point = Dict(ω => 9.0, Δ => 1 / 2, γ => 1 / 5)
   @test map_matrix(symbolic, point) ≈ map_matrix(exact, point) atol = 1e-12
+end
+
+@testset "period map takes as many symbolic parameters as the GKSL normal form" begin
+  @variables p1::Real p2::Real p3::Real p4::Real p5::Real p6::Real p7::Real p8::Real
+  model(a) = period_map(
+    a[1] * σz + cos(ω * t) * (a[2] * σx + a[3] * σy) + cos(2 * ω * t) * a[4] * σz,
+    ω,
+    t;
+    channels=(jump(σ(1, 2), a[5]), jump(σ(2, 1), a[6]), jump(σz, a[7]), jump(σx, a[8])),
+  )
+  symbols = (p1, p2, p3, p4, p5, p6, p7, p8)
+  values = (1 // 2, 1, 1 // 3, 1 // 4, 1 // 5, 1 // 7, 1 // 6, 1 // 9)
+  symbolic = floquet_expansion(model(symbols), VanVleck(), 2)
+  exact = floquet_expansion(model(values), VanVleck(), 2)
+  point = merge(Dict(ω => 9.0), Dict(p => Float64(v) for (p, v) in zip(symbols, values)))
+  @test map_matrix(symbolic, point) ≈ map_matrix(exact, point) atol = 1e-12
+  @test_throws ArgumentError floquet_expansion(
+    model((p1 + Δ, Base.tail(symbols)...)), VanVleck(), 1
+  )
+end
+
+@testset "period map with rationals beyond Int128 equals the nearby exact map" begin
+  wide = (big(2)^130 + 1) // big(2)^130
+  Φ = floquet_expansion(
+    period_map(drive, ω, t; channels=(jump(σ(1, 2), wide),)), VanVleck(), 3
+  )
+  reference = floquet_expansion(
+    period_map(drive, ω, t; channels=(jump(σ(1, 2), 1),)), VanVleck(), 3
+  )
+  @test map_matrix(Φ, Dict(ω => 9.0)) ≈ map_matrix(reference, Dict(ω => 9.0)) atol = 1e-12
 end
 
 @testset "period map of driven Kerr with loss matches the truncated dynamics" begin

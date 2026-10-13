@@ -1,12 +1,15 @@
 const TimeMonomial = Tuple{Vector{Int},Vector{Int}}
-const KernelKey = Tuple{Int,TimeMonomial}
+const KernelKey = Tuple{Int,Int,TimeMonomial}
+const PeriodPolynomial{F} = Dict{Int,F}
 
 struct TimeKernel{X}
   terms::Dict{KernelKey,X}
 end
 
 function kernel_identity(identity::X, q::Int) where {X}
-  return TimeKernel{X}(Dict{KernelKey,X}((0, (zeros(Int, q), zeros(Int, q))) => identity))
+  return TimeKernel{X}(
+    Dict{KernelKey,X}((0, 0, (zeros(Int, q), zeros(Int, q))) => identity)
+  )
 end
 
 function shifted_phases((phases, powers)::TimeMonomial, variable::Int, phase::Int)
@@ -22,33 +25,34 @@ function shifted_powers((phases, powers)::TimeMonomial, variable::Int, power::In
   return (phases, shifted)
 end
 
+function raise_upper(monomial::TimeMonomial, upper::Int, power::Int)
+  upper <= length(first(monomial)) || return (power, monomial)
+  return (0, shifted_powers(monomial, upper, power))
+end
+
 function segment_expansion(monomial::TimeMonomial, p::Int, upper::Int, lower::Int)
-  upper_is_jump = upper <= length(first(monomial))
-  lower == 0 && return [(1, upper_is_jump ? shifted_powers(monomial, upper, p) : monomial)]
-  return [
-    (
-      (-1)^s * binomial(p, s),
-      shifted_powers(
-        upper_is_jump ? shifted_powers(monomial, upper, p - s) : monomial, lower, s
-      ),
-    ) for s in 0:p
-  ]
+  lower == 0 && return [(1, raise_upper(monomial, upper, p)...)]
+  return map(0:p) do s
+    endpoint, raised = raise_upper(monomial, upper, p - s)
+    return ((-1)^s * binomial(p, s), endpoint, shifted_powers(raised, lower, s))
+  end
 end
 
 function drift(
-  kernel::TimeKernel{X}, powers::Vector{Vector{X}}, twopi, upper::Int, lower::Int, R::Int
+  kernel::TimeKernel{X}, powers::Vector{Vector{X}}, upper::Int, lower::Int, R::Int
 ) where {X}
-  scales = [twopi^p * (1 // factorial(p)) for p in 0:R]
   terms = Dict{KernelKey,X}()
-  for ((order, monomial), value) in kernel.terms, p in 0:(R - order)
+  for ((order, period, monomial), value) in kernel.terms, p in 0:(R - order)
     expansion = segment_expansion(monomial, p, upper, lower)
     for (n, Qp) in pairs(powers[p + 1])
       total = order + p + n - 1
       total <= R || break
       iszero(Qp) && continue
       product = Qp * value
-      for (c, shifted) in expansion
-        accumulate!(terms, (total, shifted), (c * scales[p + 1]) * product)
+      for (c, endpoint, shifted) in expansion
+        accumulate!(
+          terms, (total, period + endpoint, shifted), (c // factorial(p)) * product
+        )
       end
     end
   end
@@ -59,11 +63,11 @@ function insert_jump(
   kernel::TimeKernel{X}, jump::Vector{Harmonics{X}}, variable::Int, R::Int
 ) where {X}
   terms = Dict{KernelKey,X}()
-  for ((order, monomial), value) in kernel.terms, (n, harmonics) in pairs(jump)
+  for ((order, period, monomial), value) in kernel.terms, (n, harmonics) in pairs(jump)
     total = order + n - 1
     total <= R || continue
     for (k, J) in harmonics
-      key = (total, shifted_phases(monomial, variable, k))
+      key = (total, period, shifted_phases(monomial, variable, k))
       accumulate!(terms, key, J * value)
     end
   end
@@ -74,26 +78,24 @@ function conjugate_kernel(
   kernel::TimeKernel{X}, left::Vector{X}, right::Vector{X}, R::Int
 ) where {X}
   terms = Dict{KernelKey,X}()
-  for ((order, monomial), value) in kernel.terms, (n, A) in pairs(left)
+  for ((order, period, monomial), value) in kernel.terms, (n, A) in pairs(left)
     order + n - 1 <= R || continue
     Avalue = A * value
     for (m, B) in pairs(right)
       total = order + n + m - 2
       total <= R || continue
-      accumulate!(terms, (total, monomial), Avalue * B)
+      accumulate!(terms, (total, period, monomial), Avalue * B)
     end
   end
   return TimeKernel{X}(terms)
 end
 
-function simplex_primitive!(
-  target::Dict{Tuple{Int,Int},F}, m::Int, p::Int, c::F, inverse_twopi::F
-) where {F}
+function simplex_primitive!(target::Dict{Tuple{Int,Int},F}, m::Int, p::Int, c::F) where {F}
   if iszero(m)
     accumulate!(target, (0, p + 1), c * (1 // (p + 1)))
     return target
   end
-  inverse_rate = F(0, 1) * inverse_twopi * (1 // m)
+  inverse_rate = F(0, 1) * (1 // m)
   falling = 1
   for j in 0:p
     accumulate!(target, (m, p - j), c * ((-1)^j * falling) * inverse_rate^(j + 1))
@@ -103,34 +105,33 @@ function simplex_primitive!(
   return target
 end
 
-function simplex_integral((phases, powers)::TimeMonomial, inverse_twopi::F) where {F}
+function simplex_integral(::Type{F}, (phases, powers)::TimeMonomial) where {F}
   current = Dict{Tuple{Int,Int},F}((0, 0) => one(F))
   for j in eachindex(phases)
     next = Dict{Tuple{Int,Int},F}()
     for ((m, p), c) in current
-      simplex_primitive!(next, m + phases[j], p + powers[j], c, inverse_twopi)
+      simplex_primitive!(next, m + phases[j], p + powers[j], c)
     end
     current = next
   end
-  return sum(values(current); init=zero(F))
+  integral = PeriodPolynomial{F}()
+  for ((_, p), c) in current
+    accumulate!(integral, p, c)
+  end
+  return integral
 end
 
 struct SimplexIntegrals{F}
-  inverse_twopi::F
-  values::Dict{TimeMonomial,F}
+  values::Dict{TimeMonomial,PeriodPolynomial{F}}
 end
 
-function SimplexIntegrals(inverse_twopi::F) where {F}
-  return SimplexIntegrals(inverse_twopi, Dict{TimeMonomial,F}())
-end
+SimplexIntegrals{F}() where {F} = SimplexIntegrals(Dict{TimeMonomial,PeriodPolynomial{F}}())
 
 function gram_entry(
-  integrals::SimplexIntegrals,
+  integrals::SimplexIntegrals{F},
   (phases_μ, powers_μ)::TimeMonomial,
   (phases_ν, powers_ν)::TimeMonomial,
-)
+) where {F}
   product = (phases_μ - phases_ν, powers_μ + powers_ν)
-  return get!(
-    () -> simplex_integral(product, integrals.inverse_twopi), integrals.values, product
-  )
+  return get!(() -> simplex_integral(F, product), integrals.values, product)
 end
