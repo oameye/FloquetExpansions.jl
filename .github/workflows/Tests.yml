@@ -46,9 +46,6 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          # Test the declared lower bound explicitly; a moving `lts` alias would
-          # eventually stop checking `julia = "1.10"` from Project.toml.
-          - '1.10'
           - '1'
         os:
           - ubuntu-latest
@@ -67,11 +64,11 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
-        if: ${{ matrix.version == '1.10' }}
+        if: ${{ matrix.version == '1' }}
       - uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: lcov.info
           name: codecov-umbrella
           fail_ci_if_error: false
-        if: ${{ matrix.version == '1.10' }}
+        if: ${{ matrix.version == '1' }}
