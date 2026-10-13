@@ -90,9 +90,9 @@ function evaluate_lyndon_brackets(
 end
 
 function lie_combination(
-  terms::Vector{LyndonTerm{C}}, bracket_values::Vector{T}, zero_component::T, scale::Number
+  terms::Vector{LyndonTerm{C}}, bracket_values::Vector{T}, scale::Number
 ) where {C,T}
-  value = zero_component
+  value = zero(T)
   for term in terms
     value += (scale * term.coefficient) * bracket_values[term.node]
   end
@@ -100,37 +100,30 @@ function lie_combination(
 end
 
 function lie_series_component(
-  output::Dict{H,Vector{LyndonTerm{C}}},
-  bracket_values::Vector{T},
-  zero_component::T,
-  scale::Number,
+  output::Dict{H,Vector{LyndonTerm{C}}}, bracket_values::Vector{T}, scale::Number
 ) where {H,C,T}
   series = Dict{H,T}()
   for (harmonic, terms) in output
-    component = lie_combination(terms, bracket_values, zero_component, scale)
+    component = lie_combination(terms, bracket_values, scale)
     iszero(component) || (series[harmonic] = component)
   end
   return series
 end
 
 function evaluate_lie_series(
-  plan::LieSeriesPlan{H},
-  components::AbstractDict{H,T},
-  zero_component::T,
-  convention::ComponentConvention,
+  plan::LieSeriesPlan{H}, components::AbstractDict{H,T}, convention::ComponentConvention
 ) where {H,T}
   (; product, generator_phase) = convention
   order_phase = im * generator_phase
   micromotion_phase = conj(generator_phase)
   bracket_values = evaluate_lyndon_brackets(plan, components, product)
   effective = T[
-    lie_combination(terms, bracket_values, zero_component, order_phase^(n - 1)) for
+    lie_combination(terms, bracket_values, order_phase^(n - 1)) for
     (n, terms) in enumerate(plan.effective)
   ]
   micromotion_series = [
-    lie_series_component(
-      output, bracket_values, zero_component, micromotion_phase * order_phase^n
-    ) for (n, output) in enumerate(plan.connected_log)
+    lie_series_component(output, bracket_values, micromotion_phase * order_phase^n) for
+    (n, output) in enumerate(plan.connected_log)
   ]
   return (; micromotion_series, effective)
 end
@@ -138,13 +131,13 @@ end
 function van_vleck_expansion(
   generator::P, gauge::VanVleck{BlochFeshbach}, order::Int, provenance::R
 ) where {P<:PeriodicGenerator,R<:FloquetProvenance}
-  (; components, zero_component, wd) = generator
+  (; components, wd) = generator
   plan = compile_lie_series_plan(collect(keys(generator)), order)
   (; micromotion_series, effective) = evaluate_lie_series(
-    plan, components, zero_component, component_convention(generator)
+    plan, components, component_convention(generator)
   )
   micromotion_components = P[
-    periodic_generator(series, wd, zero_component) for series in micromotion_series
+    periodic_generator(series, wd) for series in micromotion_series
   ]
 
   return FloquetExpansion(

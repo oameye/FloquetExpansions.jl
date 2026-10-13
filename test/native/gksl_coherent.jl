@@ -33,7 +33,7 @@ end
 @testset "GKSLNormalForm accepts zero Liouvillian input" begin
   for G in (
     PeriodicGenerator(Dict(0 => zero(Liouvillian)), ω),
-    PeriodicGenerator(Dict{Int,Liouvillian}(), ω, zero(Liouvillian)),
+    PeriodicGenerator(Dict{Int,Liouvillian}(), ω),
   )
     for algorithm in (HoriDeprit(), BlochFeshbach()), N in (1, 2, 3)
       native = floquet_expansion(G, GKSLNormalForm(; algorithm), N)

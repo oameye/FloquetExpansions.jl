@@ -233,7 +233,7 @@ function harmonics(L::Liouvillian, w::Symbolics.Num, t::Symbolics.Num)
       end
     end
   end
-  return PeriodicGenerator(out, w, zero(L))
+  return PeriodicGenerator(out, w)
 end
 
 function Base.show(io::IO, L::Liouvillian)
