@@ -532,7 +532,7 @@ function expand_period_map(
     SimplexIntegrals{T}(),
     lift,
     drive_scales,
-    [convert(SQA.CNum, 1)],
+    [one(SQA.CNum)],
     times,
     Dict{TimeMonomial,SQA.CNum}(),
   )

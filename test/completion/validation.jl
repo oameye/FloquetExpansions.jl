@@ -6,7 +6,7 @@ using Symbolics: @variables
 const SQA = SecondQuantizedAlgebra
 
 function validation_matrix_zeros(rows::Int, columns::Int)
-  return fill(convert(SQA.CNum, 0), rows, columns)
+  return zeros(SQA.CNum, rows, columns)
 end
 
 function validation_matrix_equal(left, right)

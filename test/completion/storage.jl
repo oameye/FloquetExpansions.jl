@@ -21,8 +21,8 @@ const SQA = SecondQuantizedAlgebra
   @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
 
-  retained[1, 1] = convert(SQA.CNum, 0)
-  completed[1, 1] = convert(SQA.CNum, 0)
+  retained[1, 1] = zero(SQA.CNum)
+  completed[1, 1] = zero(SQA.CNum)
   @test !iszero(kossakowski_component(completion, 0)[1, 1])
   @test !iszero(kossakowski(completion)[1, 1])
 end

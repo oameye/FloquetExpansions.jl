@@ -9,7 +9,7 @@ function analytic_matrix(rows::Tuple...)
   isempty(rows) && return Matrix{SQA.CNum}(undef, 0, 0)
   columns = length(first(rows))
   all(length(row) == columns for row in rows) || throw(DimensionMismatch())
-  result = fill(convert(SQA.CNum, 0), length(rows), columns)
+  result = zeros(SQA.CNum, length(rows), columns)
   for row_index in eachindex(rows), column_index in 1:columns
     result[row_index, column_index] = convert(SQA.CNum, rows[row_index][column_index])
   end

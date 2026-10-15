@@ -136,6 +136,6 @@ function lift_scaled_sum(lift::CoefficientLift, pieces)
 end
 
 function lift_superoperator(lift::CoefficientLift, S::AlgebraSuperoperator)
-  builder = lift_superoperator!(SQA.SuperBuilder(), lift, S, convert(SQA.CNum, 1))
+  builder = lift_superoperator!(SQA.SuperBuilder(), lift, S, one(SQA.CNum))
   return SQA.expand_completeness(SQA.build(builder))
 end

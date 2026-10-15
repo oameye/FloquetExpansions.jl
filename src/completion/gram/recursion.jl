@@ -30,7 +30,7 @@ function throw_recursive_elimination_obstruction(
 end
 
 function unresolved_recursive_leading_form(rate_order::Int)
-  return CompletionObstruction(rate_order, convert(SQA.CNum, 0), :unresolved_leading_form)
+  return CompletionObstruction(rate_order, zero(SQA.CNum), :unresolved_leading_form)
 end
 
 function horizontal_series_stack(left::MatrixSeries, right::MatrixSeries, N::Int)

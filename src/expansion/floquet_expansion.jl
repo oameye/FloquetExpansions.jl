@@ -85,15 +85,8 @@ end
 
 Base.show(io::IO, expansion::FloquetExpansion) = show(io, MIME"text/plain"(), expansion)
 
-struct ComponentConvention{F,C<:Number}
-  product::F
-  generator_phase::C
-end
-
-component_convention(::PeriodicGenerator{SQA.QAdd}) = ComponentConvention(*, -im)
-function component_convention(::PeriodicGenerator{SQA.SuperOperator})
-  return ComponentConvention(canonical_compose, 1)
-end
+generator_phase(::PeriodicGenerator{SQA.QAdd}) = -im
+generator_phase(::PeriodicGenerator{SQA.SuperOperator}) = 1
 
 function floquet_expansion_impl(
   generator::P, gauge::G, order::Int, provenance::R

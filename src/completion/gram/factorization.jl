@@ -129,7 +129,7 @@ function factor_onsets(amplitudes::Vector{KossakowskiMatrix})
   for channel in 1:channels
     for grade in eachindex(amplitudes)
       any(
-        !(iszero(amplitudes[grade][row, channel]) === true) for
+        !iszero(amplitudes[grade][row, channel]) for
         row in axes(amplitudes[grade], 1)
       ) || continue
       result[channel] = grade - 1

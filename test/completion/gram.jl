@@ -7,7 +7,7 @@ using Symbolics: Symbolics, @variables
 const SQA = SecondQuantizedAlgebra
 
 function coefficient_matrix_zeros(rows::Int, columns::Int)
-  return fill(convert(SQA.CNum, 0), rows, columns)
+  return zeros(SQA.CNum, rows, columns)
 end
 
 function coefficient_matrix_mul(left, right)
@@ -114,7 +114,7 @@ end
   completion = positive_completion(expansion, Gram(), frame)
 
   matrix = kossakowski(completion)
-  matrix[1, 1] = convert(SQA.CNum, 0)
+  matrix[1, 1] = zero(SQA.CNum)
   @test !iszero(kossakowski(completion)[1, 1])
 
   completed_channels = channels(completion)
@@ -122,7 +122,7 @@ end
   @test length(channels(completion)) == 1
 
   gram = factorization(completion)
-  gram.amplitudes[1][1, 1] = convert(SQA.CNum, 0)
+  gram.amplitudes[1][1, 1] = zero(SQA.CNum)
   @test !iszero(factorization(completion).amplitudes[1][1, 1])
 end
 

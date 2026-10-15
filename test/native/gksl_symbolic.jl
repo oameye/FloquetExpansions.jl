@@ -27,7 +27,7 @@ end
 function agree(symbolic::SQA.SuperOperator, numeric::SQA.SuperOperator, rules)
   x = evaluated(symbolic, rules)
   y = evaluated(numeric, Dict(ω => rules[ω]))
-  vanishing = convert(SQA.CNum, 0)
+  vanishing = zero(SQA.CNum)
   return all(
     iszero(SQA.simplify(get(x, k, vanishing) - get(y, k, vanishing))) for
     k in union(keys(x), keys(y))

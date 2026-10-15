@@ -36,17 +36,17 @@ function native_channel_operator(
   wd::Symbolics.Num,
   N::Int,
 )
-  operator = zero(SQA.QAdd)
+  terms = SQA.QAdd[]
   for (k, coefficients) in pairs(channel.coefficients)
     order = k - 1
     order + channel.onset > N && break
     scale = convert(SQA.CNum, inverse_drive_power(wd, order))
     for (monomial, c) in frame_operator(data.representation, coefficients).terms
       term = lift_coefficient(lift.coefficient, c) * scale
-      operator = operator + term * lift_monomial!(lift, monomial)
+      push!(terms, term * lift_monomial!(lift, monomial))
     end
   end
-  return SQA.simplify(operator)
+  return SQA.simplify(sum(terms))
 end
 
 function native_channels(
@@ -102,7 +102,7 @@ function native_finite_kossakowski(data::NativeExpansionData{T}, N::Int) where {
 end
 
 function graded_coefficient(entries, wd::Symbolics.Num, coefficient)
-  result = convert(SQA.CNum, 0)
+  result = zero(SQA.CNum)
   for (order, c) in entries
     iszero(c) && continue
     scale = convert(SQA.CNum, inverse_drive_power(wd, order))
@@ -204,11 +204,10 @@ end
 function native_hamiltonian_series(
   data::NativeExpansionData, lift::CoefficientLift, wd::Symbolics.Num
 )
-  H = zero(SQA.QAdd)
-  for (n, Hn) in pairs(data.recurrence.H)
-    H = H + reattach(lift_operator(lift, Hn), wd, n - 1)
-  end
-  return SQA.simplify(H)
+  terms = SQA.QAdd[
+    reattach(lift_operator(lift, Hn), wd, n - 1) for (n, Hn) in pairs(data.recurrence.H)
+  ]
+  return SQA.simplify(sum(terms))
 end
 
 function native_floquet_expansion(

@@ -5,10 +5,6 @@
   )
 end
 
-function canonical_compose(A::SQA.SuperOperator, B::SQA.SuperOperator)
-  return SQA.expand_completeness(SQA.compose(A, B))
-end
-
 component_commutator(A::SQA.QAdd, B::SQA.QAdd) = SQA.commutator(A, B)
 function component_commutator(A::SQA.SuperOperator, B::SQA.SuperOperator)
   return SQA.expand_completeness(SQA.commutator(A, B))

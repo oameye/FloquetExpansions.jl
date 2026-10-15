@@ -43,8 +43,8 @@ end
   completion = positive_completion(expansion, Spectral(), frame)
 
   spectral = factorization(completion)
-  spectral.rates[1] = convert(SQA.CNum, 0)
-  spectral.vectors[1][1] = convert(SQA.CNum, 0)
+  spectral.rates[1] = zero(SQA.CNum)
+  spectral.vectors[1][1] = zero(SQA.CNum)
 
   stored = factorization(completion)
   @test !iszero(stored.rates[1])
