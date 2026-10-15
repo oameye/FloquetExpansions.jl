@@ -10,9 +10,9 @@ The retained `effective_components`, Hamiltonian components, gauge, and micromot
 
 ## Dissipative representation
 
-Kossakowski coordinates are defined in an ordered `DissipativeFrame`. Ordering is semantically significant because coordinate matrices, deterministic pivot choices, and channel gauges depend on it even when two frames span the same operator subspace. Raw expansions require an explicit frame for Kossakowski extraction. Completion stores the finalized frame, so `dissipative_frame(cp)`, `kossakowski(cp)`, and `kossakowski_component(cp, n)` are unambiguous.
+Kossakowski coordinates are defined in an ordered `JumpBasis`. Ordering is semantically significant because coordinate matrices, deterministic pivot choices, and channel gauges depend on it even when two bases span the same operator subspace. Raw expansions require an explicit basis for Kossakowski extraction. Completion stores the finalized basis, so `jump_basis(cp)`, `kossakowski(cp)`, and `kossakowski_component(cp, n)` are unambiguous.
 
-Automatic frame discovery starts from microscopic dissipative directions in user channel order and appends algebraically generated independent directions deterministically, removing dependence modulo the identity. `DissipativeFrame` stores the ordered operator data and coordinate information, not an eager `q × q` matrix of cross-dissipator Liouvillians.
+Automatic frame discovery starts from microscopic dissipative directions in user channel order and appends algebraically generated independent directions deterministically, removing dependence modulo the identity. `JumpBasis` stores the ordered operator data and coordinate information, not an eager `q × q` matrix of cross-dissipator Liouvillians.
 
 ## Microscopic provenance
 
@@ -42,7 +42,7 @@ hamiltonian(cp)
 hamiltonian_component(cp, n)
 kossakowski(cp)
 kossakowski_component(cp, n)
-dissipative_frame(cp)
+jump_basis(cp)
 channels(cp)
 positivity_conditions(cp)
 regularity_conditions(cp)
@@ -101,6 +101,10 @@ Positive completion is nonunique beyond the retained order. Different frame orde
 
 This construction does not imply convergence of the high-frequency expansion, uniqueness of the completion, or existence of an exact Floquet GKSL logarithm.
 
+## Amendment: Lindbladian input
+
+ADR 0014 renames the dissipative frame to SQA's `JumpBasis`, read by `jump_basis(cp)`, moves microscopic provenance to the channels of an SQA `Lindbladian` passed to `floquet_expansion`, and orders the basis seeds by SQA's `channel_order_key` instead of user order. A completed expansion returns its model as `Lindbladian(cp)`, and `channels(cp)` lists its `channel => rate` pairs.
+
 ## Gate
 
 `make test` runs the testsets that hold this decision:
@@ -108,7 +112,8 @@ This construction does not imply convergence of the high-frequency expansion, un
 - `test/completion/state.jl`: "raw Floquet expansions carry uncompleted state"
 - `test/completion/state.jl`: "positive-completion algorithms establish the public dispatch boundary"
 - `test/completion/storage.jl`: "completed representation owns frame and cached retained data"
-- `test/gksl/coordinates.jl`: "DissipativeFrame is ordered and independent modulo identity"
-- `test/completion/gram.jl`: "automatic frame preserves microscopic channel order"
+- `test/completion/gram.jl`: "automatic frame follows the canonical channel order"
 - `test/completion/validation.jl`: "public completion API is inferred for fixed frames"
 - `test/completion/validation.jl`: "driven qubit validates Cartesian Gram and adapted spectral frames"
+
+Basis ordering and independence modulo the identity are held in SecondQuantizedAlgebra by `test/algebra/gksl_coordinates_test.jl`: "bases are canonical modulo the identity" and "independent bases keep the first of each direction" (ADR 0014).

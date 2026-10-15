@@ -9,7 +9,7 @@ function analytic_matrix(rows::Tuple...)
   isempty(rows) && return Matrix{SQA.CNum}(undef, 0, 0)
   columns = length(first(rows))
   all(length(row) == columns for row in rows) || throw(DimensionMismatch())
-  result = fill(convert(SQA.CNum, 0), length(rows), columns)
+  result = zeros(SQA.CNum, length(rows), columns)
   for row_index in eachindex(rows), column_index in 1:columns
     result[row_index, column_index] = convert(SQA.CNum, rows[row_index][column_index])
   end
@@ -33,12 +33,14 @@ end
   σminus = (1 // 2) * (σx - im * σy)
   σplus = (1 // 2) * (σx + im * σy)
 
-  cartesian = DissipativeFrame(σx, σy, σz)
-  spectral_frame = DissipativeFrame(σminus, σplus, σz)
+  cartesian = JumpBasis(σx, σy, σz)
+  spectral_frame = JumpBasis(σminus, σplus, σz)
 
   @variables ω::Real t::Real E::Real γ::Real
   H = (1 // 2) * σz + E * cos(ω * t) * σx
-  expansion = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(jump(σminus, γ),))
+  expansion = floquet_expansion(
+    hamiltonian_action(H) + γ * dissipator(σminus), ω, t, VanVleck(), 3
+  )
 
   z2 = E^2 / ω^2
   z4 = z2^2
@@ -121,7 +123,7 @@ end
   fock = FockSpace(:cp_analytic_bosonic_loss)
   a = Destroy(fock, :a)
   na = a' * a^2
-  frame = DissipativeFrame(a, a^2, na)
+  frame = JumpBasis(a, a^2, na)
   @variables ω::Real κ1::Real κ2::Real r1::Real r2::Real
 
   u = κ1 * r1 / 2
@@ -133,7 +135,12 @@ end
   # Quarter-cycle reservoir phase, φ = π/2, in the analytical model
   # κ1[1+r1 cos(ωt)]D[a] + κ2[1+r2 cos(ωt-φ)]D[a²].
   generator = PeriodicGenerator(
-    Dict(0 => κ1 * D1 + κ2 * D2, 1 => u * D1 + im * v * D2, -1 => u * D1 - im * v * D2), ω
+    Dict(
+      0 => SQA.SuperOperator(κ1 * D1 + κ2 * D2),
+      1 => SQA.SuperOperator(u * D1 + im * v * D2),
+      -1 => SQA.SuperOperator(u * D1 - im * v * D2),
+    ),
+    ω,
   )
   expansion = floquet_expansion(generator, VanVleck(), 2)
   c = χ / ω
@@ -161,7 +168,8 @@ end
   gram_data = factorization(gram)
   @test gram_data.onsets == [0, 0]
   @test length(gram_data.amplitudes) == 2
-  @test liouvillian(hamiltonian(gram); channels=channels(gram)) == effective_generator(gram)
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(gram))) ==
+    effective_generator(gram)
   @test micromotion(gram) == micromotion(expansion)
 end
 
@@ -170,16 +178,13 @@ end
 analytical modulated loss closure with symbolic reservoir phase" begin
   fock = FockSpace(:cp_analytic_bosonic_loss_phase)
   a = Destroy(fock, :a)
-  frame = DissipativeFrame(a, a^2, a' * a^2)
+  frame = JumpBasis(a, a^2, a' * a^2)
   @variables ω::Real t::Real κ1::Real κ2::Real r1::Real r2::Real φ::Real
 
-  generator = liouvillian(
-    0 * (a' * a);
-    channels=(
-      jump(a, κ1 * (1 + r1 * cos(ω * t))), jump(a^2, κ2 * (1 + r2 * cos(ω * t - φ)))
-    ),
-  )
-  expansion = floquet_expansion(generator, ω, t, VanVleck(), 2)
+  generator =
+    κ1 * (1 + r1 * cos(ω * t)) * dissipator(a) +
+    κ2 * (1 + r2 * cos(ω * t - φ)) * dissipator(a^2)
+  expansion = floquet_expansion(SQA.SuperOperator(generator), ω, t, VanVleck(), 2)
   c = κ1 * κ2 * r1 * r2 * sin(φ) / (2ω)
 
   expected_first_order = analytic_matrix((0, 0, c), (0, -2c, 0), (c, 0, 0))

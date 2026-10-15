@@ -64,7 +64,7 @@ The input channels have ``m_a=0``. The finite generator at retained order ``N`` 
 +\sum_a\epsilon^{m_a}\gamma_a\,\mathcal D\!\left[J_a^{[N]}\right],
 ```
 
-which is of GKSL form for every ``\epsilon`` since every rate is positive. In a dissipative frame
+which is of GKSL form for every ``\epsilon`` since every rate is positive. In a jump basis
 the Kossakowski coefficient of order ``n`` splits into three parts,
 
 ```math

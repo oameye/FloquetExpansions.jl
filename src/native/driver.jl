@@ -33,7 +33,7 @@ end
 function native_expansion_data(
   ::Type{T},
   algorithm::Union{BlochFeshbach,HoriDeprit},
-  generator::PeriodicGenerator{Liouvillian},
+  generator::PeriodicGenerator{SQA.SuperOperator},
   N::Int,
   gauge_degree::Int,
 ) where {T}
@@ -45,12 +45,12 @@ end
 function native_expansion_data(
   lowering::SQALowering,
   algorithm::Union{BlochFeshbach,HoriDeprit},
-  generator::PeriodicGenerator{Liouvillian},
+  generator::PeriodicGenerator{SQA.SuperOperator},
   N::Int,
   gauge_degree::Int,
 )
   L = lower_generator(lowering, generator)
-  haskey(L, 0) || (L[0] = lower_liouvillian(lowering, zero(Liouvillian)))
+  haskey(L, 0) || (L[0] = lower_liouvillian(lowering, zero(SQA.SuperOperator)))
   input_degree = native_input_degree(lowering, L)
   bound = (N + 1) * (input_degree + gauge_degree)
   for degree in (input_degree + N):2:bound
@@ -70,7 +70,7 @@ end
 
 function native_expansion_data(
   algorithm::Union{BlochFeshbach,HoriDeprit},
-  generator::PeriodicGenerator{Liouvillian},
+  generator::PeriodicGenerator{SQA.SuperOperator},
   N::Int,
   gauge_degree::Int,
 )
@@ -116,12 +116,12 @@ function lift_operator(lift::CoefficientLift, X::AlgebraOperator)
 end
 
 function lift_superoperator!(
-  target::Liouvillian, lift::CoefficientLift, S::AlgebraSuperoperator, scale::SQA.CNum
+  target::SQA.SuperBuilder, lift::CoefficientLift, S::AlgebraSuperoperator, scale::SQA.CNum
 )
   for ((X, Y), c) in S.terms
     left = lift_monomial!(lift, X)
     right = lift_monomial!(lift, Y)
-    add_term!(target, left, right, lift_coefficient(lift.coefficient, c) * scale)
+    SQA.accumulate!(target, lift_coefficient(lift.coefficient, c) * scale, left, right)
   end
   return target
 end
@@ -136,5 +136,6 @@ function lift_scaled_sum(lift::CoefficientLift, pieces)
 end
 
 function lift_superoperator(lift::CoefficientLift, S::AlgebraSuperoperator)
-  return lift_superoperator!(Liouvillian(LiouvillianTerms()), lift, S, convert(SQA.CNum, 1))
+  builder = lift_superoperator!(SQA.SuperBuilder(), lift, S, one(SQA.CNum))
+  return SQA.expand_completeness(SQA.build(builder))
 end

@@ -9,10 +9,17 @@ include(joinpath(@__DIR__, "..", "helpers", "shared.jl"))
 
 const SQA_EA = SecondQuantizedAlgebra
 
+ea_coherent(H) = SQA_EA.SuperOperator(hamiltonian_action(H))
+ea_damping(J) = SQA_EA.SuperOperator(dissipator(J))
+
 struct UnsupportedExpansionAlgorithm <: ExpansionAlgorithm end
 
 function ea_vanishes(value)
   return iszero(SQA_EA.simplify(value))
+end
+
+function ea_vanishes(value::SQA_EA.SuperOperator)
+  return iszero(SQA_EA.simplify(SQA_EA.expand_completeness(value)))
 end
 
 function ea_vanishes(generator::PeriodicGenerator)
@@ -114,18 +121,18 @@ end
 
   symmetric = PeriodicGenerator(
     Dict(
-      0 => hamiltonian_action(σz) + dissipator(σx),
-      1 => hamiltonian_action(σx + σy),
-      -1 => dissipator(σy + σz),
+      0 => ea_coherent(σz) + ea_damping(σx),
+      1 => ea_coherent(σx + σy),
+      -1 => ea_damping(σy + σz),
     ),
     ω_ea_map,
   )
   resonant_triple = PeriodicGenerator(
     Dict(
-      0 => hamiltonian_action(σz) + dissipator(σx),
-      1 => hamiltonian_action(σx + σy),
-      2 => dissipator(σy),
-      -3 => hamiltonian_action(σz) + dissipator(σx + σz),
+      0 => ea_coherent(σz) + ea_damping(σx),
+      1 => ea_coherent(σx + σy),
+      2 => ea_damping(σy),
+      -3 => ea_coherent(σz) + ea_damping(σx + σz),
     ),
     ω_ea_map,
   )
@@ -156,11 +163,11 @@ end
 
   L = PeriodicGenerator(
     Dict(
-      0 => hamiltonian_action(σz) + dissipator(σx),
-      1 => hamiltonian_action(σx),
-      -1 => dissipator(σy),
-      2 => hamiltonian_action(σy),
-      -2 => dissipator(σz),
+      0 => ea_coherent(σz) + ea_damping(σx),
+      1 => ea_coherent(σx),
+      -1 => ea_damping(σy),
+      2 => ea_coherent(σy),
+      -2 => ea_damping(σz),
     ),
     ω_ea_map_ref,
   )
@@ -169,7 +176,7 @@ end
   expected_effective = zero(L[0])
   expected_micromotion_components = Dict{Int,typeof(L[0])}()
   for harmonic in nonzero_harmonics
-    expected_effective += (im // harmonic) * compose(L[-harmonic], L[harmonic])
+    expected_effective += (im // harmonic) * SQA_EA.compose(L[-harmonic], L[harmonic])
     expected_micromotion_components[harmonic] = (im // harmonic) * L[harmonic]
   end
   expected_micromotion = PeriodicGenerator(expected_micromotion_components, ω_ea_map_ref)
@@ -190,13 +197,11 @@ end
   @variables ω_ea_cp::Real t_ea_cp::Real E_ea_cp::Real γ_ea_cp::Real
 
   H = (1 // 2) * σz + E_ea_cp * cos(ω_ea_cp * t_ea_cp) * σx
-  channels = (jump(σminus, γ_ea_cp),)
-  frame = DissipativeFrame(σx, σy, σz)
+  L = hamiltonian_action(H) + γ_ea_cp * dissipator(σminus)
+  frame = JumpBasis(σx, σy, σz)
 
   hori_deprit, bloch_feshbach = map((HoriDeprit(), BlochFeshbach())) do algorithm
-    raw = floquet_expansion(
-      H, ω_ea_cp, t_ea_cp, VanVleck(; algorithm), 2; channels=channels
-    )
+    raw = floquet_expansion(L, ω_ea_cp, t_ea_cp, VanVleck(; algorithm), 2)
     positive_completion(raw, Gram(), frame)
   end
 
@@ -210,43 +215,43 @@ function ea_numeric(coefficient, substitutions)
   )
 end
 
-function ea_superoperator(L::Liouvillian, d::Int, substitutions)
+function ea_superoperator(L::SQA_EA.SuperOperator, d::Int, substitutions)
   S = zeros(ComplexF64, d^2, d^2)
-  for (left, right, coefficient) in terms(L)
-    left_matrix = tomatrix(left, d, substitutions)
-    right_matrix = tomatrix(right, d, substitutions)
+  for (term, coefficient) in L
+    left_matrix = tomatrix(SQA_EA.left_operator(term), d, substitutions)
+    right_matrix = tomatrix(SQA_EA.right_operator(term), d, substitutions)
     S .+=
       ea_numeric(coefficient, substitutions) .* kron(transpose(right_matrix), left_matrix)
   end
   return S
 end
 
-@testset "Coherent Liouvillian expansion matches the Hamiltonian expansion" begin
+@testset "Coherent superoperator expansion matches the Hamiltonian expansion" begin
   d = 3
   atom = NLevelSpace(:expansion_algorithm_coherent, d)
   @variables ω_ea_coh::Real
   H = random_drive(MersenneTwister(0x0AC1E), atom, d, 2, ω_ea_coh)
-  L = PeriodicGenerator(Dict(m => hamiltonian_action(H[m]) for m in keys(H)), ω_ea_coh)
+  L = PeriodicGenerator(Dict(m => ea_coherent(H[m]) for m in keys(H)), ω_ea_coh)
   substitutions = Dict(ω_ea_coh => 7.0)
   order = 4
 
   superoperator(X) = ea_superoperator(X, d, substitutions)
   function coherent_superoperator(X)
-    return ea_superoperator(hamiltonian_action(X), d, substitutions)
+    return ea_superoperator(ea_coherent(X), d, substitutions)
   end
 
   for algorithm in (HoriDeprit(), BlochFeshbach())
     hamiltonian = floquet_expansion(H, VanVleck(; algorithm), order)
-    liouvillian = floquet_expansion(L, VanVleck(; algorithm), order)
+    lifted = floquet_expansion(L, VanVleck(; algorithm), order)
 
     for n in 0:(order - 1)
       expected = coherent_superoperator(effective_component(hamiltonian, n))
-      actual = superoperator(effective_component(liouvillian, n))
+      actual = superoperator(effective_component(lifted, n))
       @test norm(actual - expected) <= 1e-10 * max(1, norm(expected))
     end
     for n in 1:(order - 1)
       coherent = micromotion(hamiltonian, n)
-      dissipative = micromotion(liouvillian, n)
+      dissipative = micromotion(lifted, n)
       for m in union(keys(coherent), keys(dissipative))
         expected = coherent_superoperator(coherent[m])
         actual = superoperator(dissipative[m])

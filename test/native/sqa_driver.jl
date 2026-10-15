@@ -11,7 +11,8 @@ function driven_kerr(dissipative::Bool)
   h = FockSpace(:c)
   a = Destroy(h, :a)
   H = (1 // 2) * a' * a + (3 // 10) * a' * a * a' * a + (2 // 5) * (a + a') * cos(ω * t)
-  L = dissipative ? liouvillian(H; channels=(jump(a, 4 // 5),)) : liouvillian(H)
+  L = hamiltonian_action(H)
+  dissipative && (L += (4 // 5) * dissipator(a))
   return harmonics(L, ω, t), a
 end
 
@@ -52,7 +53,7 @@ end
     (1 // 2) * sz +
     (a' * σ + a * σ') +
     (2 // 5) * (a + a') * cos(ω * t) * sx
-  G = harmonics(liouvillian(H; channels=(collapse((2 // 3) * a),)), ω, t)
+  G = harmonics(hamiltonian_action(H) + dissipator((2 // 3) * a), ω, t)
   lowering = FE.SQALowering{Complex{Rational{Int128}}}(G)
   identity = FE.algebra_identity(lowering.algebra)
   @test FE.lower_qadd(lowering, FE.qadd(a * a' - a' * a)) == identity
@@ -68,7 +69,7 @@ end
     (1 // 1000000) * a' * a +
     (3 // 1000007) * a' * a * a' * a +
     (2 // 1000009) * (a + a') * cos(ω * t)
-  G = harmonics(liouvillian(H; channels=(jump(a, 4 // 1000011),)), ω, t)
+  G = harmonics(hamiltonian_action(H) + (4 // 1000011) * dissipator(a), ω, t)
   @test_throws OverflowError FE.native_expansion_data(
     Complex{Rational{Int128}}, HoriDeprit(), G, 2, 3
   )

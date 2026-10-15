@@ -4,7 +4,7 @@ using Reexport: @reexport
 using LinearAlgebra: LinearAlgebra
 using Nemo: Nemo
 using SciMLPublic: @public
-using Symbolics: Symbolics, terms
+using Symbolics: Symbolics
 
 using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 @reexport using SecondQuantizedAlgebra
@@ -12,9 +12,10 @@ const SQA = SecondQuantizedAlgebra
 
 using SecondQuantizedAlgebra: expim, exponential_form, trigonometric_form
 export expim, exponential_form, trigonometric_form
+using SecondQuantizedAlgebra: channels, hamiltonian
 
 include("generators/periodic_generator.jl")
-include("generators/liouvillian.jl")
+include("generators/superoperator.jl")
 include("generators/channels.jl")
 include("generators/quasienergy.jl")
 
@@ -26,8 +27,6 @@ include("expansion/floquet_expansion.jl")
 include("expansion/hori_deprit.jl")
 include("expansion/bloch_feshbach.jl")
 
-include("gksl/dissipative_frame.jl")
-include("gksl/coordinates.jl")
 include("gksl/floquet.jl")
 
 include("native/graded_channels.jl")
@@ -49,7 +48,7 @@ include("completion/types.jl")
 include("completion/backend/matrix_series.jl")
 include("completion/backend/linear_algebra.jl")
 include("completion/backend/conversion.jl")
-include("completion/frame_discovery.jl")
+include("completion/basis_discovery.jl")
 include("completion/accessors.jl")
 include("completion/gram/factorization.jl")
 include("completion/gram/recursion.jl")
@@ -66,15 +65,12 @@ export PeriodMap, PeriodMapExpansion, period_map, superoperator, trace_defect
 export JumpAmplitude, amplitude, jump_amplitudes, jump_times, weight
 export Gram, Spectral
 export channels,
-  dissipative_frame,
+  jump_basis,
   factorization,
   positive_completion,
   positivity_conditions,
   regularity_conditions
-export Liouvillian,
-  collapse, compose, dissipator, hamiltonian_action, jump, liouvillian, terms
-export DissipativeFrame,
-  hamiltonian, hamiltonian_component, kossakowski, kossakowski_component
+export hamiltonian, hamiltonian_component, kossakowski_component
 
 @public Completion,
 CompletionAlgorithm,

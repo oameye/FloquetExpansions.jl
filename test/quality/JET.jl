@@ -1,7 +1,10 @@
 using Test
 using FloquetExpansions
 using JET: JET
+using SecondQuantizedAlgebra: SecondQuantizedAlgebra
 using Symbolics: @variables
+
+const SQA = SecondQuantizedAlgebra
 
 @testset "JET" begin
   JET.test_package(FloquetExpansions; target_modules=(FloquetExpansions,))
@@ -22,7 +25,11 @@ end
   )
 
   liouvillian_generator = PeriodicGenerator(
-    Dict(0 => hamiltonian_action(σz), 1 => dissipator(σx), -1 => hamiltonian_action(σx)),
+    Dict(
+      0 => SQA.SuperOperator(hamiltonian_action(σz)),
+      1 => SQA.SuperOperator(dissipator(σx)),
+      -1 => SQA.SuperOperator(hamiltonian_action(σx)),
+    ),
     ω_bf,
   )
   JET.@test_opt target_modules=(FloquetExpansions,) floquet_expansion(
@@ -37,8 +44,8 @@ end
   fock = FockSpace(:jet_completion_fock)
   a = Destroy(fock, :a)
   @variables ω::Real t::Real
-  gram_frame = DissipativeFrame(a, a^2)
-  gram_generator = liouvillian(0 * a; channels=(collapse(a + a^2), collapse(a + im * a^2)))
+  gram_frame = JumpBasis(a, a^2)
+  gram_generator = SQA.SuperOperator(dissipator(a + a^2) + dissipator(a + im * a^2))
   gram_expansion = floquet_expansion(gram_generator, ω, t, VanVleck(), 1)
 
   JET.@test_opt target_modules=(FloquetExpansions,) positive_completion(
@@ -49,16 +56,16 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  recursive_frame = DissipativeFrame(σx, σy, σz)
+  recursive_frame = JumpBasis(σx, σy, σz)
   recursive_expansion = floquet_expansion(
-    cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(σz),)
+    hamiltonian_action(cos(ω * t) * σx) + dissipator(σz), ω, t, VanVleck(), 3
   )
 
   JET.@test_opt target_modules=(FloquetExpansions,) positive_completion(
     recursive_expansion, Gram(), recursive_frame
   )
 
-  spectral_frame = DissipativeFrame(σz, σy)
+  spectral_frame = JumpBasis(σz, σy)
   JET.@test_opt target_modules=(FloquetExpansions,) positive_completion(
     recursive_expansion, Spectral(), spectral_frame
   )

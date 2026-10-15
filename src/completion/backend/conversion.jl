@@ -16,7 +16,7 @@ function coefficient_from_completion(value::CompletionScalar)
 end
 
 function coefficient_matrix_from_completion(matrix::CompletionMatrix)
-  result = coefficient_matrix(size(matrix, 1), size(matrix, 2))
+  result = zeros(SQA.CNum, size(matrix, 1), size(matrix, 2))
   for index in eachindex(matrix)
     result[index] = coefficient_from_completion(matrix[index])
   end
@@ -41,14 +41,15 @@ function completion_series(matrices::Vector{KossakowskiMatrix})
   return result
 end
 
-function retained_gksl_data(expansion::FloquetExpansion, frame::DissipativeFrame)
+function retained_gksl_data(expansion::FloquetExpansion, basis::SQA.JumpBasis)
   components = getfield(expansion, :effective_components)
   drive_frequency = getfield(expansion, :generator).wd
   coherent = zero(SQA.QAdd)
   matrices = KossakowskiMatrix[]
   sizehint!(matrices, length(components))
   for index in eachindex(components)
-    hamiltonian, matrix = extract_gksl(components[index], frame)
+    hamiltonian = SQA.hamiltonian(SQA.Lindbladian(components[index], basis))
+    matrix = SQA.kossakowski(components[index], basis)
     coherent = coherent + reattach(hamiltonian, drive_frequency, index - 1)
     push!(matrices, matrix)
   end
@@ -62,13 +63,13 @@ function physical_kossakowski_series(matrices::Vector{KossakowskiMatrix}, wd::Sy
     matrix = matrices[index]
     grade = index - 1
     scale = if iszero(grade)
-      coefficient_one()
+      one(SQA.CNum)
     else
       convert(SQA.CNum, inverse_drive_power(wd, grade))
     end
-    physical = coefficient_matrix(size(matrix, 1), size(matrix, 2))
+    physical = zeros(SQA.CNum, size(matrix, 1), size(matrix, 2))
     for entry in eachindex(matrix)
-      physical[entry] = simplify_coefficient(scale * matrix[entry])
+      physical[entry] = SQA.simplify(scale * matrix[entry])
     end
     push!(result, physical)
   end

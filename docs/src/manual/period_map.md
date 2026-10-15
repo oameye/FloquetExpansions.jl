@@ -48,4 +48,7 @@ jump_times
 
 Mixing jump channels of equal rate by a unitary leaves the map unchanged. An affine shift
 ``L \to L + c`` with the compensating Hamiltonian describes the same dynamics but changes which
-histories count as jumps, so the two period maps agree only through the retained order.
+histories count as jumps, so the two period maps would agree only through the retained order.
+A `Lindbladian` does not keep this freedom: SecondQuantizedAlgebra moves the constant part of
+every jump into the Hamiltonian, so [`period_map`](@ref) always uses jumps without a constant
+part.

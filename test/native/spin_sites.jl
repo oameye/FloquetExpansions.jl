@@ -124,7 +124,7 @@ end
   a = Destroy(h, :a)
   Sx, Sy, Sz = (Spin(h, :S, k) for k in 1:3)
   H = (1 // 2) * Sz + (2 // 5) * (a + a') * Sx * cos(ω * t)
-  G = harmonics(liouvillian(H; channels=(jump(Sx - im * Sy, 4 // 5),)), ω, t)
+  G = harmonics(hamiltonian_action(H) + (4 // 5) * dissipator(Sx - im * Sy), ω, t)
   lowering = FE.SQALowering{Complex{Rational{Int128}}}(G)
   @test lowering.algebra.offsets == [0, 2]
   lowered(op) = FE.lower_qadd(lowering, FE.qadd(op))
@@ -160,7 +160,7 @@ end
 
 @testset "native expansion of a driven spin equals Van Vleck" begin
   H, Sm = driven_spin(1 // 2)
-  G = harmonics(liouvillian(H; channels=(jump(Sm, 4 // 5),)), ω, t)
+  G = harmonics(hamiltonian_action(H) + (4 // 5) * dissipator(Sm), ω, t)
   for N in (2, 3), algorithm in (BlochFeshbach(), HoriDeprit())
     data = FE.native_expansion_data(algorithm, G, N, 3)
     exact = FE.SQALowering{Q}(G)
@@ -177,7 +177,8 @@ end
 
 @testset "GKSLNormalForm on a driven spin is completely positive" begin
   H, Sm = driven_spin(1 // 2)
-  native = floquet_expansion(H, ω, t, GKSLNormalForm(), 3; channels=(jump(Sm, 4 // 5),))
+  L = hamiltonian_action(H) + (4 // 5) * dissipator(Sm)
+  native = floquet_expansion(L, ω, t, GKSLNormalForm(), 3)
   C = kossakowski(native)
   for value in (3.0, 10.0, 100.0)
     point = Dict(ω => value)

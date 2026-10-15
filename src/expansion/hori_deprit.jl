@@ -1,6 +1,6 @@
 triindex(n::Int, j::Int) = (n * (n + 1)) ÷ 2 + j + 1
 function lie_transform_phase(generator::PeriodicGenerator)
-  return -component_convention(generator).generator_phase
+  return -generator_phase(generator)
 end
 
 function weight_generator(generator::PeriodicGenerator, j::Int)

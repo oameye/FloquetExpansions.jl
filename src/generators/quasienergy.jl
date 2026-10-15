@@ -56,7 +56,7 @@ struct QuasienergyOperator{T}
 end
 
 hamiltonian_quasienergy_component(component::SQA.QAdd) = component
-liouvillian_quasienergy_component(component::Liouvillian) = im * component
+liouvillian_quasienergy_component(component::SQA.SuperOperator) = im * component
 
 function quasienergy_operator(
   G::PeriodicGenerator{T}, nmax::Int, identity::T, transform::F
@@ -75,8 +75,10 @@ function QuasienergyOperator(G::PeriodicGenerator{SQA.QAdd}, nmax::Int)
   return quasienergy_operator(G, nmax, one(SQA.QAdd), hamiltonian_quasienergy_component)
 end
 
-function QuasienergyOperator(G::PeriodicGenerator{Liouvillian}, nmax::Int)
-  return quasienergy_operator(G, nmax, one(Liouvillian), liouvillian_quasienergy_component)
+function QuasienergyOperator(G::PeriodicGenerator{SQA.SuperOperator}, nmax::Int)
+  return quasienergy_operator(
+    G, nmax, one(SQA.SuperOperator), liouvillian_quasienergy_component
+  )
 end
 
 function Base.getindex(Q::QuasienergyOperator, m::Int, n::Int)

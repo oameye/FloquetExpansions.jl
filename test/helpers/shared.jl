@@ -45,6 +45,19 @@ function maxcoeff(q::SQA.QAdd, subs)
   return m
 end
 
+function same(A::SQA.SuperOperator, B::SQA.SuperOperator)
+  return iszero(SQA.simplify(SQA.expand_completeness(A - B)))
+end
+same(A, B) = iszero(SQA.simplify(FloquetExpansions.qadd(A) - FloquetExpansions.qadd(B)))
+
+channel_map(entry) = SQA.SuperOperator(last(entry) * dissipator(SQA.jump(first(entry))))
+
+function lindbladian(H, channels)
+  return foldl(channels; init=hamiltonian_action(H)) do L, (J, rate)
+    return L + rate * dissipator(J)
+  end
+end
+
 vanishes(q::SQA.QAdd) = iszero(SQA.simplify(q))
 vanishes(X::PeriodicGenerator) = all(vanishes(X[l]) for l in keys(X))
 

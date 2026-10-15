@@ -1,46 +1,5 @@
 const OperatorExpression = Union{SQA.QSym,SQA.QAdd}
 
-issymzero(x) = isequal(Symbolics.value(x), 0)
-
-function harmonic_index(arg, w, t)
-  offset = Symbolics.substitute(arg, Dict(t => 0))
-  time_part = Symbolics.simplify(arg - offset)
-  c = Symbolics.value(Symbolics.substitute(time_part, Dict(w => 1, t => 1)))
-
-  residual = Symbolics.simplify(arg - (c * w * t + offset))
-  issymzero(residual) || throw(
-    ArgumentError(
-      "phase $(arg) is not of the form c*$(w)*$(t) + constant, so it is not a whole " *
-      "harmonic of the drive",
-    ),
-  )
-
-  c isa Number || throw(
-    ArgumentError(
-      "harmonic index $(c) is not a number; it may depend on a symbol other than $(w) and $(t)",
-    ),
-  )
-  m = round(Int, real(c))
-  (isapprox(real(c), m; atol=1.0e-12) && abs(imag(c)) < 1.0e-12) || throw(
-    ArgumentError(
-      "harmonic index $(c) is not an integer; the drive is not $(2)π/$(w)-periodic"
-    ),
-  )
-  return -m, offset
-end
-
-@inline function foreach_harmonic_phase(
-  f::F, coefficient::SQA.CNum, w::Symbolics.Num, t::Symbolics.Num
-) where {F}
-  for phase_term in SQA.phase_terms(coefficient)
-    harmonic, offset = harmonic_index(phase_term.phase, w, t)
-    phase_coefficient = phase_term.amplitude
-    issymzero(offset) || (phase_coefficient *= SQA.expim(offset))
-    f(harmonic, phase_coefficient)
-  end
-  return nothing
-end
-
 function validate_component_type(::Type{T}) where {T}
   isconcretetype(T) ||
     throw(ArgumentError("generator components must have a concrete element type"))
@@ -49,6 +8,14 @@ end
 
 qadd(x::SQA.QAdd) = x
 qadd(x::SQA.QSym) = 1 * x
+function qadd(x::SQA.QExpr)
+  return throw(
+    ArgumentError(
+      "a periodic generator needs polynomial operator components, found the operator " *
+      "function $x",
+    ),
+  )
+end
 
 """
     PeriodicGenerator(components::AbstractDict{Int,T}, ωd)
@@ -143,7 +110,9 @@ H(t) = \\sum_m H_m \\, e^{-i m ω t}
 
 `ω` is the drive frequency and `t` the time variable, both symbolic. Trigonometric time
 dependence is normalized to phases first. Thus `cos`, `sin`, and `expim` are all accepted,
-as is a constant phase offset such as `cos(ω*t + φ)`.
+as is a constant phase offset such as `cos(ω*t + φ)`. The decomposition is SecondQuantizedAlgebra's
+exact `harmonics`, with the harmonic label negated to match the convention above. A phase that is
+not a whole multiple of `ω*t` plus a time-independent offset throws an `ArgumentError`.
 
 Calling the returned generator at `t`, as in `harmonics(H, ω, t)(t)`, reconstructs `H`.
 
@@ -174,16 +143,9 @@ julia> support(H)
 See also [`PeriodicGenerator`](@ref).
 """
 function harmonics(H::SQA.QAdd, w::Symbolics.Num, t::Symbolics.Num)
-  out = Dict{Int,SQA.QAdd}()
-  for (term, coeff) in SQA.exponential_form(H)
-    mono = isempty(term.ops) ? one(SQA.QAdd) : prod(term.ops)
-    foreach_harmonic_phase(coeff, w, t) do harmonic, phase_coefficient
-      contribution = phase_coefficient * mono
-      return out[harmonic] =
-        haskey(out, harmonic) ? out[harmonic] + contribution : contribution
-    end
-  end
-  return PeriodicGenerator(out, w)
+  return PeriodicGenerator(
+    Dict{Int,SQA.QAdd}(-n => Hn for (n, Hn) in SQA.harmonics(H, w, t)), w
+  )
 end
 
 harmonics(H::SQA.QSym, w::Symbolics.Num, t::Symbolics.Num) = harmonics(qadd(H), w, t)
@@ -306,7 +268,7 @@ function SQA.commutator(L::PeriodicGenerator{T}, R::PeriodicGenerator{T}) where 
   out = Dict{Int,T}()
   for (left_harmonic, left) in L.components, (right_harmonic, right) in R.components
     harmonic = left_harmonic + right_harmonic
-    term = SQA.commutator(left, right)
+    term = component_commutator(left, right)
     out[harmonic] = haskey(out, harmonic) ? out[harmonic] + term : term
   end
   return periodic_generator(out, L.wd)

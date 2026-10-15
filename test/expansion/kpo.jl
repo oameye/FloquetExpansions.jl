@@ -48,14 +48,7 @@ function kpo_heff1(ξ, aξ2)
   )
 end
 
-function dropconst(q::SQA.QAdd)
-  out = zero(SQA.QAdd)
-  for (term, coeff) in q
-    isempty(term.ops) && continue
-    out = out + coeff * prod(term.ops)
-  end
-  return out
-end
+dropconst(q::SQA.QAdd) = q - SQA.coefficient(q, 1)
 
 @testset "KPO, real pump: eq:kpo-heff0 and eq:kpo-heff1 EXACTLY" begin
   H, H0 = kpo_drive(ξ, ξ, ξ^2)

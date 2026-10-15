@@ -39,8 +39,12 @@ The cost grows with the number of jump records, which is exponential in `order` 
 
 The construction covers Markovian Lindblad input. The time-nonlocal Reimer–Wegewijs hierarchy needs a microscopic system–bath input that the package does not model; it remains a research item of #169.
 
+## Amendment: Lindbladian input
+
+ADR 0014 replaces the Hamiltonian-plus-channels form by `period_map(L::Lindbladian, ωd, t)`, and `superoperator` returns an SQA `SuperOperator`. SQA moves the constant part of a jump into the Hamiltonian, so the affine representation freedom of the jumps is fixed to jumps without a constant part and is no longer an input.
+
 ## Gate
 
 `make test` runs the testsets that hold this decision:
 
-- `test/kraus/period_map.jl`: "period map agrees with the exact one-period map through its order", "period map is completely positive and trace preserving through its order", "Hori–Deprit and Bloch/Feshbach give the same period map", "period map recovers the effective generator after the micromotion", "period map with symbolic parameters equals the numeric map at substituted points", "period map of driven Kerr with loss matches the truncated dynamics", "jump amplitudes integrate to the period map", "period map is covariant under its representation freedoms" and "period map rejects what it cannot expand"
+- `test/kraus/period_map.jl`: "period map agrees with the exact one-period map through its order", "period map is completely positive and trace preserving through its order", "Hori–Deprit and Bloch/Feshbach give the same period map", "period map recovers the effective generator after the micromotion", "period map with symbolic parameters equals the numeric map at substituted points", "period map of driven Kerr with loss matches the truncated dynamics", "jump amplitudes integrate to the period map", "period map is covariant under a unitary mixing of its jumps" and "period map rejects what it cannot expand"

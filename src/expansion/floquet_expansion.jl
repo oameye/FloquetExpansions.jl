@@ -77,7 +77,7 @@ function Base.propertynames(
   end
 end
 
-const GeneratorComponent = Union{SQA.QAdd,Liouvillian}
+const GeneratorComponent = Union{SQA.QAdd,SQA.SuperOperator}
 
 function Base.show(io::IO, ::MIME"text/plain", expansion::FloquetExpansion{G}) where {G}
   return print(io, "FloquetExpansion{", G, "} of order ", expansion.order)
@@ -85,13 +85,8 @@ end
 
 Base.show(io::IO, expansion::FloquetExpansion) = show(io, MIME"text/plain"(), expansion)
 
-struct ComponentConvention{F,C<:Number}
-  product::F
-  generator_phase::C
-end
-
-component_convention(::PeriodicGenerator{SQA.QAdd}) = ComponentConvention(*, -im)
-component_convention(::PeriodicGenerator{Liouvillian}) = ComponentConvention(compose, 1)
+generator_phase(::PeriodicGenerator{SQA.QAdd}) = -im
+generator_phase(::PeriodicGenerator{SQA.SuperOperator}) = 1
 
 function floquet_expansion_impl(
   generator::P, gauge::G, order::Int, provenance::R
@@ -122,8 +117,9 @@ end
 
 """
     floquet_expansion(generator::PeriodicGenerator, gauge, order)
-    floquet_expansion(L::Liouvillian, ωd, t, gauge, order)
-    floquet_expansion(H::Union{QSym,QAdd}, ωd, t, gauge, order; channels=())
+    floquet_expansion(H::Union{QSym,QAdd}, ωd, t, gauge, order)
+    floquet_expansion(L::Lindbladian, ωd, t, gauge, order)
+    floquet_expansion(S::SuperOperator, ωd, t, gauge, order)
 
 Expand a periodically driven generator into a time-independent effective generator and periodic
 micromotion, returning a [`FloquetExpansion`](@ref) with `order` retained inverse-frequency
@@ -132,23 +128,23 @@ contributions.
 # Arguments
 
 - `generator`: Prepared periodic Hamiltonian or Liouvillian generator.
-- `L`: Symbolic time-dependent Liouvillian to decompose using `ωd` and `t`.
 - `H`: Symbolic time-dependent Hamiltonian to decompose using `ωd` and `t`.
+- `L`: Symbolic time-dependent SecondQuantizedAlgebra `Lindbladian`.
+- `S`: Symbolic time-dependent SecondQuantizedAlgebra `SuperOperator`.
 - `ωd`: Symbolic drive frequency.
 - `t`: Symbolic time variable.
 - `gauge`: [`Gauge`](@ref) fixing the micromotion integration constant.
 - `order`: Number of retained orders; must be at least one.
-- `channels`: Tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values added to `H`.
 
-The `L` and `H` forms decompose the time dependence before applying the expansion. Physical
-`channels` supplied through the `H` form are retained as microscopic input for positive completion;
-explicitly constructed Liouvillian inputs remain valid and can be completed from their Floquet
-data or in a supplied [`DissipativeFrame`](@ref).
+The `H`, `L`, and `S` forms decompose the time dependence before applying the expansion. The
+channels of a `Lindbladian` are retained as microscopic input for positive completion: each
+channel must be diagonal and unsummed, and its rate must be provably real. A real symbolic rate
+is assumed nonnegative as a whole, and a negative numeric rate is rejected. A `SuperOperator`
+carries no channels; it can still be completed from its Floquet data or in a supplied
+`JumpBasis`.
 
-Hamiltonian generators are checked for Hermiticity at ingest, including the Hamiltonian part of
-the `H; channels=...` form. Liouvillian generators use the common algebra without a Hamiltonian
-Hermiticity requirement. An explicit channel vector must be nonempty; omit `channels` or pass `()`
-for a Hamiltonian-only expansion.
+Hamiltonian generators are checked for Hermiticity at ingest, including the Hamiltonian of a
+`Lindbladian`. A `SuperOperator` uses the common algebra without a Hermiticity requirement.
 
 # Notes
 
@@ -187,53 +183,27 @@ function floquet_expansion(
 end
 
 function floquet_expansion(
-  L::Liouvillian, wd::Symbolics.Num, t::Symbolics.Num, gauge::Gauge, order::Int
+  S::SQA.SuperOperator, wd::Symbolics.Num, t::Symbolics.Num, gauge::Gauge, order::Int
 )
-  return floquet_expansion_impl(harmonics(L, wd, t), gauge, order, NoProvenance())
+  return floquet_expansion_impl(harmonics(S, wd, t), gauge, order, NoProvenance())
 end
 
-function floquet_expansion_channels(
-  H::OperatorExpression,
-  wd::Symbolics.Num,
-  t::Symbolics.Num,
-  gauge::Gauge,
-  order::Int,
-  ::Tuple{},
+function floquet_expansion(
+  H::OperatorExpression, wd::Symbolics.Num, t::Symbolics.Num, gauge::Gauge, order::Int
 )
   return floquet_expansion_impl(harmonics(qadd(H), wd, t), gauge, order, NoProvenance())
 end
 
-function floquet_expansion_channels(
-  H::OperatorExpression,
+function floquet_expansion(
+  L::SQA.Lindbladian{SQA.QAdd},
   wd::Symbolics.Num,
   t::Symbolics.Num,
   gauge::Gauge,
   order::Int,
-  channels::LiouvillianChannelCollection,
 )
-  channels isa AbstractVector &&
-    isempty(channels) &&
-    throw(
-      ArgumentError(
-        "an explicit channel vector must be nonempty; omit `channels` for no channels"
-      ),
-    )
-
-  require_hermitian_drive(harmonics(qadd(H), wd, t))
-  provenance = microscopic_provenance(channels, wd, t)
-  L = liouvillian_from_provenance(H, provenance)
+  require_hermitian_drive(harmonics(SQA.hamiltonian(L), wd, t))
+  provenance = microscopic_provenance(L, wd, t)
   return floquet_expansion_impl(harmonics(L, wd, t), gauge, order, provenance)
-end
-
-function floquet_expansion(
-  H::OperatorExpression,
-  wd::Symbolics.Num,
-  t::Symbolics.Num,
-  gauge::Gauge,
-  order::Int;
-  channels::LiouvillianChannelCollection=(),
-)
-  return floquet_expansion_channels(H, wd, t, gauge, order, channels)
 end
 
 function reattach(component::E, wd::Symbolics.Num, n::Int) where {E<:GeneratorComponent}

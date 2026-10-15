@@ -7,7 +7,7 @@ using Symbolics: Symbolics, @variables
 const SQA = SecondQuantizedAlgebra
 
 function coefficient_matrix_zeros(rows::Int, columns::Int)
-  return fill(convert(SQA.CNum, 0), rows, columns)
+  return zeros(SQA.CNum, rows, columns)
 end
 
 function coefficient_matrix_mul(left, right)
@@ -82,12 +82,12 @@ a = Destroy(fock, :a)
 @variables ω::Real t::Real γ::Real Δ::Real Ω::Real
 
 @testset "full-rank non-diagonal Gram completion" begin
-  frame = DissipativeFrame(a, a^2)
-  L = liouvillian(0 * a; channels=(collapse(a + a^2), collapse(a + im * a^2)))
-  expansion = floquet_expansion(L, ω, t, VanVleck(), 2)
+  frame = JumpBasis(a, a^2)
+  L = dissipator(a + a^2) + dissipator(a + im * a^2)
+  expansion = floquet_expansion(SQA.SuperOperator(L), ω, t, VanVleck(), 2)
   completion = @inferred positive_completion(expansion, Gram(), frame)
 
-  @test dissipative_frame(completion) == frame
+  @test jump_basis(completion) == frame
   @test factorization(completion) isa GramFactorization
   @test factorization(completion).onsets == [0, 0]
   @test length(factorization(completion).stages) == 1
@@ -103,18 +103,18 @@ a = Destroy(fock, :a)
     @test effective_component(completion, n) == effective_component(expansion, n)
   end
   @test micromotion(completion) == micromotion(expansion)
-  @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
   @test_throws ArgumentError positive_completion(completion, Gram())
 end
 
 @testset "completed Gram accessors return independent containers" begin
-  frame = DissipativeFrame(a)
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(collapse(a),))
+  frame = JumpBasis(a)
+  expansion = floquet_expansion(dissipator(a), ω, t, VanVleck(), 1)
   completion = positive_completion(expansion, Gram(), frame)
 
   matrix = kossakowski(completion)
-  matrix[1, 1] = convert(SQA.CNum, 0)
+  matrix[1, 1] = zero(SQA.CNum)
   @test !iszero(kossakowski(completion)[1, 1])
 
   completed_channels = channels(completion)
@@ -122,30 +122,26 @@ end
   @test length(channels(completion)) == 1
 
   gram = factorization(completion)
-  gram.amplitudes[1][1, 1] = convert(SQA.CNum, 0)
+  gram.amplitudes[1][1, 1] = zero(SQA.CNum)
   @test !iszero(factorization(completion).amplitudes[1][1, 1])
-
-  copied_frame = dissipative_frame(completion)
-  copied_frame.coordinates[1, 1] = convert(SQA.CNum, 0)
-  @test !iszero(dissipative_frame(completion).coordinates[1, 1])
 end
 
-@testset "automatic frame preserves microscopic channel order" begin
-  first_channel = a + a^2
-  second_channel = a + im * a^2
-  expansion = floquet_expansion(
-    0 * a, ω, t, VanVleck(), 1; channels=(collapse(first_channel), collapse(second_channel))
-  )
+canonical_jumps(L) = map(SQA.jump ∘ first, SQA.channels(L))
+
+@testset "automatic frame follows the canonical channel order" begin
+  L = dissipator(a + a^2) + dissipator(a + im * a^2)
+  expansion = floquet_expansion(L, ω, t, VanVleck(), 1)
   completion = positive_completion(expansion, Gram())
 
-  @test dissipative_frame(completion) == DissipativeFrame(first_channel, second_channel)
-  @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+  @test jump_basis(completion) == JumpBasis(canonical_jumps(L)...)
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
 
-  dependent = floquet_expansion(
-    0 * a, ω, t, VanVleck(), 1; channels=(collapse(a), collapse(2a))
-  )
-  @test dissipative_frame(positive_completion(dependent, Gram())) == DissipativeFrame(a)
+  dependent_L = dissipator(a) + dissipator(a^2) + dissipator(a + a^2)
+  dependent = floquet_expansion(dependent_L, ω, t, VanVleck(), 1)
+  first_jump, second_jump = canonical_jumps(dependent_L)
+  @test jump_basis(positive_completion(dependent, Gram())) ==
+    JumpBasis(first_jump, second_jump)
 end
 
 @testset "automatic frame seeds a time-dependent channel with its static harmonics" begin
@@ -153,15 +149,14 @@ end
   H = (1//2) * n + (3//10) * n * n + (2//5) * (a + a')
   modulation = 1 + (1//4) * (expim(ω * t) + expim(-ω * t))
   expansion = floquet_expansion(
-    H, ω, t, VanVleck(), 3; channels=(jump(modulation * a, 4//5),)
+    hamiltonian_action(H) + (4//5) * dissipator(modulation * a), ω, t, VanVleck(), 3
   )
 
-  @test dissipative_frame(positive_completion(expansion, Gram())) ==
-    DissipativeFrame(a, a' * a * a)
+  @test jump_basis(positive_completion(expansion, Gram())) == JumpBasis(a, a' * a * a)
 end
 
 @testset "symbolic positivity and regularity conditions remain distinct" begin
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(jump(a, γ),))
+  expansion = floquet_expansion(γ * dissipator(a), ω, t, VanVleck(), 1)
   completion = positive_completion(expansion, Gram())
   γc = convert(SQA.CNum, γ)
 
@@ -174,15 +169,14 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σx, σy, σz)
+  frame = JumpBasis(σx, σy, σz)
   H = Δ * σz + Ω * cos(ω * t) * σx
   expansion = floquet_expansion(
-    H,
+    hamiltonian_action(H) + dissipator(σx + σy) + dissipator(σy + σz) + dissipator(σz + σx),
     ω,
     t,
     VanVleck(),
-    2;
-    channels=(collapse(σx + σy), collapse(σy + σz), collapse(σz + σx)),
+    2,
   )
   completion = positive_completion(expansion, Gram(), frame)
   gram = factorization(completion)
@@ -194,7 +188,7 @@ end
     ) for n in 0:1
   )
   @test coefficient_matrix_equal(finite_gram(gram), kossakowski(completion))
-  @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
 
   substitutions = Dict(Δ => 0.7, Ω => 0.4, ω => 10.0)
@@ -204,11 +198,11 @@ end
 
 @testset "bosonic periodically modulated loss" begin
   expansion = floquet_expansion(
-    Δ * a' * a, ω, t, VanVleck(), 2; channels=(jump(a, 2 + cos(ω * t)),)
+    hamiltonian_action(Δ * a' * a) + (2 + cos(ω * t)) * dissipator(a), ω, t, VanVleck(), 2
   )
   completion = positive_completion(expansion, Gram())
 
-  @test dissipative_frame(completion) == DissipativeFrame(a)
+  @test jump_basis(completion) == JumpBasis(a)
   @test kossakowski_component(completion, 0)[1, 1] == 2
   @test iszero(SQA.simplify(kossakowski_component(completion, 1)[1, 1]))
   @test coefficient_matrix_equal(
@@ -217,8 +211,8 @@ end
 end
 
 @testset "retained negative direction is a completion obstruction" begin
-  expansion = floquet_expansion(-dissipator(a), ω, t, VanVleck(), 1)
+  expansion = floquet_expansion(SQA.SuperOperator(-dissipator(a)), ω, t, VanVleck(), 1)
   @test_throws FloquetExpansions.CompletionObstruction positive_completion(
-    expansion, Gram(), DissipativeFrame(a)
+    expansion, Gram(), JumpBasis(a)
   )
 end

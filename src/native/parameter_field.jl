@@ -105,41 +105,28 @@ struct ParameterCoefficients
 end
 
 function collect_parameters!(found::Vector{Symbolics.Num}, c::SQA.CNum)
-  c.tail isa SQA.Native && return found
-  for monomial in polynomial_tail(c).terms,
-    (symbol, exponent) in zip(monomial.syms, monomial.exps)
-
+  for term in native_coefficient_terms(c), (symbol, exponent) in term.powers
     isinteger(exponent) || throw(
       ArgumentError(
         "the native expansion supports integer powers of a parameter only, found " *
         "$symbol^($exponent)",
       ),
     )
-    parameter = Symbolics.Num(symbol)
-    any(p -> isequal(p, parameter), found) || push!(found, parameter)
+    any(p -> isequal(p, symbol), found) || push!(found, symbol)
   end
   return found
 end
 
-function collect_parameters!(found::Vector{Symbolics.Num}, q::SQA.QAdd)
-  for (_, c) in q.arguments
-    collect_parameters!(found, c)
-  end
-  return found
-end
-
-function native_parameters(generator::PeriodicGenerator{Liouvillian})
+function native_parameters(generator::PeriodicGenerator{SQA.SuperOperator})
   found = Symbolics.Num[]
-  for (_, L) in generator.components, (left, right, c) in terms(L)
+  for (_, L) in generator.components, (_, _, c) in sandwiches(L)
     collect_parameters!(found, c)
-    collect_parameters!(found, qadd(left))
-    collect_parameters!(found, qadd(right))
   end
   return sort!(found; by=string)
 end
 
 function checked_native_parameters(
-  generator::PeriodicGenerator{Liouvillian}, limit::Int, method::String
+  generator::PeriodicGenerator{SQA.SuperOperator}, limit::Int, method::String
 )
   parameters = native_parameters(generator)
   any(p -> isequal(p, generator.wd), parameters) && throw(
@@ -158,7 +145,7 @@ function checked_native_parameters(
 end
 
 function native_coefficients(
-  generator::PeriodicGenerator{Liouvillian}, negative::Tuple{Vararg{Symbolics.Num}}
+  generator::PeriodicGenerator{SQA.SuperOperator}, negative::Tuple{Vararg{Symbolics.Num}}
 )
   parameters = checked_native_parameters(
     generator, MAXIMUM_PARAMETERS, "the GKSL normal form"
@@ -179,7 +166,7 @@ end
 function native_expansion_data(
   ::ExactCoefficients,
   algorithm::Union{BlochFeshbach,HoriDeprit},
-  generator::PeriodicGenerator{Liouvillian},
+  generator::PeriodicGenerator{SQA.SuperOperator},
   N::Int,
   gauge_degree::Int,
 )
@@ -189,7 +176,7 @@ end
 function native_expansion_data(
   coefficients::ParameterCoefficients,
   algorithm::Union{BlochFeshbach,HoriDeprit},
-  generator::PeriodicGenerator{Liouvillian},
+  generator::PeriodicGenerator{SQA.SuperOperator},
   N::Int,
   gauge_degree::Int,
 )
@@ -215,7 +202,7 @@ function parameter_term(coefficients::ParameterCoefficients, i::Int)
 end
 
 function parameter_polynomial(coefficients::ParameterCoefficients, p::Nemo.QQMPolyRingElem)
-  result = convert(SQA.CNum, 0)
+  result = zero(SQA.CNum)
   for (q, exponents) in zip(Nemo.coefficients(p), Nemo.exponent_vectors(p))
     term = convert(SQA.CNum, Rational{BigInt}(q))
     for (i, e) in pairs(exponents)

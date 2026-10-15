@@ -16,16 +16,16 @@ the positive continuation. Active dissipative directions are eliminated algebrai
 construction recurses on the residual dark sector, so no Kossakowski eigendecomposition is
 required.
 
-`Gram()` can be used with any independent [`DissipativeFrame`](@ref). Supplying the frame
+`Gram()` can be used with any independent `JumpBasis`. Supplying the basis
 explicitly fixes the dissipative coordinates; otherwise [`positive_completion`](@ref) derives a
-frame from the available Floquet data.
+basis from the available Floquet data.
 
 `Gram()` is the perturbative Cholesky gauge: each order's factor coefficient in the active block
-is lower triangular in the frame ordering. The completed generator beyond the retained order
-therefore depends on the order of the frame vectors whenever the active block has rank at least
+is lower triangular in the basis ordering. The completed generator beyond the retained order
+therefore depends on the order of the basis operators whenever the active block has rank at least
 two with off-diagonal data, whereas the retained coefficients and positivity do not. Permuting
 `(σ₋, σ₊, σz)` to `(σ₊, σ₋, σz)` for a full-rank driven qubit changes the completion at a
-higher order in the inverse drive frequency, for instance. The frame is thus part of the choice of
+higher order in the inverse drive frequency, for instance. The basis is thus part of the choice of
 continuation, beyond the channel gauge.
 """
 struct Gram <: CompletionAlgorithm end
@@ -35,23 +35,23 @@ struct Gram <: CompletionAlgorithm end
 
 Select perturbative spectral Haddadfarshi--Cui--Mintert (HCM) positive completion.
 
-The construction follows perturbative decay-rate and branch-vector series in a dissipative frame
+The construction follows perturbative decay-rate and branch-vector series in a jump basis
 where the leading Kossakowski form is diagonal. Each admissible retained rate branch is completed
 through a truncated square-root expansion, and the finite squared rates reconstruct a positive
 Kossakowski form while preserving all retained coefficients. This is the completely-positive
 high-frequency construction of Haddadfarshi, Cui, and Mintert [Haddadfarshi2015](@cite).
 
-`Spectral()` therefore requires a suitable leading spectral frame. The two-argument
-`positive_completion(expansion, Spectral())` uses the automatically derived frame only when that
-frame already satisfies this condition; it does not diagonalize the leading Kossakowski form.
+`Spectral()` therefore requires a suitable leading spectral basis. The two-argument
+`positive_completion(expansion, Spectral())` uses the automatically derived basis only when that
+basis already satisfies this condition; it does not diagonalize the leading Kossakowski form.
 Degenerate leading sectors must first be resolved by an adapted degenerate perturbative basis
 rather than by nondegenerate branch recursion.
 
-The spectral decomposition is taken with respect to the coordinate inner product of the frame, in
-which the frame vectors are treated as orthonormal. Rescaling a single frame vector therefore
-changes the completed generator beyond the retained order, and so does any other change of frame
+The spectral decomposition is taken with respect to the coordinate inner product of the basis, in
+which the basis operators are treated as orthonormal. Rescaling a single basis operator therefore
+changes the completed generator beyond the retained order, and so does any other change of basis
 that is not unitary in these coordinates. The retained coefficients and positivity are preserved
-for every admissible frame.
+for every admissible basis.
 """
 struct Spectral <: CompletionAlgorithm end
 
@@ -98,7 +98,7 @@ Raised by [`positive_completion`](@ref) with [`Gram`](@ref) when a positive diss
 first appears at odd inverse-frequency order `rate_order`, so an integer-power collapse-amplitude
 representation would require a half-integer onset. The odd onset does not obstruct complete
 positivity itself: [`Spectral`](@ref) completion represents it as a Puiseux rate branch when its
-frame requirements hold.
+basis requirements hold.
 """
 struct FractionalJumpOnset <: Exception
   rate_order::Int
@@ -121,10 +121,10 @@ struct PositiveCompletion{
   A<:CompletionAlgorithm,F,RK,K,C,P,R,X<:CompletionFactorization,H,E
 } <: Completion
   algorithm::A
-  frame::F
+  basis::F
   retained_kossakowski::RK
   kossakowski::K
-  channels::C
+  lindbladian::C
   positivity_conditions::P
   regularity_conditions::R
   factorization::X

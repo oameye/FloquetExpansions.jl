@@ -11,7 +11,7 @@ high-frequency expansion need not remain inside the Gorini--Kossakowski--Sudarsh
 perturbative coefficient while choosing the first unfixed higher-order dissipative terms so that
 the finite effective generator is completely positive.
 
-Choose a finite dissipative operator frame ``F=(F_1,\ldots,F_q)``. The retained dissipative sector
+Choose a finite jump basis ``F=(F_1,\ldots,F_q)``. The retained dissipative sector
 is a Hermitian Kossakowski series
 
 ```math
@@ -30,15 +30,15 @@ A CP-preserving continuation is a finite Hermitian form ``\widetilde d^{[N]}`` s
 where ``\Pi_N`` discards powers above ``\epsilon^N``. The completion therefore changes no retained
 Floquet data.
 
-## Dissipative-frame covariance
+## Jump-basis covariance
 
-The dissipative frame is a coordinate choice, not a set of physical decay eigenmodes. Under an
-invertible frame transformation ``F\mapsto FT``, the Kossakowski form transforms by congruence.
-Individual matrix entries, jump representatives, and rate assignments are frame dependent, while
+The jump basis is a coordinate choice, not a set of physical decay eigenmodes. Under an
+invertible basis transformation ``F\mapsto FT``, the Kossakowski form transforms by congruence.
+Individual matrix entries, jump representatives, and rate assignments are basis dependent, while
 positivity and inertia are congruence invariant.
 
 This distinction permits an algebraic completion to work directly in a physically convenient
-operator frame rather than first diagonalizing the leading dissipator.
+jump basis rather than first diagonalizing the leading dissipator.
 
 ## Graded Gram construction
 

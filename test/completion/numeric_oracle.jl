@@ -28,7 +28,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σz, σy)
+  frame = JumpBasis(σz, σy)
   @variables ω::Real
 
   coherent_rotation = hamiltonian_action(σx)
@@ -36,9 +36,9 @@ end
   quadrature = im * (1 // 2) * diagonal_difference
   generator = PeriodicGenerator(
     Dict(
-      0 => dissipator(σz),
-      1 => coherent_rotation + quadrature,
-      -1 => coherent_rotation - quadrature,
+      0 => SQA.SuperOperator(dissipator(σz)),
+      1 => SQA.SuperOperator(coherent_rotation + quadrature),
+      -1 => SQA.SuperOperator(coherent_rotation - quadrature),
     ),
     ω,
   )
@@ -59,14 +59,19 @@ end
 @testset "bosonic Gram closure is positive without a Fock cutoff" begin
   fock = FockSpace(:cp_numeric_modulated_loss)
   a = Destroy(fock, :a)
-  frame = DissipativeFrame(a, a^2, a' * a^2)
+  frame = JumpBasis(a, a^2, a' * a^2)
   @variables ω::Real
 
   D1 = dissipator(a)
   D2 = dissipator(a^2)
   quadrature = im * (1 // 2) * D2
   generator = PeriodicGenerator(
-    Dict(0 => D1 + D2, 1 => (1 // 2) * D1 + quadrature, -1 => (1 // 2) * D1 - quadrature), ω
+    Dict(
+      0 => SQA.SuperOperator(D1 + D2),
+      1 => SQA.SuperOperator((1 // 2) * D1 + quadrature),
+      -1 => SQA.SuperOperator((1 // 2) * D1 - quadrature),
+    ),
+    ω,
   )
   expansion = floquet_expansion(generator, VanVleck(), 2)
   completion = positive_completion(expansion, Gram(), frame)

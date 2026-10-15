@@ -6,6 +6,10 @@ using Symbolics: @variables
 const SQA = SecondQuantizedAlgebra
 
 symbolic_zero(expression) = iszero(SQA.simplify(expression))
+same_map(A, B) = iszero(SQA.expand_completeness(A - B))
+function same_periodic_map(A::PeriodicGenerator, B::PeriodicGenerator)
+  return all(same_map(A[l], B[l]) for l in union(keys(A), keys(B)))
+end
 
 @testset "Liouvillian Van Vleck phase reproduces the analytical driven qubit" begin
   pauli = PauliSpace(:liouvillian_vv_phase_qubit)
@@ -13,22 +17,24 @@ symbolic_zero(expression) = iszero(SQA.simplify(expression))
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
   σminus = (1 // 2) * (σx - im * σy)
-  frame = DissipativeFrame(σx, σy, σz)
+  frame = JumpBasis(σx, σy, σz)
   @variables ω::Real t::Real E::Real γ::Real
 
   H = (1 // 2) * σz + E * cos(ω * t) * σx
-  parsed = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(jump(σminus, γ),))
+  parsed = floquet_expansion(
+    hamiltonian_action(H) + γ * dissipator(σminus), ω, t, VanVleck(), 3
+  )
 
-  L0 = liouvillian((1 // 2) * σz; channels=(jump(σminus, γ),))
-  L1 = hamiltonian_action(((1 // 2) * E) * σx)
+  L0 = SQA.SuperOperator(hamiltonian_action((1 // 2) * σz) + γ * dissipator(σminus))
+  L1 = SQA.SuperOperator(hamiltonian_action(((1 // 2) * E) * σx))
   explicit = floquet_expansion(
     PeriodicGenerator(Dict(0 => L0, 1 => L1, -1 => L1), ω), VanVleck(), 3
   )
 
   for order in 0:2
-    @test effective_component(parsed, order) == effective_component(explicit, order)
+    @test same_map(effective_component(parsed, order), effective_component(explicit, order))
   end
-  @test micromotion(parsed) == micromotion(explicit)
+  @test same_periodic_map(micromotion(parsed), micromotion(explicit))
 
   @test iszero(hamiltonian_component(parsed, 1))
   @test symbolic_zero(hamiltonian_component(parsed, 2) + (E^2 / (2 * ω^2)) * σz)
@@ -61,11 +67,11 @@ end
   fock = FockSpace(:liouvillian_vv_phase_boson)
   a = Destroy(fock, :a)
   na = a' * a^2
-  frame = DissipativeFrame(a, a^2, na)
+  frame = JumpBasis(a, a^2, na)
   @variables ω::Real t::Real κ1::Real κ2::Real r1::Real r2::Real
 
-  D1 = dissipator(a)
-  D2 = dissipator(a^2)
+  D1 = SQA.SuperOperator(dissipator(a))
+  D2 = SQA.SuperOperator(dissipator(a^2))
   u = κ1 * r1 / 2
   v = κ2 * r2 / 2
   χ = κ1 * κ2 * r1 * r2 / 2
@@ -83,9 +89,9 @@ end
   )
 
   for order in 0:1
-    @test effective_component(parsed, order) == effective_component(explicit, order)
+    @test same_map(effective_component(parsed, order), effective_component(explicit, order))
   end
-  @test micromotion(parsed) == micromotion(explicit)
+  @test same_periodic_map(micromotion(parsed), micromotion(explicit))
 
   d1 = kossakowski_component(parsed, frame, 1)
   @test symbolic_zero(d1[1, 1])

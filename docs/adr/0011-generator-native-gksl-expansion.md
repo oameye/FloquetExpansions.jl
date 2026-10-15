@@ -12,7 +12,7 @@ The implementation lives in `src/native/`, after `gksl/` and independent of `com
 
 ## Public gauge
 
-The construction is exposed as its own gauge, `GKSLNormalForm(; algorithm)`, not as a mode of `VanVleck`. A different gauge is a different struct: `VanVleck` keeps its exact meaning ``\langle\mathcal K\rangle = 0``, while the GKSL normal form adds the static similarity ``W = e^{S}`` and is therefore not zero-average whenever some ``S_n \neq 0``. For Liouvillian generators `floquet_expansion(system, GKSLNormalForm(), order)` returns a `FloquetExpansion` whose completion slot holds a `NativeRealization`, so `effective_generator`, `hamiltonian`, `channels`, `kossakowski`, and `dissipative_frame` behave as after `Gram()`, and `positive_completion` refuses the already GKSL result. For Hamiltonian generators the gauge returns the van Vleck coefficients without a completion state, since every ``S_n`` vanishes.
+The construction is exposed as its own gauge, `GKSLNormalForm(; algorithm)`, not as a mode of `VanVleck`. A different gauge is a different struct: `VanVleck` keeps its exact meaning ``\langle\mathcal K\rangle = 0``, while the GKSL normal form adds the static similarity ``W = e^{S}`` and is therefore not zero-average whenever some ``S_n \neq 0``. For Liouvillian generators `floquet_expansion(system, GKSLNormalForm(), order)` returns a `FloquetExpansion` whose completion slot holds a `NativeRealization`, so `effective_generator`, `hamiltonian`, `channels`, `kossakowski`, and `jump_basis` behave as after `Gram()`, and `positive_completion` refuses the already GKSL result. For Hamiltonian generators the gauge returns the van Vleck coefficients without a completion state, since every ``S_n`` vanishes.
 
 ## Exact cutoff-free representation
 

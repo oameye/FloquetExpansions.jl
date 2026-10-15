@@ -24,16 +24,12 @@ function operator_residual(difference::SQA.QAdd, value::Real; include_identity::
   return residual
 end
 
-function agrees_with_gram(H, order, model_channels, algorithm)
-  native = floquet_expansion(
-    H, ω, t, GKSLNormalForm(; algorithm), order; channels=model_channels
-  )
-  reference = floquet_expansion(
-    H, ω, t, VanVleck(; algorithm), order; channels=model_channels
-  )
-  frame = dissipative_frame(native)
+function agrees_with_gram(L, order, algorithm)
+  native = floquet_expansion(L, ω, t, GKSLNormalForm(; algorithm), order)
+  reference = floquet_expansion(L, ω, t, VanVleck(; algorithm), order)
+  frame = jump_basis(native)
   completed = positive_completion(reference, Gram(), frame)
-  @test dissipative_frame(completed) == frame
+  @test jump_basis(completed) == frame
   difference = hamiltonian(native) - hamiltonian(completed)
   @test operator_residual(difference, 7.0; include_identity=false) <= 1.0e-10
   @test size(kossakowski(native)) == size(kossakowski(completed))
@@ -52,12 +48,13 @@ end
   H = (1 // 2) * a' * a + (3 // 10) * a' * a * a' * a + (2 // 5) * (a + a') * cos(ω * t)
   cases = ((HoriDeprit(), (4,)), (BlochFeshbach(), (3,)))
   for (algorithm, orders) in cases, order in orders
-    native, completed = agrees_with_gram(H, order, (jump(a, 4 // 5),), algorithm)
+    L = hamiltonian_action(H) + (4 // 5) * dissipator(a)
+    native, completed = agrees_with_gram(L, order, algorithm)
     difference = hamiltonian(native) - hamiltonian(completed)
     @test operator_residual(difference, 7.0; include_identity=true) <= 1.0e-10
     @test length(channels(native)) == 1
     @test length(channels(completed)) == 1
-    @test only(channels(native)).rate == 4 // 5
+    @test last(only(channels(native))) == 4 // 5
     @test size(kossakowski(native)) == (1, 1)
   end
 end
@@ -77,6 +74,7 @@ end
     ),
   )
   for (H, cases) in models, (algorithm, orders) in cases, order in orders
-    agrees_with_gram(H, order, (jump(σminus, 3 // 10),), algorithm)
+    L = hamiltonian_action(H) + (3 // 10) * dissipator(σminus)
+    agrees_with_gram(L, order, algorithm)
   end
 end

@@ -49,14 +49,16 @@ end
 @testset "dissipative quasienergy blocks use the Liouvillian convention" begin
   space = NLevelSpace(:dissipative_quasienergy, 2)
   a = Transition(space, :σ, 1, 2)
-  static = liouvillian(zero(SQA.QAdd); channels=(jump(a, 1),))
-  driven = hamiltonian_action(a)
+  static = SQA.SuperOperator(dissipator(a))
+  driven = SQA.SuperOperator(hamiltonian_action(a))
   L = PeriodicGenerator(Dict(0 => static, 1 => driven), wd_symbol)
   Q = QuasienergyOperator(L, 1)
 
-  @test Q isa QuasienergyOperator{Liouvillian}
-  @test Q[1, 0] == im * driven
-  @test Q[1, 1] == im * static - wd_symbol * one(Liouvillian)
+  @test Q isa QuasienergyOperator{SQA.SuperOperator}
+  @test iszero(SQA.expand_completeness(Q[1, 0] - im * driven))
+  @test iszero(
+    SQA.expand_completeness(Q[1, 1] - (im * static - wd_symbol * one(SQA.SuperOperator)))
+  )
 end
 
 @testset "quasienergies match the effective Hamiltonian's spectrum" begin

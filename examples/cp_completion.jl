@@ -24,7 +24,7 @@ H = (1 // 2) * σz + E * cos(ω * t) * σx
 # The Lindblad generator combines the coherent action of ``H`` with the dissipator of
 # ``\sigma_-`` at rate ``\gamma``.
 
-L = liouvillian(H; channels=(jump(σminus, γ),))
+L = hamiltonian_action(H) + γ * dissipator(σminus)
 
 # We will apply a the floquet expansion to the Lindblad generator using the Van Vleck gauge up to third order:
 
@@ -34,9 +34,9 @@ vv = floquet_expansion(L, ω, t, VanVleck(), 3)
 
 hamiltonian(vv)
 
-# The Kossakowski matrix is a representation of the dissipative part of the Lindblad generator in a specific operator basis. We can display the resulting Kossakowski matrix in the Cartesian Pauli basis using the `DissipativeFrame` constructor.
+# The Kossakowski matrix is a representation of the dissipative part of the Lindblad generator in a specific operator basis. We can display the resulting Kossakowski matrix in the Cartesian Pauli basis using the `JumpBasis` constructor.
 
-cartesian = DissipativeFrame(σx, σy, σz)
+cartesian = JumpBasis(σx, σy, σz)
 d_raw = kossakowski(vv, cartesian)
 
 # This matrix is not positive semidefinite, hence the truncated generator is not completely
@@ -54,31 +54,31 @@ det(d_raw)
 # perturbative decay-rate branches, completes each retained rate through a finite square, and
 # reconstructs a positive finite Kossakowski form.
 #
-# This route needs a suitable *spectral frame*: its leading Kossakowski component must already be
+# This route needs a suitable *spectral basis*: its leading Kossakowski component must already be
 # diagonal, with any degenerate leading sector resolved before branch recursion begins. The
-# Cartesian frame above made the defect visible, but does not meet that requirement. For this
-# qubit, the jump-adapted frame does.
+# Cartesian basis above made the defect visible, but does not meet that requirement. For this
+# qubit, the jump-adapted basis does.
 
-spectral_frame = DissipativeFrame(σminus, σplus, σz)
-d0_spectral = kossakowski_component(vv, spectral_frame, 0)
+spectral_basis = JumpBasis(σminus, σplus, σz)
+d0_spectral = kossakowski_component(vv, spectral_basis, 0)
 
 # The displayed leading matrix has one active decay direction and two dark directions. In this
-# frame the spectral construction can follow the rate branches without asking the package to
+# basis the spectral construction can follow the rate branches without asking the package to
 # discover a symbolic eigenbasis.
 
-spectral = positive_completion(vv, Spectral(), spectral_frame)
+spectral = positive_completion(vv, Spectral(), spectral_basis)
 d_sprectral = kossakowski(spectral)
 
 # Note that the correction are all of higher order than the retained Floquet expansion. Hence the completed generator is a valid finite-order Floquet expansion of the original Lindblad generator.
 
 # The completed channels make the continuation into a finite GKSL generator. Spectral completion
-# naturally presents them as rate-weighted jump channels.
+# naturally presents them as rate-weighted jump channels, each listed as `channel => rate`.
 
 channels(spectral)
 
-# ## Gram completion: preserve the supplied frame
+# ## Gram completion: preserve the supplied basis
 #
-# Spectral completion can be annoying as it requires a diagonalization of the leading Kossakowski matrix. Calling `Spectral()` with the Cartesian frame would fail because its
+# Spectral completion can be annoying as it requires a diagonalization of the leading Kossakowski matrix. Calling `Spectral()` with the Cartesian basis would fail because its
 # leading Kossakowski matrix is not diagonal.
 
 # Instead, one can use a different approach by using a `Gram()` factorization. It constructs a graded factor ``B`` such that
@@ -100,15 +100,15 @@ channels(gram)
 
 # ## Same retained data, different finite completions
 #
-# Frame choice and algorithm choice are separate. To compare only the algorithms, run Gram in the
-# same jump-adapted frame as the spectral construction.
+# Basis choice and algorithm choice are separate. To compare only the algorithms, run Gram in the
+# same jump-adapted basis as the spectral construction.
 
-gram_adapted = positive_completion(vv, Gram(), spectral_frame)
+gram_adapted = positive_completion(vv, Gram(), spectral_basis)
 
 # The two finite Kossakowski differ
 
 kossakowski(gram_adapted) - kossakowski(spectral)
 
 # Thus Gram is not a more accurate high-frequency expansion. Its advantage is a broader
-# algebraic domain: it avoids spectral preprocessing, works in a supplied physical frame, and
+# algebraic domain: it avoids spectral preprocessing, works in a supplied physical basis, and
 # exposes active/dark onset information when a leading dissipative form is rank deficient.

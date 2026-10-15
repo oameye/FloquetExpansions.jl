@@ -73,7 +73,7 @@ function compile_lie_series_plan(support::Vector{Int}, order::Int)
 end
 
 function evaluate_lyndon_brackets(
-  plan::LieSeriesPlan{H}, components::AbstractDict{H,T}, product
+  plan::LieSeriesPlan{H}, components::AbstractDict{H,T}
 ) where {H,T}
   nletters = length(plan.letters)
   bracket_values = Vector{T}(undef, nletters + length(plan.brackets))
@@ -83,8 +83,7 @@ function evaluate_lyndon_brackets(
   for (index, bracket) in enumerate(plan.brackets)
     left = bracket_values[bracket.left]
     right = bracket_values[bracket.right]
-    commutator = product(left, right) - product(right, left)
-    bracket_values[nletters + index] = SQA.simplify(commutator)
+    bracket_values[nletters + index] = SQA.simplify(component_commutator(left, right))
   end
   return bracket_values
 end
@@ -111,12 +110,11 @@ function lie_series_component(
 end
 
 function evaluate_lie_series(
-  plan::LieSeriesPlan{H}, components::AbstractDict{H,T}, convention::ComponentConvention
+  plan::LieSeriesPlan{H}, components::AbstractDict{H,T}, phase::Number
 ) where {H,T}
-  (; product, generator_phase) = convention
-  order_phase = im * generator_phase
-  micromotion_phase = conj(generator_phase)
-  bracket_values = evaluate_lyndon_brackets(plan, components, product)
+  order_phase = im * phase
+  micromotion_phase = conj(phase)
+  bracket_values = evaluate_lyndon_brackets(plan, components)
   effective = T[
     lie_combination(terms, bracket_values, order_phase^(n - 1)) for
     (n, terms) in enumerate(plan.effective)
@@ -134,7 +132,7 @@ function van_vleck_expansion(
   (; components, wd) = generator
   plan = compile_lie_series_plan(collect(keys(generator)), order)
   (; micromotion_series, effective) = evaluate_lie_series(
-    plan, components, component_convention(generator)
+    plan, components, generator_phase(generator)
   )
   micromotion_components = P[
     periodic_generator(series, wd) for series in micromotion_series

@@ -6,7 +6,7 @@ using Symbolics: @variables
 const SQA = SecondQuantizedAlgebra
 
 function validation_matrix_zeros(rows::Int, columns::Int)
-  return fill(convert(SQA.CNum, 0), rows, columns)
+  return zeros(SQA.CNum, rows, columns)
 end
 
 function validation_matrix_equal(left, right)
@@ -93,7 +93,7 @@ function validation_has_condition(conditions, target; up_to_sign::Bool=false)
 end
 
 function validate_retained_contract(completion, expansion, frame, retained_order)
-  @test dissipative_frame(completion) == frame
+  @test jump_basis(completion) == frame
   for order in 0:retained_order
     raw_kossakowski = kossakowski_component(expansion, frame, order)
     @test validation_matrix_hermitian(raw_kossakowski)
@@ -104,7 +104,7 @@ function validate_retained_contract(completion, expansion, frame, retained_order
   end
   @test micromotion(completion) == micromotion(expansion)
   @test validation_matrix_hermitian(kossakowski(completion))
-  @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
   return nothing
 end
@@ -112,10 +112,10 @@ end
 @testset "public completion API is inferred for fixed frames" begin
   fock = FockSpace(:cp_validation_inference)
   a = Destroy(fock, :a)
-  frame = DissipativeFrame(a)
+  frame = JumpBasis(a)
   @variables ω::Real t::Real
 
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(collapse(a),))
+  expansion = floquet_expansion(dissipator(a), ω, t, VanVleck(), 1)
 
   # Automatic frame discovery has runtime-dependent arity by design. Exercise it as a public
   # path, while keeping strict inference checks on the fixed-frame entry points.
@@ -124,12 +124,12 @@ end
   gram = @inferred positive_completion(expansion, Gram(), frame)
   spectral = @inferred positive_completion(expansion, Spectral(), frame)
 
-  @test dissipative_frame(gram_auto) == frame
-  @test dissipative_frame(spectral_auto) == frame
+  @test jump_basis(gram_auto) == frame
+  @test jump_basis(spectral_auto) == frame
   @test isconcretetype(typeof(gram_auto))
   @test isconcretetype(typeof(spectral_auto))
 
-  @test @inferred(dissipative_frame(gram)) == frame
+  @test @inferred(jump_basis(gram)) == frame
   @test @inferred(channels(gram)) == channels(gram)
   @test @inferred(positivity_conditions(gram)) == positivity_conditions(gram)
   @test @inferred(regularity_conditions(gram)) == regularity_conditions(gram)
@@ -139,7 +139,7 @@ end
   @test @inferred(hamiltonian(gram)) == hamiltonian(gram)
   @test @inferred(hamiltonian_component(gram, 0)) == hamiltonian_component(gram, 0)
 
-  @test @inferred(dissipative_frame(spectral)) == frame
+  @test @inferred(jump_basis(spectral)) == frame
   @test @inferred(channels(spectral)) == channels(spectral)
   @test @inferred(positivity_conditions(spectral)) == positivity_conditions(spectral)
   @test @inferred(regularity_conditions(spectral)) == regularity_conditions(spectral)
@@ -157,12 +157,12 @@ end
   σz = Pauli(pauli, :sigma, 3)
   bright = σy + σz
   dark = σy - σz
-  cartesian = DissipativeFrame(σx, σy, σz)
-  adapted = DissipativeFrame(bright, dark)
+  cartesian = JumpBasis(σx, σy, σz)
+  adapted = JumpBasis(bright, dark)
   @variables ω::Real t::Real Ω::Real
 
   expansion = floquet_expansion(
-    Ω * cos(ω * t) * σx, ω, t, VanVleck(), 3; channels=(collapse(bright),)
+    hamiltonian_action(Ω * cos(ω * t) * σx) + dissipator(bright), ω, t, VanVleck(), 3
   )
   leading_cartesian = kossakowski_component(expansion, cartesian, 0)
   @test !iszero(SQA.simplify(leading_cartesian[2, 3]))
@@ -191,11 +191,11 @@ end
 @testset "full-rank non-diagonal leading block needs no eigendiagonalization" begin
   fock = FockSpace(:cp_validation_full_rank)
   a = Destroy(fock, :a)
-  frame = DissipativeFrame(a, a^2)
+  frame = JumpBasis(a, a^2)
   @variables ω::Real t::Real
 
-  generator = liouvillian(0 * a; channels=(collapse(a + a^2), collapse(a + im * a^2)))
-  expansion = floquet_expansion(generator, ω, t, VanVleck(), 1)
+  generator = dissipator(a + a^2) + dissipator(a + im * a^2)
+  expansion = floquet_expansion(SQA.SuperOperator(generator), ω, t, VanVleck(), 1)
   leading = kossakowski_component(expansion, frame, 0)
   @test !iszero(SQA.simplify(leading[1, 2]))
   @test !iszero(SQA.simplify(leading[2, 1]))
@@ -212,7 +212,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σz, σy)
+  frame = JumpBasis(σz, σy)
   @variables ω::Real
 
   coherent_rotation = hamiltonian_action(σx)
@@ -221,9 +221,9 @@ end
   quadrature = im * (1 // 2) * diagonal_difference
   generator = PeriodicGenerator(
     Dict(
-      0 => leading,
-      1 => coherent_rotation + quadrature,
-      -1 => coherent_rotation - quadrature,
+      0 => SQA.SuperOperator(leading),
+      1 => SQA.SuperOperator(coherent_rotation + quadrature),
+      -1 => SQA.SuperOperator(coherent_rotation - quadrature),
     ),
     ω,
   )
@@ -239,14 +239,19 @@ end
 @testset "bosonic dark-sector closure starts beyond retained order" begin
   fock = FockSpace(:cp_validation_modulated_loss)
   a = Destroy(fock, :a)
-  frame = DissipativeFrame(a, a^2, a' * a^2)
+  frame = JumpBasis(a, a^2, a' * a^2)
   @variables ω::Real
 
   D1 = dissipator(a)
   D2 = dissipator(a^2)
   quadrature = im * (1 // 2) * D2
   generator = PeriodicGenerator(
-    Dict(0 => D1 + D2, 1 => (1 // 2) * D1 + quadrature, -1 => (1 // 2) * D1 - quadrature), ω
+    Dict(
+      0 => SQA.SuperOperator(D1 + D2),
+      1 => SQA.SuperOperator((1 // 2) * D1 + quadrature),
+      -1 => SQA.SuperOperator((1 // 2) * D1 - quadrature),
+    ),
+    ω,
   )
   expansion = floquet_expansion(generator, VanVleck(), 2)
   first_order = kossakowski_component(expansion, frame, 1)
@@ -272,12 +277,12 @@ end
   fock = FockSpace(:cp_validation_kerr)
   a = Destroy(fock, :a)
   number_selective = a' * a^2
-  frame = DissipativeFrame(number_selective)
+  frame = JumpBasis(number_selective)
   @variables ω::Real t::Real K::Real γ::Real
 
   H = K * a'^2 * a^2
   expansion = floquet_expansion(
-    H, ω, t, VanVleck(), 1; channels=(jump(number_selective, γ),)
+    hamiltonian_action(H) + γ * dissipator(number_selective), ω, t, VanVleck(), 1
   )
 
   gram = @inferred positive_completion(expansion, Gram(), frame)
@@ -293,7 +298,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σz, σy)
+  frame = JumpBasis(σz, σy)
   @variables ω::Real
 
   coherent_rotation = hamiltonian_action(σx)
@@ -301,9 +306,9 @@ end
   quadrature = im * (1 // 2) * cross_dissipator
   generator = PeriodicGenerator(
     Dict(
-      0 => dissipator(σz),
-      1 => coherent_rotation + quadrature,
-      -1 => coherent_rotation - quadrature,
+      0 => SQA.SuperOperator(dissipator(σz)),
+      1 => SQA.SuperOperator(coherent_rotation + quadrature),
+      -1 => SQA.SuperOperator(coherent_rotation - quadrature),
     ),
     ω,
   )
@@ -323,9 +328,9 @@ end
 @testset "retained negative directions raise the obstruction type" begin
   fock = FockSpace(:cp_validation_negative)
   a = Destroy(fock, :a)
-  frame = DissipativeFrame(a)
+  frame = JumpBasis(a)
   @variables ω::Real t::Real
-  expansion = floquet_expansion(-dissipator(a), ω, t, VanVleck(), 1)
+  expansion = floquet_expansion(SQA.SuperOperator(-dissipator(a)), ω, t, VanVleck(), 1)
 
   for method in (Gram(), Spectral())
     error = try
@@ -344,14 +349,11 @@ function rate_modulated_cascade(phase_sign, κ, r, ω, t)
   J10 = Transition(space, :s, 1, 2)
   J21 = Transition(space, :s, 2, 3)
   J20 = Transition(space, :s, 1, 3)
-  frame = DissipativeFrame(J10, J21, J20)
-  generator = liouvillian(
-    0 * Transition(space, :s, 1, 1);
-    channels=(
-      jump(J10, κ * (1 + r * cos(ω * t))), jump(J21, κ * (1 + phase_sign * r * sin(ω * t)))
-    ),
-  )
-  return floquet_expansion(generator, ω, t, VanVleck(), 2), frame
+  frame = JumpBasis(J10, J21, J20)
+  generator =
+    κ * (1 + r * cos(ω * t)) * dissipator(J10) +
+    κ * (1 + phase_sign * r * sin(ω * t)) * dissipator(J21)
+  return floquet_expansion(SQA.SuperOperator(generator), ω, t, VanVleck(), 2), frame
 end
 
 function completion_error(expansion, method, frame)
@@ -399,10 +401,10 @@ end
 @testset "zero diagonal with Hermitian coupling is a PSD obstruction" begin
   fock = FockSpace(:cp_validation_zero_diagonal)
   a = Destroy(fock, :a)
-  frame = DissipativeFrame(a, a^2)
+  frame = JumpBasis(a, a^2)
   @variables ω::Real t::Real
   cross = dissipator(a + a^2) - dissipator(a) - dissipator(a^2)
-  expansion = floquet_expansion(cross, ω, t, VanVleck(), 1)
+  expansion = floquet_expansion(SQA.SuperOperator(cross), ω, t, VanVleck(), 1)
 
   error = try
     positive_completion(expansion, Gram(), frame)
@@ -423,7 +425,9 @@ end
 
   generator = PeriodicGenerator(
     Dict(
-      0 => hamiltonian_action(σz), 1 => hamiltonian_action(σx), -1 => hamiltonian_action(σx)
+      0 => SQA.SuperOperator(hamiltonian_action(σz)),
+      1 => SQA.SuperOperator(hamiltonian_action(σx)),
+      -1 => SQA.SuperOperator(hamiltonian_action(σx)),
     ),
     ω,
   )
@@ -436,7 +440,7 @@ end
     @test isempty(channels(completion))
     @test size(kossakowski(completion)) == (0, 0)
     @test iszero(SQA.simplify(hamiltonian(completion) - hamiltonian(raw)))
-    @test liouvillian(hamiltonian(completion); channels=channels(completion)) ==
+    @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
       effective_generator(completion)
   end
 end
@@ -446,7 +450,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σz, σy)
+  frame = JumpBasis(σz, σy)
   @variables ω::Real γ::Real
 
   leading = γ * dissipator(σz) + dissipator(σy)
@@ -455,9 +459,9 @@ end
   quadrature = im * (1 // 2) * diagonal_difference
   generator = PeriodicGenerator(
     Dict(
-      0 => leading,
-      1 => coherent_rotation + quadrature,
-      -1 => coherent_rotation - quadrature,
+      0 => SQA.SuperOperator(leading),
+      1 => SQA.SuperOperator(coherent_rotation + quadrature),
+      -1 => SQA.SuperOperator(coherent_rotation - quadrature),
     ),
     ω,
   )
@@ -472,14 +476,14 @@ end
 @testset "Gram completion is covariant under a nonunitary rational frame congruence" begin
   fock = FockSpace(:cp_validation_congruence)
   a = Destroy(fock, :a)
-  native = DissipativeFrame(a, a^2)
+  native = JumpBasis(a, a^2)
   g1 = a + (1 // 2) * a^2
   g2 = 2a - a^2
-  transformed = DissipativeFrame(g1, g2)
+  transformed = JumpBasis(g1, g2)
   channel = 2g1 + 3g2
   @variables ω::Real t::Real
 
-  expansion = floquet_expansion(0 * a, ω, t, VanVleck(), 1; channels=(collapse(channel),))
+  expansion = floquet_expansion(dissipator(channel), ω, t, VanVleck(), 1)
   native_completion = positive_completion(expansion, Gram(), native)
   transformed_completion = positive_completion(expansion, Gram(), transformed)
 

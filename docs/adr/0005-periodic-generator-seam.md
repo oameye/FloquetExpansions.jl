@@ -8,4 +8,4 @@
 
 - `test/generators/periodic_generator.jl`: "the drive frequency is part of the periodic generator"
 - `test/generators/periodic_generator.jl`: "constructors normalize zero harmonics"
-- `test/generators/liouvillian.jl`: "a zero periodic Liouvillian keeps its public zero prototype"
+- `test/generators/superoperator.jl`: "a zero periodic superoperator keeps its public zero prototype"

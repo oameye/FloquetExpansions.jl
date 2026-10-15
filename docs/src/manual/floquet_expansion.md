@@ -59,8 +59,8 @@ GKSLNormalForm
 
 ## Computing an expansion
 
-Prepare the time dependence as a [`PeriodicGenerator`](@ref), or pass a symbolic Hamiltonian or
-Liouvillian together with its drive frequency and time variable. The expansion returns a
+Prepare the time dependence as a [`PeriodicGenerator`](@ref), or pass a symbolic Hamiltonian,
+`Lindbladian`, or `SuperOperator` together with its drive frequency and time variable. The expansion returns a
 [`FloquetExpansion`](@ref) containing the effective-generator and micromotion coefficients.
 
 ```@docs
@@ -102,14 +102,16 @@ Liouvillian expansion, the same accessors return its coherent Hamiltonian sector
 additive multiple of the identity.
 
 A raw Liouvillian Floquet expansion does not carry a preferred dissipative representation.
-Kossakowski coordinates therefore require an explicit [`DissipativeFrame`](@ref). The
+Kossakowski coordinates therefore require an explicit `JumpBasis`. The
 [`kossakowski_component`](@ref) docstring gives the complete raw-expansion workflow, including the
 finite Kossakowski form and an individual retained component.
 
-The operator-frame construction and Liouvillian-level Kossakowski representation are described in
+The jump basis and the Liouvillian-level Kossakowski representation are described in
 [System](@ref).
 
 ```@docs
+hamiltonian
+kossakowski
 hamiltonian_component
 kossakowski_component
 ```

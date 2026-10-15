@@ -30,7 +30,7 @@ function throw_recursive_elimination_obstruction(
 end
 
 function unresolved_recursive_leading_form(rate_order::Int)
-  return CompletionObstruction(rate_order, convert(SQA.CNum, 0), :unresolved_leading_form)
+  return CompletionObstruction(rate_order, zero(SQA.CNum), :unresolved_leading_form)
 end
 
 function horizontal_series_stack(left::MatrixSeries, right::MatrixSeries, N::Int)
@@ -142,10 +142,10 @@ function recursive_gram_factor_series(
 end
 
 function gram_positive_completion(
-  expansion::FloquetExpansion, frame::DissipativeFrame, algorithm::Gram
+  expansion::FloquetExpansion, basis::JumpBasis, algorithm::Gram
 )
   N = order(expansion) - 1
-  retained = retained_gksl_data(expansion, frame)
+  retained = retained_gksl_data(expansion, basis)
   series = completion_series(retained.kossakowski)
   conditions = CompletionConditions()
   seed_completion_conditions!(conditions, getfield(expansion, :provenance))
@@ -153,15 +153,14 @@ function gram_positive_completion(
   factor, stages = recursive_gram_factor_series(series, N, conditions)
   amplitudes = physical_factor_amplitudes(factor, getfield(expansion, :generator).wd, N)
   finite = finite_factor(amplitudes)
-  completed_matrix = multiply_coefficients(finite, adjoint_coefficients(finite))
-  simplify_matrix!(completed_matrix)
-  completed_channels = completed_collapse_channels(frame, finite)
+  completed_matrix = SQA.simplify.(finite * finite')
+  completed_channels = completed_collapse_channels(basis, finite)
   factorization = GramFactorization(amplitudes, factor_onsets(amplitudes), stages)
 
   return finalize_positive_completion(
     expansion,
     algorithm,
-    frame,
+    basis,
     retained,
     completed_matrix,
     completed_channels,

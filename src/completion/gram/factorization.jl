@@ -128,10 +128,8 @@ function factor_onsets(amplitudes::Vector{KossakowskiMatrix})
   result = fill(-1, channels)
   for channel in 1:channels
     for grade in eachindex(amplitudes)
-      any(
-        !(iszero(amplitudes[grade][row, channel]) === true) for
-        row in axes(amplitudes[grade], 1)
-      ) || continue
+      any(!iszero(amplitudes[grade][row, channel]) for row in axes(amplitudes[grade], 1)) ||
+        continue
       result[channel] = grade - 1
       break
     end
@@ -140,32 +138,32 @@ function factor_onsets(amplitudes::Vector{KossakowskiMatrix})
 end
 
 function finite_factor(amplitudes::Vector{KossakowskiMatrix})
-  isempty(amplitudes) && return coefficient_matrix(0, 0)
+  isempty(amplitudes) && return zeros(SQA.CNum, 0, 0)
   rows, columns = size(first(amplitudes))
-  result = coefficient_matrix(rows, columns)
+  result = zeros(SQA.CNum, rows, columns)
   for amplitude in amplitudes
     size(amplitude) == (rows, columns) ||
       throw(DimensionMismatch("all Gram amplitudes must have the same dimensions"))
     for index in eachindex(result)
-      result[index] = simplify_coefficient(result[index] + amplitude[index])
+      result[index] = SQA.simplify(result[index] + amplitude[index])
     end
   end
   return result
 end
 
-function completed_collapse_channels(frame::DissipativeFrame, factor::KossakowskiMatrix)
-  size(factor, 1) == length(frame.operators) ||
-    throw(DimensionMismatch("Gram factor does not match the dissipative frame"))
-  result = CollapseChannel{SQA.QAdd}[]
+function completed_collapse_channels(basis::JumpBasis, factor::KossakowskiMatrix)
+  size(factor, 1) == length(basis) ||
+    throw(DimensionMismatch("Gram factor does not match the jump basis"))
+  result = Pair{SQA.QAdd,SQA.CNum}[]
   for column in axes(factor, 2)
     operator = zero(SQA.QAdd)
     for row in axes(factor, 1)
       coefficient = factor[row, column]
       iszero(coefficient) && continue
-      operator = operator + coefficient * frame.operators[row]
+      operator = operator + coefficient * basis[row]
     end
     operator = SQA.simplify(operator)
-    qadd_iszero(operator) || push!(result, collapse(operator))
+    iszero(operator) || push!(result, operator => one(SQA.CNum))
   end
   return result
 end

@@ -49,7 +49,7 @@ struct PeriodMap
   hamiltonian::PeriodicGenerator{SQA.QAdd}
   operators::Vector{PeriodicGenerator{SQA.QAdd}}
   rates::Vector{SQA.CNum}
-  generator::PeriodicGenerator{Liouvillian}
+  generator::PeriodicGenerator{SQA.SuperOperator}
 end
 
 function Base.show(io::IO, ::MIME"text/plain", Φ::PeriodMap)
@@ -67,7 +67,7 @@ Result of [`floquet_expansion`](@ref) applied to a [`PeriodMap`](@ref): a comple
 [`jump_amplitudes`](@ref) and [`trace_defect`](@ref) rather than by field access.
 """
 struct PeriodMapExpansion{G<:Gauge}
-  superoperator::Liouvillian
+  superoperator::SQA.SuperOperator
   amplitudes::Vector{JumpAmplitude}
   trace_defect::SQA.QAdd
   gauge::G
@@ -87,7 +87,7 @@ Return the inverse-frequency order ``N`` through which `Φ` agrees with the exac
 order(Φ::PeriodMapExpansion) = Φ.order
 
 """
-    superoperator(Φ::PeriodMapExpansion) -> Liouvillian
+    superoperator(Φ::PeriodMapExpansion) -> SuperOperator
 
 Return the period map as the linear map ``\\rho \\mapsto \\sum_j c_j A_j \\rho B_j``. Its
 coefficients are exact polynomials in ``\\pi``, the parameters, and ``1/\\omega``. The map is
@@ -164,12 +164,14 @@ function no_jump_generator(
   return Q
 end
 
-function period_map_scalars(generator::PeriodicGenerator{Liouvillian}, ::Type{T}) where {T}
+function period_map_scalars(
+  generator::PeriodicGenerator{SQA.SuperOperator}, ::Type{T}
+) where {T}
   return SQALowering{T}(generator), ExactCoefficients()
 end
 
 function period_map_scalars(
-  generator::PeriodicGenerator{Liouvillian},
+  generator::PeriodicGenerator{SQA.SuperOperator},
   parameters::Tuple{Symbolics.Num,Vararg{Symbolics.Num}},
 )
   T = Complex{ParameterScalar}
@@ -179,7 +181,7 @@ function period_map_scalars(
   return lowering, ParameterCoefficients(symbols, ones(Int, length(symbols)))
 end
 
-function period_map_lowering(generator::PeriodicGenerator{Liouvillian}, order::Int)
+function period_map_lowering(generator::PeriodicGenerator{SQA.SuperOperator}, order::Int)
   parameters = checked_native_parameters(generator, MAXIMUM_PARAMETERS, "the period map")
   times = [Symbolics.variable(:u, j; T=Real) for j in 1:order]
   any(u -> any(p -> isequal(p, u), parameters), times) && throw(
@@ -363,34 +365,39 @@ end
 function lift_graded_superoperator(
   lift::CoefficientLift, records::JumpRecords, series::GradedSuperoperators
 )
-  result = Liouvillian(LiouvillianTerms())
+  builder = SQA.SuperBuilder()
   for (S, scale) in lift_graded(records, series)
-    lift_superoperator!(result, lift, S, scale)
+    lift_superoperator!(builder, lift, S, scale)
   end
-  return result
+  return SQA.expand_completeness(SQA.build(builder))
 end
 
 """
-    period_map(H::Union{QSym,QAdd}, ωd, t; channels=()) -> PeriodMap
+    period_map(L::Lindbladian, ωd, t) -> PeriodMap
+    period_map(H::Union{QSym,QAdd}, ωd, t) -> PeriodMap
 
 Return the one-period map of the periodically driven Lindblad system
 
 ```math
-\\dot\\rho = -i[H(t), \\rho] + \\sum_a \\gamma_a \\mathcal{D}[L_a(t)]\\rho
+\\dot\\rho = -i[H(t), \\rho] + \\sum_a \\gamma_a \\mathcal{D}[J_a(t)]\\rho
 ```
 
 from ``t = 0`` to ``t = T = 2\\pi/\\omega_d``. The map is exact and not expanded; expand it in
-powers of ``1/\\omega_d`` with [`floquet_expansion`](@ref). It keeps the jump operators, which the
-Liouvillian alone does not fix, because the expansion is built from quantum-jump records.
+powers of ``1/\\omega_d`` with [`floquet_expansion`](@ref). It keeps the jump operators of the
+`Lindbladian`, which its `SuperOperator` alone does not fix, because the expansion is built from
+quantum-jump records. A bare Hamiltonian `H` gives the map without channels.
 
 # Arguments
 
+- `L`: Symbolic time-dependent SecondQuantizedAlgebra `Lindbladian` whose Hamiltonian is
+  Hermitian at every time.
 - `H`: Symbolic time-dependent Hamiltonian, Hermitian at every time.
 - `ωd`: Symbolic drive frequency.
 - `t`: Symbolic time variable.
-- `channels`: Tuple or vector of [`collapse`](@ref) and [`jump`](@ref) values.
 
-Jump rates must be time independent; a periodic rate belongs in the operator.
+Every channel must be diagonal and unsummed. Its rate must be provably real and time
+independent; a periodic rate belongs in the jump operator. A symbolic rate is assumed
+nonnegative.
 
 # Examples
 
@@ -401,30 +408,24 @@ julia> @variables ω::Real t::Real;
 
 julia> H = (1 // 2) * (σ(1, 1) - σ(2, 2)) + cos(ω * t) * (σ(1, 2) + σ(2, 1));
 
-julia> Φ = period_map(H, ω, t; channels=(jump(σ(1, 2), 1 // 5),))
+julia> Φ = period_map(hamiltonian_action(H) + (1 // 5) * dissipator(σ(1, 2)), ω, t)
 PeriodMap with 1 channel
 ```
 """
-function period_map(
-  H::OperatorExpression,
-  wd::Symbolics.Num,
-  t::Symbolics.Num;
-  channels::LiouvillianChannelCollection=(),
-)
-  hamiltonian = harmonics(qadd(H), wd, t)
+function period_map(L::SQA.Lindbladian{SQA.QAdd}, wd::Symbolics.Num, t::Symbolics.Num)
+  hamiltonian = harmonics(SQA.hamiltonian(L), wd, t)
   require_hermitian_drive(hamiltonian)
-  provenance = microscopic_provenance(channels, wd, t)
-  operators = [provenance.collapse_operators; provenance.jump_operators]
-  rates = SQA.CNum[
-    fill(convert(SQA.CNum, 1), length(provenance.collapse_operators))
-    [check_time_independent_rate(rate, wd, t) for rate in provenance.jump_rates]
-  ]
+  provenance = microscopic_provenance(L, wd, t)
   return PeriodMap(
     hamiltonian,
-    [harmonics(operator, wd, t) for operator in operators],
-    rates,
-    harmonics(liouvillian_from_provenance(H, provenance), wd, t),
+    [harmonics(operator, wd, t) for operator in provenance.jump_operators],
+    [check_time_independent_rate(rate, wd, t) for rate in provenance.jump_rates],
+    harmonics(L, wd, t),
   )
+end
+
+function period_map(H::OperatorExpression, wd::Symbolics.Num, t::Symbolics.Num)
+  return period_map(SQA.hamiltonian_action(H), wd, t)
 end
 
 """
@@ -439,7 +440,7 @@ The map is never assumed to have a time-independent GKSL logarithm. It is the su
 quantum-jump records of the period of squared jump amplitudes, integrated exactly over the jump
 times. Every amplitude is retained through the requested order and squared without truncation, so
 the map is completely positive for every drive frequency, and its [`trace_defect`](@ref) starts
-beyond the retained order. A symbolic rate enters as the nonnegative quantity that [`jump`](@ref)
+beyond the retained order. A symbolic rate enters as the nonnegative quantity that [`period_map`](@ref)
 assumes it to be, and complete positivity holds only where that assumption does.
 
 `gauge` fixes the Floquet frame of the no-jump evolution, and its algorithm,
@@ -464,7 +465,7 @@ julia> @variables ω::Real t::Real;
 
 julia> H = (1 // 2) * (σ(1, 1) - σ(2, 2)) + cos(ω * t) * (σ(1, 2) + σ(2, 1));
 
-julia> Φ = period_map(H, ω, t; channels=(jump(σ(1, 2), 1 // 5),));
+julia> Φ = period_map(hamiltonian_action(H) + (1 // 5) * dissipator(σ(1, 2)), ω, t);
 
 julia> x = floquet_expansion(Φ, VanVleck(), 2)
 PeriodMapExpansion{VanVleck{HoriDeprit}} of order 2
@@ -531,7 +532,7 @@ function expand_period_map(
     SimplexIntegrals{T}(),
     lift,
     drive_scales,
-    [convert(SQA.CNum, 1)],
+    [one(SQA.CNum)],
     times,
     Dict{TimeMonomial,SQA.CNum}(),
   )

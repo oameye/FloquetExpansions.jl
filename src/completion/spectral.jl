@@ -2,7 +2,7 @@
     SpectralFactorization <: CompletionFactorization
 
 Diagnostic data produced by [`Spectral`](@ref) positive completion. `rates` are the finite
-HCM-completed branch rates, `vectors` are the corresponding unnormalized dissipative-frame
+HCM-completed branch rates, `vectors` are the corresponding unnormalized jump-basis
 coordinates of the truncated perturbative branch vectors, and `norms` are their squared coordinate
 norms, so branch `a` contributes `rates[a] * vectors[a] * vectors[a]' / norms[a]` to the completed
 Kossakowski matrix. Keeping the normalization as a separate rational factor avoids square roots of
@@ -75,7 +75,7 @@ function spectral_leading_diagonal(series::MatrixSeries)
     row == column && continue
     structurally_zero(leading[row, column]) || throw(
       ArgumentError(
-        "Spectral completion requires d^(0) to be diagonal in the supplied dissipative frame",
+        "Spectral completion requires d^(0) to be diagonal in the supplied jump basis"
       ),
     )
   end
@@ -242,7 +242,7 @@ function hcm_completed_rate(
   rates::ScalarSeries, wd::Symbolics.Num, N::Int, conditions::CompletionConditions
 )
   onset = series_onset(rates, N)
-  onset < 0 && return coefficient_zero(), -1, false
+  onset < 0 && return zero(SQA.CNum), -1, false
 
   leading = hermitian_real(rates[onset + 1])
   sign = structural_sign(leading, conditions)
@@ -319,7 +319,7 @@ function spectral_completed_matrix(
 end
 
 function coefficient_matrix_from_expanded(matrix::CompletionMatrix)
-  result = coefficient_matrix(size(matrix, 1), size(matrix, 2))
+  result = zeros(SQA.CNum, size(matrix, 1), size(matrix, 2))
   for index in eachindex(matrix)
     result[index] = convert(SQA.CNum, matrix[index])
   end
@@ -327,34 +327,34 @@ function coefficient_matrix_from_expanded(matrix::CompletionMatrix)
 end
 
 function spectral_completed_channels(
-  frame::DissipativeFrame,
+  basis::JumpBasis,
   rates::Vector{SQA.CNum},
   vectors::Vector{Vector{SQA.CNum}},
   norms::Vector{CompletionScalar},
 )
-  result = RateWeightedJump{SQA.QAdd}[]
+  result = Pair{SQA.QAdd,SQA.CNum}[]
   for branch in eachindex(rates)
     rate = rates[branch]
     iszero(rate) && continue
     operator = zero(SQA.QAdd)
-    for index in eachindex(frame.operators)
+    for (index, direction) in enumerate(basis)
       coefficient = vectors[branch][index]
       iszero(coefficient) && continue
-      operator = operator + coefficient * frame.operators[index]
+      operator = operator + coefficient * direction
     end
     operator = SQA.simplify(operator)
     iszero(operator) && continue
     channel_rate = real(simplify_scalar(completion_scalar(rate) / norms[branch]))
-    push!(result, jump(operator, channel_rate))
+    push!(result, operator => convert(SQA.CNum, channel_rate))
   end
   return result
 end
 
 function spectral_positive_completion(
-  expansion::FloquetExpansion, frame::DissipativeFrame, algorithm::Spectral
+  expansion::FloquetExpansion, basis::JumpBasis, algorithm::Spectral
 )
   N = order(expansion) - 1
-  retained = retained_gksl_data(expansion, frame)
+  retained = retained_gksl_data(expansion, basis)
   series = completion_series(retained.kossakowski)
   conditions = CompletionConditions()
   seed_completion_conditions!(conditions, getfield(expansion, :provenance))
@@ -378,13 +378,13 @@ function spectral_positive_completion(
   end
 
   completed_matrix = spectral_completed_matrix(
-    completed_rates, completed_vectors, completed_norms, length(frame.operators)
+    completed_rates, completed_vectors, completed_norms, length(basis)
   )
   stored_vectors = [
     [coefficient_from_completion(value) for value in vector] for vector in completed_vectors
   ]
   completed_channels = spectral_completed_channels(
-    frame, completed_rates, stored_vectors, completed_norms
+    basis, completed_rates, stored_vectors, completed_norms
   )
   factorization = SpectralFactorization(
     completed_rates,
@@ -397,7 +397,7 @@ function spectral_positive_completion(
   return finalize_positive_completion(
     expansion,
     algorithm,
-    frame,
+    basis,
     retained,
     completed_matrix,
     completed_channels,
@@ -409,15 +409,11 @@ end
 function positive_completion_impl(
   expansion::FloquetExpansion{G,P,E,Uncompleted,R}, algorithm::Spectral
 ) where {G<:Gauge,P<:PeriodicGenerator,E,R<:FloquetProvenance}
-  return spectral_positive_completion(
-    expansion, automatic_dissipative_frame(expansion), algorithm
-  )
+  return spectral_positive_completion(expansion, automatic_jump_basis(expansion), algorithm)
 end
 
 function positive_completion_impl(
-  expansion::FloquetExpansion{G,P,E,Uncompleted,R},
-  algorithm::Spectral,
-  frame::DissipativeFrame,
+  expansion::FloquetExpansion{G,P,E,Uncompleted,R}, algorithm::Spectral, basis::JumpBasis
 ) where {G<:Gauge,P<:PeriodicGenerator,E,R<:FloquetProvenance}
-  return spectral_positive_completion(expansion, frame, algorithm)
+  return spectral_positive_completion(expansion, basis, algorithm)
 end

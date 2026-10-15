@@ -1,27 +1,28 @@
+const KossakowskiMatrix = Matrix{SQA.CNum}
+
 """
-    kossakowski(expansion::FloquetExpansion, frame::DissipativeFrame)
+    kossakowski(expansion::FloquetExpansion, basis::JumpBasis)
 
 Return the Hermitian Kossakowski matrix of the finite effective Liouvillian in the ordered
-`frame`.
+`basis`.
 
-See also [`DissipativeFrame`](@ref), [`kossakowski_component`](@ref), [`hamiltonian`](@ref).
+See also `JumpBasis`, [`kossakowski_component`](@ref), [`hamiltonian`](@ref).
 """
-function kossakowski(
-  expansion::FloquetExpansion{G,P,E}, frame::DissipativeFrame
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
-  generator = effective_generator(expansion)
-  return kossakowski(generator, frame)
+function SQA.kossakowski(
+  expansion::FloquetExpansion{G,P,E}, basis::SQA.JumpBasis
+) where {G,P<:PeriodicGenerator{SQA.SuperOperator},E<:SQA.SuperOperator}
+  return SQA.kossakowski(effective_generator(expansion), basis)
 end
 
 """
-    kossakowski_component(expansion::FloquetExpansion, frame::DissipativeFrame, n::Int)
+    kossakowski_component(expansion::FloquetExpansion, basis::JumpBasis, n::Int)
 
 Return the order-`n` Kossakowski contribution of a Liouvillian Floquet expansion in the
-ordered dissipative `frame`, including the corresponding inverse-drive-frequency scaling.
+ordered dissipative `basis`, including the corresponding inverse-drive-frequency scaling.
 
 # Examples
 
-Construct a frame before extracting the finite form and one retained component:
+Construct a basis before extracting the finite form and one retained component:
 
 ```jldoctest
 julia> qubit = PauliSpace(:kossakowski_doc);
@@ -34,30 +35,29 @@ julia> @variables ω::Real t::Real E::Real γ::Real;
 
 julia> H = (1 // 2) * σz + E * cos(ω * t) * σx;
 
-julia> raw = floquet_expansion(H, ω, t, VanVleck(), 3; channels=(jump(σminus, γ),));
+julia> raw = floquet_expansion(hamiltonian_action(H) + γ * dissipator(σminus), ω, t, VanVleck(), 3);
 
-julia> frame = DissipativeFrame(σx, σy, σz);
+julia> basis = JumpBasis(σx, σy, σz);
 
-julia> d = kossakowski_component(raw, frame, 1)
+julia> d = kossakowski_component(raw, basis, 1)
 3×3 Matrix{SecondQuantizedAlgebra.Coeff}:
  0  0  0
  0  0  0
  0  0  0
 
-julia> d = kossakowski_component(raw, frame, 2)
+julia> d = kossakowski_component(raw, basis, 2)
 3×3 Matrix{SecondQuantizedAlgebra.Coeff}:
  0                            …  0
  ((1//4)*(E^2)*im*γ) / (ω^2)     0
  0                               ((1//2)*(E^2)*γ) / (ω^2)
 ```
 
-See also [`DissipativeFrame`](@ref), [`kossakowski`](@ref), [`effective_component`](@ref).
+See also `JumpBasis`, [`kossakowski`](@ref), [`effective_component`](@ref).
 """
 function kossakowski_component(
-  expansion::FloquetExpansion{G,P,E}, frame::DissipativeFrame, n::Int
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
-  generator = effective_component(expansion, n)
-  return kossakowski(generator, frame)
+  expansion::FloquetExpansion{G,P,E}, basis::SQA.JumpBasis, n::Int
+) where {G,P<:PeriodicGenerator{SQA.SuperOperator},E<:SQA.SuperOperator}
+  return SQA.kossakowski(effective_component(expansion, n), basis)
 end
 
 """
@@ -73,17 +73,16 @@ retained order.
 
 See also [`hamiltonian_component`](@ref), [`effective_generator`](@ref).
 """
-function hamiltonian(
+function SQA.hamiltonian(
   expansion::FloquetExpansion{G,P,E}
 ) where {G,P<:PeriodicGenerator{SQA.QAdd},E<:SQA.QAdd}
   return effective_generator(expansion)
 end
 
-function hamiltonian(
+function SQA.hamiltonian(
   expansion::FloquetExpansion{G,P,E}
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
-  generator = effective_generator(expansion)
-  return hamiltonian(generator)
+) where {G,P<:PeriodicGenerator{SQA.SuperOperator},E<:SQA.SuperOperator}
+  return SQA.hamiltonian(SQA.Lindbladian(effective_generator(expansion)))
 end
 
 """
@@ -103,7 +102,6 @@ end
 
 function hamiltonian_component(
   expansion::FloquetExpansion{G,P,E}, n::Int
-) where {G,P<:PeriodicGenerator{Liouvillian},E<:Liouvillian}
-  generator = effective_component(expansion, n)
-  return hamiltonian(generator)
+) where {G,P<:PeriodicGenerator{SQA.SuperOperator},E<:SQA.SuperOperator}
+  return SQA.hamiltonian(SQA.Lindbladian(effective_component(expansion, n)))
 end

@@ -84,18 +84,6 @@ end
 
 exact_mul(A, B, C, rest...) = exact_mul(exact_mul(A, B), C, rest...)
 
-function exact_adjoint(A::AbstractMatrix{S}) where {S}
-  return S[conj(A[i, j]) for j in axes(A, 2), i in axes(A, 1)]
-end
-
-function exact_diagonal(::Type{S}, values::AbstractVector) where {S}
-  result = exact_zeros(S, length(values), length(values))
-  for (i, v) in pairs(values)
-    result[i, i] = v
-  end
-  return result
-end
-
 function exact_solve(A::AbstractMatrix{S}, B::AbstractVecOrMat{S}) where {S}
   n = size(A, 1)
   size(A, 2) == n || throw(DimensionMismatch("exact solve needs a square matrix"))
@@ -166,7 +154,7 @@ end
 
 function exact_dark_map(B::AbstractMatrix{T}, G::AbstractMatrix{T}) where {T}
   size(B, 2) == 0 && return ExactDarkMap{T}(Matrix{T}(B), exact_zeros(T, 0, size(G, 1)))
-  Bd = exact_adjoint(B)
+  Bd = Matrix(B')
   BdG = exact_mul(Bd, G)
   return ExactDarkMap{T}(Matrix{T}(B), exact_solve(exact_mul(BdG, B), BdG))
 end
@@ -174,7 +162,7 @@ end
 function dark_sandwich(map::ExactDarkMap{T}, X::AbstractMatrix{T}) where {T}
   size(map.C, 1) == 0 && return Matrix(X)
   Y = X - exact_mul(map.B, exact_mul(map.C, X))
-  return Y - exact_mul(Y, exact_adjoint(map.C), exact_adjoint(map.B))
+  return Y - exact_mul(Y, Matrix(map.C'), Matrix(map.B'))
 end
 
 function exact_isidentity(G::AbstractMatrix)
@@ -213,7 +201,7 @@ end
 function exact_ldl!(
   columns::Vector{Vector{T}}, weights::Vector{R}, work::Matrix{T}
 ) where {T,R}
-  work == exact_adjoint(work) || return false
+  work == Matrix(work') || return false
   n = size(work, 1)
   for _ in 1:n
     pivot = 0
@@ -251,13 +239,13 @@ function exact_tangent_lift(
 ) where {T,R}
   n, k = size(B)
   k == 0 && return exact_zeros(T, n, 0)
-  Bd = exact_adjoint(B)
+  Bd = Matrix(B')
   BdG = exact_mul(Bd, G)
   H = exact_mul(BdG, B)
   C = exact_solve(H, BdG)
-  W = exact_diagonal(T, weights)
-  Winv = exact_diagonal(T, inv.(weights))
-  Ct = exact_adjoint(C)
+  W = Matrix{T}(LinearAlgebra.Diagonal(weights))
+  Winv = Matrix{T}(LinearAlgebra.Diagonal(inv.(weights)))
+  Ct = Matrix(C')
   dark = exact_mul(target - exact_mul(B, C, target), Ct, Winv)
   M = exact_mul(C, target, Ct)
   system = exact_zeros(R, 4 * k^2, 2 * k^2)
@@ -281,8 +269,8 @@ function exact_tangent_equations(
 ) where {T,R}
   WHAW = exact_mul(W, H, A, W)
   return vcat(
-    exact_complex_coordinates(exact_mul(W, exact_adjoint(A)) + exact_mul(A, W), R),
-    exact_complex_coordinates(WHAW - exact_adjoint(WHAW), R),
+    exact_complex_coordinates(exact_mul(W, Matrix(A')) + exact_mul(A, W), R),
+    exact_complex_coordinates(WHAW - Matrix(WHAW'), R),
   )
 end
 
@@ -480,14 +468,13 @@ function native_exact_static_solve(
   end
   P = dark_sandwich(dark, solved - known)
   newborn, newborn_weights = exact_psd_factor(P, R)
-  born = exact_mul(newborn, exact_diagonal(T, newborn_weights), exact_adjoint(newborn))
+  born = exact_mul(
+    newborn, Matrix{T}(LinearAlgebra.Diagonal(newborn_weights)), Matrix(newborn')
+  )
   correction = exact_tangent_lift(active, weights, solved - known - born, metric)
-  Bw = exact_mul(active, exact_diagonal(T, weights))
+  Bw = exact_mul(active, Matrix{T}(LinearAlgebra.Diagonal(weights)))
   coefficient =
-    known +
-    exact_mul(Bw, exact_adjoint(correction)) +
-    exact_mul(correction, exact_adjoint(Bw)) +
-    born
+    known + exact_mul(Bw, Matrix(correction')) + exact_mul(correction, Matrix(Bw')) + born
   coefficient == solved ||
     throw(ArgumentError("exact native static slot failed to reconstruct its coefficient"))
   return ExactStaticSolution(

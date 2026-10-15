@@ -101,9 +101,6 @@ end
   @test FE.exact_mul(A, x) == A * x
   @test FE.exact_mul(A, B, A) == A * B * A
   @test FE.exact_mul(A[:, 1:2], B[1:2, :]) == A[:, 1:2] * B[1:2, :]
-  @test FE.exact_adjoint(A) == Matrix(A')
-  @test FE.exact_adjoint(A[:, 1:2]) == Matrix(A[:, 1:2]')
-  @test FE.exact_diagonal(Q, R[2, 3 // 5]) == Matrix(Diagonal(Q[2, 3 // 5]))
   @test_throws DimensionMismatch FE.exact_mul(A, B[1:2, :])
 
   P = Q[0 1 1im; 2 0 1; 1 1 1//4]
