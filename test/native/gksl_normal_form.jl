@@ -194,7 +194,9 @@ end
   collective = Σ(cos(ω * t) * (c' * σ(1, 2) + c * σ(2, 1)), i)
   ensemble = SQA.liouvillian(c' * c + collective, [c]; rates=[1 // 5])
   @test_throws "symbolic index sums" floquet_expansion(ensemble, ω, t, GKSLNormalForm(), 2)
-  @test_throws "symbolic index sums" floquet_expansion(period_map(ensemble, ω, t), VanVleck(), 1)
+  @test_throws "symbolic index sums" floquet_expansion(
+    period_map(ensemble, ω, t), VanVleck(), 1
+  )
   single = SQA.liouvillian(cos(ω * t) * (c' * σ(1, 2) + c * σ(2, 1)), [c]; rates=[1 // 5])
   @test_throws "indexed operators" floquet_expansion(single, ω, t, GKSLNormalForm(), 2)
 end

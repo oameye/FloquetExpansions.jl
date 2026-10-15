@@ -66,13 +66,7 @@ function named_site(site::LoweredSite, names::Dict{Tuple{Int,Bool},Symbol})
   name = get(names, (site.space_index, false), site.name)
   conjugate_name = get(names, (site.space_index, true), name)
   return LoweredSite(
-    site.kind,
-    site.space_index,
-    name,
-    conjugate_name,
-    site.levels,
-    site.ground,
-    site.pauli,
+    site.kind, site.space_index, name, conjugate_name, site.levels, site.ground, site.pauli
   )
 end
 

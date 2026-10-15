@@ -468,14 +468,13 @@ function native_exact_static_solve(
   end
   P = dark_sandwich(dark, solved - known)
   newborn, newborn_weights = exact_psd_factor(P, R)
-  born = exact_mul(newborn, Matrix{T}(LinearAlgebra.Diagonal(newborn_weights)), Matrix(newborn'))
+  born = exact_mul(
+    newborn, Matrix{T}(LinearAlgebra.Diagonal(newborn_weights)), Matrix(newborn')
+  )
   correction = exact_tangent_lift(active, weights, solved - known - born, metric)
   Bw = exact_mul(active, Matrix{T}(LinearAlgebra.Diagonal(weights)))
   coefficient =
-    known +
-    exact_mul(Bw, Matrix(correction')) +
-    exact_mul(correction, Matrix(Bw')) +
-    born
+    known + exact_mul(Bw, Matrix(correction')) + exact_mul(correction, Matrix(Bw')) + born
   coefficient == solved ||
     throw(ArgumentError("exact native static slot failed to reconstruct its coefficient"))
   return ExactStaticSolution(
