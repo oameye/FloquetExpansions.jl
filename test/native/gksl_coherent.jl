@@ -15,7 +15,7 @@ const SQA = SecondQuantizedAlgebra
       native = floquet_expansion(G, GKSLNormalForm(; algorithm), 3)
       reference = floquet_expansion(G, VanVleck(; algorithm), 3)
       @test isempty(channels(native))
-      @test size(kossakowski(native, dissipative_frame(native))) == (0, 0)
+      @test size(kossakowski(native, jump_basis(native))) == (0, 0)
       @test size(kossakowski(native)) == (0, 0)
       @test iszero(simplify(hamiltonian(native) - hamiltonian(reference)))
       @test iszero(simplify(effective_generator(native) - effective_generator(reference)))
@@ -37,7 +37,7 @@ end
 @testset "GKSLNormalForm accepts zero Liouvillian input" begin
   for G in (
     PeriodicGenerator(Dict(0 => zero(SQA.SuperOperator)), ω),
-    PeriodicGenerator(Dict{Int,SQA.SuperOperator}(), ω, zero(SQA.SuperOperator)),
+    PeriodicGenerator(Dict{Int,SQA.SuperOperator}(), ω),
   )
     for algorithm in (HoriDeprit(), BlochFeshbach()), N in (1, 2, 3)
       native = floquet_expansion(G, GKSLNormalForm(; algorithm), N)
@@ -46,7 +46,7 @@ end
       @test iszero(hamiltonian(native))
       @test iszero(micromotion(native))
       @test isempty(channels(native))
-      @test size(kossakowski(native, dissipative_frame(native))) == (0, 0)
+      @test size(kossakowski(native, jump_basis(native))) == (0, 0)
       @test size(kossakowski(native)) == (0, 0)
       for n in 0:(N - 1)
         @test iszero(effective_component(native, n))

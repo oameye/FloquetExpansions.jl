@@ -36,11 +36,11 @@ A completed result remains a [`FloquetExpansion`](@ref) struct. The [`effective_
 ```@docs
 SecondQuantizedAlgebra.Lindbladian(::FloquetExpansion)
 channels
-dissipative_frame
+jump_basis
 ```
 
-For a raw expansion, Kossakowski coordinates require an explicit `DissipativeFrame`. A
-completed expansion stores the finalized frame, so the no-frame forms of [`kossakowski`](@ref) and
+For a raw expansion, Kossakowski coordinates require an explicit `JumpBasis`. A
+completed expansion stores the finalized basis, so the no-basis forms of [`kossakowski`](@ref) and
 [`kossakowski_component`](@ref) are available directly.
 
 ## Symbolic parameter conditions
@@ -63,7 +63,7 @@ regularity_conditions
 ## When completion fails
 
 A [`FractionalJumpOnset`](@ref) concerns only the integer-power amplitudes of `Gram()`, so
-`Spectral()` in a suitable frame is the alternative. A [`CompletionObstruction`](@ref) concerns
+`Spectral()` in a suitable basis is the alternative. A [`CompletionObstruction`](@ref) concerns
 the retained data themselves on the current symbolic stratum.
 
 ```@docs

@@ -1,7 +1,7 @@
 const NATIVE_GAUGE_DEGREE = 3
 
-struct NativeRealization{F<:DissipativeFrame,X} <: Completion
-  frame::F
+struct NativeRealization{F<:JumpBasis,X} <: Completion
+  basis::F
   retained_kossakowski::Vector{KossakowskiMatrix}
   kossakowski::KossakowskiMatrix
   lindbladian::SQA.Lindbladian{SQA.QAdd}
@@ -16,7 +16,7 @@ function lift_harmonics(lift::CoefficientLift, harmonics::Dict, wd::Symbolics.Nu
   components = Dict{Int,SQA.SuperOperator}(
     k => lift_superoperator(lift, X) for (k, X) in harmonics if !iszero(X)
   )
-  return PeriodicGenerator(components, wd, zero(SQA.SuperOperator))
+  return PeriodicGenerator(components, wd)
 end
 
 function native_micromotion_harmonics(data::NativeExpansionData, ::HoriDeprit, N::Int)
@@ -70,7 +70,7 @@ function native_support(data::NativeExpansionData)
   return sort!(support)
 end
 
-function native_frame(
+function native_basis(
   data::NativeExpansionData, support::Vector{Int}, lift::CoefficientLift
 )
   operators = [
@@ -78,7 +78,7 @@ function native_frame(
       lift, algebra_operator(data.lowering.algebra, [(data.representation.frame[k], 1)])
     ) for k in support
   ]
-  return SQA.DissipativeFrame(operators)
+  return SQA.JumpBasis(operators)
 end
 
 function retained_amplitudes(channel::GradedChannel, N::Int)
@@ -174,7 +174,7 @@ function native_finite_generator(
     scale = convert(SQA.CNum, inverse_drive_power(wd, order))
     lift_superoperator!(builder, lift, G, scale)
   end
-  return canonical_superoperator(SQA.build(builder))
+  return SQA.expand_completeness(SQA.build(builder))
 end
 
 function floquet_expansion_impl(
@@ -228,15 +228,15 @@ function native_floquet_expansion(
   H = native_hamiltonian_series(data, lift, wd)
   jumps = native_channels(data, lift, wd, N)
   support = native_support(data)
-  frame = native_frame(data, support, lift)
+  basis = native_basis(data, support, lift)
   graded = native_finite_kossakowski(data, N)
   finite = native_finite_generator(data, lift, graded, wd, N)
   retained = retained_native_kossakowski(data, support, wd, N, coefficients)
   realization = NativeRealization(
-    frame,
+    basis,
     retained,
     support_matrix(graded, support, wd, coefficients),
-    gksl_lindbladian(H, jumps),
+    SQA.liouvillian(H, first.(jumps); rates=last.(jumps)),
     native_positivity_conditions(coefficients, wd),
     native_regularity_conditions(coefficients, data, harmonics),
     data,

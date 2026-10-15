@@ -10,14 +10,14 @@ const SQA = SecondQuantizedAlgebra
   a = Destroy(fock, :a)
   @variables ω::Real t::Real
 
-  frame = DissipativeFrame(a)
+  frame = JumpBasis(a)
   expansion = floquet_expansion(dissipator(a), ω, t, VanVleck(), 1)
   completion = @inferred positive_completion(expansion, Gram(), frame)
 
   retained = kossakowski_component(completion, 0)
   completed = kossakowski(completion)
 
-  @test dissipative_frame(completion) == frame
+  @test jump_basis(completion) == frame
   @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
 

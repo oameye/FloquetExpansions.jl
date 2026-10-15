@@ -9,10 +9,10 @@ struct MicroscopicProvenance <: FloquetProvenance
   jump_operators::Vector{SQA.QAdd}
   jump_rates::Vector{SQA.CNum}
   rate_assumptions::Vector{NonnegativeRateAssumption}
-  frame_seeds::Vector{SQA.QAdd}
+  basis_seeds::Vector{SQA.QAdd}
 end
 
-function append_frame_seeds!(seeds::Vector{SQA.QAdd}, lowered::PeriodicGenerator{SQA.QAdd})
+function append_basis_seeds!(seeds::Vector{SQA.QAdd}, lowered::PeriodicGenerator{SQA.QAdd})
   for harmonic in sort!(collect(keys(lowered)); by=label -> (abs(label), label))
     push!(seeds, lowered[harmonic])
   end
@@ -58,7 +58,7 @@ function microscopic_provenance(
   jump_operators = SQA.QAdd[]
   jump_rates = SQA.CNum[]
   rate_assumptions = NonnegativeRateAssumption[]
-  frame_seeds = SQA.QAdd[]
+  basis_seeds = SQA.QAdd[]
 
   for (channel, rate) in SQA.channels(L)
     operator = microscopic_jump(channel)
@@ -66,16 +66,8 @@ function microscopic_provenance(
     push!(jump_operators, operator)
     push!(jump_rates, coefficient)
     push!(rate_assumptions, NonnegativeRateAssumption(coefficient))
-    append_frame_seeds!(frame_seeds, harmonics(operator, wd, t))
+    append_basis_seeds!(basis_seeds, harmonics(operator, wd, t))
   end
 
-  return MicroscopicProvenance(jump_operators, jump_rates, rate_assumptions, frame_seeds)
-end
-
-function gksl_lindbladian(H::SQA.QAdd, jumps)
-  generator = SQA.hamiltonian_action(H)
-  for (operator, rate) in jumps
-    generator = generator + rate * SQA.dissipator(operator)
-  end
-  return generator
+  return MicroscopicProvenance(jump_operators, jump_rates, rate_assumptions, basis_seeds)
 end

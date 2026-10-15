@@ -82,12 +82,12 @@ a = Destroy(fock, :a)
 @variables ω::Real t::Real γ::Real Δ::Real Ω::Real
 
 @testset "full-rank non-diagonal Gram completion" begin
-  frame = DissipativeFrame(a, a^2)
+  frame = JumpBasis(a, a^2)
   L = dissipator(a + a^2) + dissipator(a + im * a^2)
   expansion = floquet_expansion(SQA.SuperOperator(L), ω, t, VanVleck(), 2)
   completion = @inferred positive_completion(expansion, Gram(), frame)
 
-  @test dissipative_frame(completion) == frame
+  @test jump_basis(completion) == frame
   @test factorization(completion) isa GramFactorization
   @test factorization(completion).onsets == [0, 0]
   @test length(factorization(completion).stages) == 1
@@ -109,7 +109,7 @@ a = Destroy(fock, :a)
 end
 
 @testset "completed Gram accessors return independent containers" begin
-  frame = DissipativeFrame(a)
+  frame = JumpBasis(a)
   expansion = floquet_expansion(dissipator(a), ω, t, VanVleck(), 1)
   completion = positive_completion(expansion, Gram(), frame)
 
@@ -133,15 +133,15 @@ canonical_jumps(L) = map(SQA.jump ∘ first, SQA.channels(L))
   expansion = floquet_expansion(L, ω, t, VanVleck(), 1)
   completion = positive_completion(expansion, Gram())
 
-  @test dissipative_frame(completion) == DissipativeFrame(canonical_jumps(L)...)
+  @test jump_basis(completion) == JumpBasis(canonical_jumps(L)...)
   @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
     effective_generator(completion)
 
   dependent_L = dissipator(a) + dissipator(a^2) + dissipator(a + a^2)
   dependent = floquet_expansion(dependent_L, ω, t, VanVleck(), 1)
   first_jump, second_jump = canonical_jumps(dependent_L)
-  @test dissipative_frame(positive_completion(dependent, Gram())) ==
-    DissipativeFrame(first_jump, second_jump)
+  @test jump_basis(positive_completion(dependent, Gram())) ==
+    JumpBasis(first_jump, second_jump)
 end
 
 @testset "automatic frame seeds a time-dependent channel with its static harmonics" begin
@@ -152,8 +152,7 @@ end
     hamiltonian_action(H) + (4//5) * dissipator(modulation * a), ω, t, VanVleck(), 3
   )
 
-  @test dissipative_frame(positive_completion(expansion, Gram())) ==
-    DissipativeFrame(a, a' * a * a)
+  @test jump_basis(positive_completion(expansion, Gram())) == JumpBasis(a, a' * a * a)
 end
 
 @testset "symbolic positivity and regularity conditions remain distinct" begin
@@ -170,7 +169,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σx, σy, σz)
+  frame = JumpBasis(σx, σy, σz)
   H = Δ * σz + Ω * cos(ω * t) * σx
   expansion = floquet_expansion(
     hamiltonian_action(H) + dissipator(σx + σy) + dissipator(σy + σz) + dissipator(σz + σx),
@@ -203,7 +202,7 @@ end
   )
   completion = positive_completion(expansion, Gram())
 
-  @test dissipative_frame(completion) == DissipativeFrame(a)
+  @test jump_basis(completion) == JumpBasis(a)
   @test kossakowski_component(completion, 0)[1, 1] == 2
   @test iszero(SQA.simplify(kossakowski_component(completion, 1)[1, 1]))
   @test coefficient_matrix_equal(
@@ -214,6 +213,6 @@ end
 @testset "retained negative direction is a completion obstruction" begin
   expansion = floquet_expansion(SQA.SuperOperator(-dissipator(a)), ω, t, VanVleck(), 1)
   @test_throws FloquetExpansions.CompletionObstruction positive_completion(
-    expansion, Gram(), DissipativeFrame(a)
+    expansion, Gram(), JumpBasis(a)
   )
 end

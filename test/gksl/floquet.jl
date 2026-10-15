@@ -12,7 +12,7 @@ a = Destroy(fock, :a)
 @testset "Floquet GKSL coordinate accessors" begin
   H = Δ * a' * a
   L = SQA.SuperOperator(hamiltonian_action(H) + dissipator(a + im * a^2))
-  frame = DissipativeFrame(a, a^2)
+  frame = JumpBasis(a, a^2)
   expansion = floquet_expansion(L, ω, t, VanVleck(), 1)
 
   d = @inferred kossakowski(expansion, frame)
@@ -34,7 +34,7 @@ end
     Dict(1 => coherent_harmonic - quadrature, -1 => coherent_harmonic + quadrature), ω
   )
   expansion = floquet_expansion(generator, VanVleck(), 2)
-  frame = DissipativeFrame(a, a' * a^2)
+  frame = JumpBasis(a, a' * a^2)
 
   d1 = @inferred kossakowski_component(expansion, frame, 1)
 

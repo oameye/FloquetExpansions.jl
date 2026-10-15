@@ -33,8 +33,8 @@ end
   σminus = (1 // 2) * (σx - im * σy)
   σplus = (1 // 2) * (σx + im * σy)
 
-  cartesian = DissipativeFrame(σx, σy, σz)
-  spectral_frame = DissipativeFrame(σminus, σplus, σz)
+  cartesian = JumpBasis(σx, σy, σz)
+  spectral_frame = JumpBasis(σminus, σplus, σz)
 
   @variables ω::Real t::Real E::Real γ::Real
   H = (1 // 2) * σz + E * cos(ω * t) * σx
@@ -123,7 +123,7 @@ end
   fock = FockSpace(:cp_analytic_bosonic_loss)
   a = Destroy(fock, :a)
   na = a' * a^2
-  frame = DissipativeFrame(a, a^2, na)
+  frame = JumpBasis(a, a^2, na)
   @variables ω::Real κ1::Real κ2::Real r1::Real r2::Real
 
   u = κ1 * r1 / 2
@@ -178,7 +178,7 @@ end
 analytical modulated loss closure with symbolic reservoir phase" begin
   fock = FockSpace(:cp_analytic_bosonic_loss_phase)
   a = Destroy(fock, :a)
-  frame = DissipativeFrame(a, a^2, a' * a^2)
+  frame = JumpBasis(a, a^2, a' * a^2)
   @variables ω::Real t::Real κ1::Real κ2::Real r1::Real r2::Real φ::Real
 
   generator =

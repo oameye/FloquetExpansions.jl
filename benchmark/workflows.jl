@@ -47,7 +47,7 @@ function gram_completion_workload()
   space = FockSpace(:completion_benchmark)
   a = Destroy(space, :a)
   @variables ω::Real t::Real
-  frame = DissipativeFrame(a, a^2)
+  frame = JumpBasis(a, a^2)
   generator = SQA.SuperOperator(dissipator(a + a^2) + dissipator(a + im * a^2))
   expansion = floquet_expansion(generator, ω, t, VanVleck(), 1)
   return expansion, frame
@@ -59,7 +59,7 @@ function recursive_gram_workload()
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
   @variables ω::Real t::Real Ω::Real
-  frame = DissipativeFrame(σx, σy, σz)
+  frame = JumpBasis(σx, σy, σz)
   expansion = floquet_expansion(
     hamiltonian_action(Ω * cos(ω * t) * σx) + dissipator(σz), ω, t, VanVleck(), 3
   )
@@ -72,7 +72,7 @@ function spectral_completion_workload()
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
   @variables ω::Real t::Real Ω::Real
-  frame = DissipativeFrame(σz, σy)
+  frame = JumpBasis(σz, σy)
   expansion = floquet_expansion(
     hamiltonian_action(Ω * cos(ω * t) * σx) + dissipator(σz), ω, t, VanVleck(), 3
   )

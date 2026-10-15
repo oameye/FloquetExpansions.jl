@@ -102,11 +102,11 @@ Liouvillian expansion, the same accessors return its coherent Hamiltonian sector
 additive multiple of the identity.
 
 A raw Liouvillian Floquet expansion does not carry a preferred dissipative representation.
-Kossakowski coordinates therefore require an explicit `DissipativeFrame`. The
+Kossakowski coordinates therefore require an explicit `JumpBasis`. The
 [`kossakowski_component`](@ref) docstring gives the complete raw-expansion workflow, including the
 finite Kossakowski form and an individual retained component.
 
-The operator-frame construction and Liouvillian-level Kossakowski representation are described in
+The jump basis and the Liouvillian-level Kossakowski representation are described in
 [System](@ref).
 
 ```@docs

@@ -29,7 +29,7 @@ end
 function collect_lowered_sites!(sites::Dict{Int,LoweredSite}, q::SQA.QAdd)
   isempty(q.indices) ||
     throw(ArgumentError("the native expansion does not support symbolic index sums"))
-  for (term, _) in q.arguments, op in term.ops
+  for (term, _) in q, op in term.ops
     kind = lowered_site_kind(op)
     levels = if SQA.is_transition(op)
       SQA.n_levels(op)
@@ -181,7 +181,7 @@ end
 
 function lower_qadd(lowering::SQALowering{T,R}, q::SQA.QAdd) where {T,R}
   result = AlgebraOperator{T,R}(lowering.algebra, Dict{Monomial,T}())
-  for (term, c) in q.arguments
+  for (term, c) in q
     result = result + lower_coefficient(lowering, c) * lower_term(lowering, term)
   end
   return result
@@ -197,7 +197,7 @@ end
 
 function lowered_monomials(lowering::SQALowering{T,R}, q::SQA.QAdd) where {T,R}
   result = Tuple{AlgebraOperator{T,R},SQA.Coeff}[]
-  for (term, c) in q.arguments
+  for (term, c) in q
     push!(result, (lower_term(lowering, term), c))
   end
   return result

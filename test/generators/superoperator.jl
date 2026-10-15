@@ -70,7 +70,7 @@ end
 
 @testset "Kossakowski coordinates read the normalized channel rate" begin
   L = dissipator(2a)
-  frame = DissipativeFrame(a)
+  frame = JumpBasis(a)
 
   D = @inferred kossakowski(L, frame)
 

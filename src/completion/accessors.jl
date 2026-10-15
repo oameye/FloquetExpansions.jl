@@ -2,8 +2,7 @@
   return getfield(expansion, :completion)
 end
 
-@inline stored_dissipative_frame(expansion::FloquetExpansion) =
-  stored_completion(expansion).frame
+@inline stored_jump_basis(expansion::FloquetExpansion) = stored_completion(expansion).basis
 @inline stored_retained_kossakowski(expansion::FloquetExpansion) =
   stored_completion(expansion).retained_kossakowski
 @inline stored_completion_hamiltonian(expansion::FloquetExpansion) =
@@ -28,15 +27,15 @@ function SQA.hamiltonian(
 end
 
 """
-    dissipative_frame(expansion::FloquetExpansion)
+    jump_basis(expansion::FloquetExpansion)
 
-Return the ordered dissipative frame of a positively completed or [`GKSLNormalForm`](@ref)
+Return the ordered jump basis of a positively completed or [`GKSLNormalForm`](@ref)
 Floquet expansion.
 """
-function dissipative_frame(
+function jump_basis(
   expansion::FloquetExpansion{G,P,E,C,R}
 ) where {G,P,E,C<:Union{PositiveCompletion,NativeRealization},R}
-  return stored_dissipative_frame(expansion)
+  return stored_jump_basis(expansion)
 end
 
 """
@@ -117,7 +116,7 @@ end
 """
     kossakowski(expansion::FloquetExpansion)
 
-Return the finite completed Kossakowski matrix in [`dissipative_frame`](@ref). This no-frame
+Return the finite completed Kossakowski matrix in [`jump_basis`](@ref). This no-basis
 form is defined for positively completed and [`GKSLNormalForm`](@ref) Liouvillian expansions.
 """
 function SQA.kossakowski(
@@ -135,7 +134,7 @@ end
 """
     kossakowski_component(expansion::FloquetExpansion, n::Int)
 
-Return the cached retained order-`n` Kossakowski contribution in the stored dissipative frame of
+Return the cached retained order-`n` Kossakowski contribution in the stored jump basis of
 a positively completed or [`GKSLNormalForm`](@ref) expansion. Positive completion does not alter
 retained components.
 """

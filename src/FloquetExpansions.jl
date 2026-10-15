@@ -49,7 +49,7 @@ include("completion/types.jl")
 include("completion/backend/matrix_series.jl")
 include("completion/backend/linear_algebra.jl")
 include("completion/backend/conversion.jl")
-include("completion/frame_discovery.jl")
+include("completion/basis_discovery.jl")
 include("completion/accessors.jl")
 include("completion/gram/factorization.jl")
 include("completion/gram/recursion.jl")
@@ -66,7 +66,7 @@ export PeriodMap, PeriodMapExpansion, period_map, superoperator, trace_defect
 export JumpAmplitude, amplitude, jump_amplitudes, jump_times, weight
 export Gram, Spectral
 export channels,
-  dissipative_frame,
+  jump_basis,
   factorization,
   positive_completion,
   positivity_conditions,

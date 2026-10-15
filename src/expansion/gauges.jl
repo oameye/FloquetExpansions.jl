@@ -220,6 +220,5 @@ function antiderivative(G::PeriodicGenerator{T}, ::VanVleck) where {T}
       harmonic => (im // harmonic) * component for (harmonic, component) in G.components
     ),
     G.wd,
-    G.zero_component,
   )
 end

@@ -198,7 +198,7 @@ end
 
   H = (1 // 2) * σz + E_ea_cp * cos(ω_ea_cp * t_ea_cp) * σx
   L = hamiltonian_action(H) + γ_ea_cp * dissipator(σminus)
-  frame = DissipativeFrame(σx, σy, σz)
+  frame = JumpBasis(σx, σy, σz)
 
   hori_deprit, bloch_feshbach = map((HoriDeprit(), BlochFeshbach())) do algorithm
     raw = floquet_expansion(L, ω_ea_cp, t_ea_cp, VanVleck(; algorithm), 2)

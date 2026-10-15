@@ -17,7 +17,7 @@ end
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
   σminus = (1 // 2) * (σx - im * σy)
-  frame = DissipativeFrame(σx, σy, σz)
+  frame = JumpBasis(σx, σy, σz)
   @variables ω::Real t::Real E::Real γ::Real
 
   H = (1 // 2) * σz + E * cos(ω * t) * σx
@@ -67,7 +67,7 @@ end
   fock = FockSpace(:liouvillian_vv_phase_boson)
   a = Destroy(fock, :a)
   na = a' * a^2
-  frame = DissipativeFrame(a, a^2, na)
+  frame = JumpBasis(a, a^2, na)
   @variables ω::Real t::Real κ1::Real κ2::Real r1::Real r2::Real
 
   D1 = SQA.SuperOperator(dissipator(a))

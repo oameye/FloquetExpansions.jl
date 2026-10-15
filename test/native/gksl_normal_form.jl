@@ -11,7 +11,7 @@ const SQA = SecondQuantizedAlgebra
 @variables ω::Real t::Real
 
 function same(A::SQA.SuperOperator, B::SQA.SuperOperator)
-  return iszero(SQA.simplify(FE.canonical_superoperator(A - B)))
+  return iszero(SQA.simplify(SQA.expand_completeness(A - B)))
 end
 same(A, B) = iszero(SQA.simplify(FE.qadd(A) - FE.qadd(B)))
 
@@ -99,10 +99,7 @@ end
     for n in 1:3
       m, r = micromotion(native, n), micromotion(reference, n)
       for k in union(keys(m.components), keys(r.components))
-        @test same(
-          get(m.components, k, zero(m.zero_component)),
-          get(r.components, k, zero(r.zero_component)),
-        )
+        @test same(m[k], r[k])
       end
     end
   end

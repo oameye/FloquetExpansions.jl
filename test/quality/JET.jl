@@ -44,7 +44,7 @@ end
   fock = FockSpace(:jet_completion_fock)
   a = Destroy(fock, :a)
   @variables ω::Real t::Real
-  gram_frame = DissipativeFrame(a, a^2)
+  gram_frame = JumpBasis(a, a^2)
   gram_generator = SQA.SuperOperator(dissipator(a + a^2) + dissipator(a + im * a^2))
   gram_expansion = floquet_expansion(gram_generator, ω, t, VanVleck(), 1)
 
@@ -56,7 +56,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  recursive_frame = DissipativeFrame(σx, σy, σz)
+  recursive_frame = JumpBasis(σx, σy, σz)
   recursive_expansion = floquet_expansion(
     hamiltonian_action(cos(ω * t) * σx) + dissipator(σz), ω, t, VanVleck(), 3
   )
@@ -65,7 +65,7 @@ end
     recursive_expansion, Gram(), recursive_frame
   )
 
-  spectral_frame = DissipativeFrame(σz, σy)
+  spectral_frame = JumpBasis(σz, σy)
   JET.@test_opt target_modules=(FloquetExpansions,) positive_completion(
     recursive_expansion, Spectral(), spectral_frame
   )

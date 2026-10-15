@@ -142,10 +142,10 @@ function recursive_gram_factor_series(
 end
 
 function gram_positive_completion(
-  expansion::FloquetExpansion, frame::DissipativeFrame, algorithm::Gram
+  expansion::FloquetExpansion, basis::JumpBasis, algorithm::Gram
 )
   N = order(expansion) - 1
-  retained = retained_gksl_data(expansion, frame)
+  retained = retained_gksl_data(expansion, basis)
   series = completion_series(retained.kossakowski)
   conditions = CompletionConditions()
   seed_completion_conditions!(conditions, getfield(expansion, :provenance))
@@ -155,13 +155,13 @@ function gram_positive_completion(
   finite = finite_factor(amplitudes)
   completed_matrix = multiply_coefficients(finite, adjoint_coefficients(finite))
   simplify_matrix!(completed_matrix)
-  completed_channels = completed_collapse_channels(frame, finite)
+  completed_channels = completed_collapse_channels(basis, finite)
   factorization = GramFactorization(amplitudes, factor_onsets(amplitudes), stages)
 
   return finalize_positive_completion(
     expansion,
     algorithm,
-    frame,
+    basis,
     retained,
     completed_matrix,
     completed_channels,

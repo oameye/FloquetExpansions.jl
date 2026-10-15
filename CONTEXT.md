@@ -120,12 +120,12 @@ The non-Hermitian generator ``Q = -iH - ½ Σ_a γ_a L_a† L_a`` of the evoluti
 
 ## GKSL coordinates and positive completion
 
-**Dissipative frame**:
-An ordered finite set of operator directions ``(F₁, …, F_q)`` used to represent the dissipative Hermitian form. The frame need not be complete, traceless, or Hilbert-Schmidt orthonormal. Ordering and scaling are part of the representation and affect coordinate matrices, deterministic pivot choices, and channel gauge. The frame also selects the positive continuation beyond the retained order. `Gram()` is the perturbative Cholesky gauge (graded LDL†, lower triangular factor coefficients in the active block). Its completion is invariant under lower-triangular frame changes, rescaling included, but depends on frame ordering whenever the active block has rank at least two with off-diagonal data. `Spectral()` depends on the coordinate inner product of the frame, so rescaling one frame vector changes it. Retained coefficients and positivity do not depend on the frame. The type is SecondQuantizedAlgebra's `DissipativeFrame`, which takes directions modulo the identity and with finite-level completeness applied.
-_Avoid_: treating two differently ordered frames as identical merely because they span the same subspace.
+**Jump basis**:
+An ordered finite set of jump operators ``(F₁, …, F_q)`` used to represent the dissipative Hermitian form. The basis need not be complete, traceless, or Hilbert-Schmidt orthonormal. Ordering and scaling are part of the representation and affect coordinate matrices, deterministic pivot choices, and channel gauge. The basis also selects the positive continuation beyond the retained order. `Gram()` is the perturbative Cholesky gauge (graded LDL†, lower triangular factor coefficients in the active block). Its completion is invariant under lower-triangular basis changes, rescaling included, but depends on basis ordering whenever the active block has rank at least two with off-diagonal data. `Spectral()` depends on the coordinate inner product of the basis, so rescaling one basis operator changes it. Retained coefficients and positivity do not depend on the basis. The type is SecondQuantizedAlgebra's `JumpBasis`, which takes operators modulo the identity and with finite-level completeness applied.
+_Avoid_: "dissipative frame", the former name; treating two differently ordered bases as identical merely because they span the same subspace.
 
 **Kossakowski matrix**:
-The Hermitian coordinate matrix ``d`` of the dissipative form in a specified dissipative frame. It is representation dependent, while positive semidefiniteness and inertia are preserved by nonsingular congruence.
+The Hermitian coordinate matrix ``d`` of the dissipative form in a specified jump basis. It is representation dependent, while positive semidefiniteness and inertia are preserved by nonsingular congruence.
 
 **Positive completion**:
 An explicit post-processing step that selects a finite positive Kossakowski continuation while preserving every retained Floquet coefficient. It is not implicit in `floquet_expansion` and is generally nonunique beyond the retained order.
@@ -137,7 +137,7 @@ The type-level state carried by a `FloquetExpansion`, distinguishing an uncomple
 An algebraic positive-completion algorithm that constructs a graded Gram factor ``B`` with retained coefficient matching ``Π_N(BB†) = d^[N]`` and uses the untruncated finite product ``BB†`` as the positive continuation. The construction uses Hermitian congruence, graded ``LDL†`` factorization, and recursive Feshbach/Schur reduction rather than symbolic eigendecomposition.
 
 **Spectral completion**:
-A perturbative spectral/HCM positive completion that follows decay-rate branches in a restricted spectral frame and square-completes retained rates. It is an independent realization and validation oracle rather than a prerequisite for Gram completion.
+A perturbative spectral/HCM positive completion that follows decay-rate branches in a restricted spectral basis and square-completes retained rates. It is an independent realization and validation oracle rather than a prerequisite for Gram completion.
 
 **Gram factor**:
 A matrix ``B`` satisfying ``d = BB†`` for a positive Kossakowski form. Right-unitary/isometric rotations of its columns are jump-channel gauge transformations and leave ``d`` unchanged.
@@ -164,7 +164,7 @@ A symbolic inequality required for a completion to be nonnegative when it cannot
 A nonzero condition defining the fixed-rank parameter stratum on which a symbolic factorization is valid, for example an active pivot used in division or a scalar series square root.
 
 **Microscopic dissipative provenance**:
-Internal information retained only when `floquet_expansion` receives a `Lindbladian`, read from its diagonal channels and used to seed automatic dissipative-frame discovery and physical rate assumptions. A `SuperOperator` input and `PeriodicGenerator` algebra remain provenance-free.
+Internal information retained only when `floquet_expansion` receives a `Lindbladian`, read from its diagonal channels and used to seed automatic jump-basis discovery and physical rate assumptions. A `SuperOperator` input and `PeriodicGenerator` algebra remain provenance-free.
 
 **Completion factorization**:
 Algorithm-specific diagnostic data retained by a completed Floquet expansion and exposed through `factorization`. Gram data include the graded factor, onset information, and compact active/dark history; spectral data include completed branch rates, perturbative vectors/amplitudes, and onset information.

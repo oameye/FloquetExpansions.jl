@@ -28,7 +28,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σz, σy)
+  frame = JumpBasis(σz, σy)
   @variables ω::Real
 
   coherent_rotation = hamiltonian_action(σx)
@@ -59,7 +59,7 @@ end
 @testset "bosonic Gram closure is positive without a Fock cutoff" begin
   fock = FockSpace(:cp_numeric_modulated_loss)
   a = Destroy(fock, :a)
-  frame = DissipativeFrame(a, a^2, a' * a^2)
+  frame = JumpBasis(a, a^2, a' * a^2)
   @variables ω::Real
 
   D1 = dissipator(a)

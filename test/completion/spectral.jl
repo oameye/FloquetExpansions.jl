@@ -21,7 +21,7 @@ a = Destroy(fock, :a)
 @variables ω::Real t::Real γ::Real Ω::Real
 
 @testset "spectral completion preserves a diagonal rate branch" begin
-  frame = DissipativeFrame(a)
+  frame = JumpBasis(a)
   expansion = floquet_expansion(γ * dissipator(a), ω, t, VanVleck(), 1)
   completion = @inferred positive_completion(expansion, Spectral(), frame)
   spectral = factorization(completion)
@@ -29,7 +29,7 @@ a = Destroy(fock, :a)
   @test spectral isa SpectralFactorization
   @test spectral.onsets == [0]
   @test spectral.puiseux == [false]
-  @test dissipative_frame(completion) == frame
+  @test jump_basis(completion) == frame
   @test spectral_matrix_equal(kossakowski(completion), kossakowski(expansion, frame))
   @test effective_component(completion, 0) == effective_component(expansion, 0)
   @test micromotion(completion) == micromotion(expansion)
@@ -38,7 +38,7 @@ a = Destroy(fock, :a)
 end
 
 @testset "spectral factorization accessor returns independent containers" begin
-  frame = DissipativeFrame(a)
+  frame = JumpBasis(a)
   expansion = floquet_expansion(dissipator(a), ω, t, VanVleck(), 1)
   completion = positive_completion(expansion, Spectral(), frame)
 
@@ -56,7 +56,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σz, σy)
+  frame = JumpBasis(σz, σy)
   expansion = floquet_expansion(
     hamiltonian_action(Ω * cos(ω * t) * σx) + dissipator(σz), ω, t, VanVleck(), 3
   )
@@ -83,7 +83,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σz, σy)
+  frame = JumpBasis(σz, σy)
   coherent_rotation = hamiltonian_action(σx)
   diagonal_difference = dissipator(σy) - dissipator(σz)
   leading = dissipator(σz) + 4 * dissipator(σy)
@@ -121,7 +121,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σz, σy)
+  frame = JumpBasis(σz, σy)
   coherent_rotation = hamiltonian_action(σx)
   diagonal_difference = dissipator(σy) - dissipator(σz)
   leading = dissipator(σz) + dissipator(σy)
@@ -147,7 +147,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σz, σy)
+  frame = JumpBasis(σz, σy)
 
   coherent_rotation = hamiltonian_action(σx)
   cross_dissipator = dissipator(σy + σz) - dissipator(σy) - dissipator(σz)
@@ -184,7 +184,7 @@ end
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σz, σy)
+  frame = JumpBasis(σz, σy)
   expansion = floquet_expansion(
     hamiltonian_action(Ω * cos(ω * t) * σx) + dissipator(σz), ω, t, VanVleck(), 3
   )
@@ -205,7 +205,7 @@ end
 end
 
 @testset "non-diagonal leading spectral frame is rejected" begin
-  frame = DissipativeFrame(a, a^2)
+  frame = JumpBasis(a, a^2)
   expansion = floquet_expansion(
     dissipator(a + a^2) + dissipator(a + im * a^2), ω, t, VanVleck(), 1
   )
@@ -240,7 +240,7 @@ end
   σz = Pauli(pauli, :sigma, 3)
   σm = (1 // 2) * (σx - im * σy)
   σp = (1 // 2) * (σx + im * σy)
-  frame = DissipativeFrame(σm, σp, σz)
+  frame = JumpBasis(σm, σp, σz)
   @variables E::Real
 
   symbolic = floquet_expansion(
@@ -275,8 +275,5 @@ end
     VanVleck(),
     5,
   )
-  completion = positive_completion(floating, Spectral(), frame)
-  spectral_numeric_checks(completion, floating, frame, 4, Dict{Symbolics.Num,Float64}())
-  @test SQA.expand_completeness(SQA.SuperOperator(Lindbladian(completion))) ==
-    effective_generator(completion)
+  @test_throws ArgumentError positive_completion(floating, Spectral(), frame)
 end

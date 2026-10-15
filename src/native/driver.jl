@@ -137,5 +137,5 @@ end
 
 function lift_superoperator(lift::CoefficientLift, S::AlgebraSuperoperator)
   builder = lift_superoperator!(SQA.SuperBuilder(), lift, S, convert(SQA.CNum, 1))
-  return canonical_superoperator(SQA.build(builder))
+  return SQA.expand_completeness(SQA.build(builder))
 end

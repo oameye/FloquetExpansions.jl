@@ -13,7 +13,7 @@ end
 function finalize_positive_completion(
   expansion::FloquetExpansion,
   algorithm::CompletionAlgorithm,
-  frame::DissipativeFrame,
+  basis::JumpBasis,
   retained::RetainedGKSLData,
   completed_matrix::KossakowskiMatrix,
   completed_channels,
@@ -29,12 +29,14 @@ function finalize_positive_completion(
   drive_frequency = getfield(expansion, :generator).wd
   retained_kossakowski = physical_kossakowski_series(retained.kossakowski, drive_frequency)
   coherent = retained.coherent
-  lindbladian = gksl_lindbladian(coherent, completed_channels)
-  generator = canonical_superoperator(SQA.SuperOperator(lindbladian))
+  lindbladian = SQA.liouvillian(
+    coherent, first.(completed_channels); rates=last.(completed_channels)
+  )
+  generator = SQA.expand_completeness(SQA.SuperOperator(lindbladian))
 
   completion = PositiveCompletion(
     algorithm,
-    frame,
+    basis,
     retained_kossakowski,
     completed_matrix,
     lindbladian,
@@ -56,9 +58,7 @@ function positive_completion_impl(
 end
 
 function positive_completion_impl(
-  ::FloquetExpansion{G,P,E,Uncompleted,R},
-  algorithm::CompletionAlgorithm,
-  ::DissipativeFrame,
+  ::FloquetExpansion{G,P,E,Uncompleted,R}, algorithm::CompletionAlgorithm, ::JumpBasis
 ) where {G<:Gauge,P<:PeriodicGenerator,E,R<:FloquetProvenance}
   return throw(
     ArgumentError("$(nameof(typeof(algorithm))) positive completion is not implemented yet")
@@ -68,21 +68,19 @@ end
 function positive_completion_impl(
   expansion::FloquetExpansion{G,P,E,Uncompleted,R}, algorithm::Gram
 ) where {G<:Gauge,P<:PeriodicGenerator,E,R<:FloquetProvenance}
-  return gram_positive_completion(
-    expansion, automatic_dissipative_frame(expansion), algorithm
-  )
+  return gram_positive_completion(expansion, automatic_jump_basis(expansion), algorithm)
 end
 
 function positive_completion_impl(
-  expansion::FloquetExpansion{G,P,E,Uncompleted,R}, algorithm::Gram, frame::DissipativeFrame
+  expansion::FloquetExpansion{G,P,E,Uncompleted,R}, algorithm::Gram, basis::JumpBasis
 ) where {G<:Gauge,P<:PeriodicGenerator,E,R<:FloquetProvenance}
-  return gram_positive_completion(expansion, frame, algorithm)
+  return gram_positive_completion(expansion, basis, algorithm)
 end
 
 """
     positive_completion(expansion::FloquetExpansion, algorithm::CompletionAlgorithm)
     positive_completion(expansion::FloquetExpansion, algorithm::CompletionAlgorithm,
-                        frame::DissipativeFrame)
+                        basis::JumpBasis)
 
 Return a positively completed Liouvillian Floquet expansion.
 
@@ -91,11 +89,11 @@ micromotion. [`effective_generator`](@ref) returns the completed finite generato
 [`effective_component`](@ref) and [`micromotion`](@ref) continue to return the retained
 high-frequency data.
 
-The two-argument form derives a dissipative frame from the available Floquet data and, when
-present, microscopic channel information. Pass a `DissipativeFrame` explicitly to fix the
+The two-argument form derives a jump basis from the available Floquet data and, when
+present, microscopic channel information. Pass a `JumpBasis` explicitly to fix the
 operator representation, for example when comparing completion methods in the same physical basis.
-Algorithm-specific frame requirements still apply; see [`Gram`](@ref) and [`Spectral`](@ref).
-An expansion without dissipative terms completes in an empty derived frame with no channels; the
+Algorithm-specific basis requirements still apply; see [`Gram`](@ref) and [`Spectral`](@ref).
+An expansion without dissipative terms completes in an empty derived basis with no channels; the
 completed generator is then the Hamiltonian action of the retained coherent Hamiltonian.
 
 Positive completion is defined only for Liouvillian expansions. Calling it on an already
@@ -103,8 +101,8 @@ completed expansion is an error. Use [`Gram`](@ref) or [`Spectral`](@ref) to sel
 
 # Examples
 
-The following driven qubit first lets `Gram()` derive its dissipative frame, then uses an explicit
-Cartesian frame for `Gram()` and a jump-adapted diagonal frame for `Spectral()`:
+The following driven qubit first lets `Gram()` derive its jump basis, then uses an explicit
+Cartesian basis for `Gram()` and a jump-adapted diagonal basis for `Spectral()`:
 
 ```jldoctest
 julia> qubit = PauliSpace(:completion_doc);
@@ -119,7 +117,7 @@ julia> H = (1 // 2) * σz + E * cos(ω * t) * σx;
 
 julia> raw = floquet_expansion(hamiltonian_action(H) + γ * dissipator(σminus), ω, t, VanVleck(), 3);
 
-julia> cartesian = DissipativeFrame(σx, σy, σz);
+julia> cartesian = JumpBasis(σx, σy, σz);
 
 julia> cp = positive_completion(raw, Gram(), cartesian)
 FloquetExpansion{VanVleck{HoriDeprit}} of order 3
@@ -140,9 +138,9 @@ end
 function positive_completion(
   expansion::FloquetExpansion{G,P,E,Uncompleted,R},
   algorithm::CompletionAlgorithm,
-  frame::DissipativeFrame,
+  basis::JumpBasis,
 ) where {G,P<:PeriodicGenerator{SQA.SuperOperator},E<:SQA.SuperOperator,R}
-  return positive_completion_impl(expansion, algorithm, frame)
+  return positive_completion_impl(expansion, algorithm, basis)
 end
 
 function positive_completion(
@@ -154,7 +152,7 @@ function positive_completion(
 end
 
 function positive_completion(
-  ::FloquetExpansion{G,P,E,Uncompleted,R}, ::CompletionAlgorithm, ::DissipativeFrame
+  ::FloquetExpansion{G,P,E,Uncompleted,R}, ::CompletionAlgorithm, ::JumpBasis
 ) where {G,P<:PeriodicGenerator{SQA.QAdd},E<:SQA.QAdd,R}
   return throw(
     ArgumentError("positive completion requires a Liouvillian Floquet expansion")
@@ -168,7 +166,7 @@ function positive_completion(
 end
 
 function positive_completion(
-  ::FloquetExpansion{G,P,E,C,R}, ::CompletionAlgorithm, ::DissipativeFrame
+  ::FloquetExpansion{G,P,E,C,R}, ::CompletionAlgorithm, ::JumpBasis
 ) where {G,P,E,C<:PositiveCompletion,R}
   return throw(ArgumentError("the Floquet expansion is already positively completed"))
 end
@@ -184,7 +182,7 @@ function positive_completion(
 end
 
 function positive_completion(
-  ::FloquetExpansion{G,P,E,C,R}, ::CompletionAlgorithm, ::DissipativeFrame
+  ::FloquetExpansion{G,P,E,C,R}, ::CompletionAlgorithm, ::JumpBasis
 ) where {G,P,E,C<:NativeRealization,R}
   return throw(
     ArgumentError(

@@ -27,9 +27,9 @@ end
 function agrees_with_gram(L, order, algorithm)
   native = floquet_expansion(L, ω, t, GKSLNormalForm(; algorithm), order)
   reference = floquet_expansion(L, ω, t, VanVleck(; algorithm), order)
-  frame = dissipative_frame(native)
+  frame = jump_basis(native)
   completed = positive_completion(reference, Gram(), frame)
-  @test dissipative_frame(completed) == frame
+  @test jump_basis(completed) == frame
   difference = hamiltonian(native) - hamiltonian(completed)
   @test operator_residual(difference, 7.0; include_identity=false) <= 1.0e-10
   @test size(kossakowski(native)) == size(kossakowski(completed))

@@ -153,17 +153,16 @@ function finite_factor(amplitudes::Vector{KossakowskiMatrix})
   return result
 end
 
-function completed_collapse_channels(frame::DissipativeFrame, factor::KossakowskiMatrix)
-  size(factor, 1) == length(frame) ||
-    throw(DimensionMismatch("Gram factor does not match the dissipative frame"))
+function completed_collapse_channels(basis::JumpBasis, factor::KossakowskiMatrix)
+  size(factor, 1) == length(basis) ||
+    throw(DimensionMismatch("Gram factor does not match the jump basis"))
   result = Pair{SQA.QAdd,SQA.CNum}[]
-  directions = SQA.directions(frame)
   for column in axes(factor, 2)
     operator = zero(SQA.QAdd)
     for row in axes(factor, 1)
       coefficient = factor[row, column]
       iszero(coefficient) && continue
-      operator = operator + coefficient * directions[row]
+      operator = operator + coefficient * basis[row]
     end
     operator = SQA.simplify(operator)
     iszero(operator) || push!(result, operator => coefficient_one())

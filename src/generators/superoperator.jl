@@ -5,15 +5,13 @@
   )
 end
 
-canonical_superoperator(S::SQA.SuperOperator) = SQA.expand_completeness(S)
-
 function canonical_compose(A::SQA.SuperOperator, B::SQA.SuperOperator)
-  return canonical_superoperator(SQA.compose(A, B))
+  return SQA.expand_completeness(SQA.compose(A, B))
 end
 
 component_commutator(A::SQA.QAdd, B::SQA.QAdd) = SQA.commutator(A, B)
 function component_commutator(A::SQA.SuperOperator, B::SQA.SuperOperator)
-  return canonical_superoperator(SQA.commutator(A, B))
+  return SQA.expand_completeness(SQA.commutator(A, B))
 end
 
 """
@@ -49,10 +47,10 @@ function harmonics(S::SQA.SuperOperator, w::Symbolics.Num, t::Symbolics.Num)
     end
   end
   components = Dict{Int,SQA.SuperOperator}(
-    harmonic => canonical_superoperator(SQA.build(builder)) for
+    harmonic => SQA.expand_completeness(SQA.build(builder)) for
     (harmonic, builder) in builders
   )
-  return PeriodicGenerator(components, w, zero(SQA.SuperOperator))
+  return PeriodicGenerator(components, w)
 end
 
 function harmonics(L::SQA.Lindbladian{SQA.QAdd}, w::Symbolics.Num, t::Symbolics.Num)

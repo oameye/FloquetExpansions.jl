@@ -148,7 +148,7 @@ channels of a `Lindbladian` are retained as microscopic input for positive compl
 channel must be diagonal and unsummed, and its rate must be provably real. A real symbolic rate
 is assumed nonnegative as a whole, and a negative numeric rate is rejected. A `SuperOperator`
 carries no channels; it can still be completed from its Floquet data or in a supplied
-`DissipativeFrame`.
+`JumpBasis`.
 
 Hamiltonian generators are checked for Hermiticity at ingest, including the Hamiltonian of a
 `Lindbladian`. A `SuperOperator` uses the common algebra without a Hermiticity requirement.

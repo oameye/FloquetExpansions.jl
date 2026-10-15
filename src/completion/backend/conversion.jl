@@ -41,14 +41,15 @@ function completion_series(matrices::Vector{KossakowskiMatrix})
   return result
 end
 
-function retained_gksl_data(expansion::FloquetExpansion, frame::SQA.DissipativeFrame)
+function retained_gksl_data(expansion::FloquetExpansion, basis::SQA.JumpBasis)
   components = getfield(expansion, :effective_components)
   drive_frequency = getfield(expansion, :generator).wd
   coherent = zero(SQA.QAdd)
   matrices = KossakowskiMatrix[]
   sizehint!(matrices, length(components))
   for index in eachindex(components)
-    hamiltonian, matrix = SQA.gksl_coordinates(components[index], frame)
+    hamiltonian = SQA.hamiltonian(SQA.Lindbladian(components[index], basis))
+    matrix = SQA.kossakowski(components[index], basis)
     coherent = coherent + reattach(hamiltonian, drive_frequency, index - 1)
     push!(matrices, matrix)
   end

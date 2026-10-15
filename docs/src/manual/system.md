@@ -136,8 +136,8 @@ superoperator need not be of GKSL form. See the
 composition, and channel normalization.
 
 The two input types differ in what [`floquet_expansion`](@ref) retains. The channels of a
-`Lindbladian` are the microscopic input of [`positive_completion`](@ref): they seed the dissipative
-frame, and each rate is assumed nonnegative as a whole. Every channel must therefore be diagonal
+`Lindbladian` are the microscopic input of [`positive_completion`](@ref): they seed the jump
+basis, and each rate is assumed nonnegative as a whole. Every channel must therefore be diagonal
 and unsummed, with a provably real rate, and its Hamiltonian must be Hermitian. A `SuperOperator`
 enters the expansion as a bare map, without channels or physical checks.
 
@@ -155,10 +155,10 @@ expansion = floquet_expansion(L, ω, t, VanVleck(), 3)
 The effective components of a Liouvillian expansion are `SuperOperator`s with every finite-level
 completeness relation applied, so a component is zero exactly when it is the zero map.
 
-### Dissipative frames and Kossakowski coordinates
+### Jump bases and Kossakowski coordinates
 
-A `SuperOperator` does not carry a preferred Lindblad representation. When a dissipative operator
-frame ``\{F_\mu\}`` is known, SecondQuantizedAlgebra extracts the coherent Hamiltonian and
+A `SuperOperator` does not carry a preferred Lindblad representation. When a jump basis
+``\{F_\mu\}`` is known, SecondQuantizedAlgebra extracts the coherent Hamiltonian and
 Kossakowski matrix exactly in the symbolic operator algebra:
 
 ```math
@@ -168,18 +168,18 @@ Kossakowski matrix exactly in the symbolic operator algebra:
 - \frac12\{F_\nu^\dagger F_\mu,\rho\}\right).
 ```
 
-A `DissipativeFrame` is an ordered set of linearly independent operator directions modulo the
-identity. Its ordering fixes the coordinates of the Kossakowski matrix; the frame need not be
-orthogonal or normalized. `kossakowski(S, frame)` reads the matrix from the two-sided sandwich
+A `JumpBasis` is an ordered set of jump operators, linearly independent modulo the identity.
+Its ordering fixes the coordinates of the Kossakowski matrix; the basis need not be orthogonal
+or normalized. `kossakowski(S, basis)` reads the matrix from the two-sided sandwich
 terms and verifies the remaining one-sided action as a Hamiltonian commutator, and
-`Lindbladian(S, frame)` returns the map as a `Lindbladian` with one channel per nonzero matrix
+`Lindbladian(S, basis)` returns the map as a `Lindbladian` with one channel per nonzero matrix
 entry. No Hilbert-space matrix representation or finite-dimensional cutoff is introduced. These
 are SecondQuantizedAlgebra functions, documented in its
 [open-systems manual](https://qojulia.github.io/SecondQuantizedAlgebra.jl/dev/open_systems/).
 
 The coherent Hamiltonian `hamiltonian(Lindbladian(S))` is defined modulo an additive multiple of
 the identity, which does not change its commutator action. Kossakowski coordinates of a Floquet
-expansion use the same frame and are described in [Floquet expansion](@ref).
+expansion use the same basis and are described in [Floquet expansion](@ref).
 
 ## Periodic generators
 

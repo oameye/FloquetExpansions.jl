@@ -11,7 +11,7 @@ a = Destroy(h, :a)
 
 @testset "completion diagnostics have semantic displays" begin
   expansion = floquet_expansion(γ * dissipator(a), ω, t, VanVleck(), 1)
-  frame = DissipativeFrame(a)
+  frame = JumpBasis(a)
   gram = factorization(positive_completion(expansion, Gram(), frame))
   spectral = factorization(positive_completion(expansion, Spectral(), frame))
 
@@ -66,7 +66,7 @@ end
   lowered = @inferred floquet_expansion(SQA.SuperOperator(physical_L), ω, t, VanVleck(), 1)
   periodic = @inferred floquet_expansion(harmonics(physical_L, ω, t), VanVleck(), 1)
   coherent = floquet_expansion(H, ω, t, VanVleck(), 1)
-  frame = DissipativeFrame(a)
+  frame = JumpBasis(a)
 
   @test Gram() isa CompletionAlgorithm
   @test Spectral() isa CompletionAlgorithm

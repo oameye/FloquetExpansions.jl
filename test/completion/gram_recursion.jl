@@ -12,7 +12,7 @@ const SQA = SecondQuantizedAlgebra
   σx = Pauli(pauli, :sigma, 1)
   σy = Pauli(pauli, :sigma, 2)
   σz = Pauli(pauli, :sigma, 3)
-  frame = DissipativeFrame(σx, σy, σz)
+  frame = JumpBasis(σx, σy, σz)
 
   H = Ω * cos(ω * t) * σx
   expansion = floquet_expansion(hamiltonian_action(H) + dissipator(σz), ω, t, VanVleck(), 3)

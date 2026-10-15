@@ -52,7 +52,6 @@ qadd(x::SQA.QSym) = 1 * x
 
 """
     PeriodicGenerator(components::AbstractDict{Int,T}, ωd)
-    PeriodicGenerator(components::AbstractDict{Int,T}, ωd, zero_component::T)
 
 Represent a periodic generator by its Fourier harmonics, with drive frequency `ωd`,
 
@@ -69,11 +68,8 @@ combined when they use the same Fourier basis.
 
 - `components`: Map integer harmonic labels to their nonzero components.
 - `ωd`: Symbolic angular frequency defining the Fourier basis.
-- `zero_component`: The zero of the component algebra, which `G[l]` returns for a missing
-  harmonic. A nonzero value throws an `ArgumentError`.
 
-For an empty generator, the optional `zero_component` fixes the component type.
-The component type determines the algebra used by addition, commutators,
+The component type `T` determines the algebra used by addition, commutators,
 differentiation, and simplification.
 
 `G` is Hermitian exactly when `G[-l] == G[l]'` for every `l`, which is what `ishermitian`
@@ -105,20 +101,15 @@ See also [`time_average`](@ref), [`derivative`](@ref), [`antiderivative`](@ref).
 struct PeriodicGenerator{T}
   components::Dict{Int,T}
   wd::Symbolics.Num
-  zero_component::T
 
-  function PeriodicGenerator{T}(
-    components::Dict{Int,T}, wd::Symbolics.Num, zero_component::T
-  ) where {T}
+  function PeriodicGenerator{T}(components::Dict{Int,T}, wd::Symbolics.Num) where {T}
     validate_component_type(T)
-    iszero(zero_component) ||
-      throw(ArgumentError("zero_component must be the zero of the component algebra"))
     kept = Dict{Int,T}()
     sizehint!(kept, length(components))
     for (harmonic, component) in components
       iszero(component) || (kept[harmonic] = component)
     end
-    return new{T}(kept, wd, zero_component)
+    return new{T}(kept, wd)
   end
 end
 
@@ -126,29 +117,19 @@ end
 
 const PeriodicScalar = Union{Real,Complex,Symbolics.Num,SQA.CNum}
 
-function periodic_generator(
-  components::AbstractDict{Int,T}, wd::Symbolics.Num, zero_component::T
-) where {T}
-  return PeriodicGenerator{T}(Dict{Int,T}(components), wd, zero_component)
-end
-
-function PeriodicGenerator(
-  components::AbstractDict{Int,T}, wd::Symbolics.Num, zero_component::T
-) where {T}
-  return periodic_generator(components, wd, zero_component)
+function periodic_generator(components::AbstractDict{Int,T}, wd::Symbolics.Num) where {T}
+  return PeriodicGenerator{T}(Dict{Int,T}(components), wd)
 end
 
 function PeriodicGenerator(components::AbstractDict{Int,T}, wd::Symbolics.Num) where {T}
-  validate_component_type(T)
-  zero_component = isempty(components) ? zero(T) : zero(first(values(components)))
-  return PeriodicGenerator(components, wd, zero_component)
+  return periodic_generator(components, wd)
 end
 
 function PeriodicGenerator(components::AbstractDict{Int,<:SQA.QField}, wd::Symbolics.Num)
   normalized = Dict{Int,SQA.QAdd}(
     harmonic => qadd(component) for (harmonic, component) in components
   )
-  return periodic_generator(normalized, wd, zero(SQA.QAdd))
+  return periodic_generator(normalized, wd)
 end
 
 """
@@ -202,13 +183,13 @@ function harmonics(H::SQA.QAdd, w::Symbolics.Num, t::Symbolics.Num)
         haskey(out, harmonic) ? out[harmonic] + contribution : contribution
     end
   end
-  return PeriodicGenerator(out, w, zero(H))
+  return PeriodicGenerator(out, w)
 end
 
 harmonics(H::SQA.QSym, w::Symbolics.Num, t::Symbolics.Num) = harmonics(qadd(H), w, t)
 
-function Base.getindex(G::PeriodicGenerator, harmonic::Int)
-  return get(G.components, harmonic, G.zero_component)
+function Base.getindex(G::PeriodicGenerator{T}, harmonic::Int) where {T}
+  return get(G.components, harmonic, zero(T))
 end
 Base.keys(G::PeriodicGenerator) = keys(G.components)
 Base.length(G::PeriodicGenerator) = length(G.components)
@@ -216,19 +197,15 @@ Base.iszero(G::PeriodicGenerator) = isempty(G.components)
 Base.isempty(G::PeriodicGenerator) = isempty(G.components)
 
 function Base.:(==)(L::PeriodicGenerator, R::PeriodicGenerator)
-  return isequal(L.wd, R.wd) &&
-         (L.components == R.components) === true &&
-         (L.zero_component == R.zero_component) === true
+  return isequal(L.wd, R.wd) && (L.components == R.components) === true
 end
 
 function Base.isequal(L::PeriodicGenerator, R::PeriodicGenerator)
-  return isequal(L.wd, R.wd) &&
-         isequal(L.components, R.components) &&
-         isequal(L.zero_component, R.zero_component)
+  return isequal(L.wd, R.wd) && isequal(L.components, R.components)
 end
 
 function Base.hash(G::PeriodicGenerator, h::UInt)
-  return hash(:PeriodicGenerator, hash(G.wd, hash(G.components, hash(G.zero_component, h))))
+  return hash(:PeriodicGenerator, hash(G.wd, hash(G.components, h)))
 end
 
 """
@@ -271,7 +248,7 @@ function Base.:+(L::PeriodicGenerator{T}, R::PeriodicGenerator{T}) where {T}
     harmonics[harmonic] =
       haskey(harmonics, harmonic) ? harmonics[harmonic] + component : component
   end
-  return periodic_generator(harmonics, L.wd, L.zero_component)
+  return periodic_generator(harmonics, L.wd)
 end
 
 Base.:-(L::PeriodicGenerator) = -1 * L
@@ -287,7 +264,7 @@ function Base.:-(component::T, L::PeriodicGenerator{T}) where {T}
 end
 
 function Base.zero(G::PeriodicGenerator{T}) where {T}
-  return periodic_generator(Dict{Int,T}(), G.wd, G.zero_component)
+  return periodic_generator(Dict{Int,T}(), G.wd)
 end
 
 function Base.:*(coefficient::PeriodicScalar, L::PeriodicGenerator{T}) where {T}
@@ -296,7 +273,6 @@ function Base.:*(coefficient::PeriodicScalar, L::PeriodicGenerator{T}) where {T}
       harmonic => coefficient * component for (harmonic, component) in L.components
     ),
     L.wd,
-    coefficient * L.zero_component,
   )
 end
 Base.:*(L::PeriodicGenerator, coefficient::PeriodicScalar) = coefficient * L
@@ -333,7 +309,7 @@ function SQA.commutator(L::PeriodicGenerator{T}, R::PeriodicGenerator{T}) where 
     term = component_commutator(left, right)
     out[harmonic] = haskey(out, harmonic) ? out[harmonic] + term : term
   end
-  return periodic_generator(out, L.wd, L.zero_component)
+  return periodic_generator(out, L.wd)
 end
 
 """
@@ -349,7 +325,6 @@ function remove_average(G::PeriodicGenerator{T}) where {T}
       harmonic => component for (harmonic, component) in G.components if harmonic != 0
     ),
     G.wd,
-    G.zero_component,
   )
 end
 
@@ -368,7 +343,6 @@ function derivative(G::PeriodicGenerator{T}) where {T}
       harmonic => (-im * harmonic) * component for (harmonic, component) in G.components
     ),
     G.wd,
-    G.zero_component,
   )
 end
 
@@ -383,7 +357,6 @@ function SQA.simplify(G::PeriodicGenerator{T}) where {T}
       harmonic => SQA.simplify(component) for (harmonic, component) in G.components
     ),
     G.wd,
-    G.zero_component,
   )
 end
 
@@ -399,7 +372,6 @@ function Base.adjoint(G::PeriodicGenerator{SQA.QAdd})
       -harmonic => adjoint(component) for (harmonic, component) in G.components
     ),
     G.wd,
-    adjoint(G.zero_component),
   )
 end
 
@@ -422,10 +394,10 @@ end
 Evaluate `G` at symbolic time `t` by reconstructing it from its Fourier components. The
 return value has the component type of `G`.
 """
-function (G::PeriodicGenerator)(t::Symbolics.Num)
+function (G::PeriodicGenerator{T})(t::Symbolics.Num) where {T}
   return sum(
     SQA.expim(-harmonic * G.wd * t) * component for (harmonic, component) in G.components;
-    init=zero(G.zero_component),
+    init=zero(T),
   )
 end
 
