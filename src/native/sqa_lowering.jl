@@ -27,7 +27,7 @@ function lowered_site_kind(op::SQA.Op)
 end
 
 function collect_lowered_sites!(sites::Dict{Int,LoweredSite}, q::SQA.QAdd)
-  isempty(q.indices) ||
+  isempty(SQA.get_sum_indices(q)) ||
     throw(ArgumentError("the native expansion does not support symbolic index sums"))
   for (term, _) in q, op in term.ops
     kind = lowered_site_kind(op)

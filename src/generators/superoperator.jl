@@ -20,9 +20,9 @@ end
 
 Decompose a symbolic time-dependent map on density operators into the common
 periodic-generator representation. A `Lindbladian` is first lowered to its `SuperOperator`
-sandwiches. The Fourier decomposition is applied independently to the left and right operator
-of every sandwich and to its scalar coefficient, so periodic dependence in a Hamiltonian, jump
-operator, rate, or any combination is supported.
+sandwiches. The decomposition is SecondQuantizedAlgebra's exact `harmonics` of the
+`SuperOperator`, with the harmonic label negated to match [`PeriodicGenerator`](@ref). It covers
+periodic dependence in a Hamiltonian, jump operator, rate, or any combination.
 
 The components are SecondQuantizedAlgebra `SuperOperator`s with every finite-level
 completeness relation applied, so a component is zero exactly when it is the zero map.
@@ -30,25 +30,8 @@ completeness relation applied, so a component is zero exactly when it is the zer
 See also [`PeriodicGenerator`](@ref), [`floquet_expansion`](@ref).
 """
 function harmonics(S::SQA.SuperOperator, w::Symbolics.Num, t::Symbolics.Num)
-  builders = Dict{Int,SQA.SuperBuilder}()
-  for (left, right, coefficient) in sandwiches(S)
-    left_harmonics = harmonics(left, w, t)
-    right_harmonics = harmonics(right, w, t)
-
-    for (left_harmonic, left_component) in component_pairs(left_harmonics),
-      (right_harmonic, right_component) in component_pairs(right_harmonics)
-
-      foreach_harmonic_phase(coefficient, w, t) do coefficient_harmonic, phase_coefficient
-        harmonic = left_harmonic + right_harmonic + coefficient_harmonic
-        builder = get!(SQA.SuperBuilder, builders, harmonic)
-        SQA.accumulate!(builder, phase_coefficient, left_component, right_component)
-        return nothing
-      end
-    end
-  end
   components = Dict{Int,SQA.SuperOperator}(
-    harmonic => SQA.expand_completeness(SQA.build(builder)) for
-    (harmonic, builder) in builders
+    -n => SQA.expand_completeness(Sn) for (n, Sn) in SQA.harmonics(S, w, t)
   )
   return PeriodicGenerator(components, w)
 end

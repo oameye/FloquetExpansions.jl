@@ -132,7 +132,7 @@ and is built from `hamiltonian_action` and
 `SuperOperator(L)` lowering of a Lindbladian gives its sandwiches. Neither type certifies
 positivity: a Lindbladian is a form whose rates may be symbolic or negative, and a general
 superoperator need not be of GKSL form. See the
-[SQA open-systems manual](https://qojulia.github.io/SecondQuantizedAlgebra.jl/dev/open_systems/) for construction,
+[SQA open-systems manual](https://qojulia.github.io/SecondQuantizedAlgebra.jl/dev/manual/open_systems/) for construction,
 composition, and channel normalization.
 
 The two input types differ in what [`floquet_expansion`](@ref) retains. The channels of a
@@ -175,7 +175,7 @@ terms and verifies the remaining one-sided action as a Hamiltonian commutator, a
 `Lindbladian(S, basis)` returns the map as a `Lindbladian` with one channel per nonzero matrix
 entry. No Hilbert-space matrix representation or finite-dimensional cutoff is introduced. These
 are SecondQuantizedAlgebra functions, documented in its
-[open-systems manual](https://qojulia.github.io/SecondQuantizedAlgebra.jl/dev/open_systems/).
+[open-systems manual](https://qojulia.github.io/SecondQuantizedAlgebra.jl/dev/manual/open_systems/).
 
 The coherent Hamiltonian `hamiltonian(Lindbladian(S))` is defined modulo an additive multiple of
 the identity, which does not change its commutator action. Kossakowski coordinates of a Floquet

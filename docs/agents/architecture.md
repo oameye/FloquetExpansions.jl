@@ -55,7 +55,7 @@ Every file currently under `src/` has a row. The public-seam column lists names 
 | File | Owns | Public seam |
 | --- | --- | --- |
 | `FloquetExpansions.jl` | Module wiring, include order, SQA reexports/forwards, the export list, and the qualified expert API | the module's exported and `@public` names |
-| `generators/periodic_generator.jl` | Fourier harmonics, drive frequency, gauge-free harmonic calculus | `PeriodicGenerator`, `harmonics`, `support`, `time_average`, `derivative` |
+| `generators/periodic_generator.jl` | Fourier harmonics (SQA's `harmonics` in the `PeriodicGenerator` sign convention), drive frequency, gauge-free harmonic calculus | `PeriodicGenerator`, `harmonics`, `support`, `time_average`, `derivative` |
 | `generators/superoperator.jl` | Sandwich iteration over an SQA `SuperOperator`, completeness canonicalization of produced maps, the canonical composition and commutator used by the expansion engine, Fourier lowering of maps | the `harmonics` methods for `Lindbladian` and `SuperOperator` |
 | `generators/channels.jl` | Microscopic provenance types and their construction from the channels of a `Lindbladian`, channel-rate validation, assembly of a `Lindbladian` from a Hamiltonian and `jump => rate` pairs | internal only |
 | `generators/quasienergy.jl` | Symbolic Sambe blocks and harmonic indexing | `QuasienergyOperator`, `harmonic_range` |
