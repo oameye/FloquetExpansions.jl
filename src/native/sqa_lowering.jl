@@ -2,6 +2,7 @@ struct LoweredSite
   kind::Int
   space_index::Int
   name::Symbol
+  conjugate_name::Symbol
   levels::Int
   ground::Int
   pauli::Bool
@@ -26,10 +27,13 @@ function lowered_site_kind(op::SQA.Op)
   )
 end
 
-function collect_lowered_sites!(sites::Dict{Int,LoweredSite}, q::SQA.QAdd)
-  isempty(SQA.get_sum_indices(q)) ||
-    throw(ArgumentError("the native expansion does not support symbolic index sums"))
+function collect_lowered_sites!(
+  sites::Dict{Int,LoweredSite}, names::Dict{Tuple{Int,Bool},Symbol}, q::SQA.QAdd
+)
   for (term, _) in q, op in term.ops
+    SQA.has_index(SQA.operator_index(op)) && throw(
+      ArgumentError("the native expansion does not support indexed operators, found $op")
+    )
     kind = lowered_site_kind(op)
     levels = if SQA.is_transition(op)
       SQA.n_levels(op)
@@ -41,18 +45,35 @@ function collect_lowered_sites!(sites::Dict{Int,LoweredSite}, q::SQA.QAdd)
     ground = SQA.is_transition(op) ? SQA.ground_state(op) : 0
     space_index = only(SQA.acts_on(op))
     name = SQA.operator_name(op)
-    site = LoweredSite(kind, space_index, name, levels, ground, SQA.is_pauli(op))
+    site = LoweredSite(kind, space_index, name, name, levels, ground, SQA.is_pauli(op))
     previous = get(sites, space_index, site)
-    (previous.kind, previous.levels, previous.pauli, previous.ground, previous.name) ==
-    (kind, levels, site.pauli, ground, site.name) || throw(
+    slot = (space_index, SQA.is_momentum(op))
+    (previous.kind, previous.levels, previous.pauli, previous.ground) ==
+    (kind, levels, site.pauli, ground) && get(names, slot, name) == name || throw(
       ArgumentError(
         "one Hilbert subspace carries operators of different kinds or names; " *
-        "the native expansion needs a single operator name per subspace",
+        "the native expansion needs a single operator name per subspace, or one per " *
+        "quadrature of a phase space",
       ),
     )
+    names[slot] = name
     sites[space_index] = previous
   end
   return sites
+end
+
+function named_site(site::LoweredSite, names::Dict{Tuple{Int,Bool},Symbol})
+  name = get(names, (site.space_index, false), site.name)
+  conjugate_name = get(names, (site.space_index, true), name)
+  return LoweredSite(
+    site.kind,
+    site.space_index,
+    name,
+    conjugate_name,
+    site.levels,
+    site.ground,
+    site.pauli,
+  )
 end
 
 function SQALowering{T}(generator::PeriodicGenerator{SQA.SuperOperator}) where {T}
@@ -66,11 +87,18 @@ function SQALowering{T}(
 ) where {T}
   R = real(T)
   found = Dict{Int,LoweredSite}()
-  for (_, L) in generator.components, (left, right, _) in sandwiches(L)
-    collect_lowered_sites!(found, qadd(left))
-    collect_lowered_sites!(found, qadd(right))
+  names = Dict{Tuple{Int,Bool},Symbol}()
+  for (_, L) in generator.components
+    isempty(SQA.get_sum_indices(L)) ||
+      throw(ArgumentError("the native expansion does not support symbolic index sums"))
+    for (left, right, _) in sandwiches(L)
+      collect_lowered_sites!(found, names, left)
+      collect_lowered_sites!(found, names, right)
+    end
   end
-  sites = sort!(collect(values(found)); by=site -> site.space_index)
+  sites = sort!(
+    [named_site(site, names) for site in values(found)]; by=site -> site.space_index
+  )
   algebra_sites = AlgebraSite{R}[
     if site.kind == LEVEL_SITE
       level_site(fill(one(R), site.levels))
@@ -195,22 +223,12 @@ function lower_term(lowering::SQALowering{T,R}, term::SQA.QTerm) where {T,R}
   return product
 end
 
-function lowered_monomials(lowering::SQALowering{T,R}, q::SQA.QAdd) where {T,R}
-  result = Tuple{AlgebraOperator{T,R},SQA.Coeff}[]
-  for (term, c) in q
-    push!(result, (lower_term(lowering, term), c))
-  end
-  return result
-end
-
 function lower_liouvillian(lowering::SQALowering{T,R}, L::SQA.SuperOperator) where {T,R}
   result = AlgebraSuperoperator{T,R}(lowering.algebra, Dict{Tuple{Monomial,Monomial},T}())
   for (left, right, c) in sandwiches(L)
-    for (X, cl) in lowered_monomials(lowering, qadd(left)),
-      (Y, cr) in lowered_monomials(lowering, qadd(right))
-
-      result = result + lower_coefficient(lowering, c * cl * cr) * sandwich(X, Y)
-    end
+    X = lower_qadd(lowering, left)
+    Y = lower_qadd(lowering, right)
+    result = result + lower_coefficient(lowering, c) * sandwich(X, Y)
   end
   return result
 end
@@ -242,7 +260,7 @@ function site_operator(lowering::SQALowering, s::Int, p::Int, q::Int, r::Int...)
   elseif site.kind == PHASE_SITE
     phase = SQA.PhaseSpace(name)
     x = SQA.set_acts_on(SQA.Position(phase, name), index)
-    k = SQA.set_acts_on(SQA.Momentum(phase, name), index)
+    k = SQA.set_acts_on(SQA.Momentum(phase, site.conjugate_name), index)
     return qadd(x)^p * qadd(k)^q
   elseif site.kind == SPIN_SITE
     return spin_site_operator(site, p, q, r[1])
@@ -265,14 +283,12 @@ function lift_operator(lowering::SQALowering, X::AlgebraOperator)
 end
 
 function lift_operator(lowering::SQALowering, X::AlgebraOperator, coefficients)
-  result = zero(SQA.QAdd)
-  for (monomial, c) in X.terms
-    product = one(SQA.QAdd)
-    for s in eachindex(lowering.sites)
-      slots = monomial[site_slots(lowering.algebra, s)]
-      product = product * site_operator(lowering, s, slots...)
-    end
-    result = result + lift_coefficient(coefficients, c) * product
-  end
-  return SQA.simplify(result)
+  terms = SQA.QAdd[
+    lift_coefficient(coefficients, c) * prod(
+      site_operator(lowering, s, monomial[site_slots(lowering.algebra, s)]...) for
+      s in eachindex(lowering.sites);
+      init=one(SQA.QAdd),
+    ) for (monomial, c) in X.terms
+  ]
+  return SQA.simplify(sum(terms))
 end

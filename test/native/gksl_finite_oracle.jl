@@ -84,12 +84,6 @@ X = σ(1, 2) + σ(2, 1) + (3 // 4) * (σ(2, 3) + σ(3, 2))
 H = H0 + (2 // 5) * X * cos(ω * t)
 decay = ((σ(1, 2), 3 // 10), (σ(2, 3), 1 // 5), (σ(2, 2), 1 // 10))
 
-function lindbladian(H, channels)
-  return foldl(channels; init=hamiltonian_action(H)) do L, (J, rate)
-    return L + rate * dissipator(J)
-  end
-end
-
 function lab_static(d)
   S = hamiltonian_superoperator(tomatrix(H0, d, Dict(ω => 1.0)))
   for (J, rate) in decay

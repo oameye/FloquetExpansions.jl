@@ -111,12 +111,6 @@ function choi_eigenvalues(Φ, d, value)
   return eigvals(Hermitian(choi))
 end
 
-function lindbladian(H, channels)
-  return foldl(channels; init=hamiltonian_action(H)) do L, (J, rate)
-    return L + rate * dissipator(J)
-  end
-end
-
 const drive = (1 // 2) * σz + cos(ω * t) * σx
 const decay = ((σ(1, 2), 1 // 5), ((1 // 3) * σz, 1 // 1))
 const rotating = ((σz + cos(ω * t) * σy + sin(ω * t) * σx, 1 // 4),)

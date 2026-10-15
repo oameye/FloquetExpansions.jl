@@ -117,19 +117,10 @@ function collect_parameters!(found::Vector{Symbolics.Num}, c::SQA.CNum)
   return found
 end
 
-function collect_parameters!(found::Vector{Symbolics.Num}, q::SQA.QAdd)
-  for (_, c) in q
-    collect_parameters!(found, c)
-  end
-  return found
-end
-
 function native_parameters(generator::PeriodicGenerator{SQA.SuperOperator})
   found = Symbolics.Num[]
-  for (_, L) in generator.components, (left, right, c) in sandwiches(L)
+  for (_, L) in generator.components, (_, _, c) in sandwiches(L)
     collect_parameters!(found, c)
-    collect_parameters!(found, qadd(left))
-    collect_parameters!(found, qadd(right))
   end
   return sort!(found; by=string)
 end
@@ -211,7 +202,7 @@ function parameter_term(coefficients::ParameterCoefficients, i::Int)
 end
 
 function parameter_polynomial(coefficients::ParameterCoefficients, p::Nemo.QQMPolyRingElem)
-  result = convert(SQA.CNum, 0)
+  result = zero(SQA.CNum)
   for (q, exponents) in zip(Nemo.coefficients(p), Nemo.exponent_vectors(p))
     term = convert(SQA.CNum, Rational{BigInt}(q))
     for (i, e) in pairs(exponents)

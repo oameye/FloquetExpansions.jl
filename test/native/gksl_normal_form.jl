@@ -10,12 +10,7 @@ const SQA = SecondQuantizedAlgebra
 
 @variables ω::Real t::Real
 
-function same(A::SQA.SuperOperator, B::SQA.SuperOperator)
-  return iszero(SQA.simplify(SQA.expand_completeness(A - B)))
-end
-same(A, B) = iszero(SQA.simplify(FE.qadd(A) - FE.qadd(B)))
-
-channel_map(entry) = SQA.SuperOperator(last(entry) * dissipator(SQA.jump(first(entry))))
+include(joinpath(@__DIR__, "..", "helpers", "shared.jl"))
 
 function has_channel(jumps, expected::Lindbladian)
   return count(entry -> same(channel_map(entry), SQA.SuperOperator(expected)), jumps) == 1
@@ -138,8 +133,8 @@ end
 
 @testset "GKSLNormalForm on a driven oscillator in position and momentum" begin
   phase = PhaseSpace(:q)
-  x = Position(phase, :q)
-  p = Momentum(phase, :q)
+  x = Position(phase, :x)
+  p = Momentum(phase, :p)
   H0 = (1 // 2) * p * p + (1 // 2) * x * x
   H = H0 + (1 // 5) * x * cos(ω * t)
   loss = (1 // 5) * dissipator(x + im * p)
@@ -191,4 +186,15 @@ end
     ω,
   )
   @test_throws "not of GKSL form" floquet_expansion(not_hermitian, GKSLNormalForm(), 3)
+  hc = FockSpace(:cavity) ⊗ NLevelSpace(:atoms, 2, 1)
+  @variables N::Int
+  i = Index(hc, :i, N, NLevelSpace(:atoms, 2, 1))
+  c = Destroy(hc, :c, 1)
+  σ(j, k) = IndexedOperator(Transition(hc, :σ, j, k, 2), i)
+  collective = Σ(cos(ω * t) * (c' * σ(1, 2) + c * σ(2, 1)), i)
+  ensemble = SQA.liouvillian(c' * c + collective, [c]; rates=[1 // 5])
+  @test_throws "symbolic index sums" floquet_expansion(ensemble, ω, t, GKSLNormalForm(), 2)
+  @test_throws "symbolic index sums" floquet_expansion(period_map(ensemble, ω, t), VanVleck(), 1)
+  single = SQA.liouvillian(cos(ω * t) * (c' * σ(1, 2) + c * σ(2, 1)), [c]; rates=[1 // 5])
+  @test_throws "indexed operators" floquet_expansion(single, ω, t, GKSLNormalForm(), 2)
 end

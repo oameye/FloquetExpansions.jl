@@ -9,12 +9,7 @@ const SQA = SecondQuantizedAlgebra
 
 @variables ω::Real t::Real
 
-function same(A::SQA.SuperOperator, B::SQA.SuperOperator)
-  return iszero(SQA.simplify(SQA.expand_completeness(A - B)))
-end
-same(A, B) = iszero(SQA.simplify(FE.qadd(A) - FE.qadd(B)))
-
-channel_map(entry) = SQA.SuperOperator(last(entry) * dissipator(SQA.jump(first(entry))))
+include(joinpath(@__DIR__, "..", "helpers", "shared.jl"))
 
 phased_cosine() = ((3 + 4im) // 10) * expim(ω * t) + ((3 - 4im) // 10) * expim(-ω * t)
 plain_cosine() = (1 // 2) * expim(ω * t) + (1 // 2) * expim(-ω * t)

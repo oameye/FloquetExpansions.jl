@@ -14,13 +14,7 @@ a = Destroy(h, :a)
 evaluate(X::PeriodicGenerator, t) = X(t)
 
 function ddt(q::SQA.QAdd, t)
-  D = Differential(t)
-  out = zero(SQA.QAdd)
-  for (term, coeff) in q
-    mono = isempty(term.ops) ? one(SQA.QAdd) : prod(term.ops)
-    out = out + expand_derivatives(D(SQA.to_num(coeff))) * mono
-  end
-  return out
+  return SQA.map_coefficients(c -> expand_derivatives(Differential(t)(SQA.to_num(c))), q)
 end
 
 function drive()
@@ -135,4 +129,7 @@ end
   @test iszero(Z)
   @test Z[0] == zero(SQA.QAdd)
   @test_throws ArgumentError PeriodicGenerator(Dict{Int,Any}(), w)
+  @test_throws "polynomial operator components" PeriodicGenerator(
+    Dict(1 => a, -1 => cos(a + a')), w
+  )
 end

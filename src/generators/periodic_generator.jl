@@ -8,6 +8,14 @@ end
 
 qadd(x::SQA.QAdd) = x
 qadd(x::SQA.QSym) = 1 * x
+function qadd(x::SQA.QExpr)
+  return throw(
+    ArgumentError(
+      "a periodic generator needs polynomial operator components, found the operator " *
+      "function $x",
+    ),
+  )
+end
 
 """
     PeriodicGenerator(components::AbstractDict{Int,T}, ωd)
