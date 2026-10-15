@@ -1,3 +1,5 @@
+const KossakowskiMatrix = Matrix{SQA.CNum}
+
 """
     kossakowski(expansion::FloquetExpansion, basis::JumpBasis)
 

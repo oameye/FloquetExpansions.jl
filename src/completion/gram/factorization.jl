@@ -140,14 +140,14 @@ function factor_onsets(amplitudes::Vector{KossakowskiMatrix})
 end
 
 function finite_factor(amplitudes::Vector{KossakowskiMatrix})
-  isempty(amplitudes) && return coefficient_matrix(0, 0)
+  isempty(amplitudes) && return zeros(SQA.CNum, 0, 0)
   rows, columns = size(first(amplitudes))
-  result = coefficient_matrix(rows, columns)
+  result = zeros(SQA.CNum, rows, columns)
   for amplitude in amplitudes
     size(amplitude) == (rows, columns) ||
       throw(DimensionMismatch("all Gram amplitudes must have the same dimensions"))
     for index in eachindex(result)
-      result[index] = simplify_coefficient(result[index] + amplitude[index])
+      result[index] = SQA.simplify(result[index] + amplitude[index])
     end
   end
   return result
@@ -165,7 +165,7 @@ function completed_collapse_channels(basis::JumpBasis, factor::KossakowskiMatrix
       operator = operator + coefficient * basis[row]
     end
     operator = SQA.simplify(operator)
-    iszero(operator) || push!(result, operator => coefficient_one())
+    iszero(operator) || push!(result, operator => one(SQA.CNum))
   end
   return result
 end

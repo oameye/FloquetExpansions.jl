@@ -242,7 +242,7 @@ function hcm_completed_rate(
   rates::ScalarSeries, wd::Symbolics.Num, N::Int, conditions::CompletionConditions
 )
   onset = series_onset(rates, N)
-  onset < 0 && return coefficient_zero(), -1, false
+  onset < 0 && return zero(SQA.CNum), -1, false
 
   leading = hermitian_real(rates[onset + 1])
   sign = structural_sign(leading, conditions)
@@ -319,7 +319,7 @@ function spectral_completed_matrix(
 end
 
 function coefficient_matrix_from_expanded(matrix::CompletionMatrix)
-  result = coefficient_matrix(size(matrix, 1), size(matrix, 2))
+  result = zeros(SQA.CNum, size(matrix, 1), size(matrix, 2))
   for index in eachindex(matrix)
     result[index] = convert(SQA.CNum, matrix[index])
   end

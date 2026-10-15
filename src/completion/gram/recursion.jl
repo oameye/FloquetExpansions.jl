@@ -153,8 +153,7 @@ function gram_positive_completion(
   factor, stages = recursive_gram_factor_series(series, N, conditions)
   amplitudes = physical_factor_amplitudes(factor, getfield(expansion, :generator).wd, N)
   finite = finite_factor(amplitudes)
-  completed_matrix = multiply_coefficients(finite, adjoint_coefficients(finite))
-  simplify_matrix!(completed_matrix)
+  completed_matrix = SQA.simplify.(finite * finite')
   completed_channels = completed_collapse_channels(basis, finite)
   factorization = GramFactorization(amplitudes, factor_onsets(amplitudes), stages)
 

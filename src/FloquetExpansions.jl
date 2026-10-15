@@ -27,7 +27,6 @@ include("expansion/floquet_expansion.jl")
 include("expansion/hori_deprit.jl")
 include("expansion/bloch_feshbach.jl")
 
-include("gksl/coefficients.jl")
 include("gksl/floquet.jl")
 
 include("native/graded_channels.jl")

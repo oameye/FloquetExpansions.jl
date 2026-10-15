@@ -16,7 +16,7 @@ function coefficient_from_completion(value::CompletionScalar)
 end
 
 function coefficient_matrix_from_completion(matrix::CompletionMatrix)
-  result = coefficient_matrix(size(matrix, 1), size(matrix, 2))
+  result = zeros(SQA.CNum, size(matrix, 1), size(matrix, 2))
   for index in eachindex(matrix)
     result[index] = coefficient_from_completion(matrix[index])
   end
@@ -63,13 +63,13 @@ function physical_kossakowski_series(matrices::Vector{KossakowskiMatrix}, wd::Sy
     matrix = matrices[index]
     grade = index - 1
     scale = if iszero(grade)
-      coefficient_one()
+      one(SQA.CNum)
     else
       convert(SQA.CNum, inverse_drive_power(wd, grade))
     end
-    physical = coefficient_matrix(size(matrix, 1), size(matrix, 2))
+    physical = zeros(SQA.CNum, size(matrix, 1), size(matrix, 2))
     for entry in eachindex(matrix)
-      physical[entry] = simplify_coefficient(scale * matrix[entry])
+      physical[entry] = SQA.simplify(scale * matrix[entry])
     end
     push!(result, physical)
   end

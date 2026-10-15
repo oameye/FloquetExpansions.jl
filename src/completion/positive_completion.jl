@@ -20,7 +20,7 @@ function finalize_positive_completion(
   conditions::CompletionConditions,
   factorization::CompletionFactorization,
 )
-  matrix_is_hermitian(completed_matrix) || throw(
+  LinearAlgebra.ishermitian(completed_matrix) || throw(
     ArgumentError(
       "completed $(nameof(typeof(algorithm))) Kossakowski matrix is not Hermitian"
     ),
