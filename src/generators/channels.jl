@@ -281,7 +281,7 @@ end
 function numeric_coefficient(coefficient::SQA.CNum)
   SQA.is_native(coefficient) && return true
   tail = coefficient.tail
-  return tail isa SQA.Poly && all(SQA.is_constant_term, tail.terms)
+  return tail isa SQA.Poly && all(term -> isempty(term.syms), tail.terms)
 end
 
 function known_negative_jump_rate(coefficient::SQA.CNum)
