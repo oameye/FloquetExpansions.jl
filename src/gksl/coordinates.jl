@@ -235,7 +235,7 @@ function drop_floating_roundoff(
       get(dissipative.terms, action, zero(SQA.CNum)),
     )
     two_sided = !qadd_isone(left) && !qadd_isone(right)
-    floor = two_sided ? matrix_scale : 0.0
+    floor = two_sided || !iszero(last(reference)) ? matrix_scale : 0.0
     floating_roundoff(coefficient, reference, floor) && continue
     add_term!(result, left, right, coefficient)
   end
